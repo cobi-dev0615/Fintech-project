@@ -1,0 +1,189 @@
+import { useState } from "react";
+import { CheckCircle2, XCircle, Clock, RefreshCw, Trash2, Link2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import ChartCard from "@/components/dashboard/ChartCard";
+
+interface Connection {
+  id: string;
+  name: string;
+  type: "bank" | "b3";
+  status: "connected" | "disconnected" | "error" | "expired";
+  lastSync?: string;
+  accountsCount?: number;
+}
+
+const Connections = () => {
+  const [connections] = useState<Connection[]>([
+    {
+      id: "1",
+      name: "Itaú",
+      type: "bank",
+      status: "connected",
+      lastSync: "há 2 minutos",
+      accountsCount: 2,
+    },
+    {
+      id: "2",
+      name: "Nubank",
+      type: "bank",
+      status: "connected",
+      lastSync: "há 15 minutos",
+      accountsCount: 1,
+    },
+    {
+      id: "3",
+      name: "B3",
+      type: "b3",
+      status: "connected",
+      lastSync: "há 1 hora",
+    },
+    {
+      id: "4",
+      name: "Bradesco",
+      type: "bank",
+      status: "expired",
+      lastSync: "há 5 dias",
+      accountsCount: 1,
+    },
+    {
+      id: "5",
+      name: "Inter",
+      type: "bank",
+      status: "disconnected",
+    },
+  ]);
+
+  const getStatusIcon = (status: Connection["status"]) => {
+    switch (status) {
+      case "connected":
+        return <CheckCircle2 className="h-4 w-4 text-success" />;
+      case "error":
+        return <XCircle className="h-4 w-4 text-destructive" />;
+      case "expired":
+        return <Clock className="h-4 w-4 text-warning" />;
+      default:
+        return <XCircle className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusText = (status: Connection["status"]) => {
+    switch (status) {
+      case "connected":
+        return "Conectado";
+      case "error":
+        return "Erro";
+      case "expired":
+        return "Expirado";
+      default:
+        return "Desconectado";
+    }
+  };
+
+  const getStatusColor = (status: Connection["status"]) => {
+    switch (status) {
+      case "connected":
+        return "border-success/30";
+      case "error":
+        return "border-destructive/30";
+      case "expired":
+        return "border-warning/30";
+      default:
+        return "border-border";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Conexões</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gerencie suas conexões Open Finance e B3
+          </p>
+        </div>
+        <Button className="w-full md:w-auto">
+          <Link2 className="h-4 w-4 mr-2" />
+          Nova Conexão
+        </Button>
+      </div>
+
+      {/* Connections Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {connections.map((connection) => (
+          <div
+            key={connection.id}
+            className={`chart-card border-l-2 ${getStatusColor(connection.status)}`}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {connection.name}
+                  </h3>
+                  {getStatusIcon(connection.status)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {connection.type === "bank" ? "Banco" : "Bolsa de Valores"}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Status:</span>
+                <span className="text-foreground font-medium">
+                  {getStatusText(connection.status)}
+                </span>
+              </div>
+              {connection.lastSync && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Última sincronização:</span>
+                  <span className="text-foreground">{connection.lastSync}</span>
+                </div>
+              )}
+              {connection.accountsCount && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Contas:</span>
+                  <span className="text-foreground">{connection.accountsCount}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {connection.status === "connected" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Sincronizar
+                </Button>
+              )}
+              {connection.status === "expired" && (
+                <Button size="sm" className="flex-1 text-xs">
+                  Reautorizar
+                </Button>
+              )}
+              {connection.status === "disconnected" && (
+                <Button size="sm" className="flex-1 text-xs">
+                  Conectar
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default Connections;
