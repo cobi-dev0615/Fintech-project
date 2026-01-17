@@ -200,15 +200,15 @@ const PricingSection = () => {
                   transformStyle: 'preserve-3d',
                 }}
               >
-                <Button
-                  asChild
-                  variant={plan.featured ? "default" : "outline"}
+              <Button
+                asChild
+                variant={plan.featured ? "default" : "outline"}
                   className="w-full transition-transform duration-300 hover:scale-105"
-                  size="lg"
-                >
-                  <Link to="/register">{plan.cta}</Link>
-                </Button>
-              </div>
+                size="lg"
+              >
+                <Link to="/register">{plan.cta}</Link>
+              </Button>
+            </div>
             </div>
           );
           })}

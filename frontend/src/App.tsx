@@ -24,12 +24,21 @@ import B3Portfolio from "./pages/B3Portfolio";
 import Reports from "./pages/Reports";
 import Goals from "./pages/Goals";
 import Calculators from "./pages/Calculators";
+import FIRECalculator from "./pages/calculators/FIRECalculator";
+import CompoundInterest from "./pages/calculators/CompoundInterest";
+import UsufructCalculator from "./pages/calculators/UsufructCalculator";
+import ITCMDCalculator from "./pages/calculators/ITCMDCalculator";
+import ProfitabilitySimulator from "./pages/calculators/ProfitabilitySimulator";
 
 // Consultant pages
 import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
 import ClientsList from "./pages/consultant/ClientsList";
 import ClientProfile from "./pages/consultant/ClientProfile";
 import Pipeline from "./pages/consultant/Pipeline";
+import Messages from "./pages/consultant/Messages";
+import ProfessionalReports from "./pages/consultant/ProfessionalReports";
+import PortfolioSimulator from "./pages/consultant/PortfolioSimulator";
+import SendInvitations from "./pages/consultant/SendInvitations";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -37,6 +46,8 @@ import UserManagement from "./pages/admin/UserManagement";
 import Subscriptions from "./pages/admin/Subscriptions";
 import IntegrationsMonitor from "./pages/admin/IntegrationsMonitor";
 import DAMAProspecting from "./pages/admin/DAMAProspecting";
+import FinancialReports from "./pages/admin/FinancialReports";
+import Settings from "./pages/admin/Settings";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +76,11 @@ const App = () => (
             <Route path="reports" element={<Reports />} />
             <Route path="goals" element={<Goals />} />
             <Route path="calculators" element={<Calculators />} />
+            <Route path="calculators/fire" element={<FIRECalculator />} />
+            <Route path="calculators/compound" element={<CompoundInterest />} />
+            <Route path="calculators/usufruct" element={<UsufructCalculator />} />
+            <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
+            <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
             <Route path="more" element={<Dashboard />} />
           </Route>
 
@@ -74,6 +90,16 @@ const App = () => (
             <Route path="clients" element={<ClientsList />} />
             <Route path="clients/:id" element={<ClientProfile />} />
             <Route path="pipeline" element={<Pipeline />} />
+            <Route path="invitations" element={<SendInvitations />} />
+            <Route path="messages" element={<Messages />} />
+            <Route path="reports" element={<ProfessionalReports />} />
+            <Route path="calculators" element={<Calculators />} />
+            <Route path="calculators/fire" element={<FIRECalculator />} />
+            <Route path="calculators/compound" element={<CompoundInterest />} />
+            <Route path="calculators/usufruct" element={<UsufructCalculator />} />
+            <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
+            <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
+            <Route path="simulator" element={<PortfolioSimulator />} />
           </Route>
 
           {/* Admin Routes */}
@@ -83,6 +109,8 @@ const App = () => (
             <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="integrations" element={<IntegrationsMonitor />} />
             <Route path="prospecting" element={<DAMAProspecting />} />
+            <Route path="financial" element={<FinancialReports />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           
           {/* Catch-all */}

@@ -269,9 +269,9 @@ const RiskSection = () => {
               }}
             >
               <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300">
-                <Link to="/register">Acessar plataforma</Link>
-              </Button>
-            </div>
+              <Link to="/register">Acessar plataforma</Link>
+            </Button>
+          </div>
           </div>
         </div>
       </div>

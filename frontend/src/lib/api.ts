@@ -1,4 +1,36 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Determine API base URL dynamically based on current origin
+const getApiBaseUrl = () => {
+  // Use environment variable if set
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Detect if we're running on localhost or public IP
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    
+    // If accessing from localhost, use localhost for API
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return 'http://localhost:3000/api';
+    }
+    
+    // If accessing from public IP, use same IP for API
+    // Extract IP and port from origin (e.g., http://167.71.94.65:8081 -> http://167.71.94.65:3000)
+    try {
+      const url = new URL(origin);
+      const hostname = url.hostname;
+      return `http://${hostname}:3000/api`;
+    } catch {
+      // Fallback to localhost if URL parsing fails
+      return 'http://localhost:3000/api';
+    }
+  }
+  
+  // Server-side fallback
+  return 'http://localhost:3000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface ApiError {
   error: string;
