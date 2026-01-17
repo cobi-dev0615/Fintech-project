@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -155,6 +156,47 @@ export default {
           "0%, 100%": { boxShadow: "0 0 5px rgba(249, 115, 22, 0.5)" },
           "50%": { boxShadow: "0 0 20px rgba(249, 115, 22, 0.8)" },
         },
+        "slide-from-phone": {
+          "0%": { 
+            opacity: "0", 
+            transform: "translate(0, 0) scale(0.8)",
+          },
+          "50%": {
+            opacity: "0.5",
+          },
+          "100%": { 
+            opacity: "1", 
+            transform: "translate(var(--target-x), var(--target-y)) scale(1)",
+          },
+        },
+        "float": {
+          "0%, 100%": { transform: "translate3d(0, 0, 0) rotate(0deg)" },
+          "25%": { transform: "translate3d(15px, -40px, 0) rotate(1.5deg)" },
+          "50%": { transform: "translate3d(-20px, -60px, 0) rotate(-2deg)" },
+          "75%": { transform: "translate3d(18px, -35px, 0) rotate(1deg)" },
+        },
+        "float-left": {
+          "0%, 100%": { transform: "translate3d(0, 0, 0) rotate(0deg)" },
+          "25%": { transform: "translate3d(-75px, -135px, 0) rotate(-2deg)" },
+          "50%": { transform: "translate3d(-54px, -210px, 0) rotate(1.5deg)" },
+          "75%": { transform: "translate3d(-90px, -120px, 0) rotate(-1deg)" },
+        },
+        "float-right": {
+          "0%, 100%": { transform: "translate3d(0, 0, 0) rotate(0deg)" },
+          "25%": { transform: "translate3d(25px, -42px, 0) rotate(2deg)" },
+          "50%": { transform: "translate3d(18px, -65px, 0) rotate(-1.5deg)" },
+          "75%": { transform: "translate3d(30px, -45px, 0) rotate(1.2deg)" },
+        },
+        "float-deep": {
+          "0%, 100%": { transform: "translate3d(0, 0, 0) rotate(0deg) scale(1)" },
+          "25%": { transform: "translate3d(-15px, -50px, 0) rotate(-1.5deg) scale(1.02)" },
+          "50%": { transform: "translate3d(20px, -75px, 0) rotate(2deg) scale(0.98)" },
+          "75%": { transform: "translate3d(-12px, -45px, 0) rotate(-0.8deg) scale(1.01)" },
+        },
+        "scrollUp": {
+          "0%": { transform: "translateY(0%)" },
+          "100%": { transform: "translateY(-33.333%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -166,8 +208,14 @@ export default {
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
         "count-up": "count-up 0.8s ease-out forwards",
         "pulse-glow": "pulse-glow 2s infinite",
+        "slide-from-phone": "slide-from-phone 0.8s ease-out forwards",
+        "float": "float 40s ease-in-out infinite",
+        "float-left": "float-left 45s ease-in-out infinite",
+        "float-right": "float-right 35s ease-in-out infinite",
+        "float-deep": "float-deep 48s ease-in-out infinite",
+        "scrollUp": "scrollUp 20s linear infinite",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

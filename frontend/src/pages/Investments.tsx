@@ -232,7 +232,7 @@ const Investments = () => {
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={benchmarkData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-              <Grid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis
                 dataKey="name"
                 axisLine={false}
