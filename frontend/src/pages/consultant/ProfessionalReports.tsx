@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileText, Download, Plus, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { consultantApi } from "@/lib/api";
 
 interface Report {
   id: string;
@@ -15,7 +16,7 @@ interface Report {
   generatedAt: string;
   status: "generated" | "pending";
   hasWatermark: boolean;
-  downloadUrl?: string;
+  downloadUrl?: string | null;
 }
 
 const ProfessionalReports = () => {
@@ -23,42 +24,72 @@ const ProfessionalReports = () => {
   const [reportType, setReportType] = useState("");
   const [includeWatermark, setIncludeWatermark] = useState(true);
   const [customBranding, setCustomBranding] = useState(false);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [clients, setClients] = useState<Array<{ id: string; name: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
-  const reports: Report[] = [
-    {
-      id: "1",
-      clientName: "João Silva",
-      type: "Relatório Consolidado",
-      generatedAt: "15/02/2024",
-      status: "generated",
-      hasWatermark: true,
-    },
-    {
-      id: "2",
-      clientName: "Maria Santos",
-      type: "Análise de Portfólio",
-      generatedAt: "10/02/2024",
-      status: "generated",
-      hasWatermark: true,
-    },
-    {
-      id: "3",
-      clientName: "Pedro Costa",
-      type: "Planejamento Financeiro",
-      generatedAt: "01/02/2024",
-      status: "generated",
-      hasWatermark: false,
-    },
-  ];
-
-  const clients = ["João Silva", "Maria Santos", "Pedro Costa", "Ana Oliveira"];
   const reportTypes = [
-    "Relatório Consolidado",
-    "Análise de Portfólio",
-    "Planejamento Financeiro",
-    "Relatório Mensal",
-    "Relatório Personalizado",
+    "consolidated",
+    "portfolio_analysis",
+    "financial_planning",
+    "monthly",
+    "custom",
   ];
+
+  const reportTypeLabels: Record<string, string> = {
+    consolidated: "Relatório Consolidado",
+    portfolio_analysis: "Análise de Portfólio",
+    financial_planning: "Planejamento Financeiro",
+    monthly: "Relatório Mensal",
+    custom: "Relatório Personalizado",
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [reportsData, clientsData] = await Promise.all([
+          consultantApi.getReports(),
+          consultantApi.getClients(),
+        ]);
+        setReports(reportsData.reports);
+        setClients(clientsData.clients.map((c: any) => ({ id: c.id, name: c.name })));
+      } catch (err: any) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleGenerateReport = async () => {
+    if (!reportType) {
+      alert("Selecione um tipo de relatório");
+      return;
+    }
+
+    try {
+      setGenerating(true);
+      const result = await consultantApi.generateReport({
+        clientId: selectedClient || undefined,
+        type: reportType,
+        includeWatermark,
+        customBranding,
+      });
+      setReports([result.report, ...reports]);
+      alert(result.message);
+      setSelectedClient("");
+      setReportType("");
+    } catch (err: any) {
+      alert(err?.error || "Erro ao gerar relatório");
+      console.error("Error generating report:", err);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -87,9 +118,10 @@ const ProfessionalReports = () => {
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Geral (sem cliente específico)</SelectItem>
                   {clients.map((client) => (
-                    <SelectItem key={client} value={client}>
-                      {client}
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -105,7 +137,7 @@ const ProfessionalReports = () => {
                 <SelectContent>
                   {reportTypes.map((type) => (
                     <SelectItem key={type} value={type}>
-                      {type}
+                      {reportTypeLabels[type] || type}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -137,9 +169,9 @@ const ProfessionalReports = () => {
             </div>
           </div>
 
-          <Button className="w-full md:w-auto" disabled={!selectedClient || !reportType}>
+          <Button className="w-full md:w-auto" disabled={!reportType || generating} onClick={handleGenerateReport}>
             <FileText className="h-4 w-4 mr-2" />
-            Gerar Relatório PDF
+            {generating ? "Gerando..." : "Gerar Relatório PDF"}
           </Button>
         </div>
       </ChartCard>
@@ -147,7 +179,11 @@ const ProfessionalReports = () => {
       {/* Reports History */}
       <ChartCard title="Relatórios Gerados">
         <div className="space-y-3">
-          {reports.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p>Carregando...</p>
+            </div>
+          ) : reports.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhum relatório gerado ainda</p>
@@ -164,7 +200,7 @@ const ProfessionalReports = () => {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-foreground">{report.type}</h3>
+                      <h3 className="font-semibold text-foreground">{reportTypeLabels[report.type] || report.type}</h3>
                       <Badge variant={report.status === "generated" ? "default" : "secondary"}>
                         {report.status === "generated" ? "Gerado" : "Pendente"}
                       </Badge>
@@ -182,10 +218,19 @@ const ProfessionalReports = () => {
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Baixar
-                </Button>
+                {report.downloadUrl ? (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={report.downloadUrl} download>
+                      <Download className="h-4 w-4 mr-2" />
+                      Baixar
+                    </a>
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" disabled>
+                    <Download className="h-4 w-4 mr-2" />
+                    Processando...
+                  </Button>
+                )}
               </div>
             ))
           )}

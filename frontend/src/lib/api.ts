@@ -196,6 +196,73 @@ export const investmentsApi = {
     api.get<{ summary: any }>('/investments/summary'),
 };
 
+// Reports endpoints
+export const reportsApi = {
+  getAll: () =>
+    api.get<{
+      reports: Array<{
+        id: string;
+        type: string;
+        generatedAt: string;
+        status: string;
+        downloadUrl: string | null;
+      }>;
+    }>('/reports'),
+
+  generate: (data: { type: string; dateRange?: string; params?: any }) =>
+    api.post<{
+      report: {
+        id: string;
+        type: string;
+        generatedAt: string;
+        status: string;
+      };
+      message: string;
+    }>('/reports/generate', data),
+};
+
+// Goals endpoints
+export const goalsApi = {
+  getAll: () =>
+    api.get<{
+      goals: Array<{
+        id: string;
+        name: string;
+        target: number;
+        current: number;
+        deadline: string | null;
+        category: string;
+      }>;
+    }>('/goals'),
+
+  create: (data: { name: string; target: number; deadline?: string; category?: string }) =>
+    api.post<{
+      goal: {
+        id: string;
+        name: string;
+        target: number;
+        current: number;
+        deadline: string | null;
+        category: string;
+      };
+    }>('/goals', data),
+
+  update: (id: string, data: { name?: string; target?: number; current?: number; deadline?: string; category?: string }) =>
+    api.patch<{
+      goal: {
+        id: string;
+        name: string;
+        target: number;
+        current: number;
+        deadline: string | null;
+        category: string;
+      };
+    }>(`/goals/${id}`, data),
+
+  delete: (id: string) =>
+    api.delete<{ message: string }>(`/goals/${id}`),
+};
+
 // Admin endpoints
 export const adminApi = {
   // Dashboard metrics
@@ -292,4 +359,207 @@ export const adminApi = {
       commissions: Array<{ consultant: string; clients: number; commission: number }>;
       transactions: Array<{ id: string; date: string; type: string; amount: number; client: string }>;
     }>('/admin/financial/reports'),
+};
+
+// Consultant endpoints
+export const consultantApi = {
+  // Dashboard metrics
+  getDashboardMetrics: () =>
+    api.get<{
+      kpis: {
+        totalClients: number;
+        newClients: number;
+        totalNetWorth: number;
+        pendingTasks: number;
+        prospects: number;
+      };
+      pipeline: Array<{ stage: string; count: number }>;
+      recentTasks: Array<{
+        id: string;
+        task: string;
+        client: string;
+        dueDate: string;
+        priority: string;
+      }>;
+    }>('/consultant/dashboard/metrics'),
+
+  // Clients
+  getClients: (params?: { search?: string; status?: string; page?: number; limit?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    return api.get<{
+      clients: Array<{
+        id: string;
+        name: string;
+        email: string;
+        netWorth: number;
+        status: string;
+        lastContact: string;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/consultant/clients${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
+  },
+
+  getClient: (id: string) =>
+    api.get<{
+      client: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+        birthDate: string | null;
+        riskProfile: string | null;
+        createdAt: string;
+      };
+      financial: {
+        netWorth: number;
+        cash: number;
+        investments: number;
+        debt: number;
+      };
+      notes: Array<{
+        id: string;
+        content: string;
+        date: string;
+      }>;
+      reports: Array<{
+        id: string;
+        type: string;
+        generatedAt: string;
+        downloadUrl: string | null;
+      }>;
+    }>(`/consultant/clients/${id}`),
+
+  addClientNote: (clientId: string, note: string) =>
+    api.post<{
+      note: {
+        id: string;
+        content: string;
+        date: string;
+      };
+    }>(`/consultant/clients/${clientId}/notes`, { note }),
+
+  // Pipeline
+  getPipeline: () =>
+    api.get<{
+      prospects: Array<{
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+        stage: string;
+        notes: string;
+        createdAt: string;
+      }>;
+    }>('/consultant/pipeline'),
+
+  createProspect: (data: { name?: string; email: string; phone?: string; stage?: string; notes?: string }) =>
+    api.post<{ prospect: any }>('/consultant/pipeline/prospects', data),
+
+  updateProspect: (id: string, data: { name?: string; email?: string; phone?: string; stage?: string; notes?: string }) =>
+    api.post<{ prospect: any }>('/consultant/pipeline/prospects', { id, ...data }),
+
+  updateProspectStage: (id: string, stage: string) =>
+    api.patch<{ prospect: any }>(`/consultant/pipeline/prospects/${id}/stage`, { stage }),
+
+  deleteProspect: (id: string) =>
+    api.delete<{ message: string }>(`/consultant/pipeline/prospects/${id}`),
+
+  // Invitations
+  getInvitations: () =>
+    api.get<{
+      invitations: Array<{
+        id: string;
+        email: string;
+        name: string | null;
+        status: string;
+        sentAt: string;
+        expiresAt: string | null;
+      }>;
+    }>('/consultant/invitations'),
+
+  sendInvitation: (data: { email: string; name?: string; message?: string }) =>
+    api.post<{
+      invitation: {
+        id: string;
+        email: string;
+        name: string | null;
+        status: string;
+        sentAt: string;
+      };
+    }>('/consultant/invitations', data),
+
+  // Messages
+  getConversations: () =>
+    api.get<{
+      conversations: Array<{
+        id: string;
+        clientId: string;
+        clientName: string;
+        lastMessage: string;
+        timestamp: string;
+        unread: number;
+      }>;
+    }>('/consultant/messages/conversations'),
+
+  getConversation: (id: string) =>
+    api.get<{
+      conversation: {
+        id: string;
+        clientId: string;
+        clientName: string;
+      };
+      messages: Array<{
+        id: string;
+        sender: 'consultant' | 'client';
+        content: string;
+        timestamp: string;
+      }>;
+    }>(`/consultant/messages/conversations/${id}`),
+
+  sendMessage: (conversationId: string, body: string) =>
+    api.post<{
+      message: {
+        id: string;
+        sender: 'consultant';
+        content: string;
+        timestamp: string;
+      };
+    }>(`/consultant/messages/conversations/${conversationId}/messages`, { body }),
+
+  // Reports
+  getReports: (clientId?: string) => {
+    const queryParams = new URLSearchParams();
+    if (clientId) queryParams.append('clientId', clientId);
+    return api.get<{
+      reports: Array<{
+        id: string;
+        clientName: string;
+        type: string;
+        generatedAt: string;
+        status: string;
+        hasWatermark: boolean;
+        downloadUrl: string | null;
+      }>;
+    }>(`/consultant/reports${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
+  },
+
+  generateReport: (data: { clientId?: string; type: string; includeWatermark?: boolean; customBranding?: boolean }) =>
+    api.post<{
+      report: {
+        id: string;
+        type: string;
+        generatedAt: string;
+        status: string;
+      };
+      message: string;
+    }>('/consultant/reports/generate', data),
 };

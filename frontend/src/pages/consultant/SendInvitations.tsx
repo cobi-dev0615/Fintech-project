@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserPlus, Mail, Copy, Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +8,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { consultantApi } from "@/lib/api";
 
 interface Invitation {
   id: string;
   email: string;
-  name?: string;
+  name?: string | null;
   status: "pending" | "sent" | "accepted" | "expired";
   sentAt: string;
-  expiresAt: string;
-  message?: string;
+  expiresAt: string | null;
 }
 
 const SendInvitations = () => {
@@ -25,45 +25,48 @@ const SendInvitations = () => {
   const [message, setMessage] = useState("");
   const [invitationMethod, setInvitationMethod] = useState<"email" | "link">("email");
   const [copiedLink, setCopiedLink] = useState(false);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
 
-  const invitations: Invitation[] = [
-    {
-      id: "1",
-      email: "joao.silva@email.com",
-      name: "João Silva",
-      status: "accepted",
-      sentAt: "2024-01-10",
-      expiresAt: "2024-01-25",
-    },
-    {
-      id: "2",
-      email: "maria.santos@email.com",
-      name: "Maria Santos",
-      status: "sent",
-      sentAt: "2024-01-15",
-      expiresAt: "2024-01-30",
-    },
-    {
-      id: "3",
-      email: "pedro.costa@email.com",
-      status: "pending",
-      sentAt: "2024-01-17",
-      expiresAt: "2024-02-01",
-    },
-  ];
+  useEffect(() => {
+    const fetchInvitations = async () => {
+      try {
+        setLoading(true);
+        const data = await consultantApi.getInvitations();
+        setInvitations(data.invitations);
+      } catch (err: any) {
+        console.error("Error fetching invitations:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const invitationLink = "https://zurt.com.br/invite/consultant-abc123xyz";
+    fetchInvitations();
+  }, []);
 
-  const handleSendInvitation = () => {
+  const invitationLink = `${window.location.origin}/invite/consultant-abc123xyz`;
+
+  const handleSendInvitation = async () => {
     if (!email.trim()) {
       alert("Por favor, insira um email válido");
       return;
     }
-    // Send invitation logic here
-    alert(`Convite enviado para ${email}`);
-    setEmail("");
-    setName("");
-    setMessage("");
+
+    try {
+      setSending(true);
+      const result = await consultantApi.sendInvitation({ email, name: name || undefined, message: message || undefined });
+      setInvitations([result.invitation, ...invitations]);
+      setEmail("");
+      setName("");
+      setMessage("");
+      alert(`Convite enviado para ${email}`);
+    } catch (err: any) {
+      alert(err?.error || "Erro ao enviar convite");
+      console.error("Error sending invitation:", err);
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleCopyLink = () => {
@@ -159,9 +162,9 @@ const SendInvitations = () => {
                   />
                 </div>
 
-                <Button onClick={handleSendInvitation} className="w-full" size="lg">
+                <Button onClick={handleSendInvitation} className="w-full" size="lg" disabled={sending}>
                   <Send className="h-4 w-4 mr-2" />
-                  Enviar Convite por Email
+                  {sending ? "Enviando..." : "Enviar Convite por Email"}
                 </Button>
               </>
             ) : (
@@ -211,7 +214,11 @@ const SendInvitations = () => {
         {/* Invitations History */}
         <ChartCard title="Histórico de Convites">
           <div className="space-y-3">
-            {invitations.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>Carregando...</p>
+              </div>
+            ) : invitations.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Nenhum convite enviado ainda</p>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TrendingUp, PieChart, BarChart3 } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -17,43 +17,104 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { investmentsApi } from "@/lib/api";
 
 const Investments = () => {
   const [timeRange, setTimeRange] = useState<"1M" | "3M" | "6M" | "1A" | "Tudo">("1A");
+  const [holdings, setHoldings] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const allocationData = [
-    { name: "Ações", value: 45000, color: "#3b82f6" },
-    { name: "FIIs", value: 28000, color: "#06b6d4" },
-    { name: "BDRs", value: 15200, color: "#8b5cf6" },
-    { name: "Tesouro Direto", value: 10000, color: "#10b981" },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [holdingsData, summaryData] = await Promise.all([
+          investmentsApi.getHoldings(),
+          investmentsApi.getSummary(),
+        ]);
+        setHoldings(holdingsData.holdings);
+        setSummary(summaryData.summary);
+        setError(null);
+      } catch (err: any) {
+        setError(err?.error || "Erro ao carregar investimentos");
+        console.error("Error fetching investments:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const performanceData = [
-    { month: "Jan", value: 92000 },
-    { month: "Fev", value: 94500 },
-    { month: "Mar", value: 96000 },
-    { month: "Abr", value: 97500 },
-    { month: "Mai", value: 98000 },
-    { month: "Jun", value: 97000 },
-    { month: "Jul", value: 98200 },
-  ];
+    fetchData();
+  }, []);
 
-  const benchmarkData = [
-    { name: "Seu Portfólio", value: 8.2, color: "#3b82f6" },
-    { name: "CDI", value: 12.5, color: "#6b7280" },
-    { name: "IBOV", value: 5.8, color: "#10b981" },
-  ];
+  // Group holdings by asset class for allocation chart
+  const allocationByClass: Record<string, { name: string; value: number; color: string }> = {};
+  holdings.forEach((h) => {
+    const classKey = h.asset_class || 'other';
+    const value = parseFloat(h.market_value_cents || 0) / 100;
+    if (!allocationByClass[classKey]) {
+      const colors: Record<string, string> = {
+        equities: "#3b82f6",
+        reit: "#06b6d4",
+        fixed_income: "#10b981",
+        funds: "#8b5cf6",
+        etf: "#f59e0b",
+        other: "#6b7280",
+      };
+      const labels: Record<string, string> = {
+        equities: "Ações",
+        reit: "FIIs",
+        fixed_income: "Renda Fixa",
+        funds: "Fundos",
+        etf: "ETFs",
+        other: "Outros",
+      };
+      allocationByClass[classKey] = {
+        name: labels[classKey] || classKey,
+        value: 0,
+        color: colors[classKey] || "#6b7280",
+      };
+    }
+    allocationByClass[classKey].value += value;
+  });
+  const allocationData = Object.values(allocationByClass);
 
-  const holdings = [
-    { ticker: "PETR4", name: "Petrobras", quantity: 100, avgPrice: 28.50, currentPrice: 32.10, value: 3210 },
-    { ticker: "VALE3", name: "Vale", quantity: 50, avgPrice: 65.20, currentPrice: 68.90, value: 3445 },
-    { ticker: "ITUB4", name: "Itaú Unibanco", quantity: 200, avgPrice: 22.30, currentPrice: 24.15, value: 4830 },
-    { ticker: "HGLG11", name: "CSHG Logística", quantity: 150, avgPrice: 185.00, currentPrice: 192.50, value: 28875 },
-    { ticker: "XPLG11", name: "XP Log", quantity: 100, avgPrice: 95.20, currentPrice: 98.60, value: 9860 },
-  ];
+  const performanceData: any[] = []; // TODO: Historical performance data
+  const totalValue = summary ? parseFloat(summary.total_value || 0) / 100 : 0;
+  const totalPerformance = summary ? (parseFloat(summary.total_pnl || 0) / 100 / totalValue) * 100 : 0;
 
-  const totalValue = allocationData.reduce((sum, item) => sum + item.value, 0);
-  const totalPerformance = ((performanceData[performanceData.length - 1].value - performanceData[0].value) / performanceData[0].value) * 100;
+  const mappedHoldings = holdings.map((h) => {
+    const marketValue = parseFloat(h.market_value_cents || 0) / 100;
+    const avgPrice = parseFloat(h.avg_price_cents || 0) / 100;
+    const currentPrice = parseFloat(h.current_price_cents || 0) / 100;
+    const variation = avgPrice > 0 ? ((currentPrice - avgPrice) / avgPrice) * 100 : 0;
+    return {
+      ticker: h.asset_symbol || h.asset_name_fallback || "N/A",
+      name: h.asset_name || h.asset_name_fallback || "Ativo",
+      quantity: parseFloat(h.quantity || 0),
+      avgPrice,
+      currentPrice,
+      value: marketValue,
+      variation,
+    };
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -71,7 +132,7 @@ const Investments = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <ProfessionalKpiCard
           title="Valor Total"
-          value={`R$ ${totalValue.toLocaleString("pt-BR")}`}
+          value={`R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
           change=""
           changeType="neutral"
           icon={TrendingUp}
@@ -79,9 +140,9 @@ const Investments = () => {
         />
         <ProfessionalKpiCard
           title="Performance"
-          value={`+${totalPerformance.toFixed(1)}%`}
+          value={`${totalPerformance >= 0 ? "+" : ""}${totalPerformance.toFixed(1)}%`}
           change="no período"
-          changeType="positive"
+          changeType={totalPerformance >= 0 ? "positive" : "negative"}
           icon={BarChart3}
           subtitle=""
         />
@@ -95,7 +156,7 @@ const Investments = () => {
         />
         <ProfessionalKpiCard
           title="Corretoras"
-          value="3"
+          value="—"
           change=""
           changeType="neutral"
           icon={TrendingUp}
@@ -142,7 +203,12 @@ const Investments = () => {
             </ResponsiveContainer>
           </div>
           <div className="mt-4 space-y-2">
-            {allocationData.map((item) => (
+            {allocationData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum investimento encontrado
+              </p>
+            ) : (
+              allocationData.map((item) => (
               <div
                 key={item.name}
                 className="flex items-center justify-between text-xs"
@@ -158,7 +224,8 @@ const Investments = () => {
                   R$ {item.value.toLocaleString("pt-BR")}
                 </span>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </ChartCard>
 
@@ -292,9 +359,14 @@ const Investments = () => {
               </tr>
             </thead>
             <tbody>
-              {holdings.map((holding) => {
-                const variation = ((holding.currentPrice - holding.avgPrice) / holding.avgPrice) * 100;
-                return (
+              {mappedHoldings.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Nenhuma posição encontrada
+                  </td>
+                </tr>
+              ) : (
+                mappedHoldings.map((holding) => (
                   <tr
                     key={holding.ticker}
                     className="border-b border-border hover:bg-muted/50 transition-colors"
@@ -330,8 +402,8 @@ const Investments = () => {
                       {variation.toFixed(2)}%
                     </td>
                   </tr>
-                );
-              })}
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -1,47 +1,107 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CreditCard, Calendar, AlertTriangle, TrendingUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import AlertList, { Alert } from "@/components/dashboard/AlertList";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { cardsApi } from "@/lib/api";
 
 const Cards = () => {
-  const [selectedCard, setSelectedCard] = useState("nubank");
+  const [cards, setCards] = useState<any[]>([]);
+  const [selectedCard, setSelectedCard] = useState<string>("");
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const spendingData = [
-    { name: "Alimentação", value: 850, color: "#3b82f6" },
-    { name: "Transporte", value: 420, color: "#06b6d4" },
-    { name: "Compras", value: 1200, color: "#8b5cf6" },
-    { name: "Utilidades", value: 380, color: "#10b981" },
-    { name: "Outros", value: 432, color: "#6b7280" },
-  ];
+  useEffect(() => {
+    const fetchCards = async () => {
+      try {
+        setLoading(true);
+        const data = await cardsApi.getAll();
+        setCards(data.cards);
+        if (data.cards.length > 0) {
+          setSelectedCard(data.cards[0].id);
+        }
+        setError(null);
+      } catch (err: any) {
+        setError(err?.error || "Erro ao carregar cartões");
+        console.error("Error fetching cards:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const alerts: Alert[] = [
-    {
-      id: "1",
-      type: "warning",
-      title: "Fatura vence em breve",
-      message: "Fatura Nubank de R$ 2.882 vence em 3 dias",
-      timestamp: "15 de Janeiro",
-    },
-    {
-      id: "2",
+    fetchCards();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedCard) return;
+
+    const fetchInvoices = async () => {
+      try {
+        const data = await cardsApi.getInvoices(selectedCard);
+        setInvoices(data.invoices || []);
+      } catch (err: any) {
+        console.error("Error fetching invoices:", err);
+      }
+    };
+
+    fetchInvoices();
+  }, [selectedCard]);
+
+  const currentCard = cards.find((c) => c.id === selectedCard);
+  const currentInvoice = invoices.length > 0 ? invoices[0] : null;
+  
+  const spendingData: any[] = []; // TODO: Get spending by category from invoice items
+  const totalSpending = currentInvoice ? parseFloat(currentInvoice.total_cents || 0) / 100 : 0;
+  const limit = currentCard ? parseFloat(currentCard.limit_cents || 0) / 100 : 0;
+  const available = limit - totalSpending;
+  const usage = limit > 0 ? (totalSpending / limit) * 100 : 0;
+
+  const alerts: Alert[] = [];
+  if (currentInvoice) {
+    const dueDate = currentInvoice.due_date ? new Date(currentInvoice.due_date) : null;
+    if (dueDate) {
+      const daysUntilDue = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      if (daysUntilDue <= 7 && daysUntilDue > 0) {
+        alerts.push({
+          id: "due-soon",
+          type: "warning",
+          title: "Fatura vence em breve",
+          message: `Fatura de R$ ${totalSpending.toLocaleString("pt-BR")} vence em ${daysUntilDue} dia(s)`,
+          timestamp: dueDate.toLocaleDateString("pt-BR"),
+        });
+      }
+    }
+  }
+  if (limit > 0) {
+    alerts.push({
+      id: "limit",
       type: "info",
       title: "Limite disponível",
-      message: "R$ 7.118 disponíveis do limite de R$ 10.000",
-    },
-    {
-      id: "3",
-      type: "warning",
-      title: "Gastos acima da média",
-      message: "Gastos deste mês 15% maiores que a média dos últimos 3 meses",
-    },
-  ];
+      message: `R$ ${available.toLocaleString("pt-BR")} disponíveis do limite de R$ ${limit.toLocaleString("pt-BR")}`,
+    });
+  }
 
-  const totalSpending = spendingData.reduce((sum, item) => sum + item.value, 0);
-  const limit = 10000;
-  const usage = (totalSpending / limit) * 100;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
+
+  const dueDate = currentInvoice?.due_date ? new Date(currentInvoice.due_date).toLocaleDateString("pt-BR") : "N/A";
+  const periodEnd = currentInvoice?.period_end ? new Date(currentInvoice.period_end).toLocaleDateString("pt-BR") : "N/A";
 
   return (
     <div className="space-y-6">
@@ -53,53 +113,63 @@ const Cards = () => {
             Gerencie faturas e acompanhe gastos
           </p>
         </div>
-        <Select value={selectedCard} onValueChange={setSelectedCard}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Selecione um cartão" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="nubank">Nubank •••• 1234</SelectItem>
-            <SelectItem value="itau">Itaú •••• 5678</SelectItem>
-            <SelectItem value="inter">Inter •••• 9012</SelectItem>
-          </SelectContent>
-        </Select>
+        {cards.length > 0 && (
+          <Select value={selectedCard} onValueChange={setSelectedCard}>
+            <SelectTrigger className="w-full md:w-[200px]">
+              <SelectValue placeholder="Selecione um cartão" />
+            </SelectTrigger>
+            <SelectContent>
+              {cards.map((card) => (
+                <SelectItem key={card.id} value={card.id}>
+                  {card.display_name || card.institution_name} •••• {card.last4 || ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
-      {/* Invoice Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <ProfessionalKpiCard
-          title="Fatura Atual"
-          value="R$ 2.882"
-          change=""
-          changeType="neutral"
-          icon={CreditCard}
-          subtitle="Fechamento: 25/01"
-        />
-        <ProfessionalKpiCard
-          title="Vencimento"
-          value="28/01"
-          change="Em 3 dias"
-          changeType="warning"
-          icon={Calendar}
-          subtitle=""
-        />
-        <ProfessionalKpiCard
-          title="Limite Total"
-          value="R$ 10.000"
-          change={`${usage.toFixed(1)}% usado`}
-          changeType={usage > 80 ? "negative" : "neutral"}
-          icon={TrendingUp}
-          subtitle=""
-        />
-        <ProfessionalKpiCard
-          title="Disponível"
-          value="R$ 7.118"
-          change=""
-          changeType="neutral"
-          icon={CreditCard}
-          subtitle=""
-        />
-      </div>
+      {cards.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Nenhum cartão cadastrado</p>
+        </div>
+      ) : (
+        <>
+          {/* Invoice Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <ProfessionalKpiCard
+              title="Fatura Atual"
+              value={`R$ ${totalSpending.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              change=""
+              changeType="neutral"
+              icon={CreditCard}
+              subtitle={`Fechamento: ${periodEnd}`}
+            />
+            <ProfessionalKpiCard
+              title="Vencimento"
+              value={currentInvoice?.due_date ? new Date(currentInvoice.due_date).toLocaleDateString("pt-BR") : "N/A"}
+              change={currentInvoice?.due_date ? "" : ""}
+              changeType="neutral"
+              icon={Calendar}
+              subtitle=""
+            />
+            <ProfessionalKpiCard
+              title="Limite Total"
+              value={`R$ ${limit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              change={`${usage.toFixed(1)}% usado`}
+              changeType={usage > 80 ? "negative" : "neutral"}
+              icon={TrendingUp}
+              subtitle=""
+            />
+            <ProfessionalKpiCard
+              title="Disponível"
+              value={`R$ ${available.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              change=""
+              changeType="neutral"
+              icon={CreditCard}
+              subtitle=""
+            />
+          </div>
 
       {/* Charts and Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -194,6 +264,8 @@ const Cards = () => {
           </div>
         </div>
       </ChartCard>
+        </>
+      )}
     </div>
   );
 };

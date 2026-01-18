@@ -1,38 +1,85 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileText, Download, Calendar, BarChart3, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ChartCard from "@/components/dashboard/ChartCard";
+import { reportsApi } from "@/lib/api";
 
 interface Report {
   id: string;
   type: string;
   date: string;
   status: "generated" | "pending";
-  downloadUrl?: string;
+  downloadUrl?: string | null;
 }
 
 const Reports = () => {
   const [reportType, setReportType] = useState<string>("");
   const [dateRange, setDateRange] = useState<string>("");
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   const reportTypes = [
     { value: "consolidated", label: "Relatório Consolidado", icon: BarChart3, description: "Visão geral completa do patrimônio" },
     { value: "transactions", label: "Extrato de Transações", icon: FileText, description: "Histórico de transações por período" },
-    { value: "investments", label: "Evolução de Investimentos", icon: TrendingUp, description: "Performance e evolução patrimonial" },
+    { value: "portfolio_analysis", label: "Evolução de Investimentos", icon: TrendingUp, description: "Performance e evolução patrimonial" },
     { value: "monthly", label: "Relatório Mensal", icon: Calendar, description: "Resumo mensal de receitas e despesas" },
   ];
 
-  const generatedReports: Report[] = [
-    { id: "1", type: "Relatório Consolidado", date: "15/02/2024", status: "generated", downloadUrl: "#" },
-    { id: "2", type: "Extrato de Transações", date: "10/02/2024", status: "generated", downloadUrl: "#" },
-    { id: "3", type: "Relatório Mensal", date: "01/02/2024", status: "generated", downloadUrl: "#" },
-    { id: "4", type: "Evolução de Investimentos", date: "25/01/2024", status: "generated", downloadUrl: "#" },
-  ];
+  const reportTypeLabels: Record<string, string> = {
+    consolidated: "Relatório Consolidado",
+    transactions: "Extrato de Transações",
+    portfolio_analysis: "Evolução de Investimentos",
+    monthly: "Relatório Mensal",
+  };
 
-  const handleGenerate = () => {
-    // Generate report logic
-    console.log("Generating report:", { reportType, dateRange });
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setLoading(true);
+        const data = await reportsApi.getAll();
+        setReports(data.reports.map(r => ({
+          id: r.id,
+          type: reportTypeLabels[r.type] || r.type,
+          date: r.generatedAt,
+          status: r.status === "generated" ? "generated" : "pending",
+          downloadUrl: r.downloadUrl,
+        })));
+      } catch (err: any) {
+        console.error("Error fetching reports:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
+  const handleGenerate = async () => {
+    if (!reportType) {
+      alert("Selecione um tipo de relatório");
+      return;
+    }
+
+    try {
+      setGenerating(true);
+      const result = await reportsApi.generate({ type: reportType, dateRange: dateRange || undefined });
+      setReports([{
+        id: result.report.id,
+        type: reportTypeLabels[reportType] || reportType,
+        date: result.report.generatedAt,
+        status: "pending",
+      }, ...reports]);
+      alert(result.message);
+      setReportType("");
+      setDateRange("");
+    } catch (err: any) {
+      alert(err?.error || "Erro ao gerar relatório");
+      console.error("Error generating report:", err);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -85,11 +132,11 @@ const Reports = () => {
           </div>
           <Button 
             onClick={handleGenerate} 
-            disabled={!reportType || !dateRange}
+            disabled={!reportType || generating}
             className="w-full md:w-auto"
           >
             <FileText className="h-4 w-4 mr-2" />
-            Gerar Relatório PDF
+            {generating ? "Gerando..." : "Gerar Relatório PDF"}
           </Button>
         </div>
       </ChartCard>
@@ -122,14 +169,18 @@ const Reports = () => {
       {/* Generated Reports History */}
       <ChartCard title="Relatórios Gerados">
         <div className="space-y-3">
-          {generatedReports.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-foreground">Carregando...</p>
+            </div>
+          ) : reports.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-sm text-muted-foreground">
                 Nenhum relatório gerado ainda
               </p>
             </div>
           ) : (
-            generatedReports.map((report) => (
+            reports.map((report) => (
               <div
                 key={report.id}
                 className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
@@ -147,12 +198,19 @@ const Reports = () => {
                     </p>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={report.downloadUrl}>
+                {report.downloadUrl ? (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={report.downloadUrl} download>
+                      <Download className="h-4 w-4 mr-2" />
+                      Baixar
+                    </a>
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" disabled>
                     <Download className="h-4 w-4 mr-2" />
-                    Baixar
-                  </a>
-                </Button>
+                    Processando...
+                  </Button>
+                )}
               </div>
             ))
           )}

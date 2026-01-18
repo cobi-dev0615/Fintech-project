@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, User, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { consultantApi } from "@/lib/api";
 
 interface Prospect {
   id: string;
@@ -15,62 +16,66 @@ interface Prospect {
   email: string;
   phone: string;
   stage: string;
-  netWorth?: number;
   notes?: string;
 }
 
 const Pipeline = () => {
-  const stages = ["Contato Inicial", "Proposta", "Negociação", "Fechamento"];
+  const stageOrder = ['lead', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
+  const stageLabels: Record<string, string> = {
+    'lead': 'Contato Inicial',
+    'contacted': 'Contatado',
+    'meeting': 'Reunião',
+    'proposal': 'Proposta',
+    'won': 'Fechamento',
+    'lost': 'Perdido',
+  };
 
-  const [prospects, setProspects] = useState<Prospect[]>([
-    {
-      id: "1",
-      name: "Roberto Alves",
-      email: "roberto@email.com",
-      phone: "(11) 99999-9999",
-      stage: "Contato Inicial",
-      netWorth: 500000,
-    },
-    {
-      id: "2",
-      name: "Julia Ferreira",
-      email: "julia@email.com",
-      phone: "(11) 88888-8888",
-      stage: "Proposta",
-      netWorth: 750000,
-    },
-    {
-      id: "3",
-      name: "Marcos Souza",
-      email: "marcos@email.com",
-      phone: "(11) 77777-7777",
-      stage: "Negociação",
-      netWorth: 1200000,
-    },
-    {
-      id: "4",
-      name: "Patricia Lima",
-      email: "patricia@email.com",
-      phone: "(11) 66666-6666",
-      stage: "Fechamento",
-    },
-  ]);
+  const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const moveProspect = (prospectId: string, direction: "left" | "right") => {
-    setProspects((prev) =>
-      prev.map((p) => {
-        if (p.id === prospectId) {
-          const currentIndex = stages.indexOf(p.stage);
-          if (direction === "right" && currentIndex < stages.length - 1) {
-            return { ...p, stage: stages[currentIndex + 1] };
-          }
-          if (direction === "left" && currentIndex > 0) {
-            return { ...p, stage: stages[currentIndex - 1] };
-          }
-        }
-        return p;
-      })
-    );
+  useEffect(() => {
+    const fetchPipeline = async () => {
+      try {
+        setLoading(true);
+        const data = await consultantApi.getPipeline();
+        setProspects(data.prospects);
+        setError(null);
+      } catch (err: any) {
+        setError(err?.error || "Erro ao carregar pipeline");
+        console.error("Error fetching pipeline:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPipeline();
+  }, []);
+
+  const moveProspect = async (prospectId: string, direction: "left" | "right") => {
+    const prospect = prospects.find(p => p.id === prospectId);
+    if (!prospect) return;
+
+    const currentIndex = stageOrder.indexOf(prospect.stage);
+    let newStage: string;
+
+    if (direction === "right" && currentIndex < stageOrder.length - 1) {
+      newStage = stageOrder[currentIndex + 1];
+    } else if (direction === "left" && currentIndex > 0) {
+      newStage = stageOrder[currentIndex - 1];
+    } else {
+      return;
+    }
+
+    try {
+      await consultantApi.updateProspectStage(prospectId, newStage);
+      setProspects((prev) =>
+        prev.map((p) => (p.id === prospectId ? { ...p, stage: newStage } : p))
+      );
+    } catch (err: any) {
+      console.error("Error updating prospect stage:", err);
+      alert(err?.error || "Erro ao atualizar estágio");
+    }
   };
 
   const getProspectsByStage = (stage: string) => {
@@ -93,17 +98,26 @@ const Pipeline = () => {
         </Button>
       </div>
 
-      {/* Pipeline Kanban */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stages.map((stage) => {
-          const stageProspects = getProspectsByStage(stage);
-          return (
-            <ChartCard
-              key={stage}
-              title={stage}
-              subtitle={`${stageProspects.length} prospecto${stageProspects.length !== 1 ? "s" : ""}`}
-              className="min-h-[400px]"
-            >
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-8">
+          <p className="text-destructive">{error}</p>
+        </div>
+      ) : (
+        /* Pipeline Kanban */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stageOrder.map((stage) => {
+            const stageProspects = getProspectsByStage(stage);
+            return (
+              <ChartCard
+                key={stage}
+                title={stageLabels[stage] || stage}
+                subtitle={`${stageProspects.length} prospecto${stageProspects.length !== 1 ? "s" : ""}`}
+                className="min-h-[400px]"
+              >
               <div className="space-y-3">
                 {stageProspects.length === 0 ? (
                   <div className="text-center py-8 text-sm text-muted-foreground">
@@ -120,9 +134,9 @@ const Pipeline = () => {
                           <h4 className="text-sm font-semibold text-foreground mb-1">
                             {prospect.name}
                           </h4>
-                          {prospect.netWorth && (
-                            <p className="text-xs text-muted-foreground">
-                              Patrimônio: R$ {prospect.netWorth.toLocaleString("pt-BR")}
+                          {prospect.notes && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {prospect.notes}
                             </p>
                           )}
                         </div>
@@ -162,7 +176,7 @@ const Pipeline = () => {
                       </div>
 
                       <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-                        {stages.indexOf(stage) > 0 && (
+                        {stageOrder.indexOf(stage) > 0 && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -172,7 +186,7 @@ const Pipeline = () => {
                             ← Anterior
                           </Button>
                         )}
-                        {stages.indexOf(stage) < stages.length - 1 && (
+                        {stageOrder.indexOf(stage) < stageOrder.length - 1 && stage !== 'won' && stage !== 'lost' && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -190,7 +204,8 @@ const Pipeline = () => {
             </ChartCard>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

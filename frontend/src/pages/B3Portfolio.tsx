@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TrendingUp, Calendar, AlertCircle } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -14,40 +14,73 @@ import {
   Bar,
   Cell,
 } from "recharts";
+import { investmentsApi } from "@/lib/api";
 
 const B3Portfolio = () => {
-  const positions = [
-    { ticker: "PETR4", name: "Petrobras", quantity: 100, avgPrice: 28.50, currentPrice: 32.10, value: 3210, variation: 12.6 },
-    { ticker: "VALE3", name: "Vale", quantity: 50, avgPrice: 65.20, currentPrice: 68.90, value: 3445, variation: 5.7 },
-    { ticker: "ITUB4", name: "Itaú Unibanco", quantity: 200, avgPrice: 22.30, currentPrice: 24.15, value: 4830, variation: 8.3 },
-    { ticker: "BBDC4", name: "Bradesco", quantity: 150, avgPrice: 14.80, currentPrice: 15.25, value: 2287.50, variation: 3.0 },
-    { ticker: "ABEV3", name: "Ambev", quantity: 300, avgPrice: 12.50, currentPrice: 13.20, value: 3960, variation: 5.6 },
-  ];
+  const [holdings, setHoldings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const dividends = [
-    { ticker: "PETR4", amount: 150.00, date: "15/02/2024", type: "Dividendo" },
-    { ticker: "VALE3", amount: 245.00, date: "10/02/2024", type: "Dividendo" },
-    { ticker: "ITUB4", amount: 320.00, date: "05/02/2024", type: "JCP" },
-    { ticker: "ABEV3", amount: 180.00, date: "01/02/2024", type: "Dividendo" },
-  ];
+  useEffect(() => {
+    const fetchHoldings = async () => {
+      try {
+        setLoading(true);
+        const data = await investmentsApi.getHoldings();
+        // Filter for B3 holdings (equities, reits) or filter by source
+        const b3Holdings = data.holdings.filter((h: any) => 
+          h.source === 'b3' || h.asset_class === 'equities' || h.asset_class === 'reit'
+        );
+        setHoldings(b3Holdings);
+        setError(null);
+      } catch (err: any) {
+        setError(err?.error || "Erro ao carregar portfólio B3");
+        console.error("Error fetching B3 portfolio:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const corporateEvents = [
-    { ticker: "PETR4", event: "Assembleia Geral", date: "25/02/2024", type: "evento" },
-    { ticker: "VALE3", event: "Splits de ações", date: "20/03/2024", type: "evento" },
-  ];
+    fetchHoldings();
+  }, []);
 
-  const performanceData = [
-    { month: "Ago", value: 42000 },
-    { month: "Set", value: 43500 },
-    { month: "Out", value: 44200 },
-    { month: "Nov", value: 44800 },
-    { month: "Dez", value: 45500 },
-    { month: "Jan", value: 46800 },
-    { month: "Fev", value: 17732.50 },
-  ];
+  const positions = holdings.map((h) => {
+    const marketValue = parseFloat(h.market_value_cents || 0) / 100;
+    const avgPrice = parseFloat(h.avg_price_cents || 0) / 100;
+    const currentPrice = parseFloat(h.current_price_cents || 0) / 100;
+    const variation = avgPrice > 0 ? ((currentPrice - avgPrice) / avgPrice) * 100 : 0;
+    return {
+      ticker: h.asset_symbol || h.asset_name_fallback || "N/A",
+      name: h.asset_name || h.asset_name_fallback || "Ativo",
+      quantity: parseFloat(h.quantity || 0),
+      avgPrice,
+      currentPrice,
+      value: marketValue,
+      variation,
+    };
+  });
+
+  const dividends: any[] = []; // TODO: Fetch from dividends table
+  const corporateEvents: any[] = []; // TODO: Fetch from corporate_events table
+  const performanceData: any[] = []; // TODO: Historical performance data
 
   const totalValue = positions.reduce((sum, pos) => sum + pos.value, 0);
   const totalDividends = dividends.reduce((sum, div) => sum + div.amount, 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -167,7 +200,14 @@ const B3Portfolio = () => {
               </tr>
             </thead>
             <tbody>
-              {positions.map((position) => (
+              {positions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Nenhuma posição B3 encontrada
+                  </td>
+                </tr>
+              ) : (
+                positions.map((position) => (
                 <tr
                   key={position.ticker}
                   className="border-b border-border hover:bg-muted/50 transition-colors"
@@ -203,7 +243,8 @@ const B3Portfolio = () => {
                     {position.variation.toFixed(2)}%
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
@@ -213,7 +254,12 @@ const B3Portfolio = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard title="Dividendos Recebidos" subtitle="Este mês">
           <div className="space-y-3">
-            {dividends.map((dividend, index) => (
+            {dividends.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum dividendo este mês
+              </p>
+            ) : (
+              dividends.map((dividend, index) => (
               <div
                 key={index}
                 className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
@@ -229,13 +275,19 @@ const B3Portfolio = () => {
                   <p className="text-xs text-muted-foreground">{dividend.date}</p>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </ChartCard>
 
         <ChartCard title="Eventos Corporativos" subtitle="Próximos 60 dias">
           <div className="space-y-3">
-            {corporateEvents.map((event, index) => (
+            {corporateEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum evento próximo
+              </p>
+            ) : (
+              corporateEvents.map((event, index) => (
               <div
                 key={index}
                 className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
@@ -248,7 +300,8 @@ const B3Portfolio = () => {
                   <p className="text-sm font-semibold text-foreground">{event.date}</p>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </ChartCard>
       </div>

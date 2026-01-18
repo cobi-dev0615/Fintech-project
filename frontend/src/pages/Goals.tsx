@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Target, Plus, TrendingUp, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -6,52 +6,102 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Progress } from "@/components/ui/progress";
+import { goalsApi } from "@/lib/api";
 
 interface Goal {
   id: string;
   name: string;
   target: number;
   current: number;
-  deadline: string;
+  deadline: string | null;
   category: string;
 }
 
 const Goals = () => {
-  const [goals, setGoals] = useState<Goal[]>([
-    {
-      id: "1",
-      name: "Reserva de Emergência",
-      target: 50000,
-      current: 35000,
-      deadline: "12/2024",
-      category: "Segurança",
-    },
-    {
-      id: "2",
-      name: "Viagem para Europa",
-      target: 15000,
-      current: 8500,
-      deadline: "06/2024",
-      category: "Pessoal",
-    },
-    {
-      id: "3",
-      name: "Entrada do Apartamento",
-      target: 200000,
-      current: 125000,
-      deadline: "12/2025",
-      category: "Moradia",
-    },
-  ]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newGoalName, setNewGoalName] = useState("");
+  const [newGoalTarget, setNewGoalTarget] = useState("");
+  const [newGoalDeadline, setNewGoalDeadline] = useState("");
+  const [newGoalCategory, setNewGoalCategory] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    const fetchGoals = async () => {
+      try {
+        setLoading(true);
+        const data = await goalsApi.getAll();
+        setGoals(data.goals);
+        setError(null);
+      } catch (err: any) {
+        setError(err?.error || "Erro ao carregar metas");
+        console.error("Error fetching goals:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGoals();
+  }, []);
+
+  const handleCreateGoal = async () => {
+    if (!newGoalName || !newGoalTarget) {
+      alert("Preencha o nome e o valor da meta");
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const result = await goalsApi.create({
+        name: newGoalName,
+        target: parseFloat(newGoalTarget),
+        deadline: newGoalDeadline || undefined,
+        category: newGoalCategory || undefined,
+      });
+      setGoals([...goals, result.goal]);
+      setNewGoalName("");
+      setNewGoalTarget("");
+      setNewGoalDeadline("");
+      setNewGoalCategory("");
+      setIsDialogOpen(false);
+    } catch (err: any) {
+      alert(err?.error || "Erro ao criar meta");
+      console.error("Error creating goal:", err);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const getProgress = (current: number, target: number) => {
     return Math.min((current / target) * 100, 100);
   };
 
-  const getTimeRemaining = (deadline: string) => {
-    // Simple calculation - in real app, use proper date parsing
-    return "8 meses";
+  const getTimeRemaining = (deadline: string | null) => {
+    if (!deadline) return "Sem prazo";
+    const deadlineDate = new Date(deadline.split("/").reverse().join("-"));
+    const now = new Date();
+    const months = (deadlineDate.getFullYear() - now.getFullYear()) * 12 + 
+                   (deadlineDate.getMonth() - now.getMonth());
+    return months > 0 ? `${months} mês(es)` : "Vencido";
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -63,7 +113,7 @@ const Goals = () => {
             Acompanhe seus objetivos financeiros
           </p>
         </div>
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -80,17 +130,44 @@ const Goals = () => {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome da Meta</Label>
-                <Input id="name" placeholder="Ex: Reserva de Emergência" />
+                <Input 
+                  id="name" 
+                  placeholder="Ex: Reserva de Emergência"
+                  value={newGoalName}
+                  onChange={(e) => setNewGoalName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="target">Valor Objetivo (R$)</Label>
-                <Input id="target" type="number" placeholder="50000" />
+                <Input 
+                  id="target" 
+                  type="number" 
+                  placeholder="50000"
+                  value={newGoalTarget}
+                  onChange={(e) => setNewGoalTarget(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="deadline">Prazo</Label>
-                <Input id="deadline" type="date" />
+                <Label htmlFor="deadline">Prazo (opcional)</Label>
+                <Input 
+                  id="deadline" 
+                  type="date"
+                  value={newGoalDeadline}
+                  onChange={(e) => setNewGoalDeadline(e.target.value)}
+                />
               </div>
-              <Button className="w-full">Criar Meta</Button>
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoria (opcional)</Label>
+                <Input 
+                  id="category" 
+                  placeholder="Ex: Segurança, Pessoal, Moradia"
+                  value={newGoalCategory}
+                  onChange={(e) => setNewGoalCategory(e.target.value)}
+                />
+              </div>
+              <Button className="w-full" onClick={handleCreateGoal} disabled={creating}>
+                {creating ? "Criando..." : "Criar Meta"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -161,7 +238,7 @@ const Goals = () => {
                         <span>•</span>
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          Prazo: {goal.deadline}
+                          Prazo: {goal.deadline || "Sem prazo"}
                         </span>
                       </div>
                     </div>

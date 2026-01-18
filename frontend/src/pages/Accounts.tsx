@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Wallet, TrendingUp, TrendingDown, Filter, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
+import { accountsApi } from "@/lib/api";
 
 interface Transaction {
   id: string;
@@ -16,53 +17,68 @@ interface Transaction {
 
 const Accounts = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const transactions: Transaction[] = [
-    {
-      id: "1",
-      description: "Café Starbucks",
-      amount: -15.50,
-      date: "Hoje",
-      category: "Alimentação",
-      account: "Nubank",
-    },
-    {
-      id: "2",
-      description: "Depósito de Salário",
-      amount: 5000.00,
-      date: "Ontem",
-      category: "Renda",
-      account: "Itaú",
-    },
-    {
-      id: "3",
-      description: "Compra na Amazon",
-      amount: -245.90,
-      date: "12 de Jan",
-      category: "Compras",
-      account: "Nubank",
-    },
-    {
-      id: "4",
-      description: "Conta de Luz",
-      amount: -180.00,
-      date: "10 de Jan",
-      category: "Utilidades",
-      account: "Itaú",
-    },
-    {
-      id: "5",
-      description: "Pagamento de Aluguel",
-      amount: -2500.00,
-      date: "5 de Jan",
-      category: "Moradia",
-      account: "Itaú",
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [accountsData, transactionsData] = await Promise.all([
+          accountsApi.getAll(),
+          accountsApi.getTransactions(),
+        ]);
+        setAccounts(accountsData.accounts);
+        setTransactions(transactionsData.transactions);
+        setError(null);
+      } catch (err: any) {
+        setError(err?.error || "Erro ao carregar dados");
+        console.error("Error fetching accounts data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredTransactions = transactions.filter((t) =>
-    t.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    fetchData();
+  }, []);
+
+  const filteredTransactions = transactions
+    .map((t: any) => ({
+      id: t.id,
+      description: t.description || t.merchant || "Sem descrição",
+      amount: parseFloat(t.amount_cents) / 100,
+      date: t.occurred_at ? new Date(t.occurred_at).toLocaleDateString("pt-BR") : "N/A",
+      category: t.category || "Outros",
+      account: t.account_name || "Conta",
+    }))
+    .filter((t) =>
+      t.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+  const totalBalance = accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance_cents) / 100), 0);
+  
+  // Calculate income and expenses from transactions (last 30 days)
+  const monthlyIncome = transactions
+    .filter((t: any) => {
+      const date = t.occurred_at ? new Date(t.occurred_at) : null;
+      if (!date) return false;
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return date >= thirtyDaysAgo && parseFloat(t.amount_cents) > 0;
+    })
+    .reduce((sum, t: any) => sum + (parseFloat(t.amount_cents) / 100), 0);
+
+  const monthlyExpenses = transactions
+    .filter((t: any) => {
+      const date = t.occurred_at ? new Date(t.occurred_at) : null;
+      if (!date) return false;
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return date >= thirtyDaysAgo && parseFloat(t.amount_cents) < 0;
+    })
+    .reduce((sum, t: any) => sum + Math.abs(parseFloat(t.amount_cents) / 100), 0);
 
   return (
     <div className="space-y-6">
@@ -76,33 +92,43 @@ const Accounts = () => {
         </div>
       </div>
 
-      {/* Account Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <ProfessionalKpiCard
-          title="Saldo Total"
-          value="R$ 23.450"
-          change=""
-          changeType="neutral"
-          icon={Wallet}
-          subtitle="3 contas"
-        />
-        <ProfessionalKpiCard
-          title="Receitas do Mês"
-          value="R$ 5.000"
-          change="+15%"
-          changeType="positive"
-          icon={TrendingUp}
-          subtitle="vs mês anterior"
-        />
-        <ProfessionalKpiCard
-          title="Despesas do Mês"
-          value="R$ 2.941"
-          change="-8%"
-          changeType="positive"
-          icon={TrendingDown}
-          subtitle="vs mês anterior"
-        />
-      </div>
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-8">
+          <p className="text-destructive">{error}</p>
+        </div>
+      ) : (
+        <>
+          {/* Account Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <ProfessionalKpiCard
+              title="Saldo Total"
+              value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              change=""
+              changeType="neutral"
+              icon={Wallet}
+              subtitle={`${accounts.length} conta(s)`}
+            />
+            <ProfessionalKpiCard
+              title="Receitas do Mês"
+              value={`R$ ${monthlyIncome.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              change=""
+              changeType="positive"
+              icon={TrendingUp}
+              subtitle="últimos 30 dias"
+            />
+            <ProfessionalKpiCard
+              title="Despesas do Mês"
+              value={`R$ ${monthlyExpenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              change=""
+              changeType="neutral"
+              icon={TrendingDown}
+              subtitle="últimos 30 dias"
+            />
+          </div>
 
       {/* Filters and Search */}
       <ChartCard title="Transações">
@@ -171,6 +197,8 @@ const Accounts = () => {
           )}
         </div>
       </ChartCard>
+        </>
+      )}
     </div>
   );
 };

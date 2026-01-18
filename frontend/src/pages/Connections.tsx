@@ -1,65 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle2, XCircle, Clock, RefreshCw, Trash2, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
+import { connectionsApi } from "@/lib/api";
 
 interface Connection {
   id: string;
   name: string;
   type: "bank" | "b3";
-  status: "connected" | "disconnected" | "error" | "expired";
+  status: "connected" | "disconnected" | "error" | "expired" | "pending" | "needs_reauth" | "failed" | "revoked";
   lastSync?: string;
   accountsCount?: number;
 }
 
 const Connections = () => {
-  const [connections] = useState<Connection[]>([
-    {
-      id: "1",
-      name: "Itaú",
-      type: "bank",
-      status: "connected",
-      lastSync: "há 2 minutos",
-      accountsCount: 2,
-    },
-    {
-      id: "2",
-      name: "Nubank",
-      type: "bank",
-      status: "connected",
-      lastSync: "há 15 minutos",
-      accountsCount: 1,
-    },
-    {
-      id: "3",
-      name: "B3",
-      type: "b3",
-      status: "connected",
-      lastSync: "há 1 hora",
-    },
-    {
-      id: "4",
-      name: "Bradesco",
-      type: "bank",
-      status: "expired",
-      lastSync: "há 5 dias",
-      accountsCount: 1,
-    },
-    {
-      id: "5",
-      name: "Inter",
-      type: "bank",
-      status: "disconnected",
-    },
-  ]);
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchConnections = async () => {
+      try {
+        setLoading(true);
+        const data = await connectionsApi.getAll();
+        const mappedConnections: Connection[] = data.connections.map((conn: any) => ({
+          id: conn.id,
+          name: conn.institution_name || conn.provider,
+          type: conn.provider === "b3" ? "b3" : "bank",
+          status: conn.status === "connected" ? "connected" :
+                  conn.status === "pending" ? "pending" :
+                  conn.status === "needs_reauth" ? "expired" :
+                  conn.status === "failed" ? "error" :
+                  conn.status === "revoked" ? "disconnected" : "disconnected",
+          lastSync: conn.last_sync_at ? new Date(conn.last_sync_at).toLocaleString("pt-BR") : undefined,
+        }));
+        setConnections(mappedConnections);
+        setError(null);
+      } catch (err: any) {
+        setError(err?.error || "Erro ao carregar conexões");
+        console.error("Error fetching connections:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConnections();
+  }, []);
 
   const getStatusIcon = (status: Connection["status"]) => {
     switch (status) {
       case "connected":
         return <CheckCircle2 className="h-4 w-4 text-success" />;
       case "error":
+      case "failed":
         return <XCircle className="h-4 w-4 text-destructive" />;
       case "expired":
+      case "needs_reauth":
         return <Clock className="h-4 w-4 text-warning" />;
       default:
         return <XCircle className="h-4 w-4 text-muted-foreground" />;
@@ -71,9 +67,13 @@ const Connections = () => {
       case "connected":
         return "Conectado";
       case "error":
+      case "failed":
         return "Erro";
       case "expired":
+      case "needs_reauth":
         return "Expirado";
+      case "pending":
+        return "Pendente";
       default:
         return "Desconectado";
     }
@@ -84,13 +84,31 @@ const Connections = () => {
       case "connected":
         return "border-success/30";
       case "error":
+      case "failed":
         return "border-destructive/30";
       case "expired":
+      case "needs_reauth":
         return "border-warning/30";
       default:
         return "border-border";
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -110,7 +128,12 @@ const Connections = () => {
 
       {/* Connections Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {connections.map((connection) => (
+        {connections.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <p className="text-muted-foreground">Nenhuma conexão encontrada</p>
+          </div>
+        ) : (
+          connections.map((connection) => (
           <div
             key={connection.id}
             className={`chart-card border-l-2 ${getStatusColor(connection.status)}`}
@@ -180,7 +203,8 @@ const Connections = () => {
               </Button>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

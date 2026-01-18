@@ -1,21 +1,52 @@
+import { useState, useEffect } from "react";
 import { Users, TrendingUp, Calendar, AlertCircle } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Link } from "react-router-dom";
+import { consultantApi } from "@/lib/api";
 
 const ConsultantDashboard = () => {
-  const recentTasks = [
-    { id: "1", client: "João Silva", task: "Revisar portfólio", dueDate: "Hoje", priority: "high" },
-    { id: "2", client: "Maria Santos", task: "Preparar relatório", dueDate: "Amanhã", priority: "medium" },
-    { id: "3", client: "Pedro Costa", task: "Seguimento de proposta", dueDate: "20/02", priority: "low" },
-  ];
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const pipelineData = [
-    { stage: "Contato Inicial", count: 5 },
-    { stage: "Proposta", count: 3 },
-    { stage: "Negociação", count: 2 },
-    { stage: "Fechamento", count: 1 },
-  ];
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        setLoading(true);
+        const data = await consultantApi.getDashboardMetrics();
+        setMetrics(data);
+        setError(null);
+      } catch (err: any) {
+        setError(err?.error || "Erro ao carregar dados");
+        console.error("Error fetching dashboard metrics:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMetrics();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
+
+  const recentTasks = metrics?.recentTasks || [];
+  const pipelineData = metrics?.pipeline || [];
+  const totalProspects = pipelineData.reduce((sum: number, item: any) => sum + item.count, 0);
 
   return (
     <div className="space-y-6">
@@ -33,23 +64,23 @@ const ConsultantDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <ProfessionalKpiCard
           title="Total de Clientes"
-          value="24"
-          change="+3 este mês"
-          changeType="positive"
+          value={metrics?.kpis?.totalClients?.toString() || "0"}
+          change={metrics?.kpis?.newClients > 0 ? `+${metrics.kpis.newClients} este mês` : ""}
+          changeType={metrics?.kpis?.newClients > 0 ? "positive" : "neutral"}
           icon={Users}
           subtitle=""
         />
         <ProfessionalKpiCard
           title="Patrimônio Total"
-          value="R$ 2.4M"
-          change="+8,2%"
-          changeType="positive"
+          value={`R$ ${(metrics?.kpis?.totalNetWorth / 1000000).toFixed(1)}M`}
+          change=""
+          changeType="neutral"
           icon={TrendingUp}
           subtitle="sob gestão"
         />
         <ProfessionalKpiCard
           title="Tarefas Pendentes"
-          value={recentTasks.length.toString()}
+          value={metrics?.kpis?.pendingTasks?.toString() || "0"}
           change=""
           changeType="neutral"
           icon={Calendar}
@@ -57,7 +88,7 @@ const ConsultantDashboard = () => {
         />
         <ProfessionalKpiCard
           title="Prospectos"
-          value="11"
+          value={metrics?.kpis?.prospects?.toString() || "0"}
           change=""
           changeType="neutral"
           icon={AlertCircle}
@@ -69,20 +100,33 @@ const ConsultantDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard title="Pipeline de Prospecção" subtitle="Status dos prospectos">
           <div className="space-y-4">
-            {pipelineData.map((stage, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">{stage.stage}</span>
-                  <span className="text-sm text-muted-foreground">{stage.count}</span>
-                </div>
+            {pipelineData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum prospecto no pipeline
+              </p>
+            ) : (
+              pipelineData.map((stage: any, index: number) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">
+                      {stage.stage === 'lead' ? 'Contato Inicial' :
+                       stage.stage === 'contacted' ? 'Contatado' :
+                       stage.stage === 'meeting' ? 'Reunião' :
+                       stage.stage === 'proposal' ? 'Proposta' :
+                       stage.stage === 'won' ? 'Fechado' :
+                       stage.stage === 'lost' ? 'Perdido' : stage.stage}
+                    </span>
+                    <span className="text-sm text-muted-foreground">{stage.count}</span>
+                  </div>
                 <div className="w-full bg-muted rounded-full h-2">
                   <div
                     className="bg-primary h-2 rounded-full transition-all"
-                    style={{ width: `${(stage.count / 11) * 100}%` }}
+                    style={{ width: `${totalProspects > 0 ? (stage.count / totalProspects) * 100 : 0}%` }}
                   />
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
           <div className="mt-4 pt-4 border-t border-border">
             <Link to="/consultant/pipeline" className="text-sm text-primary hover:underline">
@@ -93,32 +137,38 @@ const ConsultantDashboard = () => {
 
         <ChartCard title="Próximas Tarefas" subtitle="Ações pendentes">
           <div className="space-y-3">
-            {recentTasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {task.task}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {task.client} • {task.dueDate}
-                  </p>
-                </div>
-                <span
-                  className={`ml-2 px-2 py-1 text-xs font-medium rounded ${
-                    task.priority === "high"
-                      ? "bg-destructive/10 text-destructive"
-                      : task.priority === "medium"
-                      ? "bg-warning/10 text-warning"
-                      : "bg-muted text-muted-foreground"
-                  }`}
+            {recentTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhuma tarefa pendente
+              </p>
+            ) : (
+              recentTasks.map((task: any) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                 >
-                  {task.priority === "high" ? "Alta" : task.priority === "medium" ? "Média" : "Baixa"}
-                </span>
-              </div>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {task.task}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {task.client} • {task.dueDate}
+                    </p>
+                  </div>
+                  <span
+                    className={`ml-2 px-2 py-1 text-xs font-medium rounded ${
+                      task.priority === "high"
+                        ? "bg-destructive/10 text-destructive"
+                        : task.priority === "medium"
+                        ? "bg-warning/10 text-warning"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {task.priority === "high" ? "Alta" : task.priority === "medium" ? "Média" : "Baixa"}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
           <div className="mt-4 pt-4 border-t border-border">
             <Link to="/consultant/tasks" className="text-sm text-primary hover:underline">
@@ -140,7 +190,7 @@ const ConsultantDashboard = () => {
               </p>
             </div>
           </Link>
-          <Link to="/consultant/clients/new">
+          <Link to="/consultant/invitations">
             <div className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
               <Users className="h-5 w-5 text-primary mb-2" />
               <p className="text-sm font-medium text-foreground">Convidar Cliente</p>

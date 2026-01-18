@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, UserPlus, MoreVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { consultantApi } from "@/lib/api";
 
 interface Client {
   id: string;
@@ -22,54 +23,33 @@ interface Client {
 
 const ClientsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const clients: Client[] = [
-    {
-      id: "1",
-      name: "João Silva",
-      email: "joao.silva@email.com",
-      netWorth: 450000,
-      status: "active",
-      lastContact: "Hoje",
-    },
-    {
-      id: "2",
-      name: "Maria Santos",
-      email: "maria.santos@email.com",
-      netWorth: 820000,
-      status: "active",
-      lastContact: "Ontem",
-    },
-    {
-      id: "3",
-      name: "Pedro Costa",
-      email: "pedro.costa@email.com",
-      netWorth: 320000,
-      status: "pending",
-      lastContact: "Há 3 dias",
-    },
-    {
-      id: "4",
-      name: "Ana Oliveira",
-      email: "ana.oliveira@email.com",
-      netWorth: 1250000,
-      status: "active",
-      lastContact: "Há 5 dias",
-    },
-    {
-      id: "5",
-      name: "Carlos Mendes",
-      email: "carlos.mendes@email.com",
-      netWorth: 280000,
-      status: "inactive",
-      lastContact: "Há 2 semanas",
-    },
-  ];
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setLoading(true);
+        const data = await consultantApi.getClients({ search: searchQuery || undefined });
+        setClients(data.clients);
+        setError(null);
+      } catch (err: any) {
+        setError(err?.error || "Erro ao carregar clientes");
+        console.error("Error fetching clients:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    const debounceTimer = setTimeout(() => {
+      fetchClients();
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
+  const filteredClients = clients;
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -100,7 +80,7 @@ const ClientsList = () => {
           </p>
         </div>
         <Button asChild>
-          <Link to="/consultant/clients/invite">
+          <Link to="/consultant/invitations">
             <UserPlus className="h-4 w-4 mr-2" />
             Convidar Cliente
           </Link>
@@ -125,7 +105,15 @@ const ClientsList = () => {
       {/* Clients List */}
       <ChartCard title={`${filteredClients.length} Cliente${filteredClients.length !== 1 ? "s" : ""}`}>
         <div className="space-y-3">
-          {filteredClients.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-foreground">Carregando...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          ) : filteredClients.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-sm text-muted-foreground">
                 Nenhum cliente encontrado

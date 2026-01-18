@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageSquare, Send, Search, UserPlus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { consultantApi } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -14,7 +15,6 @@ interface Message {
   lastMessage: string;
   timestamp: string;
   unread: number;
-  avatar?: string;
 }
 
 interface Conversation {
@@ -32,68 +32,70 @@ interface Conversation {
 const Messages = () => {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [conversations, setConversations] = useState<Message[]>([]);
+  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
 
-  const conversations: Message[] = [
-    {
-      id: "1",
-      clientId: "1",
-      clientName: "João Silva",
-      lastMessage: "Obrigado pela análise do portfólio!",
-      timestamp: "há 2 horas",
-      unread: 2,
-    },
-    {
-      id: "2",
-      clientId: "2",
-      clientName: "Maria Santos",
-      lastMessage: "Posso agendar uma reunião?",
-      timestamp: "há 5 horas",
-      unread: 0,
-    },
-    {
-      id: "3",
-      clientId: "3",
-      clientName: "Pedro Costa",
-      lastMessage: "Tenho dúvidas sobre o relatório...",
-      timestamp: "Ontem",
-      unread: 1,
-    },
-  ];
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        setLoading(true);
+        const data = await consultantApi.getConversations();
+        setConversations(data.conversations);
+      } catch (err: any) {
+        console.error("Error fetching conversations:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const conversationData: Conversation[] = [
-    {
-      id: "1",
-      clientId: "1",
-      clientName: "João Silva",
-      messages: [
-        {
-          id: "1",
-          sender: "client",
-          content: "Olá! Tenho algumas dúvidas sobre o relatório que você enviou.",
-          timestamp: "2024-01-17 10:00",
-        },
-        {
-          id: "2",
-          sender: "consultant",
-          content: "Olá João! Fico feliz em ajudar. Quais são suas dúvidas?",
-          timestamp: "2024-01-17 10:15",
-        },
-        {
-          id: "3",
-          sender: "client",
-          content: "Obrigado pela análise do portfólio! Foi muito útil.",
-          timestamp: "2024-01-17 11:30",
-        },
-      ],
-    },
-  ];
+    fetchConversations();
+  }, []);
 
-  const currentConversation = conversationData.find((c) => c.id === selectedConversation);
+  useEffect(() => {
+    if (!selectedConversation) {
+      setCurrentConversation(null);
+      return;
+    }
 
-  const handleSendMessage = () => {
+    const fetchConversation = async () => {
+      try {
+        const data = await consultantApi.getConversation(selectedConversation);
+        setCurrentConversation({
+          id: data.conversation.id,
+          clientId: data.conversation.clientId,
+          clientName: data.conversation.clientName,
+          messages: data.messages,
+        });
+      } catch (err: any) {
+        console.error("Error fetching conversation:", err);
+      }
+    };
+
+    fetchConversation();
+  }, [selectedConversation]);
+
+  const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
-    // Send message logic here
-    setNewMessage("");
+
+    try {
+      setSending(true);
+      const result = await consultantApi.sendMessage(selectedConversation, newMessage);
+      setCurrentConversation((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          messages: [...prev.messages, result.message],
+        };
+      });
+      setNewMessage("");
+    } catch (err: any) {
+      console.error("Error sending message:", err);
+      alert(err?.error || "Erro ao enviar mensagem");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -132,7 +134,16 @@ const Messages = () => {
           </div>
           <ScrollArea className="flex-1">
             <div className="space-y-1 p-2">
-              {conversations.map((conversation) => (
+              {loading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Carregando...</p>
+                </div>
+              ) : conversations.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nenhuma conversa ainda</p>
+                </div>
+              ) : (
+                conversations.map((conversation) => (
                 <button
                   key={conversation.id}
                   onClick={() => setSelectedConversation(conversation.id)}
@@ -172,7 +183,8 @@ const Messages = () => {
                     </div>
                   </div>
                 </button>
-              ))}
+              ))
+              )}
             </div>
           </ScrollArea>
         </ChartCard>
@@ -239,7 +251,7 @@ const Messages = () => {
                         }
                       }}
                     />
-                    <Button onClick={handleSendMessage} size="icon" className="flex-shrink-0">
+                    <Button onClick={handleSendMessage} size="icon" className="flex-shrink-0" disabled={sending || !newMessage.trim()}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
