@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, TrendingUp, AlertCircle, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
+import { adminApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -22,68 +23,38 @@ const Subscriptions = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPlan, setFilterPlan] = useState<string>("all");
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const subscriptions: Subscription[] = [
-    {
-      id: "1",
-      user: "João Silva",
-      email: "joao@email.com",
-      plan: "Pro",
-      status: "active",
-      amount: 79.90,
-      nextBilling: "2024-03-01",
-      createdAt: "2024-01-01",
-    },
-    {
-      id: "2",
-      user: "Maria Santos",
-      email: "maria@email.com",
-      plan: "Basic",
-      status: "active",
-      amount: 29.90,
-      nextBilling: "2024-03-15",
-      createdAt: "2024-01-15",
-    },
-    {
-      id: "3",
-      user: "Pedro Costa",
-      email: "pedro@email.com",
-      plan: "Consultant",
-      status: "active",
-      amount: 299.90,
-      nextBilling: "2024-03-10",
-      createdAt: "2024-02-01",
-    },
-    {
-      id: "4",
-      user: "Ana Oliveira",
-      email: "ana@email.com",
-      plan: "Free",
-      status: "active",
-      amount: 0,
-      nextBilling: "-",
-      createdAt: "2024-01-10",
-    },
-    {
-      id: "5",
-      user: "Carlos Mendes",
-      email: "carlos@email.com",
-      plan: "Pro",
-      status: "past_due",
-      amount: 79.90,
-      nextBilling: "2024-02-20",
-      createdAt: "2023-12-01",
-    },
-  ];
+  useEffect(() => {
+    const fetchSubscriptions = async () => {
+      try {
+        setLoading(true);
+        const response = await adminApi.getSubscriptions({
+          search: searchQuery || undefined,
+          status: filterStatus !== "all" ? filterStatus : undefined,
+          plan: filterPlan !== "all" ? filterPlan : undefined,
+        });
+        setSubscriptions(response.subscriptions.map(sub => ({
+          ...sub,
+          status: sub.status as any,
+          nextBilling: sub.nextBilling || "-",
+        })));
+      } catch (error: any) {
+        console.error('Failed to fetch subscriptions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredSubscriptions = subscriptions.filter((sub) => {
-    const matchesSearch =
-      sub.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sub.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === "all" || sub.status === filterStatus;
-    const matchesPlan = filterPlan === "all" || sub.plan === filterPlan;
-    return matchesSearch && matchesStatus && matchesPlan;
-  });
+    const timer = setTimeout(() => {
+      fetchSubscriptions();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, filterStatus, filterPlan]);
+
+  const filteredSubscriptions = subscriptions;
 
   const totalMRR = subscriptions
     .filter((sub) => sub.status === "active")
@@ -194,8 +165,13 @@ const Subscriptions = () => {
 
       {/* Subscriptions Table */}
       <ChartCard title={`${filteredSubscriptions.length} Assinatura${filteredSubscriptions.length !== 1 ? "s" : ""}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-muted-foreground">Carregando assinaturas...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -256,6 +232,7 @@ const Subscriptions = () => {
             </tbody>
           </table>
         </div>
+        )}
       </ChartCard>
     </div>
   );

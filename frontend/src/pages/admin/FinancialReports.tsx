@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DollarSign, TrendingUp, Users, CreditCard, Download, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
+import { adminApi } from "@/lib/api";
 import {
   LineChart,
   Line,
@@ -19,33 +20,45 @@ import {
 
 const FinancialReports = () => {
   const [period, setPeriod] = useState<"month" | "quarter" | "year">("month");
+  const [loading, setLoading] = useState(true);
+  const [revenueData, setRevenueData] = useState<Array<{ month: string; revenue: number }>>([]);
+  const [commissionsData, setCommissionsData] = useState<Array<{ consultant: string; clients: number; commission: number }>>([]);
+  const [transactionData, setTransactionData] = useState<Array<{ date: string; type: string; amount: number; client: string }>>([]);
+  const [mrr, setMrr] = useState(0);
 
-  const revenueData = [
-    { month: "Jan", revenue: 82000, subscriptions: 1240 },
-    { month: "Fev", revenue: 84000, subscriptions: 1245 },
-    { month: "Mar", revenue: 85000, subscriptions: 1247 },
-    { month: "Abr", revenue: 86000, subscriptions: 1250 },
-    { month: "Mai", revenue: 87000, subscriptions: 1252 },
-    { month: "Jun", revenue: 87500, subscriptions: 1247 },
-  ];
+  useEffect(() => {
+    const fetchFinancialReports = async () => {
+      try {
+        setLoading(true);
+        const data = await adminApi.getFinancialReports();
+        
+        setRevenueData(data.revenue);
+        setCommissionsData(data.commissions);
+        setTransactionData(data.transactions);
+        setMrr(data.mrr);
+      } catch (error: any) {
+        console.error('Failed to fetch financial reports:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const commissionsData = [
-    { consultant: "Consultor A", clients: 24, commission: 12500, percentage: 15 },
-    { consultant: "Consultor B", clients: 18, commission: 9200, percentage: 12 },
-    { consultant: "Consultor C", clients: 15, commission: 7500, percentage: 10 },
-  ];
-
-  const transactionData = [
-    { date: "01/02", type: "Assinatura", amount: 299.90, client: "João Silva" },
-    { date: "01/02", type: "Assinatura", amount: 499.90, client: "Maria Santos" },
-    { date: "02/02", type: "Comissão", amount: -1500.00, client: "Consultor A" },
-    { date: "03/02", type: "Assinatura", amount: 99.90, client: "Pedro Costa" },
-  ];
+    fetchFinancialReports();
+  }, []);
 
   const totalRevenue = revenueData.reduce((sum, item) => sum + item.revenue, 0);
   const totalCommissions = commissionsData.reduce((sum, item) => sum + item.commission, 0);
   const netRevenue = totalRevenue - totalCommissions;
-  const mrr = 87500;
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Carregando relatórios financeiros...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

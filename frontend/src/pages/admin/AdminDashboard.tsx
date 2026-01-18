@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { Users, TrendingUp, CreditCard, AlertCircle, Activity } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
+import { adminApi } from "@/lib/api";
 import {
   LineChart,
   Line,
@@ -14,38 +16,50 @@ import {
 } from "recharts";
 
 const AdminDashboard = () => {
-  const kpiData = {
-    activeUsers: 1247,
-    newUsers: 43,
-    mrr: 87500,
-    churnRate: 2.4,
-  };
+  const [loading, setLoading] = useState(true);
+  const [kpiData, setKpiData] = useState({
+    activeUsers: 0,
+    newUsers: 0,
+    mrr: 0,
+    churnRate: 0,
+  });
+  const [userGrowthData, setUserGrowthData] = useState<Array<{ month: string; users: number }>>([]);
+  const [revenueData, setRevenueData] = useState<Array<{ month: string; revenue: number }>>([]);
+  const [alerts, setAlerts] = useState<Array<{ id: string; type: string; message: string; time: string }>>([]);
 
-  const userGrowthData = [
-    { month: "Ago", users: 1100 },
-    { month: "Set", users: 1150 },
-    { month: "Out", users: 1180 },
-    { month: "Nov", users: 1200 },
-    { month: "Dez", users: 1220 },
-    { month: "Jan", users: 1240 },
-    { month: "Fev", users: 1247 },
-  ];
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        setLoading(true);
+        const data = await adminApi.getDashboardMetrics();
+        
+        setKpiData(data.kpis);
+        setUserGrowthData(data.userGrowth);
+        setRevenueData(data.revenue);
+        setAlerts(data.alerts.map(alert => ({
+          ...alert,
+          time: new Date(alert.time).toLocaleString('pt-BR'),
+        })));
+      } catch (error: any) {
+        console.error('Failed to fetch metrics:', error);
+        // Fallback to empty data on error
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const revenueData = [
-    { month: "Ago", revenue: 82000 },
-    { month: "Set", revenue: 84000 },
-    { month: "Out", revenue: 85000 },
-    { month: "Nov", revenue: 86000 },
-    { month: "Dez", revenue: 87000 },
-    { month: "Jan", revenue: 87200 },
-    { month: "Fev", revenue: 87500 },
-  ];
+    fetchMetrics();
+  }, []);
 
-  const alerts = [
-    { id: "1", type: "warning", message: "Falha na sincronização Puggy - 2 contas", time: "há 5 min" },
-    { id: "2", type: "info", message: "Novo usuário Premium cadastrado", time: "há 15 min" },
-    { id: "3", type: "error", message: "Erro na API B3 - Verificar logs", time: "há 1 hora" },
-  ];
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Carregando métricas...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

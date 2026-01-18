@@ -10,6 +10,7 @@ import { connectionsRoutes } from './routes/connections.js';
 import { accountsRoutes } from './routes/accounts.js';
 import { cardsRoutes } from './routes/cards.js';
 import { investmentsRoutes } from './routes/investments.js';
+import { adminRoutes } from './routes/admin.js';
 
 dotenv.config();
 
@@ -109,6 +110,7 @@ await fastify.register(connectionsRoutes, { prefix: '/api/connections' });
 await fastify.register(accountsRoutes, { prefix: '/api/accounts' });
 await fastify.register(cardsRoutes, { prefix: '/api/cards' });
 await fastify.register(investmentsRoutes, { prefix: '/api/investments' });
+await fastify.register(adminRoutes, { prefix: '/api/admin' });
 
 // Start server
 const start = async () => {

@@ -195,3 +195,81 @@ export const investmentsApi = {
   getSummary: () =>
     api.get<{ summary: any }>('/investments/summary'),
 };
+
+// Admin endpoints
+export const adminApi = {
+  // Dashboard metrics
+  getDashboardMetrics: () =>
+    api.get<{
+      kpis: {
+        activeUsers: number;
+        newUsers: number;
+        mrr: number;
+        churnRate: number;
+      };
+      userGrowth: Array<{ month: string; users: number }>;
+      revenue: Array<{ month: string; revenue: number }>;
+      alerts: Array<{ id: string; type: string; message: string; time: string }>;
+    }>('/admin/dashboard/metrics'),
+
+  // User management
+  getUsers: (params?: { search?: string; role?: string; status?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.role) queryParams.append('role', params.role);
+    if (params?.status) queryParams.append('status', params.status);
+    return api.get<{ users: Array<{
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      status: string;
+      plan: string | null;
+      createdAt: string;
+    }> }>(`/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
+  },
+
+  getUser: (id: string) =>
+    api.get<{ user: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      status: string;
+      plan: string | null;
+      createdAt: string;
+    } }>(`/admin/users/${id}`),
+
+  updateUserRole: (id: string, role: string) =>
+    api.patch<{ message: string }>(`/admin/users/${id}/role`, { role }),
+
+  updateUserStatus: (id: string, status: 'active' | 'blocked') =>
+    api.patch<{ message: string }>(`/admin/users/${id}/status`, { status }),
+
+  // Subscriptions
+  getSubscriptions: (params?: { search?: string; status?: string; plan?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.plan) queryParams.append('plan', params.plan);
+    return api.get<{ subscriptions: Array<{
+      id: string;
+      user: string;
+      email: string;
+      plan: string;
+      amount: number;
+      status: string;
+      nextBilling: string;
+      createdAt: string;
+    }> }>(`/admin/subscriptions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
+  },
+
+  // Financial reports
+  getFinancialReports: () =>
+    api.get<{
+      revenue: Array<{ month: string; revenue: number }>;
+      mrr: number;
+      commissions: Array<{ consultant: string; clients: number; commission: number }>;
+      transactions: Array<{ id: string; date: string; type: string; amount: number; client: string }>;
+    }>('/admin/financial/reports'),
+};

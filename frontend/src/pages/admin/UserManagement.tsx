@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, UserX, UserCheck, MoreVertical, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
+import { adminApi } from "@/lib/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,65 +19,38 @@ interface User {
   email: string;
   role: "customer" | "consultant" | "admin";
   status: "active" | "blocked" | "pending";
-  plan?: string;
+  plan?: string | null;
   createdAt: string;
 }
 
 const UserManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const users: User[] = [
-    {
-      id: "1",
-      name: "João Silva",
-      email: "joao@email.com",
-      role: "customer",
-      status: "active",
-      plan: "Pro",
-      createdAt: "2024-01-15",
-    },
-    {
-      id: "2",
-      name: "Maria Santos",
-      email: "maria@email.com",
-      role: "customer",
-      status: "active",
-      plan: "Basic",
-      createdAt: "2024-01-20",
-    },
-    {
-      id: "3",
-      name: "Pedro Costa",
-      email: "pedro@email.com",
-      role: "consultant",
-      status: "active",
-      createdAt: "2024-02-01",
-    },
-    {
-      id: "4",
-      name: "Ana Oliveira",
-      email: "ana@email.com",
-      role: "customer",
-      status: "blocked",
-      plan: "Free",
-      createdAt: "2024-01-10",
-    },
-    {
-      id: "5",
-      name: "Admin User",
-      email: "admin@platform.com",
-      role: "admin",
-      status: "active",
-      createdAt: "2023-12-01",
-    },
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const response = await adminApi.getUsers({ search: searchQuery });
+        setUsers(response.users);
+      } catch (error: any) {
+        console.error('Failed to fetch users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    // Debounce search
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const filteredUsers = users;
 
   const getRoleBadge = (role: string) => {
     const styles = {
@@ -114,12 +88,35 @@ const UserManagement = () => {
     );
   };
 
-  const handleBlockUser = (userId: string) => {
-    console.log("Block user:", userId);
+  const handleBlockUser = async (userId: string) => {
+    try {
+      await adminApi.updateUserStatus(userId, 'blocked');
+      setUsers(users.map(u => u.id === userId ? { ...u, status: 'blocked' } : u));
+    } catch (error: any) {
+      console.error('Failed to block user:', error);
+      alert(error?.error || 'Falha ao bloquear usuário');
+    }
   };
 
-  const handleUnblockUser = (userId: string) => {
-    console.log("Unblock user:", userId);
+  const handleUnblockUser = async (userId: string) => {
+    try {
+      await adminApi.updateUserStatus(userId, 'active');
+      setUsers(users.map(u => u.id === userId ? { ...u, status: 'active' } : u));
+    } catch (error: any) {
+      console.error('Failed to unblock user:', error);
+      alert(error?.error || 'Falha ao desbloquear usuário');
+    }
+  };
+
+  const handleChangeRole = async (userId: string, newRole: string) => {
+    try {
+      await adminApi.updateUserRole(userId, newRole);
+      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole as any } : u));
+      alert('Role atualizado com sucesso');
+    } catch (error: any) {
+      console.error('Failed to update role:', error);
+      alert(error?.error || 'Falha ao atualizar role');
+    }
   };
 
   return (
@@ -149,8 +146,13 @@ const UserManagement = () => {
 
       {/* Users Table */}
       <ChartCard title={`${filteredUsers.length} Usuário${filteredUsers.length !== 1 ? "s" : ""}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-muted-foreground">Carregando usuários...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -208,9 +210,10 @@ const UserManagement = () => {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleChangeRole(user.id, user.role === 'customer' ? 'consultant' : 'customer')}>
                           <Shield className="h-4 w-4 mr-2" />
-                          Alterar role
+                          Alterar para {user.role === 'customer' ? 'Consultor' : 'Cliente'}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {user.status === "active" ? (
@@ -237,6 +240,7 @@ const UserManagement = () => {
             </tbody>
           </table>
         </div>
+        )}
       </ChartCard>
     </div>
   );
