@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { CheckCircle2, XCircle, Clock, Activity, AlertCircle } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Badge } from "@/components/ui/badge";
+import { adminApi } from "@/lib/api";
 
 interface Integration {
   id: string;
@@ -15,62 +17,53 @@ interface Integration {
 }
 
 const IntegrationsMonitor = () => {
-  const integrations: Integration[] = [
-    {
-      id: "1",
-      name: "Open Finance",
-      provider: "Puggy",
-      status: "healthy",
-      lastSync: "há 2 minutos",
-      uptime: "99.9%",
-      errorRate: 0.1,
-      requestsToday: 1247,
-    },
-    {
-      id: "2",
-      name: "B3 API",
-      provider: "B3",
-      status: "healthy",
-      lastSync: "há 5 minutos",
-      uptime: "99.8%",
-      errorRate: 0.2,
-      requestsToday: 892,
-    },
-    {
-      id: "3",
-      name: "Pagamentos",
-      provider: "Mercado Pago",
-      status: "healthy",
-      lastSync: "há 1 minuto",
-      uptime: "100%",
-      errorRate: 0,
-      requestsToday: 456,
-    },
-    {
-      id: "4",
-      name: "Emails",
-      provider: "Resend",
-      status: "degraded",
-      lastSync: "há 15 minutos",
-      uptime: "98.5%",
-      errorRate: 1.5,
-      requestsToday: 2341,
-    },
-    {
-      id: "5",
-      name: "Cotações",
-      provider: "BRAPI",
-      status: "healthy",
-      lastSync: "há 30 segundos",
-      uptime: "99.7%",
-      errorRate: 0.3,
-      requestsToday: 5678,
-    },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [stats, setStats] = useState({
+    healthy: 0,
+    degraded: 0,
+    down: 0,
+    total: 0,
+    avgUptime: "99.9%",
+  });
+  const [logs, setLogs] = useState<Array<{
+    time: string;
+    integration: string;
+    message: string;
+    type: 'success' | 'warning' | 'error';
+  }>>([]);
 
-  const healthyCount = integrations.filter((int) => int.status === "healthy").length;
-  const degradedCount = integrations.filter((int) => int.status === "degraded").length;
-  const downCount = integrations.filter((int) => int.status === "down").length;
+  useEffect(() => {
+    fetchIntegrations();
+  }, []);
+
+  const fetchIntegrations = async () => {
+    try {
+      setLoading(true);
+      const data = await adminApi.getIntegrations();
+      setIntegrations(data.integrations);
+      setStats(data.stats);
+      setLogs(data.logs);
+    } catch (error) {
+      console.error('Failed to fetch integrations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Carregando integrações...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const healthyCount = stats.healthy;
+  const degradedCount = stats.degraded;
+  const downCount = stats.down;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -143,7 +136,7 @@ const IntegrationsMonitor = () => {
         />
         <ProfessionalKpiCard
           title="Uptime Médio"
-          value="99.6%"
+          value={stats.avgUptime}
           change="últimos 30 dias"
           changeType="positive"
           icon={Activity}
@@ -217,11 +210,10 @@ const IntegrationsMonitor = () => {
       {/* Logs Table */}
       <ChartCard title="Logs Recentes">
         <div className="space-y-2">
-          {[
-            { time: "há 5 min", integration: "Puggy", message: "Sync concluído - 1247 contas", type: "success" },
-            { time: "há 15 min", integration: "Resend", message: "Erro ao enviar email - Retry em 5min", type: "warning" },
-            { time: "há 30 min", integration: "B3 API", message: "Sync concluído - 892 posições", type: "success" },
-          ].map((log, index) => (
+          {logs.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum log recente</p>
+          ) : (
+            logs.map((log, index) => (
             <div
               key={index}
               className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
@@ -240,7 +232,8 @@ const IntegrationsMonitor = () => {
                 </div>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
       </ChartCard>
     </div>

@@ -20,6 +20,17 @@ export function useWebSocket(url: string, onMessage?: (message: WebSocketMessage
       return; // Only connect for admin users
     }
 
+    // Prevent multiple simultaneous connections
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.CONNECTING || wsRef.current.readyState === WebSocket.OPEN)) {
+      return;
+    }
+
+    // Clean up any existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
     try {
       // Get token from localStorage
       const token = localStorage.getItem('auth_token');
@@ -37,8 +48,9 @@ export function useWebSocket(url: string, onMessage?: (message: WebSocketMessage
         // Convert HTTP/HTTPS URL to WebSocket URL
         wsUrl = url.replace('http://', 'ws://').replace('https://', 'wss://');
       }
-      const wsUrlWithToken = `${wsUrl}?token=${token}`;
+      const wsUrlWithToken = `${wsUrl}?token=${encodeURIComponent(token)}`;
       
+      console.log('Connecting to WebSocket:', wsUrlWithToken.replace(/\?token=[^&]+/, '?token=***'));
       const ws = new WebSocket(wsUrlWithToken);
       
       ws.onopen = () => {
@@ -72,14 +84,15 @@ export function useWebSocket(url: string, onMessage?: (message: WebSocketMessage
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        setConnected(false);
       };
 
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
+      ws.onclose = (event) => {
+        console.log('WebSocket disconnected', { code: event.code, reason: event.reason, wasClean: event.wasClean });
         setConnected(false);
         
-        // Attempt to reconnect after 3 seconds
-        if (user && user.role === 'admin') {
+        // Attempt to reconnect after 3 seconds (only if not a normal closure)
+        if (user && user.role === 'admin' && event.code !== 1000) {
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, 3000);
@@ -103,9 +116,10 @@ export function useWebSocket(url: string, onMessage?: (message: WebSocketMessage
       }
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
     };
-  }, [user, connect]);
+  }, [user?.id, user?.role, url]); // Only depend on stable values, not the connect function
 
   const send = useCallback((message: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

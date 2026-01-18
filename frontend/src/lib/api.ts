@@ -359,6 +359,74 @@ export const adminApi = {
       commissions: Array<{ consultant: string; clients: number; commission: number }>;
       transactions: Array<{ id: string; date: string; type: string; amount: number; client: string }>;
     }>('/admin/financial/reports'),
+
+  // Integrations monitoring
+  getIntegrations: () =>
+    api.get<{
+      integrations: Array<{
+        id: string;
+        name: string;
+        provider: string;
+        status: 'healthy' | 'degraded' | 'down';
+        lastSync: string;
+        uptime: string;
+        errorRate: number;
+        requestsToday: number;
+      }>;
+      stats: {
+        healthy: number;
+        degraded: number;
+        down: number;
+        total: number;
+        avgUptime: string;
+      };
+      logs: Array<{
+        time: string;
+        integration: string;
+        message: string;
+        type: 'success' | 'warning' | 'error';
+      }>;
+    }>('/admin/integrations'),
+
+  // Prospecting
+  getProspecting: (params?: { search?: string; stage?: string; potential?: string; page?: number; limit?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.stage) queryParams.append('stage', params.stage);
+    if (params?.potential) queryParams.append('potential', params.potential);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    return api.get<{
+      prospects: Array<{
+        id: string;
+        name: string;
+        email: string;
+        netWorth: number;
+        stage: string;
+        engagement: number;
+        lastActivity: string;
+        potential: 'high' | 'medium' | 'low';
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+      kpis: {
+        highPotential: number;
+        totalNetWorth: number;
+        avgEngagement: number;
+        total: number;
+      };
+      funnel: {
+        free: number;
+        basic: number;
+        pro: number;
+        consultant: number;
+      };
+    }>(`/admin/prospecting${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  },
 };
 
 // Consultant endpoints

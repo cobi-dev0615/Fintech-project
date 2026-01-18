@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Users, TrendingUp, CreditCard, AlertCircle, Activity } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -28,7 +28,7 @@ const AdminDashboard = () => {
   const [revenueData, setRevenueData] = useState<Array<{ month: string; revenue: number }>>([]);
   const [alerts, setAlerts] = useState<Array<{ id: string; type: string; message: string; time: string }>>([]);
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     try {
       setLoading(true);
       const data = await adminApi.getDashboardMetrics();
@@ -46,10 +46,10 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // WebSocket connection for real-time updates
-  const getWebSocketUrl = () => {
+  const webSocketUrl = useMemo(() => {
     // Use same logic as API base URL to determine backend URL
     const origin = window.location.origin;
     
@@ -68,17 +68,16 @@ const AdminDashboard = () => {
       // Fallback to localhost
       return 'ws://localhost:5000/ws';
     }
-  };
+  }, []); // Only calculate once
 
-  const { connected, lastMessage } = useWebSocket(
-    getWebSocketUrl(),
-    (message) => {
-      // Refresh metrics when receiving update notification
-      if (message.type === 'metrics_updated' || message.type === 'metrics_refresh') {
-        fetchMetrics();
-      }
+  const handleWebSocketMessage = useCallback((message: any) => {
+    // Refresh metrics when receiving update notification
+    if (message.type === 'metrics_updated' || message.type === 'metrics_refresh') {
+      fetchMetrics();
     }
-  );
+  }, [fetchMetrics]);
+
+  const { connected, lastMessage } = useWebSocket(webSocketUrl, handleWebSocketMessage);
 
   useEffect(() => {
     fetchMetrics();

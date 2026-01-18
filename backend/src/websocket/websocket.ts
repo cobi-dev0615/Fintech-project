@@ -12,7 +12,7 @@ interface AdminWebSocket extends WebSocket {
 
 export function setupWebSocket(fastify: FastifyInstance) {
   // Wait for server to be ready
-  fastify.ready().then(() => {
+  Promise.resolve(fastify.ready()).then(() => {
     const httpServer = fastify.server as HttpServer;
     
     if (!httpServer) {
@@ -46,42 +46,52 @@ export function setupWebSocket(fastify: FastifyInstance) {
     }, 30000);
 
     wss.on('connection', (ws: AdminWebSocket, request) => {
-    ws.isAlive = true;
-
-    ws.on('pong', () => {
       ws.isAlive = true;
-    });
+      console.log('WebSocket connection attempt from:', request.socket.remoteAddress);
 
-    // Authenticate WebSocket connection
-    const url = new URL(request.url || '', 'http://localhost');
-    const token = url.searchParams.get('token');
+      ws.on('pong', () => {
+        ws.isAlive = true;
+      });
 
-    if (!token) {
-      ws.close(1008, 'Authentication required');
-      return;
-    }
-
-    // Verify JWT token (simplified - in production, use proper JWT verification)
-    // For now, we'll let clients send their user info after connection
-    ws.on('message', async (message: string) => {
+      // Authenticate WebSocket connection
       try {
-        const data = JSON.parse(message.toString());
-        
-        if (data.type === 'authenticate' && data.userId && data.role === 'admin') {
-          ws.userId = data.userId;
-          ws.role = data.role;
-          ws.send(JSON.stringify({ type: 'authenticated', message: 'Connected to admin updates' }));
-        } else if (data.type === 'ping') {
-          ws.send(JSON.stringify({ type: 'pong' }));
-        }
-      } catch (error) {
-        console.error('WebSocket message error:', error);
-      }
-    });
+        const url = new URL(request.url || '', 'http://localhost');
+        const token = url.searchParams.get('token');
 
-    ws.on('close', () => {
-      // Cleanup on disconnect
-    });
+        if (!token) {
+          console.log('WebSocket connection rejected: No token provided');
+          ws.close(1008, 'Authentication required');
+          return;
+        }
+        
+        console.log('WebSocket connection authenticated with token');
+      } catch (error) {
+        console.error('WebSocket connection error:', error);
+        ws.close(1011, 'Internal server error');
+        return;
+      }
+
+      // Verify JWT token (simplified - in production, use proper JWT verification)
+      // For now, we'll let clients send their user info after connection
+      ws.on('message', async (message: string) => {
+        try {
+          const data = JSON.parse(message.toString());
+          
+          if (data.type === 'authenticate' && data.userId && data.role === 'admin') {
+            ws.userId = data.userId;
+            ws.role = data.role;
+            ws.send(JSON.stringify({ type: 'authenticated', message: 'Connected to admin updates' }));
+          } else if (data.type === 'ping') {
+            ws.send(JSON.stringify({ type: 'pong' }));
+          }
+        } catch (error) {
+          console.error('WebSocket message error:', error);
+        }
+      });
+
+      ws.on('close', () => {
+        // Cleanup on disconnect
+      });
 
       ws.on('error', (error) => {
         console.error('WebSocket error:', error);
