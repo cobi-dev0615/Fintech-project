@@ -11,6 +11,7 @@ import { accountsRoutes } from './routes/accounts.js';
 import { cardsRoutes } from './routes/cards.js';
 import { investmentsRoutes } from './routes/investments.js';
 import { adminRoutes } from './routes/admin.js';
+import { setupWebSocket } from './websocket/websocket.js';
 
 dotenv.config();
 
@@ -118,8 +119,14 @@ const start = async () => {
     const port = Number(process.env.PORT) || 3000;
     const host = process.env.HOST || '0.0.0.0';
     
+    // Setup WebSocket before listening (needs the server instance)
+    setupWebSocket(fastify);
+    
+    // Start listening
     await fastify.listen({ port, host });
+    
     console.log(`🚀 Server running on http://${host}:${port}`);
+    console.log(`📡 WebSocket available on ws://${host}:${port}/ws`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

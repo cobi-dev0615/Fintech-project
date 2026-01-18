@@ -213,20 +213,30 @@ export const adminApi = {
     }>('/admin/dashboard/metrics'),
 
   // User management
-  getUsers: (params?: { search?: string; role?: string; status?: string }) => {
+  getUsers: (params?: { search?: string; role?: string; status?: string; page?: number; limit?: number }) => {
     const queryParams = new URLSearchParams();
     if (params?.search) queryParams.append('search', params.search);
     if (params?.role) queryParams.append('role', params.role);
     if (params?.status) queryParams.append('status', params.status);
-    return api.get<{ users: Array<{
-      id: string;
-      name: string;
-      email: string;
-      role: string;
-      status: string;
-      plan: string | null;
-      createdAt: string;
-    }> }>(`/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    return api.get<{ 
+      users: Array<{
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        status: string;
+        plan: string | null;
+        createdAt: string;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
   },
 
   getUser: (id: string) =>
@@ -247,21 +257,31 @@ export const adminApi = {
     api.patch<{ message: string }>(`/admin/users/${id}/status`, { status }),
 
   // Subscriptions
-  getSubscriptions: (params?: { search?: string; status?: string; plan?: string }) => {
+  getSubscriptions: (params?: { search?: string; status?: string; plan?: string; page?: number; limit?: number }) => {
     const queryParams = new URLSearchParams();
     if (params?.search) queryParams.append('search', params.search);
     if (params?.status) queryParams.append('status', params.status);
     if (params?.plan) queryParams.append('plan', params.plan);
-    return api.get<{ subscriptions: Array<{
-      id: string;
-      user: string;
-      email: string;
-      plan: string;
-      amount: number;
-      status: string;
-      nextBilling: string;
-      createdAt: string;
-    }> }>(`/admin/subscriptions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    return api.get<{ 
+      subscriptions: Array<{
+        id: string;
+        user: string;
+        email: string;
+        plan: string;
+        amount: number;
+        status: string;
+        nextBilling: string;
+        createdAt: string;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/admin/subscriptions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
   },
 
   // Financial reports

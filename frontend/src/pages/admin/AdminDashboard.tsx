@@ -3,6 +3,7 @@ import { Users, TrendingUp, CreditCard, AlertCircle, Activity } from "lucide-rea
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import {
   LineChart,
   Line,
@@ -27,29 +28,56 @@ const AdminDashboard = () => {
   const [revenueData, setRevenueData] = useState<Array<{ month: string; revenue: number }>>([]);
   const [alerts, setAlerts] = useState<Array<{ id: string; type: string; message: string; time: string }>>([]);
 
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        setLoading(true);
-        const data = await adminApi.getDashboardMetrics();
-        
-        setKpiData(data.kpis);
-        setUserGrowthData(data.userGrowth);
-        setRevenueData(data.revenue);
-        setAlerts(data.alerts.map(alert => ({
-          ...alert,
-          time: new Date(alert.time).toLocaleString('pt-BR'),
-        })));
-      } catch (error: any) {
-        console.error('Failed to fetch metrics:', error);
-        // Fallback to empty data on error
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchMetrics = async () => {
+    try {
+      setLoading(true);
+      const data = await adminApi.getDashboardMetrics();
+      
+      setKpiData(data.kpis);
+      setUserGrowthData(data.userGrowth);
+      setRevenueData(data.revenue);
+      setAlerts(data.alerts.map(alert => ({
+        ...alert,
+        time: new Date(alert.time).toLocaleString('pt-BR'),
+      })));
+    } catch (error: any) {
+      console.error('Failed to fetch metrics:', error);
+      // Fallback to empty data on error
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // WebSocket connection for real-time updates
+  const getWebSocketUrl = () => {
+    // Use same origin as API, but WebSocket protocol
+    const apiUrl = window.location.origin;
+    const protocol = apiUrl.startsWith('https') ? 'wss' : 'ws';
+    // Extract hostname and use port 3000 (backend port)
+    const url = new URL(apiUrl);
+    return `${protocol}://${url.hostname}:3000/ws`;
+  };
+
+  const { connected, lastMessage } = useWebSocket(
+    getWebSocketUrl(),
+    (message) => {
+      // Refresh metrics when receiving update notification
+      if (message.type === 'metrics_updated' || message.type === 'metrics_refresh') {
+        fetchMetrics();
+      }
+    }
+  );
+
+  useEffect(() => {
     fetchMetrics();
   }, []);
+
+  // Refresh when WebSocket receives update
+  useEffect(() => {
+    if (lastMessage && (lastMessage.type === 'metrics_updated' || lastMessage.type === 'metrics_refresh')) {
+      fetchMetrics();
+    }
+  }, [lastMessage]);
 
   if (loading) {
     return (

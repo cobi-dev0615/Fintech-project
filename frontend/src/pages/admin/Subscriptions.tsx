@@ -25,6 +25,13 @@ const Subscriptions = () => {
   const [filterPlan, setFilterPlan] = useState<string>("all");
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
@@ -34,12 +41,15 @@ const Subscriptions = () => {
           search: searchQuery || undefined,
           status: filterStatus !== "all" ? filterStatus : undefined,
           plan: filterPlan !== "all" ? filterPlan : undefined,
+          page,
+          limit: 20,
         });
         setSubscriptions(response.subscriptions.map(sub => ({
           ...sub,
           status: sub.status as any,
           nextBilling: sub.nextBilling || "-",
         })));
+        setPagination(response.pagination);
       } catch (error: any) {
         console.error('Failed to fetch subscriptions:', error);
       } finally {
@@ -48,11 +58,14 @@ const Subscriptions = () => {
     };
 
     const timer = setTimeout(() => {
+      if (searchQuery || filterStatus !== "all" || filterPlan !== "all") {
+        setPage(1); // Reset to first page on filter change
+      }
       fetchSubscriptions();
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, filterStatus, filterPlan]);
+  }, [searchQuery, filterStatus, filterPlan, page]);
 
   const filteredSubscriptions = subscriptions;
 
@@ -164,14 +177,15 @@ const Subscriptions = () => {
       </ChartCard>
 
       {/* Subscriptions Table */}
-      <ChartCard title={`${filteredSubscriptions.length} Assinatura${filteredSubscriptions.length !== 1 ? "s" : ""}`}>
+      <ChartCard title={`${pagination.total} Assinatura${pagination.total !== 1 ? "s" : ""}`}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <p className="text-muted-foreground">Carregando assinaturas...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -232,6 +246,59 @@ const Subscriptions = () => {
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+            <div className="text-sm text-muted-foreground">
+              Mostrando {((page - 1) * pagination.limit) + 1} - {Math.min(page * pagination.limit, pagination.total)} de {pagination.total}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
+              >
+                Anterior
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (pagination.totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= pagination.totalPages - 2) {
+                    pageNum = pagination.totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={page === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPage(pageNum)}
+                      disabled={loading}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                disabled={page === pagination.totalPages || loading}
+              >
+                Próxima
+              </Button>
+            </div>
+          </div>
+        )}
+        </>
         )}
       </ChartCard>
     </div>

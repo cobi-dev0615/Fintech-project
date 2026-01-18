@@ -8,10 +8,17 @@ const AppLayout = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const location = useLocation();
   
-  // Hide search and show date/time on admin pages
-  const isAdminPage = location.pathname.startsWith('/admin');
-  const hideSearch = isAdminPage;
-  const showDateTime = isAdminPage;
+  // Hide search and show date/time on all authenticated pages (customer, consultant, admin)
+  // All routes starting with /app, /consultant, or /admin are authenticated pages
+  const isAuthenticatedPage = location.pathname.startsWith('/app') || 
+                               location.pathname.startsWith('/consultant') || 
+                               location.pathname.startsWith('/admin');
+  
+  // Hide search box on all authenticated pages
+  const hideSearch = isAuthenticatedPage;
+  
+  // Show date/time on all authenticated pages
+  const showDateTime = isAuthenticatedPage;
 
   return (
     <div className="flex min-h-screen bg-gray-950">

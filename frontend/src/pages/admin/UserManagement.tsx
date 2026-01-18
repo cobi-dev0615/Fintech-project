@@ -28,13 +28,25 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await adminApi.getUsers({ search: searchQuery });
+        const response = await adminApi.getUsers({ 
+          search: searchQuery,
+          page,
+          limit: 20,
+        });
         setUsers(response.users);
+        setPagination(response.pagination);
       } catch (error: any) {
         console.error('Failed to fetch users:', error);
       } finally {
@@ -42,13 +54,16 @@ const UserManagement = () => {
       }
     };
 
-    // Debounce search
+    // Debounce search and reset page on search change
     const timer = setTimeout(() => {
+      if (searchQuery) {
+        setPage(1); // Reset to first page on new search
+      }
       fetchUsers();
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, page]);
 
   const filteredUsers = users;
 
@@ -145,14 +160,15 @@ const UserManagement = () => {
       </ChartCard>
 
       {/* Users Table */}
-      <ChartCard title={`${filteredUsers.length} Usuário${filteredUsers.length !== 1 ? "s" : ""}`}>
+      <ChartCard title={`${pagination.total} Usuário${pagination.total !== 1 ? "s" : ""}`}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <p className="text-muted-foreground">Carregando usuários...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -240,6 +256,59 @@ const UserManagement = () => {
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+            <div className="text-sm text-muted-foreground">
+              Mostrando {((page - 1) * pagination.limit) + 1} - {Math.min(page * pagination.limit, pagination.total)} de {pagination.total}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
+              >
+                Anterior
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (pagination.totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= pagination.totalPages - 2) {
+                    pageNum = pagination.totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={page === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPage(pageNum)}
+                      disabled={loading}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                disabled={page === pagination.totalPages || loading}
+              >
+                Próxima
+              </Button>
+            </div>
+          </div>
+        )}
+        </>
         )}
       </ChartCard>
     </div>
