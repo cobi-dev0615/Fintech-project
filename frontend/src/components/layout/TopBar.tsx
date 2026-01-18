@@ -56,14 +56,14 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, showD
           </Button>
         )}
         {!hideSearch && (
-          <div className="hidden md:flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar transações, contas..."
-              className="border-0 bg-transparent h-auto p-0 focus-visible:ring-0 w-64 text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
+        <div className="hidden md:flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar transações, contas..."
+            className="border-0 bg-transparent h-auto p-0 focus-visible:ring-0 w-64 text-foreground placeholder:text-muted-foreground"
+          />
+        </div>
         )}
         {showDateTime && (
           <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">

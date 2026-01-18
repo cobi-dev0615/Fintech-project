@@ -11,23 +11,23 @@ const getApiBaseUrl = () => {
     
     // If accessing from localhost, use localhost for API
     if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return 'http://localhost:3000/api';
+      return 'http://localhost:5000/api';
     }
     
     // If accessing from public IP, use same IP for API
-    // Extract IP and port from origin (e.g., http://167.71.94.65:8081 -> http://167.71.94.65:3000)
+    // Extract IP and port from origin (e.g., http://167.71.94.65:8081 -> http://167.71.94.65:5000)
     try {
       const url = new URL(origin);
       const hostname = url.hostname;
-      return `http://${hostname}:3000/api`;
+      return `http://${hostname}:5000/api`;
     } catch {
       // Fallback to localhost if URL parsing fails
-      return 'http://localhost:3000/api';
+      return 'http://localhost:5000/api';
     }
   }
   
   // Server-side fallback
-  return 'http://localhost:3000/api';
+  return 'http://localhost:5000/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -303,7 +303,7 @@ export const adminApi = {
         total: number;
         totalPages: number;
       };
-    }>(`/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
+    }>(`/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
   },
 
   getUser: (id: string) =>
@@ -348,7 +348,7 @@ export const adminApi = {
         total: number;
         totalPages: number;
       };
-    }>(`/admin/subscriptions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
+    }>(`/admin/subscriptions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
   },
 
   // Financial reports
@@ -405,7 +405,7 @@ export const consultantApi = {
         total: number;
         totalPages: number;
       };
-    }>(`/consultant/clients${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
+    }>(`/consultant/clients${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
   },
 
   getClient: (id: string) =>
@@ -548,9 +548,9 @@ export const consultantApi = {
         status: string;
         hasWatermark: boolean;
         downloadUrl: string | null;
-      }>;
-    }>(`/consultant/reports${queryParams.toString() ? `?${queryParams.toString()}` : ''}`),
-  },
+        }>;
+      }>(`/consultant/reports${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+    },
 
   generateReport: (data: { clientId?: string; type: string; includeWatermark?: boolean; customBranding?: boolean }) =>
     api.post<{

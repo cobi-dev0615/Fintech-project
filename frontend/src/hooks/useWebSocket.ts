@@ -28,8 +28,15 @@ export function useWebSocket(url: string, onMessage?: (message: WebSocketMessage
         return;
       }
 
-      // Get WebSocket URL based on current origin
-      const wsUrl = url.replace('http://', 'ws://').replace('https://', 'wss://');
+      // Ensure URL is already in WebSocket format or convert it
+      // If URL already starts with ws:// or wss://, use it as-is
+      let wsUrl: string;
+      if (url.startsWith('ws://') || url.startsWith('wss://')) {
+        wsUrl = url;
+      } else {
+        // Convert HTTP/HTTPS URL to WebSocket URL
+        wsUrl = url.replace('http://', 'ws://').replace('https://', 'wss://');
+      }
       const wsUrlWithToken = `${wsUrl}?token=${token}`;
       
       const ws = new WebSocket(wsUrlWithToken);

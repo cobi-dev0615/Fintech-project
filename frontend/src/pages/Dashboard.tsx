@@ -28,7 +28,7 @@ const Dashboard = () => {
         if (summaryData.unreadAlertsCount > 0) {
           alertsList.push({
             id: "alerts",
-            type: "info",
+      type: "info",
             title: "Novos alertas",
             message: `Você tem ${summaryData.unreadAlertsCount} alerta(s) não lido(s)`,
             timestamp: "Recente",

@@ -67,8 +67,8 @@ const Cards = () => {
       if (daysUntilDue <= 7 && daysUntilDue > 0) {
         alerts.push({
           id: "due-soon",
-          type: "warning",
-          title: "Fatura vence em breve",
+      type: "warning",
+      title: "Fatura vence em breve",
           message: `Fatura de R$ ${totalSpending.toLocaleString("pt-BR")} vence em ${daysUntilDue} dia(s)`,
           timestamp: dueDate.toLocaleDateString("pt-BR"),
         });
@@ -114,18 +114,18 @@ const Cards = () => {
           </p>
         </div>
         {cards.length > 0 && (
-          <Select value={selectedCard} onValueChange={setSelectedCard}>
-            <SelectTrigger className="w-full md:w-[200px]">
-              <SelectValue placeholder="Selecione um cartão" />
-            </SelectTrigger>
-            <SelectContent>
+        <Select value={selectedCard} onValueChange={setSelectedCard}>
+          <SelectTrigger className="w-full md:w-[200px]">
+            <SelectValue placeholder="Selecione um cartão" />
+          </SelectTrigger>
+          <SelectContent>
               {cards.map((card) => (
                 <SelectItem key={card.id} value={card.id}>
                   {card.display_name || card.institution_name} •••• {card.last4 || ""}
                 </SelectItem>
               ))}
-            </SelectContent>
-          </Select>
+          </SelectContent>
+        </Select>
         )}
       </div>
 
@@ -135,41 +135,41 @@ const Cards = () => {
         </div>
       ) : (
         <>
-          {/* Invoice Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <ProfessionalKpiCard
-              title="Fatura Atual"
+      {/* Invoice Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <ProfessionalKpiCard
+          title="Fatura Atual"
               value={`R$ ${totalSpending.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-              change=""
-              changeType="neutral"
-              icon={CreditCard}
+          change=""
+          changeType="neutral"
+          icon={CreditCard}
               subtitle={`Fechamento: ${periodEnd}`}
-            />
-            <ProfessionalKpiCard
-              title="Vencimento"
+        />
+        <ProfessionalKpiCard
+          title="Vencimento"
               value={currentInvoice?.due_date ? new Date(currentInvoice.due_date).toLocaleDateString("pt-BR") : "N/A"}
               change={currentInvoice?.due_date ? "" : ""}
               changeType="neutral"
-              icon={Calendar}
-              subtitle=""
-            />
-            <ProfessionalKpiCard
-              title="Limite Total"
+          icon={Calendar}
+          subtitle=""
+        />
+        <ProfessionalKpiCard
+          title="Limite Total"
               value={`R$ ${limit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-              change={`${usage.toFixed(1)}% usado`}
-              changeType={usage > 80 ? "negative" : "neutral"}
-              icon={TrendingUp}
-              subtitle=""
-            />
-            <ProfessionalKpiCard
-              title="Disponível"
+          change={`${usage.toFixed(1)}% usado`}
+          changeType={usage > 80 ? "negative" : "neutral"}
+          icon={TrendingUp}
+          subtitle=""
+        />
+        <ProfessionalKpiCard
+          title="Disponível"
               value={`R$ ${available.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-              change=""
-              changeType="neutral"
-              icon={CreditCard}
-              subtitle=""
-            />
-          </div>
+          change=""
+          changeType="neutral"
+          icon={CreditCard}
+          subtitle=""
+        />
+      </div>
 
       {/* Charts and Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

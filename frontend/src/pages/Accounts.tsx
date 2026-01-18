@@ -54,8 +54,8 @@ const Accounts = () => {
       account: t.account_name || "Conta",
     }))
     .filter((t) =>
-      t.description.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    t.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const totalBalance = accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance_cents) / 100), 0);
   
@@ -102,33 +102,33 @@ const Accounts = () => {
         </div>
       ) : (
         <>
-          {/* Account Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <ProfessionalKpiCard
-              title="Saldo Total"
+      {/* Account Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ProfessionalKpiCard
+          title="Saldo Total"
               value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-              change=""
-              changeType="neutral"
-              icon={Wallet}
+          change=""
+          changeType="neutral"
+          icon={Wallet}
               subtitle={`${accounts.length} conta(s)`}
-            />
-            <ProfessionalKpiCard
-              title="Receitas do Mês"
+        />
+        <ProfessionalKpiCard
+          title="Receitas do Mês"
               value={`R$ ${monthlyIncome.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
               change=""
-              changeType="positive"
-              icon={TrendingUp}
+          changeType="positive"
+          icon={TrendingUp}
               subtitle="últimos 30 dias"
-            />
-            <ProfessionalKpiCard
-              title="Despesas do Mês"
+        />
+        <ProfessionalKpiCard
+          title="Despesas do Mês"
               value={`R$ ${monthlyExpenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
               change=""
               changeType="neutral"
-              icon={TrendingDown}
+          icon={TrendingDown}
               subtitle="últimos 30 dias"
-            />
-          </div>
+        />
+      </div>
 
       {/* Filters and Search */}
       <ChartCard title="Transações">

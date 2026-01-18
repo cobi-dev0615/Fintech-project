@@ -50,12 +50,24 @@ const AdminDashboard = () => {
 
   // WebSocket connection for real-time updates
   const getWebSocketUrl = () => {
-    // Use same origin as API, but WebSocket protocol
-    const apiUrl = window.location.origin;
-    const protocol = apiUrl.startsWith('https') ? 'wss' : 'ws';
-    // Extract hostname and use port 3000 (backend port)
-    const url = new URL(apiUrl);
-    return `${protocol}://${url.hostname}:3000/ws`;
+    // Use same logic as API base URL to determine backend URL
+    const origin = window.location.origin;
+    
+    // If accessing from localhost, use localhost for WebSocket
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return 'ws://localhost:5000/ws';
+    }
+    
+    // If accessing from public IP, use same IP for WebSocket with backend port
+    try {
+      const url = new URL(origin);
+      const hostname = url.hostname;
+      const protocol = origin.startsWith('https') ? 'wss' : 'ws';
+      return `${protocol}://${hostname}:5000/ws`;
+    } catch {
+      // Fallback to localhost
+      return 'ws://localhost:5000/ws';
+    }
   };
 
   const { connected, lastMessage } = useWebSocket(

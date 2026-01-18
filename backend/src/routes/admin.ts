@@ -50,27 +50,39 @@ export async function adminRoutes(fastify: FastifyInstance) {
       );
       const newUsers = parseInt(newUsersResult.rows[0].count);
 
-      // Calculate MRR (Monthly Recurring Revenue)
-      const mrrResult = await db.query(
-        `SELECT COALESCE(SUM(p.price_cents), 0) / 100.0 as mrr
-         FROM subscriptions s
-         JOIN plans p ON s.plan_id = p.id
-         WHERE s.status = 'active'
-         AND s.current_period_end > NOW()`
-      );
-      const mrr = parseFloat(mrrResult.rows[0].mrr) || 0;
+      // Calculate MRR (Monthly Recurring Revenue) - handle missing tables
+      let mrr = 0;
+      try {
+        const mrrResult = await db.query(
+          `SELECT COALESCE(SUM(p.price_cents), 0) / 100.0 as mrr
+           FROM subscriptions s
+           JOIN plans p ON s.plan_id = p.id
+           WHERE s.status = 'active'
+           AND s.current_period_end > NOW()`
+        );
+        mrr = parseFloat(mrrResult.rows[0].mrr) || 0;
+      } catch (e) {
+        // Tables might not exist yet
+        mrr = 0;
+      }
 
-      // Calculate churn rate (last 30 days)
-      const churnResult = await db.query(
-        `SELECT 
-           COUNT(*) FILTER (WHERE s.status = 'canceled' AND s.canceled_at >= NOW() - INTERVAL '30 days') as canceled,
-           COUNT(*) FILTER (WHERE s.status = 'active' AND s.current_period_start >= NOW() - INTERVAL '30 days') as active_start
-         FROM subscriptions s`
-      );
-      const canceled = parseInt(churnResult.rows[0].canceled) || 0;
-      const activeStart = parseInt(churnResult.rows[0].active_start) || 0;
-      const totalActive = activeStart + canceled;
-      const churnRate = totalActive > 0 ? (canceled / totalActive) * 100 : 0;
+      // Calculate churn rate (last 30 days) - handle missing tables
+      let churnRate = 0;
+      try {
+        const churnResult = await db.query(
+          `SELECT 
+             COUNT(*) FILTER (WHERE s.status = 'canceled' AND s.canceled_at >= NOW() - INTERVAL '30 days') as canceled,
+             COUNT(*) FILTER (WHERE s.status = 'active' AND s.current_period_start >= NOW() - INTERVAL '30 days') as active_start
+           FROM subscriptions s`
+        );
+        const canceled = parseInt(churnResult.rows[0].canceled) || 0;
+        const activeStart = parseInt(churnResult.rows[0].active_start) || 0;
+        const totalActive = activeStart + canceled;
+        churnRate = totalActive > 0 ? (canceled / totalActive) * 100 : 0;
+      } catch (e) {
+        // Tables might not exist yet
+        churnRate = 0;
+      }
 
       // Get user growth data (last 7 months)
       const growthResult = await db.query(
@@ -85,19 +97,25 @@ export async function adminRoutes(fastify: FastifyInstance) {
          ORDER BY month_num DESC`
       );
 
-      // Get revenue data (last 7 months)
-      const revenueResult = await db.query(
-        `SELECT 
-           TO_CHAR(p.created_at, 'Mon') as month,
-           EXTRACT(MONTH FROM p.created_at) as month_num,
-           COALESCE(SUM(p.amount_cents), 0) / 100.0 as revenue
-         FROM payments p
-         JOIN subscriptions s ON p.subscription_id = s.id
-         WHERE p.status = 'paid'
-         AND p.created_at >= NOW() - INTERVAL '7 months'
-         GROUP BY month, month_num
-         ORDER BY month_num DESC`
-      );
+      // Get revenue data (last 7 months) - handle missing tables
+      let revenueResult;
+      try {
+        revenueResult = await db.query(
+          `SELECT 
+             TO_CHAR(p.created_at, 'Mon') as month,
+             EXTRACT(MONTH FROM p.created_at) as month_num,
+             COALESCE(SUM(p.amount_cents), 0) / 100.0 as revenue
+           FROM payments p
+           JOIN subscriptions s ON p.subscription_id = s.id
+           WHERE p.status = 'paid'
+           AND p.created_at >= NOW() - INTERVAL '7 months'
+           GROUP BY month, month_num
+           ORDER BY month_num DESC`
+        );
+      } catch (e) {
+        // Tables might not exist yet
+        revenueResult = { rows: [] };
+      }
 
       // Get system alerts - if table doesn't exist, return empty array
       let alertsResult;
@@ -117,7 +135,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         alertsResult = { rows: [] };
       }
 
-      return {
+      const result = {
         kpis: {
           activeUsers,
           newUsers,

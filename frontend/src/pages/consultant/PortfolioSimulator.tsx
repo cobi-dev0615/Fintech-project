@@ -77,11 +77,11 @@ const PortfolioSimulator = () => {
       if (year > 0) {
         value = value * (1 + annualReturn);
       }
-      projection.push({
-        year,
+        projection.push({
+          year,
         value,
         profit: value - currentValue,
-      });
+        });
     }
 
     setResults({
@@ -117,8 +117,8 @@ const PortfolioSimulator = () => {
         {/* Configuration */}
         <div className="lg:col-span-1 space-y-6">
           <ChartCard title="Configuração">
-            <div className="space-y-4">
-              <div className="space-y-2">
+          <div className="space-y-4">
+            <div className="space-y-2">
                 <Label htmlFor="client">Cliente</Label>
                 <Select value={selectedClient} onValueChange={setSelectedClient}>
                   <SelectTrigger id="client">
@@ -132,24 +132,24 @@ const PortfolioSimulator = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+            </div>
 
-              <div className="space-y-2">
+            <div className="space-y-2">
                 <Label htmlFor="scenario">Cenário</Label>
                 <Select
                   value={scenario}
                   onValueChange={(v: any) => setScenario(v)}
                 >
                   <SelectTrigger id="scenario">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="conservative">Conservador</SelectItem>
-                    <SelectItem value="moderate">Moderado</SelectItem>
-                    <SelectItem value="bold">Arrojado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="conservative">Conservador</SelectItem>
+                  <SelectItem value="moderate">Moderado</SelectItem>
+                  <SelectItem value="bold">Arrojado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
               <div className="space-y-2">
                 <Label htmlFor="horizon">Horizonte (anos)</Label>
@@ -163,11 +163,11 @@ const PortfolioSimulator = () => {
               </div>
 
               <Button onClick={simulate} className="w-full" disabled={!selectedClient}>
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Simular
-              </Button>
-            </div>
-          </ChartCard>
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Simular
+            </Button>
+          </div>
+        </ChartCard>
 
           {results && (
             <ChartCard title="Alocação">
@@ -186,10 +186,10 @@ const PortfolioSimulator = () => {
                     </div>
                   </div>
                 ))}
-              </div>
+                  </div>
             </ChartCard>
           )}
-        </div>
+                </div>
 
         {/* Results */}
         <div className="lg:col-span-2 space-y-6">
@@ -197,9 +197,9 @@ const PortfolioSimulator = () => {
             <>
               <ChartCard title="Resultados da Simulação">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                     <div className="text-sm text-muted-foreground mb-1">Valor Final</div>
-                    <div className="text-2xl font-bold text-primary">
+                  <div className="text-2xl font-bold text-primary">
                       R$ {results.finalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </div>
                   </div>
@@ -211,9 +211,9 @@ const PortfolioSimulator = () => {
                   </div>
                   <div className="p-4 rounded-lg bg-muted border border-border">
                     <div className="text-sm text-muted-foreground mb-1">Valor Atual</div>
-                    <div className="text-2xl font-bold">
+                  <div className="text-2xl font-bold">
                       R$ {results.currentValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </div>
+                  </div>
                   </div>
                 </div>
 
@@ -269,8 +269,8 @@ const PortfolioSimulator = () => {
                               >
                                 Simular
                               </Button>
-                            )}
-                          </div>
+              )}
+            </div>
                         </div>
                       </div>
                     </div>
@@ -280,10 +280,10 @@ const PortfolioSimulator = () => {
             </>
           ) : (
             <ChartCard title="Simulação">
-              <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-muted-foreground">
                 <PieChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Configure os parâmetros e clique em "Simular" para ver os resultados</p>
-              </div>
+            </div>
             </ChartCard>
           )}
         </div>
