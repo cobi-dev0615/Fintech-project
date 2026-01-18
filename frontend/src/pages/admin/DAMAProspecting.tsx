@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, TrendingUp, DollarSign, Users, ArrowRight } from "lucide-react";
+import { Search, TrendingUp, DollarSign, Users, ArrowRight, Mail, Phone, Calendar, Target, Link2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
@@ -7,6 +7,13 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { adminApi } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Prospect {
   id: string;
@@ -19,6 +26,47 @@ interface Prospect {
   potential: "high" | "medium" | "low";
 }
 
+interface ProspectDetail {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  phone: string | null;
+  countryCode: string;
+  isActive: boolean;
+  birthDate: string | null;
+  riskProfile: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  subscription: {
+    id: string;
+    status: string;
+    currentPeriodStart: string;
+    currentPeriodEnd: string;
+    planName: string;
+    planPrice: number;
+  } | null;
+  financialSummary: {
+    cash: number;
+    investments: number;
+    debt: number;
+    netWorth: number;
+  };
+  stats: {
+    connections: number;
+    goals: number;
+    clients: number;
+  };
+  consultants: Array<{
+    id: string;
+    name: string;
+    email: string;
+    relationshipStatus: string;
+    relationshipCreatedAt: string;
+  }>;
+}
+
 const DAMAProspecting = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -26,6 +74,10 @@ const DAMAProspecting = () => {
   const [filterPotential, setFilterPotential] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
+  const [prospectDetail, setProspectDetail] = useState<ProspectDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [kpis, setKpis] = useState({
     highPotential: 0,
     totalNetWorth: 0,
@@ -116,6 +168,63 @@ const DAMAProspecting = () => {
         {labels[potential as keyof typeof labels]}
       </Badge>
     );
+  };
+
+  const getRoleBadge = (role: string) => {
+    const styles = {
+      customer: "bg-blue-500/10 text-blue-500",
+      consultant: "bg-purple-500/10 text-purple-500",
+      admin: "bg-orange-500/10 text-orange-500",
+    };
+    const labels = {
+      customer: "Cliente",
+      consultant: "Consultor",
+      admin: "Administrador",
+    };
+    return (
+      <Badge className={styles[role as keyof typeof styles]}>
+        {labels[role as keyof typeof labels]}
+      </Badge>
+    );
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      active: "bg-success/10 text-success",
+      blocked: "bg-destructive/10 text-destructive",
+      pending: "bg-warning/10 text-warning",
+    };
+    const labels = {
+      active: "Ativo",
+      blocked: "Bloqueado",
+      pending: "Pendente",
+    };
+    return (
+      <Badge className={styles[status as keyof typeof styles]}>
+        {labels[status as keyof typeof labels]}
+      </Badge>
+    );
+  };
+
+  const handleViewDetails = async (prospect: Prospect) => {
+    setSelectedProspect(prospect);
+    setIsDetailDialogOpen(true);
+    setDetailLoading(true);
+    try {
+      const response = await adminApi.getUser(prospect.id);
+      setProspectDetail(response.user);
+    } catch (error: any) {
+      console.error('Failed to fetch prospect details:', error);
+      alert(error?.error || 'Falha ao carregar detalhes do prospecto');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailDialogOpen(false);
+    setSelectedProspect(null);
+    setProspectDetail(null);
   };
 
   return (
@@ -311,7 +420,11 @@ const DAMAProspecting = () => {
                     <span className="text-sm text-muted-foreground">{prospect.lastActivity}</span>
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewDetails(prospect)}
+                    >
                       Ver Detalhes
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
@@ -350,6 +463,250 @@ const DAMAProspecting = () => {
           </div>
         )}
       </ChartCard>
+
+      {/* Prospect Detail Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={(open) => {
+        setIsDetailDialogOpen(open);
+        if (!open) {
+          handleCloseDetail();
+        }
+      }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Prospecto</DialogTitle>
+            <DialogDescription>
+              Informações completas do prospecto selecionado
+            </DialogDescription>
+          </DialogHeader>
+
+          {detailLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">Carregando detalhes...</p>
+            </div>
+          ) : prospectDetail ? (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Informações Básicas</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-muted-foreground">Nome</label>
+                    <p className="text-sm font-medium">{prospectDetail.name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground">Email</label>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      {prospectDetail.email}
+                    </p>
+                  </div>
+                  {prospectDetail.phone && (
+                    <div>
+                      <label className="text-sm text-muted-foreground">Telefone</label>
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        {prospectDetail.phone}
+                      </p>
+                    </div>
+                  )}
+                  {prospectDetail.birthDate && (
+                    <div>
+                      <label className="text-sm text-muted-foreground">Data de Nascimento</label>
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(prospectDetail.birthDate).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-sm text-muted-foreground">Role</label>
+                    <div className="mt-1">
+                      {getRoleBadge(prospectDetail.role)}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground">Status</label>
+                    <div className="mt-1">
+                      {getStatusBadge(prospectDetail.status)}
+                    </div>
+                  </div>
+                  {prospectDetail.riskProfile && (
+                    <div>
+                      <label className="text-sm text-muted-foreground">Perfil de Risco</label>
+                      <p className="text-sm font-medium">{prospectDetail.riskProfile}</p>
+                    </div>
+                  )}
+                  {selectedProspect && (
+                    <div>
+                      <label className="text-sm text-muted-foreground">Potencial</label>
+                      <div className="mt-1">
+                        {getPotentialBadge(selectedProspect.potential)}
+                      </div>
+                    </div>
+                  )}
+                  {selectedProspect && (
+                    <div>
+                      <label className="text-sm text-muted-foreground">Estágio</label>
+                      <div className="mt-1">
+                        {getStageBadge(selectedProspect.stage)}
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-sm text-muted-foreground">Data de Cadastro</label>
+                    <p className="text-sm font-medium">
+                      {new Date(prospectDetail.createdAt).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  {selectedProspect && (
+                    <div>
+                      <label className="text-sm text-muted-foreground">Engajamento</label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-all"
+                            style={{ width: `${selectedProspect.engagement}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                          {selectedProspect.engagement}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Subscription Information */}
+              {prospectDetail.subscription && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Assinatura</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-muted-foreground">Plano</label>
+                      <p className="text-sm font-medium">{prospectDetail.subscription.planName}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Preço</label>
+                      <p className="text-sm font-medium">
+                        R$ {prospectDetail.subscription.planPrice.toFixed(2)}/mês
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Status</label>
+                      <p className="text-sm font-medium">{prospectDetail.subscription.status}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Próxima Cobrança</label>
+                      <p className="text-sm font-medium">
+                        {new Date(prospectDetail.subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Financial Summary */}
+              {(prospectDetail.financialSummary.cash > 0 || prospectDetail.financialSummary.investments > 0 || prospectDetail.financialSummary.debt > 0) && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Resumo Financeiro</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 rounded-lg border border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-xs text-muted-foreground">Dinheiro</label>
+                      </div>
+                      <p className="text-lg font-semibold">
+                        R$ {prospectDetail.financialSummary.cash.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-xs text-muted-foreground">Investimentos</label>
+                      </div>
+                      <p className="text-lg font-semibold">
+                        R$ {prospectDetail.financialSummary.investments.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-xs text-muted-foreground">Dívidas</label>
+                      </div>
+                      <p className="text-lg font-semibold text-destructive">
+                        R$ {prospectDetail.financialSummary.debt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-border bg-primary/5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        <label className="text-xs text-muted-foreground">Patrimônio Líquido</label>
+                      </div>
+                      <p className="text-lg font-semibold text-primary">
+                        R$ {prospectDetail.financialSummary.netWorth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Statistics */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Estatísticas</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Link2 className="h-4 w-4 text-muted-foreground" />
+                      <label className="text-xs text-muted-foreground">Conexões</label>
+                    </div>
+                    <p className="text-2xl font-semibold">{prospectDetail.stats.connections}</p>
+                  </div>
+                  <div className="p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                      <label className="text-xs text-muted-foreground">Metas</label>
+                    </div>
+                    <p className="text-2xl font-semibold">{prospectDetail.stats.goals}</p>
+                  </div>
+                  {prospectDetail.role === 'consultant' && (
+                    <div className="p-4 rounded-lg border border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-xs text-muted-foreground">Clientes</label>
+                      </div>
+                      <p className="text-2xl font-semibold">{prospectDetail.stats.clients}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Consultants (if customer) */}
+              {prospectDetail.role === 'customer' && prospectDetail.consultants.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Consultores Associados</h3>
+                  <div className="space-y-2">
+                    {prospectDetail.consultants.map((consultant) => (
+                      <div key={consultant.id} className="p-3 rounded-lg border border-border">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium">{consultant.name}</p>
+                            <p className="text-xs text-muted-foreground">{consultant.email}</p>
+                          </div>
+                          <Badge variant="outline">{consultant.relationshipStatus}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Associado desde {new Date(consultant.relationshipCreatedAt).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

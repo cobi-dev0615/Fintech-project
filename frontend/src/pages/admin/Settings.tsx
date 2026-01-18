@@ -1,22 +1,17 @@
-import { useState } from "react";
-import { Settings as SettingsIcon, CreditCard, Mail, Palette, FileText, Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Settings as SettingsIcon, Mail, Palette, FileText, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { adminApi } from "@/lib/api";
 
 const Settings = () => {
-  const [plans, setPlans] = useState([
-    { id: "free", name: "Gratuito", price: 0, features: [] },
-    { id: "basic", name: "Básico", price: 99.90, features: ["5 conexões"] },
-    { id: "pro", name: "Pro", price: 299.90, features: ["Conexões ilimitadas", "Relatórios avançados"] },
-    { id: "enterprise", name: "Empresarial", price: 499.90, features: ["Tudo do Pro", "API", "Suporte dedicado"] },
-  ]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [emailSettings, setEmailSettings] = useState({
     welcomeEmail: true,
@@ -32,6 +27,96 @@ const Settings = () => {
     requireEmailVerification: false,
   });
 
+  const [customization, setCustomization] = useState({
+    logo: null as File | null,
+    logoPreview: null as string | null,
+    primaryColor: "#3b82f6",
+    platformName: "zurT",
+    description: "",
+  });
+
+  const [policies, setPolicies] = useState({
+    termsOfService: "",
+    privacyPolicy: "",
+    cookiePolicy: "",
+  });
+
+  // Load settings on mount (if API available)
+  useEffect(() => {
+    // For now, settings are initialized with defaults
+    // In the future, load from API: adminApi.getSettings()
+  }, []);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCustomization({
+        ...customization,
+        logo: file,
+        logoPreview: URL.createObjectURL(file),
+      });
+    }
+  };
+
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      // Save email settings
+      await adminApi.updateEmailSettings(emailSettings);
+
+      // Save platform settings
+      await adminApi.updatePlatformSettings(platformSettings);
+
+      // Save customization (logo upload would require multipart/form-data)
+      // For now, save without logo or handle logo separately
+      await adminApi.updateCustomization({
+        primaryColor: customization.primaryColor,
+        platformName: customization.platformName,
+        description: customization.description,
+      });
+
+      // Save policies
+      await adminApi.updatePolicies(policies);
+
+      alert("Configurações salvas com sucesso!");
+    } catch (error: any) {
+      console.error('Failed to save settings:', error);
+      alert(error?.error || 'Falha ao salvar configurações');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveSection = async (section: string) => {
+    setSaving(true);
+    try {
+      switch (section) {
+        case 'email':
+          await adminApi.updateEmailSettings(emailSettings);
+          break;
+        case 'platform':
+          await adminApi.updatePlatformSettings(platformSettings);
+          break;
+        case 'customization':
+          await adminApi.updateCustomization({
+            primaryColor: customization.primaryColor,
+            platformName: customization.platformName,
+            description: customization.description,
+          });
+          break;
+        case 'policies':
+          await adminApi.updatePolicies(policies);
+          break;
+      }
+      alert("Configurações salvas com sucesso!");
+    } catch (error: any) {
+      console.error(`Failed to save ${section} settings:`, error);
+      alert(error?.error || `Falha ao salvar configurações de ${section}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -42,18 +127,14 @@ const Settings = () => {
             Gerencie planos, emails, customização e políticas
           </p>
         </div>
-        <Button>
+        <Button onClick={handleSaveAll} disabled={saving}>
           <Save className="h-4 w-4 mr-2" />
-          Salvar Alterações
+          {saving ? "Salvando..." : "Salvar Todas as Alterações"}
         </Button>
       </div>
 
-      <Tabs defaultValue="plans" className="space-y-6">
+      <Tabs defaultValue="emails" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="plans">
-            <CreditCard className="h-4 w-4 mr-2" />
-            Planos e Preços
-          </TabsTrigger>
           <TabsTrigger value="emails">
             <Mail className="h-4 w-4 mr-2" />
             Emails Automatizados
@@ -71,48 +152,6 @@ const Settings = () => {
             Termos e Políticas
           </TabsTrigger>
         </TabsList>
-
-        {/* Plans and Pricing */}
-        <TabsContent value="plans" className="space-y-4">
-          <ChartCard title="Planos e Preços">
-            <div className="space-y-4">
-              {plans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-foreground">{plan.name}</h3>
-                        <span className="text-lg font-bold text-primary">
-                          R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {plan.features.map((feature, index) => (
-                          <span
-                            key={index}
-                            className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground"
-                          >
-                            {feature}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Editar
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <Button variant="outline" className="w-full">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Adicionar Novo Plano
-              </Button>
-            </div>
-          </ChartCard>
-        </TabsContent>
 
         {/* Email Settings */}
         <TabsContent value="emails" className="space-y-4">
@@ -191,6 +230,12 @@ const Settings = () => {
                   />
                 </div>
               </div>
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button onClick={() => handleSaveSection('email')} disabled={saving}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Configurações de Email
+                </Button>
+              </div>
             </div>
           </ChartCard>
         </TabsContent>
@@ -246,6 +291,12 @@ const Settings = () => {
                   }
                 />
               </div>
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button onClick={() => handleSaveSection('platform')} disabled={saving}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Configurações da Plataforma
+                </Button>
+              </div>
             </div>
           </ChartCard>
         </TabsContent>
@@ -256,7 +307,21 @@ const Settings = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="logo">Logo da Plataforma</Label>
-                <Input id="logo" type="file" accept="image/*" />
+                <Input 
+                  id="logo" 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                />
+                {customization.logoPreview && (
+                  <div className="mt-2">
+                    <img 
+                      src={customization.logoPreview} 
+                      alt="Logo preview" 
+                      className="h-20 w-auto object-contain border border-border rounded"
+                    />
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Faça upload do logo que aparecerá na plataforma
                 </p>
@@ -264,17 +329,45 @@ const Settings = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="primaryColor">Cor Primária</Label>
-                <Input id="primaryColor" type="color" defaultValue="#3b82f6" />
+                <div className="flex items-center gap-3">
+                  <Input 
+                    id="primaryColor" 
+                    type="color" 
+                    value={customization.primaryColor}
+                    onChange={(e) => setCustomization({ ...customization, primaryColor: e.target.value })}
+                    className="w-20 h-10"
+                  />
+                  <Input 
+                    value={customization.primaryColor}
+                    onChange={(e) => setCustomization({ ...customization, primaryColor: e.target.value })}
+                    placeholder="#3b82f6"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="name">Nome da Plataforma</Label>
-                <Input id="name" defaultValue="zurT" />
+                <Input 
+                  id="name" 
+                  value={customization.platformName}
+                  onChange={(e) => setCustomization({ ...customization, platformName: e.target.value })}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="description">Descrição</Label>
-                <Textarea id="description" placeholder="Descrição da plataforma..." />
+                <Textarea 
+                  id="description" 
+                  placeholder="Descrição da plataforma..."
+                  value={customization.description}
+                  onChange={(e) => setCustomization({ ...customization, description: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button onClick={() => handleSaveSection('customization')} disabled={saving}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Customização
+                </Button>
               </div>
             </div>
           </ChartCard>
@@ -290,6 +383,8 @@ const Settings = () => {
                   id="terms"
                   placeholder="Digite os termos de uso..."
                   className="min-h-[200px]"
+                  value={policies.termsOfService}
+                  onChange={(e) => setPolicies({ ...policies, termsOfService: e.target.value })}
                 />
               </div>
 
@@ -299,6 +394,8 @@ const Settings = () => {
                   id="privacy"
                   placeholder="Digite a política de privacidade..."
                   className="min-h-[200px]"
+                  value={policies.privacyPolicy}
+                  onChange={(e) => setPolicies({ ...policies, privacyPolicy: e.target.value })}
                 />
               </div>
 
@@ -308,7 +405,15 @@ const Settings = () => {
                   id="cookie"
                   placeholder="Digite a política de cookies..."
                   className="min-h-[200px]"
+                  value={policies.cookiePolicy}
+                  onChange={(e) => setPolicies({ ...policies, cookiePolicy: e.target.value })}
                 />
+              </div>
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button onClick={() => handleSaveSection('policies')} disabled={saving}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Políticas
+                </Button>
               </div>
             </div>
           </ChartCard>

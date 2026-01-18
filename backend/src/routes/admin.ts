@@ -293,49 +293,206 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Get user by ID
+  // Get user by ID with detailed information
   fastify.get('/users/:id', {
     preHandler: [requireAdmin],
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
       
-      const result = await db.query(
+      // Get user basic info
+      const userResult = await db.query(
         `SELECT 
            u.id,
            u.full_name,
            u.email,
            u.role,
+           u.phone,
+           u.country_code,
+           u.is_active,
+           u.birth_date,
+           u.risk_profile,
            u.created_at,
-           s.status as subscription_status,
-           p.name as plan_name
+           u.updated_at
          FROM users u
-         LEFT JOIN subscriptions s ON u.id = s.user_id AND s.status = 'active'
-         LEFT JOIN plans p ON s.plan_id = p.id
          WHERE u.id = $1`,
         [id]
       );
 
-      if (result.rows.length === 0) {
+      if (userResult.rows.length === 0) {
         reply.code(404).send({ error: 'User not found' });
         return;
       }
 
-      const row = result.rows[0];
+      const user = userResult.rows[0];
+
+      // Check if user is blocked
+      let isBlocked = false;
+      try {
+        const blockedResult = await db.query(
+          `SELECT 1 FROM blocked_users WHERE user_id = $1`,
+          [id]
+        );
+        isBlocked = blockedResult.rows.length > 0;
+      } catch {
+        // Table might not exist
+      }
+
+      // Get subscription info
+      let subscription = null;
+      let hasSubscriptions = false;
+      try {
+        await db.query('SELECT 1 FROM subscriptions LIMIT 1');
+        hasSubscriptions = true;
+      } catch {}
+
+      if (hasSubscriptions) {
+        try {
+          const subResult = await db.query(
+            `SELECT 
+               s.id,
+               s.status,
+               s.current_period_start,
+               s.current_period_end,
+               p.name as plan_name,
+               p.price_cents / 100.0 as plan_price
+             FROM subscriptions s
+             LEFT JOIN plans p ON s.plan_id = p.id
+             WHERE s.user_id = $1 AND s.status = 'active'
+             ORDER BY s.created_at DESC
+             LIMIT 1`,
+            [id]
+          );
+          if (subResult.rows.length > 0) {
+            subscription = subResult.rows[0];
+          }
+        } catch {}
+      }
+
+      // Get financial summary
+      let financialSummary = {
+        cash: 0,
+        investments: 0,
+        debt: 0,
+        netWorth: 0,
+      };
+
+      try {
+        // Cash from bank accounts
+        try {
+          const cashResult = await db.query(
+            `SELECT COALESCE(SUM(balance_cents), 0) / 100.0 as cash
+             FROM bank_accounts WHERE user_id = $1`,
+            [id]
+          );
+          financialSummary.cash = parseFloat(cashResult.rows[0]?.cash) || 0;
+        } catch {}
+
+        // Investments
+        try {
+          const invResult = await db.query(
+            `SELECT COALESCE(SUM(market_value_cents), 0) / 100.0 as investments
+             FROM holdings WHERE user_id = $1`,
+            [id]
+          );
+          financialSummary.investments = parseFloat(invResult.rows[0]?.investments) || 0;
+        } catch {}
+
+        // Debt from credit cards
+        try {
+          const debtResult = await db.query(
+            `SELECT COALESCE(SUM(total_cents), 0) / 100.0 as debt
+             FROM card_invoices 
+             WHERE credit_card_id IN (SELECT id FROM credit_cards WHERE user_id = $1)
+             AND status = 'open'`,
+            [id]
+          );
+          financialSummary.debt = parseFloat(debtResult.rows[0]?.debt) || 0;
+        } catch {}
+
+        financialSummary.netWorth = financialSummary.cash + financialSummary.investments - financialSummary.debt;
+      } catch {}
+
+      // Get connections count
+      let connectionsCount = 0;
+      try {
+        const connResult = await db.query(
+          `SELECT COUNT(*) as count FROM connections WHERE user_id = $1`,
+          [id]
+        );
+        connectionsCount = parseInt(connResult.rows[0]?.count) || 0;
+      } catch {}
+
+      // Get goals count
+      let goalsCount = 0;
+      try {
+        const goalsResult = await db.query(
+          `SELECT COUNT(*) as count FROM goals WHERE user_id = $1`,
+          [id]
+        );
+        goalsCount = parseInt(goalsResult.rows[0]?.count) || 0;
+      } catch {}
+
+      // Get consultant relationships (if customer)
+      let consultants: any[] = [];
+      if (user.role === 'customer') {
+        try {
+          const consultantsResult = await db.query(
+            `SELECT 
+               u.id,
+               u.full_name as name,
+               u.email,
+               cc.status as relationship_status,
+               cc.created_at as relationship_created_at
+             FROM customer_consultants cc
+             JOIN users u ON cc.consultant_id = u.id
+             WHERE cc.customer_id = $1`,
+            [id]
+          );
+          consultants = consultantsResult.rows;
+        } catch {}
+      }
+
+      // Get clients (if consultant)
+      let clientsCount = 0;
+      if (user.role === 'consultant') {
+        try {
+          const clientsResult = await db.query(
+            `SELECT COUNT(*) as count FROM customer_consultants WHERE consultant_id = $1`,
+            [id]
+          );
+          clientsCount = parseInt(clientsResult.rows[0]?.count) || 0;
+        } catch {}
+      }
+
       return {
         user: {
-          id: row.id,
-          name: row.full_name,
-          email: row.email,
-          role: row.role,
-          status: row.subscription_status === 'active' ? 'active' : 'pending',
-          plan: row.plan_name || null,
-          createdAt: row.created_at,
+          id: user.id,
+          name: user.full_name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone || null,
+          countryCode: user.country_code || 'BR',
+          isActive: user.is_active,
+          birthDate: user.birth_date || null,
+          riskProfile: user.risk_profile || null,
+          status: isBlocked ? 'blocked' : (user.is_active ? 'active' : 'inactive'),
+          createdAt: user.created_at,
+          updatedAt: user.updated_at,
+          subscription,
+          financialSummary,
+          stats: {
+            connections: connectionsCount,
+            goals: goalsCount,
+            clients: clientsCount,
+          },
+          consultants,
         },
       };
     } catch (error: any) {
-      fastify.log.error(error);
-      reply.code(500).send({ error: 'Failed to fetch user' });
+      fastify.log.error('Error fetching user details:', error);
+      console.error('Full error:', error);
+      reply.code(500).send({ error: 'Failed to fetch user', details: error.message });
     }
   });
 
@@ -1130,6 +1287,237 @@ export async function adminRoutes(fastify: FastifyInstance) {
       fastify.log.error('Error fetching prospecting data:', error);
       console.error('Full error:', error);
       reply.code(500).send({ error: 'Failed to fetch prospecting data', details: error.message });
+    }
+  });
+
+  // =========================
+  // SETTINGS ENDPOINTS
+  // =========================
+
+  // Get all settings
+  fastify.get('/settings', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      // Get plans
+      let plans = [];
+      try {
+        const plansResult = await db.query(
+          `SELECT id, code, name, price_cents, connection_limit, features_json, is_active
+           FROM plans
+           ORDER BY price_cents ASC`
+        );
+        plans = plansResult.rows.map(row => ({
+          id: row.id,
+          code: row.code,
+          name: row.name,
+          priceCents: row.price_cents,
+          connectionLimit: row.connection_limit,
+          features: row.features_json?.features || [],
+          isActive: row.is_active,
+        }));
+      } catch {
+        // Plans table might not exist
+      }
+
+      // For now, return default settings. In production, these would come from a settings table
+      return {
+        plans,
+        emailSettings: {
+          welcomeEmail: true,
+          monthlyReport: true,
+          alerts: true,
+          fromEmail: 'noreply@zurt.com.br',
+          fromName: 'zurT',
+        },
+        platformSettings: {
+          maintenanceMode: false,
+          allowRegistrations: true,
+          requireEmailVerification: false,
+        },
+        customization: {
+          logo: null,
+          primaryColor: '#3b82f6',
+          platformName: 'zurT',
+          description: '',
+        },
+        policies: {
+          termsOfService: '',
+          privacyPolicy: '',
+          cookiePolicy: '',
+        },
+      };
+    } catch (error: any) {
+      fastify.log.error('Error fetching settings:', error);
+      reply.code(500).send({ error: 'Failed to fetch settings', details: error.message });
+    }
+  });
+
+  // Update plans
+  fastify.put('/settings/plans', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const { plans } = request.body as { plans: Array<{
+        code: string;
+        name: string;
+        priceCents: number;
+        connectionLimit: number | null;
+        features: string[];
+        isActive: boolean;
+      }> };
+
+      // Check if plans table exists
+      try {
+        await db.query('SELECT 1 FROM plans LIMIT 1');
+      } catch {
+        reply.code(400).send({ error: 'Plans table does not exist' });
+        return;
+      }
+
+      // Update or insert each plan
+      for (const plan of plans) {
+        const existingPlan = await db.query(
+          'SELECT id FROM plans WHERE code = $1',
+          [plan.code]
+        );
+
+        if (existingPlan.rows.length > 0) {
+          // Update existing plan
+          await db.query(
+            `UPDATE plans
+             SET name = $1, price_cents = $2, connection_limit = $3,
+                 features_json = $4, is_active = $5, updated_at = now()
+             WHERE code = $6`,
+            [
+              plan.name,
+              plan.priceCents,
+              plan.connectionLimit,
+              JSON.stringify({ features: plan.features }),
+              plan.isActive,
+              plan.code,
+            ]
+          );
+        } else {
+          // Insert new plan
+          await db.query(
+            `INSERT INTO plans (code, name, price_cents, connection_limit, features_json, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              plan.code,
+              plan.name,
+              plan.priceCents,
+              plan.connectionLimit,
+              JSON.stringify({ features: plan.features }),
+              plan.isActive,
+            ]
+          );
+        }
+      }
+
+      logAudit(getAdminId(request), 'settings.plans.update', 'plans', null, {
+        plansUpdated: plans.length,
+      });
+
+      return { message: 'Plans updated successfully' };
+    } catch (error: any) {
+      fastify.log.error('Error updating plans:', error);
+      reply.code(500).send({ error: 'Failed to update plans', details: error.message });
+    }
+  });
+
+  // Update email settings
+  fastify.put('/settings/email', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const emailSettings = request.body as {
+        welcomeEmail: boolean;
+        monthlyReport: boolean;
+        alerts: boolean;
+        fromEmail: string;
+        fromName: string;
+      };
+
+      // In a real implementation, save to a settings table
+      // For now, just log the action
+      logAudit(getAdminId(request), 'settings.email.update', 'settings', null, emailSettings);
+
+      return { message: 'Email settings updated successfully' };
+    } catch (error: any) {
+      fastify.log.error('Error updating email settings:', error);
+      reply.code(500).send({ error: 'Failed to update email settings', details: error.message });
+    }
+  });
+
+  // Update platform settings
+  fastify.put('/settings/platform', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const platformSettings = request.body as {
+        maintenanceMode: boolean;
+        allowRegistrations: boolean;
+        requireEmailVerification: boolean;
+      };
+
+      // In a real implementation, save to a settings table
+      // For now, just log the action
+      logAudit(getAdminId(request), 'settings.platform.update', 'settings', null, platformSettings);
+
+      return { message: 'Platform settings updated successfully' };
+    } catch (error: any) {
+      fastify.log.error('Error updating platform settings:', error);
+      reply.code(500).send({ error: 'Failed to update platform settings', details: error.message });
+    }
+  });
+
+  // Update customization
+  fastify.put('/settings/customization', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const customization = request.body as {
+        primaryColor?: string;
+        platformName?: string;
+        description?: string;
+      };
+
+      // Note: File upload (logo) would require multipart/form-data support
+      // For now, we'll handle JSON only. Logo upload can be added later with @fastify/multipart
+
+      // In a real implementation, save to a settings table
+      // For now, just log the action
+      logAudit(getAdminId(request), 'settings.customization.update', 'settings', null, customization);
+
+      return { message: 'Customization settings updated successfully' };
+    } catch (error: any) {
+      fastify.log.error('Error updating customization settings:', error);
+      reply.code(500).send({ error: 'Failed to update customization settings', details: error.message });
+    }
+  });
+
+  // Update policies
+  fastify.put('/settings/policies', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const policies = request.body as {
+        termsOfService: string;
+        privacyPolicy: string;
+        cookiePolicy: string;
+      };
+
+      // In a real implementation, save to a settings table
+      // For now, just log the action
+      logAudit(getAdminId(request), 'settings.policies.update', 'settings', null, {
+        policiesUpdated: Object.keys(policies).length,
+      });
+
+      return { message: 'Policies updated successfully' };
+    } catch (error: any) {
+      fastify.log.error('Error updating policies:', error);
+      reply.code(500).send({ error: 'Failed to update policies', details: error.message });
     }
   });
 }

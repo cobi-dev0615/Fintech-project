@@ -44,6 +44,7 @@ import SendInvitations from "./pages/consultant/SendInvitations";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import Subscriptions from "./pages/admin/Subscriptions";
+import PlanManagement from "./pages/admin/PlanManagement";
 import IntegrationsMonitor from "./pages/admin/IntegrationsMonitor";
 import DAMAProspecting from "./pages/admin/DAMAProspecting";
 import FinancialReports from "./pages/admin/FinancialReports";
@@ -107,6 +108,7 @@ const App = () => (
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="subscriptions" element={<Subscriptions />} />
+            <Route path="plans" element={<PlanManagement />} />
             <Route path="integrations" element={<IntegrationsMonitor />} />
             <Route path="prospecting" element={<DAMAProspecting />} />
             <Route path="financial" element={<FinancialReports />} />

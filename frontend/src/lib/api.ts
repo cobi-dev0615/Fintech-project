@@ -60,13 +60,16 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isFormData: boolean = false
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
+    const headers: HeadersInit = { ...options.headers };
+
+    // Don't set Content-Type for FormData, browser will set it with boundary
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
@@ -104,6 +107,17 @@ class ApiClient {
       method: 'PATCH',
       body: data ? JSON.stringify(data) : undefined,
     });
+  }
+
+  async put<T>(endpoint: string, data?: any, isFormData: boolean = false): Promise<T> {
+    return this.request<T>(
+      endpoint,
+      {
+        method: 'PUT',
+        body: data ? (isFormData ? data : JSON.stringify(data)) : undefined,
+      },
+      isFormData
+    );
   }
 
   async delete<T>(endpoint: string): Promise<T> {
@@ -312,9 +326,40 @@ export const adminApi = {
       name: string;
       email: string;
       role: string;
+      phone: string | null;
+      countryCode: string;
+      isActive: boolean;
+      birthDate: string | null;
+      riskProfile: string | null;
       status: string;
-      plan: string | null;
       createdAt: string;
+      updatedAt: string;
+      subscription: {
+        id: string;
+        status: string;
+        currentPeriodStart: string;
+        currentPeriodEnd: string;
+        planName: string;
+        planPrice: number;
+      } | null;
+      financialSummary: {
+        cash: number;
+        investments: number;
+        debt: number;
+        netWorth: number;
+      };
+      stats: {
+        connections: number;
+        goals: number;
+        clients: number;
+      };
+      consultants: Array<{
+        id: string;
+        name: string;
+        email: string;
+        relationshipStatus: string;
+        relationshipCreatedAt: string;
+      }>;
     } }>(`/admin/users/${id}`),
 
   updateUserRole: (id: string, role: string) =>
@@ -427,6 +472,86 @@ export const adminApi = {
       };
     }>(`/admin/prospecting${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
   },
+
+  // Settings
+  getSettings: () =>
+    api.get<{
+      plans: Array<{
+        id: string;
+        code: string;
+        name: string;
+        priceCents: number;
+        connectionLimit: number | null;
+        features: string[];
+        isActive: boolean;
+      }>;
+      emailSettings: {
+        welcomeEmail: boolean;
+        monthlyReport: boolean;
+        alerts: boolean;
+        fromEmail: string;
+        fromName: string;
+      };
+      platformSettings: {
+        maintenanceMode: boolean;
+        allowRegistrations: boolean;
+        requireEmailVerification: boolean;
+      };
+      customization: {
+        logo: string | null;
+        primaryColor: string;
+        platformName: string;
+        description: string;
+      };
+      policies: {
+        termsOfService: string;
+        privacyPolicy: string;
+        cookiePolicy: string;
+      };
+    }>('/admin/settings'),
+
+  updatePlans: (plans: Array<{
+    id?: string;
+    code: string;
+    name: string;
+    priceCents: number;
+    connectionLimit: number | null;
+    features: string[];
+    isActive: boolean;
+  }>) =>
+    api.put<{ message: string }>('/admin/settings/plans', { plans }),
+
+  updateEmailSettings: (settings: {
+    welcomeEmail: boolean;
+    monthlyReport: boolean;
+    alerts: boolean;
+    fromEmail: string;
+    fromName: string;
+  }) =>
+    api.put<{ message: string }>('/admin/settings/email', settings),
+
+  updatePlatformSettings: (settings: {
+    maintenanceMode: boolean;
+    allowRegistrations: boolean;
+    requireEmailVerification: boolean;
+  }) =>
+    api.put<{ message: string }>('/admin/settings/platform', settings),
+
+  updateCustomization: (customization: {
+    primaryColor: string;
+    platformName: string;
+    description: string;
+  }) => {
+    // For now, send as JSON. Logo upload can be added later with multipart/form-data support
+    return api.put<{ message: string }>('/admin/settings/customization', customization);
+  },
+
+  updatePolicies: (policies: {
+    termsOfService: string;
+    privacyPolicy: string;
+    cookiePolicy: string;
+  }) =>
+    api.put<{ message: string }>('/admin/settings/policies', policies),
 };
 
 // Consultant endpoints

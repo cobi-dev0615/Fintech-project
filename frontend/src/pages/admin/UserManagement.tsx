@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, UserX, UserCheck, MoreVertical, Shield } from "lucide-react";
+import { Search, UserX, UserCheck, MoreVertical, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -11,6 +11,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
 interface User {
@@ -23,9 +30,53 @@ interface User {
   createdAt: string;
 }
 
+interface UserDetail {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  phone: string | null;
+  countryCode: string;
+  isActive: boolean;
+  birthDate: string | null;
+  riskProfile: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  subscription: {
+    id: string;
+    status: string;
+    currentPeriodStart: string;
+    currentPeriodEnd: string;
+    planName: string;
+    planPrice: number;
+  } | null;
+  financialSummary: {
+    cash: number;
+    investments: number;
+    debt: number;
+    netWorth: number;
+  };
+  stats: {
+    connections: number;
+    goals: number;
+    clients: number;
+  };
+  consultants: Array<{
+    id: string;
+    name: string;
+    email: string;
+    relationshipStatus: string;
+    relationshipCreatedAt: string;
+  }>;
+}
+
 const UserManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userDetail, setUserDetail] = useState<UserDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -36,16 +87,27 @@ const UserManagement = () => {
     totalPages: 0,
   });
 
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    if (searchQuery) {
+      setPage(1);
+    }
+  }, [searchQuery]);
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
         const response = await adminApi.getUsers({ 
-          search: searchQuery,
+          search: searchQuery || undefined,
           page,
           limit: 20,
         });
-        setUsers(response.users);
+        setUsers(response.users.map(user => ({
+          ...user,
+          role: user.role as "customer" | "consultant" | "admin",
+          status: user.status as "active" | "blocked" | "pending",
+        })));
         setPagination(response.pagination);
       } catch (error: any) {
         console.error('Failed to fetch users:', error);
@@ -54,11 +116,8 @@ const UserManagement = () => {
       }
     };
 
-    // Debounce search and reset page on search change
+    // Debounce search
     const timer = setTimeout(() => {
-      if (searchQuery) {
-        setPage(1); // Reset to first page on new search
-      }
       fetchUsers();
     }, 300);
 
@@ -127,11 +186,39 @@ const UserManagement = () => {
     try {
       await adminApi.updateUserRole(userId, newRole);
       setUsers(users.map(u => u.id === userId ? { ...u, role: newRole as any } : u));
+      // Refresh user detail if it's open
+      if (selectedUser?.id === userId && userDetail) {
+        const detailResponse = await adminApi.getUser(userId);
+        setUserDetail(detailResponse.user);
+      }
       alert('Role atualizado com sucesso');
     } catch (error: any) {
       console.error('Failed to update role:', error);
       alert(error?.error || 'Falha ao atualizar role');
     }
+  };
+
+  const handleViewDetails = async (user: User) => {
+    setSelectedUser(user);
+    setIsDetailDialogOpen(true);
+    setDetailLoading(true);
+    try {
+      const response = await adminApi.getUser(user.id);
+      setUserDetail(response.user);
+    } catch (error: any) {
+      console.error('Failed to fetch user details:', error);
+      alert(error?.error || 'Falha ao carregar detalhes do usuário');
+      // Close dialog on error if desired
+      // setIsDetailDialogOpen(false);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailDialogOpen(false);
+    setSelectedUser(null);
+    setUserDetail(null);
   };
 
   return (
@@ -225,7 +312,9 @@ const UserManagement = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewDetails(user)}>
+                          Ver detalhes
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleChangeRole(user.id, user.role === 'customer' ? 'consultant' : 'customer')}>
                           <Shield className="h-4 w-4 mr-2" />
@@ -258,59 +347,273 @@ const UserManagement = () => {
         </div>
         
         {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+        {pagination.total > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
             <div className="text-sm text-muted-foreground">
-              Mostrando {((page - 1) * pagination.limit) + 1} - {Math.min(page * pagination.limit, pagination.total)} de {pagination.total}
+              Mostrando {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1 || loading}
-              >
-                Anterior
-              </Button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (pagination.totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (page <= 3) {
-                    pageNum = i + 1;
-                  } else if (page >= pagination.totalPages - 2) {
-                    pageNum = pagination.totalPages - 4 + i;
-                  } else {
-                    pageNum = page - 2 + i;
-                  }
-                  return (
-                    <Button
-                      key={pageNum}
-                      variant={page === pageNum ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPage(pageNum)}
-                      disabled={loading}
-                    >
-                      {pageNum}
-                    </Button>
-                  );
-                })}
+            {pagination.totalPages > 1 && (
+              <div className="flex gap-2 items-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1 || loading}
+                >
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (page <= 3) {
+                      pageNum = i + 1;
+                    } else if (page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={page === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPage(pageNum)}
+                        disabled={loading}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                  disabled={page === pagination.totalPages || loading}
+                >
+                  Próxima
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                disabled={page === pagination.totalPages || loading}
-              >
-                Próxima
-              </Button>
-            </div>
+            )}
           </div>
         )}
         </>
         )}
       </ChartCard>
+
+      {/* User Detail Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={(open) => {
+        setIsDetailDialogOpen(open);
+        if (!open) {
+          handleCloseDetail();
+        }
+      }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Usuário</DialogTitle>
+            <DialogDescription>
+              Informações completas do usuário selecionado
+            </DialogDescription>
+          </DialogHeader>
+
+          {detailLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">Carregando detalhes...</p>
+            </div>
+          ) : userDetail ? (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Informações Básicas</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-muted-foreground">Nome</label>
+                    <p className="text-sm font-medium">{userDetail.name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground">Email</label>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      {userDetail.email}
+                    </p>
+                  </div>
+                  {userDetail.phone && (
+                    <div>
+                      <label className="text-sm text-muted-foreground">Telefone</label>
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        {userDetail.phone}
+                      </p>
+                    </div>
+                  )}
+                  {userDetail.birthDate && (
+                    <div>
+                      <label className="text-sm text-muted-foreground">Data de Nascimento</label>
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(userDetail.birthDate).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-sm text-muted-foreground">Role</label>
+                    <div className="mt-1">
+                      {getRoleBadge(userDetail.role)}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground">Status</label>
+                    <div className="mt-1">
+                      {getStatusBadge(userDetail.status)}
+                    </div>
+                  </div>
+                  {userDetail.riskProfile && (
+                    <div>
+                      <label className="text-sm text-muted-foreground">Perfil de Risco</label>
+                      <p className="text-sm font-medium">{userDetail.riskProfile}</p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-sm text-muted-foreground">Data de Cadastro</label>
+                    <p className="text-sm font-medium">
+                      {new Date(userDetail.createdAt).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Subscription Information */}
+              {userDetail.subscription && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Assinatura</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-muted-foreground">Plano</label>
+                      <p className="text-sm font-medium">{userDetail.subscription.planName}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Preço</label>
+                      <p className="text-sm font-medium">
+                        R$ {userDetail.subscription.planPrice.toFixed(2)}/mês
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Status</label>
+                      <p className="text-sm font-medium">{userDetail.subscription.status}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Próxima Cobrança</label>
+                      <p className="text-sm font-medium">
+                        {new Date(userDetail.subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Financial Summary */}
+              {(userDetail.financialSummary.cash > 0 || userDetail.financialSummary.investments > 0 || userDetail.financialSummary.debt > 0) && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Resumo Financeiro</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 rounded-lg border border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-xs text-muted-foreground">Dinheiro</label>
+                      </div>
+                      <p className="text-lg font-semibold">
+                        R$ {userDetail.financialSummary.cash.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-xs text-muted-foreground">Investimentos</label>
+                      </div>
+                      <p className="text-lg font-semibold">
+                        R$ {userDetail.financialSummary.investments.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-xs text-muted-foreground">Dívidas</label>
+                      </div>
+                      <p className="text-lg font-semibold text-destructive">
+                        R$ {userDetail.financialSummary.debt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-border bg-primary/5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        <label className="text-xs text-muted-foreground">Patrimônio Líquido</label>
+                      </div>
+                      <p className="text-lg font-semibold text-primary">
+                        R$ {userDetail.financialSummary.netWorth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Statistics */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Estatísticas</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Link2 className="h-4 w-4 text-muted-foreground" />
+                      <label className="text-xs text-muted-foreground">Conexões</label>
+                    </div>
+                    <p className="text-2xl font-semibold">{userDetail.stats.connections}</p>
+                  </div>
+                  <div className="p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                      <label className="text-xs text-muted-foreground">Metas</label>
+                    </div>
+                    <p className="text-2xl font-semibold">{userDetail.stats.goals}</p>
+                  </div>
+                  {userDetail.role === 'consultant' && (
+                    <div className="p-4 rounded-lg border border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-xs text-muted-foreground">Clientes</label>
+                      </div>
+                      <p className="text-2xl font-semibold">{userDetail.stats.clients}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Consultants (if customer) */}
+              {userDetail.role === 'customer' && userDetail.consultants.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Consultores Associados</h3>
+                  <div className="space-y-2">
+                    {userDetail.consultants.map((consultant) => (
+                      <div key={consultant.id} className="p-3 rounded-lg border border-border">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium">{consultant.name}</p>
+                            <p className="text-xs text-muted-foreground">{consultant.email}</p>
+                          </div>
+                          <Badge variant="outline">{consultant.relationshipStatus}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Associado desde {new Date(consultant.relationshipCreatedAt).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -67,6 +67,7 @@ const adminNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard", enabled: true },
   { icon: Shield, label: "Usuários", href: "/admin/users", enabled: true },
   { icon: SubscriptionIcon, label: "Assinaturas", href: "/admin/subscriptions", enabled: true },
+  { icon: CreditCard, label: "Planos", href: "/admin/plans", enabled: true },
   { icon: DollarSign, label: "Financeiro", href: "/admin/financial", enabled: true },
   { icon: Activity, label: "Integrações", href: "/admin/integrations", enabled: true },
   { icon: Search, label: "Prospecção", href: "/admin/prospecting", enabled: true },
@@ -207,13 +208,16 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
 
       {/* Footer */}
       <div className="p-3 border-t border-sidebar-border space-y-1">
-        <Link
-          to={getSettingsPath()}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-        >
-          <Settings className="h-5 w-5 flex-shrink-0" />
-          {!collapsed && <span>Configurações</span>}
-        </Link>
+        {/* Only show settings in footer if it's not already in main navigation */}
+        {!navItems.some(item => item.href === getSettingsPath()) && (
+          <Link
+            to={getSettingsPath()}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          >
+            <Settings className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Configurações</span>}
+          </Link>
+        )}
         <button 
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
