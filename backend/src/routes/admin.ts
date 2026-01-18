@@ -892,6 +892,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
       let hasSubscriptions = false;
       let hasBankAccounts = false;
       let hasHoldings = false;
+      let hasConnections = false;
+      let hasGoals = false;
 
       try {
         await db.query('SELECT 1 FROM subscriptions LIMIT 1');
@@ -906,6 +908,16 @@ export async function adminRoutes(fastify: FastifyInstance) {
       try {
         await db.query('SELECT 1 FROM holdings LIMIT 1');
         hasHoldings = true;
+      } catch {}
+
+      try {
+        await db.query('SELECT 1 FROM connections LIMIT 1');
+        hasConnections = true;
+      } catch {}
+
+      try {
+        await db.query('SELECT 1 FROM goals LIMIT 1');
+        hasGoals = true;
       } catch {}
 
       // Build WHERE clause
@@ -955,6 +967,19 @@ export async function adminRoutes(fastify: FastifyInstance) {
         )`;
       }
 
+      // Build engagement calculation based on which tables exist
+      const engagementParts: string[] = [];
+      if (hasConnections) {
+        engagementParts.push('CASE WHEN EXISTS(SELECT 1 FROM connections WHERE user_id = u.id) THEN 50 ELSE 0 END');
+      }
+      if (hasGoals) {
+        engagementParts.push('CASE WHEN EXISTS(SELECT 1 FROM goals WHERE user_id = u.id) THEN 30 ELSE 0 END');
+      }
+      engagementParts.push('CASE WHEN u.updated_at > u.created_at THEN 20 ELSE 0 END');
+      const engagementQuery = engagementParts.length > 1
+        ? `GREATEST(${engagementParts.join(', ')})`
+        : engagementParts[0] || '0';
+
       // Build query based on which tables exist
       let dataQuery: string;
       if (hasSubscriptions) {
@@ -966,12 +991,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
             u.email,
             ${netWorthQuery} / 100.0 as net_worth,
             ${stageQuery} as stage,
-            GREATEST(
-              CASE WHEN u.last_login_at IS NOT NULL THEN 100 ELSE 0 END,
-              CASE WHEN EXISTS(SELECT 1 FROM connections WHERE user_id = u.id) THEN 50 ELSE 0 END,
-              CASE WHEN EXISTS(SELECT 1 FROM goals WHERE user_id = u.id) THEN 30 ELSE 0 END
-            ) as engagement,
-            COALESCE(u.last_login_at, u.created_at) as last_activity
+            ${engagementQuery} as engagement,
+            COALESCE(u.updated_at, u.created_at) as last_activity
           FROM users u
           LEFT JOIN subscriptions s ON u.id = s.user_id AND s.status = 'active'
           LEFT JOIN plans p ON s.plan_id = p.id
@@ -988,12 +1009,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
             u.email,
             ${netWorthQuery} / 100.0 as net_worth,
             'free' as stage,
-            GREATEST(
-              CASE WHEN u.last_login_at IS NOT NULL THEN 100 ELSE 0 END,
-              CASE WHEN EXISTS(SELECT 1 FROM connections WHERE user_id = u.id) THEN 50 ELSE 0 END,
-              CASE WHEN EXISTS(SELECT 1 FROM goals WHERE user_id = u.id) THEN 30 ELSE 0 END
-            ) as engagement,
-            COALESCE(u.last_login_at, u.created_at) as last_activity
+            ${engagementQuery} as engagement,
+            COALESCE(u.updated_at, u.created_at) as last_activity
           FROM users u
           ${whereClause}
           ORDER BY net_worth DESC
