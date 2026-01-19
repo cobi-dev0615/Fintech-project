@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Target, Plus, TrendingUp, Calendar } from "lucide-react";
+import { Target, Plus, TrendingUp, Calendar, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,17 @@ import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Progress } from "@/components/ui/progress";
 import { goalsApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Goal {
   id: string;
@@ -22,11 +33,23 @@ const Goals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [deletingGoalId, setDeletingGoalId] = useState<string | null>(null);
   const [newGoalName, setNewGoalName] = useState("");
   const [newGoalTarget, setNewGoalTarget] = useState("");
   const [newGoalDeadline, setNewGoalDeadline] = useState("");
   const [newGoalCategory, setNewGoalCategory] = useState("");
+  const [editGoalName, setEditGoalName] = useState("");
+  const [editGoalTarget, setEditGoalTarget] = useState("");
+  const [editGoalCurrent, setEditGoalCurrent] = useState("");
+  const [editGoalDeadline, setEditGoalDeadline] = useState("");
+  const [editGoalCategory, setEditGoalCategory] = useState("");
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchGoals = async () => {
@@ -48,7 +71,11 @@ const Goals = () => {
 
   const handleCreateGoal = async () => {
     if (!newGoalName || !newGoalTarget) {
-      alert("Preencha o nome e o valor da meta");
+      toast({
+        title: "Erro",
+        description: "Preencha o nome e o valor da meta",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -66,11 +93,97 @@ const Goals = () => {
       setNewGoalDeadline("");
       setNewGoalCategory("");
       setIsDialogOpen(false);
+      toast({
+        title: "Sucesso",
+        description: "Meta criada com sucesso",
+      });
     } catch (err: any) {
-      alert(err?.error || "Erro ao criar meta");
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao criar meta",
+        variant: "destructive",
+      });
       console.error("Error creating goal:", err);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleEditGoal = (goal: Goal) => {
+    setEditingGoal(goal);
+    setEditGoalName(goal.name);
+    setEditGoalTarget(goal.target.toString());
+    setEditGoalCurrent(goal.current.toString());
+    setEditGoalDeadline(goal.deadline ? new Date(goal.deadline.split("/").reverse().join("-")).toISOString().split('T')[0] : "");
+    setEditGoalCategory(goal.category);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateGoal = async () => {
+    if (!editingGoal || !editGoalName || !editGoalTarget) {
+      toast({
+        title: "Erro",
+        description: "Preencha o nome e o valor da meta",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      const result = await goalsApi.update(editingGoal.id, {
+        name: editGoalName,
+        target: parseFloat(editGoalTarget),
+        current: parseFloat(editGoalCurrent) || undefined,
+        deadline: editGoalDeadline || undefined,
+        category: editGoalCategory || undefined,
+      });
+      setGoals(goals.map(g => g.id === editingGoal.id ? result.goal : g));
+      setIsEditDialogOpen(false);
+      setEditingGoal(null);
+      toast({
+        title: "Sucesso",
+        description: "Meta atualizada com sucesso",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao atualizar meta",
+        variant: "destructive",
+      });
+      console.error("Error updating goal:", err);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteGoal = (goalId: string) => {
+    setDeletingGoalId(goalId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteGoal = async () => {
+    if (!deletingGoalId) return;
+
+    try {
+      setDeleting(true);
+      await goalsApi.delete(deletingGoalId);
+      setGoals(goals.filter(g => g.id !== deletingGoalId));
+      setIsDeleteDialogOpen(false);
+      setDeletingGoalId(null);
+      toast({
+        title: "Sucesso",
+        description: "Meta excluída com sucesso",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao excluir meta",
+        variant: "destructive",
+      });
+      console.error("Error deleting goal:", err);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -194,10 +307,12 @@ const Goals = () => {
         <ChartCard title="Progresso Médio" className="p-4">
           <div className="space-y-1">
             <p className="text-2xl font-bold text-foreground">
-              {Math.round(
-                goals.reduce((sum, goal) => sum + getProgress(goal.current, goal.target), 0) /
-                  goals.length
-              )}%
+              {goals.length > 0
+                ? Math.round(
+                    goals.reduce((sum, goal) => sum + getProgress(goal.current, goal.target), 0) /
+                      goals.length
+                  )
+                : 0}%
             </p>
             <p className="text-xs text-muted-foreground">conclusão geral</p>
           </div>
@@ -213,7 +328,7 @@ const Goals = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Você ainda não criou nenhuma meta financeira
               </p>
-              <Button>
+              <Button onClick={() => setIsDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Criar Primeira Meta
               </Button>
@@ -226,7 +341,7 @@ const Goals = () => {
               <ChartCard key={goal.id} className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="text-lg font-semibold text-foreground mb-1">
                         {goal.name}
                       </h3>
@@ -242,10 +357,28 @@ const Goals = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-success tabular-nums">
-                        {progress.toFixed(1)}%
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-success tabular-nums">
+                          {progress.toFixed(1)}%
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditGoal(goal)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteGoal(goal.id)}
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
 
@@ -275,6 +408,92 @@ const Goals = () => {
           })
         )}
       </div>
+
+      {/* Edit Goal Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Meta Financeira</DialogTitle>
+            <DialogDescription>
+              Atualize os detalhes da sua meta
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Nome da Meta</Label>
+              <Input 
+                id="edit-name" 
+                placeholder="Ex: Reserva de Emergência"
+                value={editGoalName}
+                onChange={(e) => setEditGoalName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-target">Valor Objetivo (R$)</Label>
+              <Input 
+                id="edit-target" 
+                type="number" 
+                placeholder="50000"
+                value={editGoalTarget}
+                onChange={(e) => setEditGoalTarget(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-current">Valor Atual (R$)</Label>
+              <Input 
+                id="edit-current" 
+                type="number" 
+                placeholder="0"
+                value={editGoalCurrent}
+                onChange={(e) => setEditGoalCurrent(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-deadline">Prazo (opcional)</Label>
+              <Input 
+                id="edit-deadline" 
+                type="date"
+                value={editGoalDeadline}
+                onChange={(e) => setEditGoalDeadline(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-category">Categoria (opcional)</Label>
+              <Input 
+                id="edit-category" 
+                placeholder="Ex: Segurança, Pessoal, Moradia"
+                value={editGoalCategory}
+                onChange={(e) => setEditGoalCategory(e.target.value)}
+              />
+            </div>
+            <Button className="w-full" onClick={handleUpdateGoal} disabled={updating}>
+              {updating ? "Atualizando..." : "Atualizar Meta"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta meta? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteGoal}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

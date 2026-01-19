@@ -8,10 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { adminApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
   const [emailSettings, setEmailSettings] = useState({
     welcomeEmail: true,
@@ -78,10 +80,17 @@ const Settings = () => {
       // Save policies
       await adminApi.updatePolicies(policies);
 
-      alert("Configurações salvas com sucesso!");
+      toast({
+        title: "Sucesso",
+        description: "Configurações salvas com sucesso!",
+      });
     } catch (error: any) {
       console.error('Failed to save settings:', error);
-      alert(error?.error || 'Falha ao salvar configurações');
+      toast({
+        title: "Erro",
+        description: error?.error || 'Falha ao salvar configurações',
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -108,10 +117,17 @@ const Settings = () => {
           await adminApi.updatePolicies(policies);
           break;
       }
-      alert("Configurações salvas com sucesso!");
+      toast({
+        title: "Sucesso",
+        description: "Configurações salvas com sucesso!",
+      });
     } catch (error: any) {
       console.error(`Failed to save ${section} settings:`, error);
-      alert(error?.error || `Falha ao salvar configurações de ${section}`);
+      toast({
+        title: "Erro",
+        description: error?.error || `Falha ao salvar configurações de ${section}`,
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }

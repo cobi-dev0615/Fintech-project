@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ const PlanManagement = () => {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
   const [newFeature, setNewFeature] = useState("");
+  const { toast } = useToast();
 
   // Load plans on mount
   useEffect(() => {
@@ -86,7 +88,11 @@ const PlanManagement = () => {
     if (!editingPlan) return;
 
     if (!editingPlan.code || !editingPlan.name) {
-      alert("Código e nome são obrigatórios");
+      toast({
+        title: "Erro",
+        description: "Código e nome são obrigatórios",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -130,12 +136,19 @@ const PlanManagement = () => {
           isActive: p.isActive ?? true,
         }))
       );
-      alert("Planos salvos com sucesso!");
+      toast({
+        title: "Sucesso",
+        description: "Planos salvos com sucesso!",
+      });
       // Refresh plans after save
       await fetchPlans();
     } catch (error: any) {
       console.error("Failed to save plans:", error);
-      alert(error?.error || "Falha ao salvar planos");
+      toast({
+        title: "Erro",
+        description: error?.error || "Falha ao salvar planos",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }

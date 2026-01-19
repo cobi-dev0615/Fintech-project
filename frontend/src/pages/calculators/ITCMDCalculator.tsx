@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 const ITCMDCalculator = () => {
   const [propertyValue, setPropertyValue] = useState("");
   const [state, setState] = useState("SP");
   const [transactionType, setTransactionType] = useState<"inheritance" | "donation">("inheritance");
   const [results, setResults] = useState<any>(null);
+  const { toast } = useToast();
 
   // ITCMD rates by state (simplified - rates vary by value brackets)
   const stateRates: Record<string, { inheritance: number; donation: number }> = {
@@ -32,7 +34,11 @@ const ITCMDCalculator = () => {
     const value = parseFloat(propertyValue) || 0;
 
     if (value <= 0) {
-      alert("Por favor, informe o valor do bem.");
+      toast({
+        title: "Erro",
+        description: "Por favor, informe o valor do bem.",
+        variant: "destructive",
+      });
       return;
     }
 

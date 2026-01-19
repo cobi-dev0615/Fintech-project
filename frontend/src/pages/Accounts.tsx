@@ -21,17 +21,30 @@ const Accounts = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    limit: 20,
+    offset: 0,
+    totalPages: 0,
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        const limit = 20;
+        const offset = (page - 1) * limit;
+        
         const [accountsData, transactionsData] = await Promise.all([
           accountsApi.getAll(),
-          accountsApi.getTransactions(),
+          accountsApi.getTransactions(undefined, limit, offset),
         ]);
         setAccounts(accountsData.accounts);
         setTransactions(transactionsData.transactions);
+        if (transactionsData.pagination) {
+          setPagination(transactionsData.pagination);
+        }
         setError(null);
       } catch (err: any) {
         setError(err?.error || "Erro ao carregar dados");
@@ -42,7 +55,14 @@ const Accounts = () => {
     };
 
     fetchData();
-  }, []);
+  }, [page]);
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    if (searchQuery) {
+      setPage(1);
+    }
+  }, [searchQuery]);
 
   const filteredTransactions = transactions
     .map((t: any) => ({
@@ -196,6 +216,58 @@ const Accounts = () => {
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {pagination.total > 0 && pagination.totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
+            <div className="text-sm text-muted-foreground">
+              Mostrando {((page - 1) * pagination.limit) + 1} - {Math.min(page * pagination.limit, pagination.total)} de {pagination.total}
+            </div>
+            <div className="flex gap-2 items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
+              >
+                Anterior
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (pagination.totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= pagination.totalPages - 2) {
+                    pageNum = pagination.totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={page === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPage(pageNum)}
+                      disabled={loading}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                disabled={page === pagination.totalPages || loading}
+              >
+                Próxima
+              </Button>
+            </div>
+          </div>
+        )}
       </ChartCard>
         </>
       )}

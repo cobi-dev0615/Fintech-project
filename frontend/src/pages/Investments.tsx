@@ -81,8 +81,12 @@ const Investments = () => {
   const allocationData = Object.values(allocationByClass);
 
   const performanceData: any[] = []; // TODO: Historical performance data
+  const benchmarkData: any[] = []; // TODO: Benchmark comparison data
   const totalValue = summary ? parseFloat(summary.total_value || 0) / 100 : 0;
-  const totalPerformance = summary ? (parseFloat(summary.total_pnl || 0) / 100 / totalValue) * 100 : 0;
+  const totalPerformanceRaw = summary && totalValue > 0 
+    ? (parseFloat(summary.total_pnl || 0) / 100 / totalValue) * 100 
+    : 0;
+  const totalPerformance = isNaN(totalPerformanceRaw) || !isFinite(totalPerformanceRaw) ? 0 : totalPerformanceRaw;
 
   const mappedHoldings = holdings.map((h) => {
     const marketValue = parseFloat(h.market_value_cents || 0) / 100;
@@ -297,38 +301,44 @@ const Investments = () => {
       {/* Benchmark Comparison */}
       <ChartCard title="Comparação com Benchmarks">
         <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={benchmarkData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                dy={10}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                tickFormatter={(value) => `${value}%`}
-                width={40}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "6px",
-                }}
-                formatter={(value: number) => `${value}%`}
-              />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                {benchmarkData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {benchmarkData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={benchmarkData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  dy={10}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  tickFormatter={(value) => `${value}%`}
+                  width={40}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "6px",
+                  }}
+                  formatter={(value: number) => `${value}%`}
+                />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {benchmarkData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-sm text-muted-foreground">Dados de benchmark não disponíveis</p>
+            </div>
+          )}
         </div>
       </ChartCard>
 

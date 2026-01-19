@@ -6,6 +6,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import {
   PieChart as RechartsPieChart,
   Pie,
@@ -27,6 +28,7 @@ const PortfolioSimulator = () => {
   const [scenario, setScenario] = useState<"conservative" | "moderate" | "bold">("moderate");
   const [timeHorizon, setTimeHorizon] = useState("10");
   const [results, setResults] = useState<any>(null);
+  const { toast } = useToast();
 
   const clients = ["João Silva", "Maria Santos", "Pedro Costa"];
 
@@ -62,7 +64,11 @@ const PortfolioSimulator = () => {
 
   const simulate = () => {
     if (!selectedClient) {
-      alert("Selecione um cliente primeiro");
+      toast({
+        title: "Erro",
+        description: "Selecione um cliente primeiro",
+        variant: "destructive",
+      });
       return;
     }
 

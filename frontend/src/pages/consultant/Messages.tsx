@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { consultantApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -36,6 +37,7 @@ const Messages = () => {
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -92,7 +94,11 @@ const Messages = () => {
       setNewMessage("");
     } catch (err: any) {
       console.error("Error sending message:", err);
-      alert(err?.error || "Erro ao enviar mensagem");
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao enviar mensagem",
+        variant: "destructive",
+      });
     } finally {
       setSending(false);
     }

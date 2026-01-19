@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
+import bcrypt from 'bcrypt';
 
 export async function usersRoutes(fastify: FastifyInstance) {
   // Get user profile
@@ -72,6 +73,61 @@ export async function usersRoutes(fastify: FastifyInstance) {
     } catch (error) {
       fastify.log.error(error);
       return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Change password
+  fastify.patch('/profile/password', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const body = request.body as any;
+      
+      if (!body.currentPassword || !body.newPassword) {
+        return reply.code(400).send({ error: 'Current password and new password are required' });
+      }
+
+      if (body.newPassword.length < 6) {
+        return reply.code(400).send({ error: 'New password must be at least 6 characters long' });
+      }
+
+      // Get user with password hash
+      const userResult = await db.query(
+        'SELECT password_hash FROM users WHERE id = $1',
+        [userId]
+      );
+
+      if (userResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'User not found' });
+      }
+
+      const user = userResult.rows[0];
+
+      // Verify current password
+      if (!user.password_hash) {
+        return reply.code(400).send({ error: 'Password cannot be changed. Account uses external authentication.' });
+      }
+
+      const validPassword = await bcrypt.compare(body.currentPassword, user.password_hash);
+      
+      if (!validPassword) {
+        return reply.code(401).send({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const newPasswordHash = await bcrypt.hash(body.newPassword, 10);
+
+      // Update password
+      await db.query(
+        'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+        [newPasswordHash, userId]
+      );
+
+      return reply.send({ message: 'Password updated successfully' });
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error', details: error.message });
     }
   });
 }

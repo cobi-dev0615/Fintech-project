@@ -35,11 +35,16 @@ const API_BASE_URL = getApiBaseUrl();
 export interface ApiError {
   error: string;
   details?: any;
+  statusCode?: number;
+  code?: string;
 }
 
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
+  private unauthorizedEventDispatched: boolean = false;
+  private lastUnauthorizedTime: number = 0;
+  private readonly UNAUTHORIZED_COOLDOWN = 5000; // 5 seconds cooldown
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -53,6 +58,9 @@ class ApiClient {
     this.token = token;
     if (token && typeof window !== 'undefined') {
       localStorage.setItem('auth_token', token);
+      // Reset unauthorized flag when token is set (user logged in)
+      this.unauthorizedEventDispatched = false;
+      this.lastUnauthorizedTime = 0;
     } else if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
     }
@@ -82,9 +90,47 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error: ApiError = await response.json().catch(() => ({
+      const errorData = await response.json().catch(() => ({
         error: `HTTP ${response.status}: ${response.statusText}`,
       }));
+      
+      const error: ApiError = {
+        ...errorData,
+        statusCode: response.status,
+      };
+      
+      // Handle 401 Unauthorized errors globally
+      if (response.status === 401) {
+        // Immediately remove token from localStorage to prevent further requests
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth_token');
+        }
+        
+        // Clear token and trigger re-authentication
+        this.setToken(null);
+        
+        // Prevent multiple unauthorized events in quick succession (circuit breaker)
+        const now = Date.now();
+        const timeSinceLastUnauthorized = now - this.lastUnauthorizedTime;
+        
+        if (!this.unauthorizedEventDispatched || timeSinceLastUnauthorized > this.UNAUTHORIZED_COOLDOWN) {
+          this.unauthorizedEventDispatched = true;
+          this.lastUnauthorizedTime = now;
+          
+          // Dispatch a custom event that components can listen to
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('auth:unauthorized', {
+              detail: { message: 'Sua sessão expirou. Por favor, faça login novamente.' }
+            }));
+          }
+          
+          // Reset flag after cooldown period
+          setTimeout(() => {
+            this.unauthorizedEventDispatched = false;
+          }, this.UNAUTHORIZED_COOLDOWN);
+        }
+      }
+      
       throw error;
     }
 
@@ -146,6 +192,9 @@ export const userApi = {
   
   updateProfile: (data: Partial<{ full_name: string; phone: string; birth_date: string; risk_profile: string }>) =>
     api.patch<{ user: any }>('/users/profile', data),
+
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.patch<{ message: string }>('/users/profile/password', data),
 };
 
 // Dashboard endpoints
@@ -174,6 +223,9 @@ export const connectionsApi = {
     api.get<{ institutions: any[] }>(
       `/connections/institutions${provider ? `?provider=${provider}` : ''}`
     ),
+  
+  create: (data: { provider: 'open_finance' | 'b3'; institutionId?: string }) =>
+    api.post<{ connection: any }>('/connections', data),
 };
 
 // Accounts endpoints
@@ -186,7 +238,15 @@ export const accountsApi = {
     if (accountId) params.append('accountId', accountId);
     if (limit) params.append('limit', limit.toString());
     if (offset) params.append('offset', offset.toString());
-    return api.get<{ transactions: any[] }>(
+    return api.get<{ 
+      transactions: any[];
+      pagination: {
+        total: number;
+        limit: number;
+        offset: number;
+        totalPages: number;
+      };
+    }>(
       `/accounts/transactions${params.toString() ? `?${params.toString()}` : ''}`
     );
   },
@@ -199,6 +259,17 @@ export const cardsApi = {
   
   getInvoices: (cardId: string) =>
     api.get<{ invoices: any[] }>(`/cards/${cardId}/invoices`),
+  
+  create: (data: {
+    displayName: string;
+    brand: string;
+    last4: string;
+    limitCents?: number;
+    institutionId?: string;
+    connectionId?: string;
+    currency?: string;
+  }) =>
+    api.post<{ card: any }>('/cards', data),
 };
 
 // Investments endpoints
@@ -755,4 +826,49 @@ export const consultantApi = {
       };
       message: string;
     }>('/consultant/reports/generate', data),
+
+  // Profile
+  getProfile: () =>
+    api.get<{
+      user: {
+        id: string;
+        full_name: string;
+        email: string;
+        role: string;
+        phone: string | null;
+        birth_date: string | null;
+        risk_profile: string | null;
+        created_at: string;
+        cref?: string | null;
+        specialty?: string | null;
+        bio?: string | null;
+        calendly_url?: string | null;
+      };
+    }>('/consultant/profile'),
+
+  updateProfile: (data: {
+    full_name?: string;
+    phone?: string;
+    birth_date?: string;
+    cref?: string;
+    specialty?: string;
+    bio?: string;
+    calendly_url?: string;
+  }) =>
+    api.patch<{
+      user: {
+        id: string;
+        full_name: string;
+        email: string;
+        role: string;
+        phone: string | null;
+        birth_date: string | null;
+        risk_profile: string | null;
+        created_at: string;
+        cref?: string | null;
+        specialty?: string | null;
+        bio?: string | null;
+        calendly_url?: string | null;
+      };
+    }>('/consultant/profile', data),
 };

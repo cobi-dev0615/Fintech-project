@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { reportsApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface Report {
   id: string;
@@ -19,6 +20,7 @@ const Reports = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const { toast } = useToast();
 
   const reportTypes = [
     { value: "consolidated", label: "Relatório Consolidado", icon: BarChart3, description: "Visão geral completa do patrimônio" },
@@ -58,7 +60,11 @@ const Reports = () => {
 
   const handleGenerate = async () => {
     if (!reportType) {
-      alert("Selecione um tipo de relatório");
+      toast({
+        title: "Erro",
+        description: "Selecione um tipo de relatório",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -71,11 +77,18 @@ const Reports = () => {
         date: result.report.generatedAt,
         status: "pending",
       }, ...reports]);
-      alert(result.message);
+      toast({
+        title: "Sucesso",
+        description: result.message,
+      });
       setReportType("");
       setDateRange("");
     } catch (err: any) {
-      alert(err?.error || "Erro ao gerar relatório");
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao gerar relatório",
+        variant: "destructive",
+      });
       console.error("Error generating report:", err);
     } finally {
       setGenerating(false);

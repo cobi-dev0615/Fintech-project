@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useToast } from "@/hooks/use-toast";
 
 const ProfitabilitySimulator = () => {
   const [initialAmount, setInitialAmount] = useState("");
@@ -17,13 +18,18 @@ const ProfitabilitySimulator = () => {
   ]);
   const [timePeriod, setTimePeriod] = useState("10");
   const [results, setResults] = useState<any>(null);
+  const { toast } = useToast();
 
   const calculate = () => {
     const principal = parseFloat(initialAmount) || 0;
     const years = parseFloat(timePeriod) || 0;
 
     if (principal <= 0 || years <= 0) {
-      alert("Por favor, preencha os valores corretamente.");
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha os valores corretamente.",
+        variant: "destructive",
+      });
       return;
     }
 

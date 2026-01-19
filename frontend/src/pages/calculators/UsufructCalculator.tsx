@@ -7,19 +7,25 @@ import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 const UsufructCalculator = () => {
   const [propertyValue, setPropertyValue] = useState("");
   const [usufructAge, setUsufructAge] = useState("");
   const [usufructType, setUsufructType] = useState<"temporary" | "lifelong">("lifelong");
   const [results, setResults] = useState<any>(null);
+  const { toast } = useToast();
 
   const calculate = () => {
     const value = parseFloat(propertyValue) || 0;
     const age = parseFloat(usufructAge) || 0;
 
     if (value <= 0 || age <= 0) {
-      alert("Por favor, preencha todos os campos corretamente.");
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha todos os campos corretamente.",
+        variant: "destructive",
+      });
       return;
     }
 

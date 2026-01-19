@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useToast } from "@/hooks/use-toast";
 
 const CompoundInterest = () => {
   const [initialAmount, setInitialAmount] = useState("");
@@ -14,6 +15,7 @@ const CompoundInterest = () => {
   const [interestRate, setInterestRate] = useState("8");
   const [timePeriod, setTimePeriod] = useState("");
   const [results, setResults] = useState<any>(null);
+  const { toast } = useToast();
 
   const calculate = () => {
     const principal = parseFloat(initialAmount) || 0;
@@ -22,7 +24,11 @@ const CompoundInterest = () => {
     const months = parseFloat(timePeriod) || 0;
 
     if (months <= 0) {
-      alert("Por favor, informe um período válido.");
+      toast({
+        title: "Erro",
+        description: "Por favor, informe um período válido.",
+        variant: "destructive",
+      });
       return;
     }
 

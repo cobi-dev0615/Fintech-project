@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { consultantApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface Invitation {
   id: string;
@@ -28,6 +29,7 @@ const SendInvitations = () => {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchInvitations = async () => {
@@ -49,7 +51,11 @@ const SendInvitations = () => {
 
   const handleSendInvitation = async () => {
     if (!email.trim()) {
-      alert("Por favor, insira um email válido");
+      toast({
+        title: "Erro",
+        description: "Por favor, insira um email válido",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -60,9 +66,16 @@ const SendInvitations = () => {
       setEmail("");
       setName("");
       setMessage("");
-      alert(`Convite enviado para ${email}`);
+      toast({
+        title: "Sucesso",
+        description: `Convite enviado para ${email}`,
+      });
     } catch (err: any) {
-      alert(err?.error || "Erro ao enviar convite");
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao enviar convite",
+        variant: "destructive",
+      });
       console.error("Error sending invitation:", err);
     } finally {
       setSending(false);

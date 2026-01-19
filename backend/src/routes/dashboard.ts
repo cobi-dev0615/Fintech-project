@@ -9,42 +9,102 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
     try {
       const userId = (request.user as any).userId;
       
+      // Check which tables exist
+      let hasBankAccounts = false;
+      let hasHoldings = false;
+      let hasTransactions = false;
+      let hasAlerts = false;
+
+      try {
+        await db.query('SELECT 1 FROM bank_accounts LIMIT 1');
+        hasBankAccounts = true;
+      } catch {}
+
+      try {
+        await db.query('SELECT 1 FROM holdings LIMIT 1');
+        hasHoldings = true;
+      } catch {}
+
+      try {
+        await db.query('SELECT 1 FROM transactions LIMIT 1');
+        hasTransactions = true;
+      } catch {}
+
+      try {
+        await db.query('SELECT 1 FROM alerts LIMIT 1');
+        hasAlerts = true;
+      } catch {}
+
       // Get net worth (sum of all account balances + investment values)
-      const netWorthResult = await db.query(
-        `SELECT 
-          COALESCE(SUM(balance_cents), 0) as cash_balance,
-          COALESCE(SUM(market_value_cents), 0) as investment_value
-         FROM (
-           SELECT balance_cents, 0 as market_value_cents FROM bank_accounts WHERE user_id = $1
-           UNION ALL
-           SELECT 0 as balance_cents, market_value_cents FROM holdings WHERE user_id = $1
-         ) combined`,
-        [userId]
-      );
-      
-      const { cash_balance, investment_value } = netWorthResult.rows[0];
-      const netWorth = Number(cash_balance) + Number(investment_value);
+      let cash_balance = 0;
+      let investment_value = 0;
+      let netWorth = 0;
+
+      if (hasBankAccounts || hasHoldings) {
+        try {
+          let queryParts: string[] = [];
+          if (hasBankAccounts) {
+            queryParts.push(`SELECT balance_cents, 0 as market_value_cents FROM bank_accounts WHERE user_id = $1`);
+          }
+          if (hasHoldings) {
+            queryParts.push(`SELECT 0 as balance_cents, market_value_cents FROM holdings WHERE user_id = $1`);
+          }
+          
+          if (queryParts.length > 0) {
+            const netWorthResult = await db.query(
+              `SELECT 
+                COALESCE(SUM(balance_cents), 0) as cash_balance,
+                COALESCE(SUM(market_value_cents), 0) as investment_value
+               FROM (${queryParts.join(' UNION ALL ')}) combined`,
+              [userId]
+            );
+            
+            cash_balance = Number(netWorthResult.rows[0]?.cash_balance || 0);
+            investment_value = Number(netWorthResult.rows[0]?.investment_value || 0);
+            netWorth = cash_balance + investment_value;
+          }
+        } catch (error) {
+          fastify.log.error('Error calculating net worth:', error);
+          // Use default values (0)
+        }
+      }
       
       // Get recent transactions count
-      const transactionsResult = await db.query(
-        `SELECT COUNT(*) as count FROM transactions 
-         WHERE user_id = $1 AND occurred_at >= NOW() - INTERVAL '30 days'`,
-        [userId]
-      );
+      let recentTransactionsCount = 0;
+      if (hasTransactions) {
+        try {
+          const transactionsResult = await db.query(
+            `SELECT COUNT(*) as count FROM transactions 
+             WHERE user_id = $1 AND occurred_at >= NOW() - INTERVAL '30 days'`,
+            [userId]
+          );
+          recentTransactionsCount = Number(transactionsResult.rows[0]?.count || 0);
+        } catch (error) {
+          fastify.log.error('Error getting transactions count:', error);
+        }
+      }
       
       // Get unread alerts count
-      const alertsResult = await db.query(
-        `SELECT COUNT(*) as count FROM alerts 
-         WHERE user_id = $1 AND is_read = false`,
-        [userId]
-      );
+      let unreadAlertsCount = 0;
+      if (hasAlerts) {
+        try {
+          const alertsResult = await db.query(
+            `SELECT COUNT(*) as count FROM alerts 
+             WHERE user_id = $1 AND is_read = false`,
+            [userId]
+          );
+          unreadAlertsCount = Number(alertsResult.rows[0]?.count || 0);
+        } catch (error) {
+          fastify.log.error('Error getting alerts count:', error);
+        }
+      }
       
       return reply.send({
         netWorth: netWorth,
-        cashBalance: Number(cash_balance),
-        investmentValue: Number(investment_value),
-        recentTransactionsCount: Number(transactionsResult.rows[0].count),
-        unreadAlertsCount: Number(alertsResult.rows[0].count),
+        cashBalance: cash_balance,
+        investmentValue: investment_value,
+        recentTransactionsCount: recentTransactionsCount,
+        unreadAlertsCount: unreadAlertsCount,
       });
     } catch (error) {
       fastify.log.error(error);
@@ -59,6 +119,17 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
     try {
       const userId = (request.user as any).userId;
       const { months = 6 } = request.query as any;
+      
+      // Check if transactions table exists
+      let hasTransactions = false;
+      try {
+        await db.query('SELECT 1 FROM transactions LIMIT 1');
+        hasTransactions = true;
+      } catch {}
+
+      if (!hasTransactions) {
+        return reply.send({ data: [] });
+      }
       
       // This is a simplified version - in production, you'd calculate historical snapshots
       const result = await db.query(
@@ -76,7 +147,8 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       return reply.send({ data: result.rows });
     } catch (error) {
       fastify.log.error(error);
-      return reply.code(500).send({ error: 'Internal server error' });
+      // Return empty array instead of error to prevent frontend crashes
+      return reply.send({ data: [] });
     }
   });
 }

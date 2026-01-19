@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useToast } from "@/hooks/use-toast";
 
 const FIRECalculator = () => {
   const [monthlyExpenses, setMonthlyExpenses] = useState("");
@@ -15,6 +16,7 @@ const FIRECalculator = () => {
   const [annualReturn, setAnnualReturn] = useState("8");
   const [withdrawalRate, setWithdrawalRate] = useState("4");
   const [results, setResults] = useState<any>(null);
+  const { toast } = useToast();
 
   const calculateFIRE = () => {
     const expenses = parseFloat(monthlyExpenses) || 0;
@@ -24,7 +26,11 @@ const FIRECalculator = () => {
     const withdrawal = parseFloat(withdrawalRate) / 100;
 
     if (expenses <= 0 || monthly <= 0) {
-      alert("Por favor, preencha os valores de despesas mensais e economia mensal.");
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha os valores de despesas mensais e economia mensal.",
+        variant: "destructive",
+      });
       return;
     }
 

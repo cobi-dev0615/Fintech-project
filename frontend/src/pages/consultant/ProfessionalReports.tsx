@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { consultantApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface Report {
   id: string;
@@ -28,6 +29,7 @@ const ProfessionalReports = () => {
   const [clients, setClients] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const { toast } = useToast();
 
   const reportTypes = [
     "consolidated",
@@ -67,7 +69,11 @@ const ProfessionalReports = () => {
 
   const handleGenerateReport = async () => {
     if (!reportType) {
-      alert("Selecione um tipo de relatório");
+      toast({
+        title: "Erro",
+        description: "Selecione um tipo de relatório",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -80,11 +86,18 @@ const ProfessionalReports = () => {
         customBranding,
       });
       setReports([result.report, ...reports]);
-      alert(result.message);
+      toast({
+        title: "Sucesso",
+        description: result.message,
+      });
       setSelectedClient("all");
       setReportType("");
     } catch (err: any) {
-      alert(err?.error || "Erro ao gerar relatório");
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao gerar relatório",
+        variant: "destructive",
+      });
       console.error("Error generating report:", err);
     } finally {
       setGenerating(false);

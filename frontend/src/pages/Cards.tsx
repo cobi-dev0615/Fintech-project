@@ -1,11 +1,23 @@
 import { useState, useEffect } from "react";
-import { CreditCard, Calendar, AlertTriangle, TrendingUp } from "lucide-react";
+import { CreditCard, Calendar, AlertTriangle, TrendingUp, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import AlertList, { Alert } from "@/components/dashboard/AlertList";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { cardsApi } from "@/lib/api";
+import { cardsApi, connectionsApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Cards = () => {
   const [cards, setCards] = useState<any[]>([]);
@@ -13,6 +25,19 @@ const Cards = () => {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [institutions, setInstitutions] = useState<any[]>([]);
+  const [connections, setConnections] = useState<any[]>([]);
+  const [formData, setFormData] = useState({
+    displayName: '',
+    brand: '',
+    last4: '',
+    limitCents: '',
+    institutionId: '',
+    connectionId: '',
+  });
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchCards = async () => {
@@ -34,6 +59,25 @@ const Cards = () => {
 
     fetchCards();
   }, []);
+
+  // Fetch institutions and connections when dialog opens
+  useEffect(() => {
+    if (isDialogOpen) {
+      const fetchData = async () => {
+        try {
+          const [instData, connData] = await Promise.all([
+            connectionsApi.getInstitutions(),
+            connectionsApi.getAll(),
+          ]);
+          setInstitutions(instData.institutions || []);
+          setConnections(connData.connections || []);
+        } catch (err: any) {
+          console.error('Error fetching institutions/connections:', err);
+        }
+      };
+      fetchData();
+    }
+  }, [isDialogOpen]);
 
   useEffect(() => {
     if (!selectedCard) return;
@@ -103,6 +147,85 @@ const Cards = () => {
   const dueDate = currentInvoice?.due_date ? new Date(currentInvoice.due_date).toLocaleDateString("pt-BR") : "N/A";
   const periodEnd = currentInvoice?.period_end ? new Date(currentInvoice.period_end).toLocaleDateString("pt-BR") : "N/A";
 
+  const handleCreateCard = async () => {
+    if (!formData.displayName || !formData.brand || !formData.last4) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate last4 is 4 digits
+    if (!/^\d{4}$/.test(formData.last4)) {
+      toast({
+        title: "Erro",
+        description: "Os últimos 4 dígitos devem ser exatamente 4 números",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setCreating(true);
+      await cardsApi.create({
+        displayName: formData.displayName,
+        brand: formData.brand,
+        last4: formData.last4,
+        limitCents: formData.limitCents ? Math.round(parseFloat(formData.limitCents) * 100) : undefined,
+        institutionId: formData.institutionId || undefined,
+        connectionId: formData.connectionId || undefined,
+      });
+
+      toast({
+        title: "Sucesso",
+        description: "Cartão cadastrado com sucesso",
+      });
+
+      // Refresh cards list
+      const data = await cardsApi.getAll();
+      setCards(data.cards);
+      if (data.cards.length > 0 && !selectedCard) {
+        setSelectedCard(data.cards[0].id);
+      }
+
+      // Reset form and close dialog
+      setFormData({
+        displayName: '',
+        brand: '',
+        last4: '',
+        limitCents: '',
+        institutionId: '',
+        connectionId: '',
+      });
+      setIsDialogOpen(false);
+    } catch (err: any) {
+      console.error('Error creating card:', err);
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao cadastrar cartão",
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setFormData({
+        displayName: '',
+        brand: '',
+        last4: '',
+        limitCents: '',
+        institutionId: '',
+        connectionId: '',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -113,20 +236,29 @@ const Cards = () => {
             Gerencie faturas e acompanhe gastos
           </p>
         </div>
-        {cards.length > 0 && (
-        <Select value={selectedCard} onValueChange={setSelectedCard}>
-          <SelectTrigger className="w-full md:w-[200px]">
-            <SelectValue placeholder="Selecione um cartão" />
-          </SelectTrigger>
-          <SelectContent>
-              {cards.map((card) => (
-                <SelectItem key={card.id} value={card.id}>
-                  {card.display_name || card.institution_name} •••• {card.last4 || ""}
-                </SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
-        )}
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={() => setIsDialogOpen(true)}
+            className="w-full md:w-auto"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Cadastrar Cartão
+          </Button>
+          {cards.length > 0 && (
+            <Select value={selectedCard} onValueChange={setSelectedCard}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Selecione um cartão" />
+              </SelectTrigger>
+              <SelectContent>
+                  {cards.map((card) => (
+                    <SelectItem key={card.id} value={card.id}>
+                      {card.display_name || card.institution_name} •••• {card.last4 || ""}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
       {cards.length === 0 ? (
@@ -266,6 +398,129 @@ const Cards = () => {
       </ChartCard>
         </>
       )}
+
+      {/* Create Card Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cadastrar Novo Cartão</DialogTitle>
+            <DialogDescription>
+              Preencha as informações do cartão de crédito
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Nome do Cartão *</Label>
+              <Input
+                id="displayName"
+                placeholder="Ex: Cartão Principal"
+                value={formData.displayName}
+                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="brand">Bandeira *</Label>
+              <Select
+                value={formData.brand}
+                onValueChange={(value) => setFormData({ ...formData, brand: value })}
+              >
+                <SelectTrigger id="brand">
+                  <SelectValue placeholder="Selecione a bandeira" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="visa">Visa</SelectItem>
+                  <SelectItem value="mastercard">Mastercard</SelectItem>
+                  <SelectItem value="amex">American Express</SelectItem>
+                  <SelectItem value="elo">Elo</SelectItem>
+                  <SelectItem value="hipercard">Hipercard</SelectItem>
+                  <SelectItem value="other">Outra</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="last4">Últimos 4 dígitos *</Label>
+              <Input
+                id="last4"
+                placeholder="1234"
+                maxLength={4}
+                value={formData.last4}
+                onChange={(e) => setFormData({ ...formData, last4: e.target.value.replace(/\D/g, '') })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="limitCents">Limite (R$)</Label>
+              <Input
+                id="limitCents"
+                type="number"
+                step="0.01"
+                placeholder="Ex: 5000.00"
+                value={formData.limitCents}
+                onChange={(e) => setFormData({ ...formData, limitCents: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="institutionId">Instituição (opcional)</Label>
+              <Select
+                value={formData.institutionId || "none"}
+                onValueChange={(value) => setFormData({ ...formData, institutionId: value === "none" ? "" : value })}
+              >
+                <SelectTrigger id="institutionId">
+                  <SelectValue placeholder="Selecione uma instituição" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {institutions.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      {inst.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="connectionId">Conexão (opcional)</Label>
+              <Select
+                value={formData.connectionId || "none"}
+                onValueChange={(value) => setFormData({ ...formData, connectionId: value === "none" ? "" : value })}
+              >
+                <SelectTrigger id="connectionId">
+                  <SelectValue placeholder="Selecione uma conexão" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {connections.map((conn) => (
+                    <SelectItem key={conn.id} value={conn.id}>
+                      {conn.institution_name || conn.provider} - {conn.status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => handleDialogOpenChange(false)}
+              disabled={creating}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateCard}
+              disabled={creating || !formData.displayName || !formData.brand || !formData.last4}
+            >
+              {creating ? "Cadastrando..." : "Cadastrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

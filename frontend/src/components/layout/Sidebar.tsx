@@ -38,28 +38,28 @@ interface NavItem {
   enabled?: boolean; // Whether this menu item is enabled/active
 }
 
-// Customer navigation items - only Dashboard enabled by default
+// Customer navigation items - all enabled
 const customerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/app/dashboard", enabled: true },
-  { icon: Link2, label: "Conexões", href: "/app/connections", enabled: false },
-  { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: false },
-  { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: false },
-  { icon: TrendingUp, label: "Investimentos", href: "/app/investments", enabled: false },
-  { icon: FileText, label: "Relatórios", href: "/app/reports", enabled: false },
-  { icon: Target, label: "Metas", href: "/app/goals", enabled: false },
-  { icon: Calculator, label: "Calculadoras", href: "/app/calculators", enabled: false },
+  { icon: Link2, label: "Conexões", href: "/app/connections", enabled: true },
+  { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true },
+  { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: true },
+  { icon: TrendingUp, label: "Investimentos", href: "/app/investments", enabled: true },
+  { icon: FileText, label: "Relatórios", href: "/app/reports", enabled: true },
+  { icon: Target, label: "Metas", href: "/app/goals", enabled: true },
+  { icon: Calculator, label: "Calculadoras", href: "/app/calculators", enabled: true },
 ];
 
-// Consultant navigation items - all enabled
+// Consultant navigation items - only Dashboard enabled
 const consultantNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/consultant/dashboard", enabled: true },
-  { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: true },
-  { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: true },
-  { icon: UserPlus, label: "Enviar Convites", href: "/consultant/invitations", enabled: true },
-  { icon: MessageSquare, label: "Mensagens", href: "/consultant/messages", enabled: true },
-  { icon: FileText, label: "Relatórios", href: "/consultant/reports", enabled: true },
-  { icon: Calculator, label: "Calculadoras", href: "/consultant/calculators", enabled: true },
-  { icon: TrendingUp, label: "Simulador", href: "/consultant/simulator", enabled: true },
+  { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: false },
+  { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: false },
+  { icon: UserPlus, label: "Enviar Convites", href: "/consultant/invitations", enabled: false },
+  { icon: MessageSquare, label: "Mensagens", href: "/consultant/messages", enabled: false },
+  { icon: FileText, label: "Relatórios", href: "/consultant/reports", enabled: false },
+  { icon: Calculator, label: "Calculadoras", href: "/consultant/calculators", enabled: false },
+  { icon: TrendingUp, label: "Simulador", href: "/consultant/simulator", enabled: false },
 ];
 
 // Admin navigation items - all enabled

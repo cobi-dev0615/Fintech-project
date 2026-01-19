@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,6 +81,7 @@ const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const { toast } = useToast();
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -166,9 +168,17 @@ const UserManagement = () => {
     try {
       await adminApi.updateUserStatus(userId, 'blocked');
       setUsers(users.map(u => u.id === userId ? { ...u, status: 'blocked' } : u));
+      toast({
+        title: "Sucesso",
+        description: "Usuário bloqueado com sucesso",
+      });
     } catch (error: any) {
       console.error('Failed to block user:', error);
-      alert(error?.error || 'Falha ao bloquear usuário');
+      toast({
+        title: "Erro",
+        description: error?.error || 'Falha ao bloquear usuário',
+        variant: "destructive",
+      });
     }
   };
 
@@ -176,9 +186,17 @@ const UserManagement = () => {
     try {
       await adminApi.updateUserStatus(userId, 'active');
       setUsers(users.map(u => u.id === userId ? { ...u, status: 'active' } : u));
+      toast({
+        title: "Sucesso",
+        description: "Usuário desbloqueado com sucesso",
+      });
     } catch (error: any) {
       console.error('Failed to unblock user:', error);
-      alert(error?.error || 'Falha ao desbloquear usuário');
+      toast({
+        title: "Erro",
+        description: error?.error || 'Falha ao desbloquear usuário',
+        variant: "destructive",
+      });
     }
   };
 
@@ -191,10 +209,17 @@ const UserManagement = () => {
         const detailResponse = await adminApi.getUser(userId);
         setUserDetail(detailResponse.user);
       }
-      alert('Role atualizado com sucesso');
+      toast({
+        title: "Sucesso",
+        description: 'Role atualizado com sucesso',
+      });
     } catch (error: any) {
       console.error('Failed to update role:', error);
-      alert(error?.error || 'Falha ao atualizar role');
+      toast({
+        title: "Erro",
+        description: error?.error || 'Falha ao atualizar role',
+        variant: "destructive",
+      });
     }
   };
 
@@ -207,7 +232,11 @@ const UserManagement = () => {
       setUserDetail(response.user);
     } catch (error: any) {
       console.error('Failed to fetch user details:', error);
-      alert(error?.error || 'Falha ao carregar detalhes do usuário');
+      toast({
+        title: "Erro",
+        description: error?.error || 'Falha ao carregar detalhes do usuário',
+        variant: "destructive",
+      });
       // Close dialog on error if desired
       // setIsDetailDialogOpen(false);
     } finally {

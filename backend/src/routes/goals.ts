@@ -9,6 +9,17 @@ export async function goalsRoutes(fastify: FastifyInstance) {
     try {
       const userId = (request.user as any).userId;
 
+      // Check if goals table exists
+      let hasGoals = false;
+      try {
+        await db.query('SELECT 1 FROM goals LIMIT 1');
+        hasGoals = true;
+      } catch {}
+
+      if (!hasGoals) {
+        return reply.send({ goals: [] });
+      }
+
       const result = await db.query(
         `SELECT 
           id,
@@ -39,8 +50,9 @@ export async function goalsRoutes(fastify: FastifyInstance) {
 
       return reply.send({ goals });
     } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: 'Internal server error' });
+      fastify.log.error('Error fetching goals:', error);
+      // Return empty array instead of error to prevent frontend crashes
+      return reply.send({ goals: [] });
     }
   });
 
@@ -54,6 +66,40 @@ export async function goalsRoutes(fastify: FastifyInstance) {
 
       if (!name || !target) {
         return reply.code(400).send({ error: 'Goal name and target are required' });
+      }
+
+      // Check if goals table exists, create if it doesn't
+      let hasGoals = false;
+      try {
+        await db.query('SELECT 1 FROM goals LIMIT 1');
+        hasGoals = true;
+      } catch {
+        // Table doesn't exist, try to create it
+        try {
+          await db.query(`
+            CREATE TABLE IF NOT EXISTS goals (
+              id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id            UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              title              TEXT NOT NULL,
+              target_amount_cents BIGINT NOT NULL,
+              current_amount_cents BIGINT NOT NULL DEFAULT 0,
+              currency           TEXT NOT NULL DEFAULT 'BRL',
+              target_date        DATE,
+              notes              TEXT,
+              created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+              updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+            )
+          `);
+          await db.query('CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id)');
+          hasGoals = true;
+          fastify.log.info('Goals table created successfully');
+        } catch (createError: any) {
+          fastify.log.error('Error creating goals table:', createError);
+          return reply.code(503).send({ 
+            error: 'Service temporarily unavailable',
+            message: 'Goal creation is currently unavailable. Please try again later.'
+          });
+        }
       }
 
       const targetCents = Math.round(parseFloat(target) * 100);
@@ -78,8 +124,8 @@ export async function goalsRoutes(fastify: FastifyInstance) {
         },
       });
     } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: 'Internal server error' });
+      fastify.log.error('Error creating goal:', error);
+      return reply.code(500).send({ error: 'Internal server error', details: error.message });
     }
   });
 
@@ -91,6 +137,40 @@ export async function goalsRoutes(fastify: FastifyInstance) {
       const userId = (request.user as any).userId;
       const { id } = request.params as any;
       const { name, target, current, deadline, category } = request.body as any;
+
+      // Check if goals table exists, create if it doesn't
+      let hasGoals = false;
+      try {
+        await db.query('SELECT 1 FROM goals LIMIT 1');
+        hasGoals = true;
+      } catch {
+        // Table doesn't exist, try to create it
+        try {
+          await db.query(`
+            CREATE TABLE IF NOT EXISTS goals (
+              id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id            UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              title              TEXT NOT NULL,
+              target_amount_cents BIGINT NOT NULL,
+              current_amount_cents BIGINT NOT NULL DEFAULT 0,
+              currency           TEXT NOT NULL DEFAULT 'BRL',
+              target_date        DATE,
+              notes              TEXT,
+              created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+              updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+            )
+          `);
+          await db.query('CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id)');
+          hasGoals = true;
+          fastify.log.info('Goals table created successfully');
+        } catch (createError: any) {
+          fastify.log.error('Error creating goals table:', createError);
+          return reply.code(503).send({ 
+            error: 'Service temporarily unavailable',
+            message: 'Goal updates are currently unavailable. Please try again later.'
+          });
+        }
+      }
 
       // Verify ownership
       const checkResult = await db.query(
@@ -153,8 +233,8 @@ export async function goalsRoutes(fastify: FastifyInstance) {
         },
       });
     } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: 'Internal server error' });
+      fastify.log.error('Error updating goal:', error);
+      return reply.code(500).send({ error: 'Internal server error', details: error.message });
     }
   });
 
@@ -165,6 +245,40 @@ export async function goalsRoutes(fastify: FastifyInstance) {
     try {
       const userId = (request.user as any).userId;
       const { id } = request.params as any;
+
+      // Check if goals table exists, create if it doesn't
+      let hasGoals = false;
+      try {
+        await db.query('SELECT 1 FROM goals LIMIT 1');
+        hasGoals = true;
+      } catch {
+        // Table doesn't exist, try to create it
+        try {
+          await db.query(`
+            CREATE TABLE IF NOT EXISTS goals (
+              id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              user_id            UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              title              TEXT NOT NULL,
+              target_amount_cents BIGINT NOT NULL,
+              current_amount_cents BIGINT NOT NULL DEFAULT 0,
+              currency           TEXT NOT NULL DEFAULT 'BRL',
+              target_date        DATE,
+              notes              TEXT,
+              created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+              updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+            )
+          `);
+          await db.query('CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id)');
+          hasGoals = true;
+          fastify.log.info('Goals table created successfully');
+        } catch (createError: any) {
+          fastify.log.error('Error creating goals table:', createError);
+          return reply.code(503).send({ 
+            error: 'Service temporarily unavailable',
+            message: 'Goal deletion is currently unavailable. Please try again later.'
+          });
+        }
+      }
 
       const result = await db.query(
         'DELETE FROM goals WHERE id = $1 AND user_id = $2 RETURNING id',
@@ -177,8 +291,8 @@ export async function goalsRoutes(fastify: FastifyInstance) {
 
       return reply.send({ message: 'Goal deleted successfully' });
     } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: 'Internal server error' });
+      fastify.log.error('Error deleting goal:', error);
+      return reply.code(500).send({ error: 'Internal server error', details: error.message });
     }
   });
 }

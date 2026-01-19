@@ -7,6 +7,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { adminApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -72,6 +73,7 @@ const DAMAProspecting = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStage, setFilterStage] = useState<string>("all");
   const [filterPotential, setFilterPotential] = useState<string>("all");
+  const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
@@ -215,7 +217,11 @@ const DAMAProspecting = () => {
       setProspectDetail(response.user);
     } catch (error: any) {
       console.error('Failed to fetch prospect details:', error);
-      alert(error?.error || 'Falha ao carregar detalhes do prospecto');
+      toast({
+        title: "Erro",
+        description: error?.error || 'Falha ao carregar detalhes do prospecto',
+        variant: "destructive",
+      });
     } finally {
       setDetailLoading(false);
     }

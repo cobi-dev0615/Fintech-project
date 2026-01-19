@@ -9,6 +9,17 @@ export async function reportsRoutes(fastify: FastifyInstance) {
     try {
       const userId = (request.user as any).userId;
 
+      // Check if reports table exists
+      let hasReports = false;
+      try {
+        await db.query('SELECT 1 FROM reports LIMIT 1');
+        hasReports = true;
+      } catch {}
+
+      if (!hasReports) {
+        return reply.send({ reports: [] });
+      }
+
       const result = await db.query(
         `SELECT 
           id,
@@ -32,8 +43,9 @@ export async function reportsRoutes(fastify: FastifyInstance) {
 
       return reply.send({ reports });
     } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: 'Internal server error' });
+      fastify.log.error('Error fetching reports:', error);
+      // Return empty array instead of error to prevent frontend crashes
+      return reply.send({ reports: [] });
     }
   });
 
@@ -47,6 +59,20 @@ export async function reportsRoutes(fastify: FastifyInstance) {
 
       if (!type) {
         return reply.code(400).send({ error: 'Report type is required' });
+      }
+
+      // Check if reports table exists
+      let hasReports = false;
+      try {
+        await db.query('SELECT 1 FROM reports LIMIT 1');
+        hasReports = true;
+      } catch {}
+
+      if (!hasReports) {
+        return reply.code(503).send({ 
+          error: 'Service temporarily unavailable',
+          message: 'Report generation is currently unavailable. Please try again later.'
+        });
       }
 
       // Create report record
@@ -70,8 +96,8 @@ export async function reportsRoutes(fastify: FastifyInstance) {
         message: 'Report generation started. It will be available shortly.',
       });
     } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: 'Internal server error' });
+      fastify.log.error('Error generating report:', error);
+      return reply.code(500).send({ error: 'Internal server error', details: error.message });
     }
   });
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, User, Bell, Palette, Save } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Palette, Save, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,10 +7,13 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { consultantApi, userApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
   const [profile, setProfile] = useState({
     name: "",
@@ -37,48 +40,85 @@ const Settings = () => {
     currencyFormat: "pt-BR",
   });
 
+  const [password, setPassword] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const [passwordError, setPasswordError] = useState("");
+
   // Load user data on mount
   useEffect(() => {
-    setLoading(true);
-    try {
-      // In the future, load from API: consultantApi.getProfile()
-      // For now, try to get from localStorage or token
-      const userStr = localStorage.getItem("user");
-      if (userStr) {
-        const user = JSON.parse(userStr);
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const response = await consultantApi.getProfile();
+        const user = response.user;
         setProfile({
-          name: user.name || "",
+          name: user.full_name || "",
           email: user.email || "",
           phone: user.phone || "",
           bio: user.bio || "",
           specialty: user.specialty || "",
-          cpf: user.cpf || "",
+          cpf: "", // CPF is not stored in the database currently
           cref: user.cref || "",
         });
+      } catch (error: any) {
+        console.error("Failed to load profile:", error);
+        // Fallback to localStorage if API fails
+        try {
+          const userStr = localStorage.getItem("user");
+          if (userStr) {
+            const user = JSON.parse(userStr);
+            setProfile({
+              name: user.name || user.full_name || "",
+              email: user.email || "",
+              phone: user.phone || "",
+              bio: user.bio || "",
+              specialty: user.specialty || "",
+              cpf: user.cpf || "",
+              cref: user.cref || "",
+            });
+          }
+        } catch (e) {
+          console.error("Failed to load from localStorage:", e);
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to load profile:", error);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    fetchProfile();
   }, []);
 
   const handleSaveAll = async () => {
     setSaving(true);
     try {
-      // In the future, save via API: consultantApi.updateProfile(profile)
-      // consultantApi.updateNotifications(notifications)
-      // consultantApi.updateDisplay(display)
+      // Save profile via API
+      await consultantApi.updateProfile({
+        full_name: profile.name,
+        phone: profile.phone || undefined,
+        cref: profile.cref || undefined,
+        specialty: profile.specialty || undefined,
+        bio: profile.bio || undefined,
+      });
       
-      // For now, save to localStorage
-      localStorage.setItem("consultantProfile", JSON.stringify(profile));
+      // Save notifications and display to localStorage (these don't have backend endpoints yet)
       localStorage.setItem("consultantNotifications", JSON.stringify(notifications));
       localStorage.setItem("consultantDisplay", JSON.stringify(display));
 
-      alert("Configurações salvas com sucesso!");
+      toast({
+        title: "Sucesso",
+        description: "Configurações salvas com sucesso!",
+      });
     } catch (error: any) {
       console.error("Failed to save settings:", error);
-      alert(error?.error || "Falha ao salvar configurações");
+      toast({
+        title: "Erro",
+        description: error?.error || "Falha ao salvar configurações",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -89,7 +129,13 @@ const Settings = () => {
     try {
       switch (section) {
         case "profile":
-          localStorage.setItem("consultantProfile", JSON.stringify(profile));
+          await consultantApi.updateProfile({
+            full_name: profile.name,
+            phone: profile.phone || undefined,
+            cref: profile.cref || undefined,
+            specialty: profile.specialty || undefined,
+            bio: profile.bio || undefined,
+          });
           break;
         case "notifications":
           localStorage.setItem("consultantNotifications", JSON.stringify(notifications));
@@ -97,11 +143,55 @@ const Settings = () => {
         case "display":
           localStorage.setItem("consultantDisplay", JSON.stringify(display));
           break;
+        case "password":
+          // Validate passwords
+          if (!password.currentPassword || !password.newPassword || !password.confirmPassword) {
+            setPasswordError("Todos os campos são obrigatórios");
+            setSaving(false);
+            return;
+          }
+          if (password.newPassword.length < 6) {
+            setPasswordError("A nova senha deve ter pelo menos 6 caracteres");
+            setSaving(false);
+            return;
+          }
+          if (password.newPassword !== password.confirmPassword) {
+            setPasswordError("As senhas não coincidem");
+            setSaving(false);
+            return;
+          }
+          await userApi.changePassword({
+            currentPassword: password.currentPassword,
+            newPassword: password.newPassword,
+          });
+          setPassword({
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+          });
+          setPasswordError("");
+          break;
       }
-      alert("Configurações salvas com sucesso!");
+      toast({
+        title: "Sucesso",
+        description: "Configurações salvas com sucesso!",
+      });
     } catch (error: any) {
       console.error(`Failed to save ${section} settings:`, error);
-      alert(error?.error || `Falha ao salvar configurações de ${section}`);
+      if (section === "password") {
+        setPasswordError(error?.error || "Falha ao alterar senha. Verifique se a senha atual está correta.");
+        toast({
+          title: "Erro",
+          description: error?.error || "Falha ao alterar senha. Verifique se a senha atual está correta.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: error?.error || `Falha ao salvar configurações de ${section}`,
+          variant: "destructive",
+        });
+      }
     } finally {
       setSaving(false);
     }
@@ -137,13 +227,22 @@ const Settings = () => {
             <Palette className="h-4 w-4 mr-2" />
             Exibição
           </TabsTrigger>
+          <TabsTrigger value="password">
+            <Lock className="h-4 w-4 mr-2" />
+            Senha
+          </TabsTrigger>
         </TabsList>
 
         {/* Profile Tab */}
         <TabsContent value="profile">
           <ChartCard title="Informações do Perfil">
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <p className="text-muted-foreground">Carregando informações do perfil...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome Completo</Label>
                   <Input
@@ -160,9 +259,11 @@ const Settings = () => {
                     id="email"
                     type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    disabled
                     placeholder="seu@email.com"
+                    className="bg-muted cursor-not-allowed"
                   />
+                  <p className="text-xs text-muted-foreground">O e-mail não pode ser alterado</p>
                 </div>
 
                 <div className="space-y-2">
@@ -218,13 +319,14 @@ const Settings = () => {
                 />
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={() => handleSaveSection("profile")} disabled={saving}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar Perfil
-                </Button>
+                <div className="flex justify-end">
+                  <Button onClick={() => handleSaveSection("profile")} disabled={saving}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Salvar Perfil
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </ChartCard>
         </TabsContent>
 
@@ -401,6 +503,74 @@ const Settings = () => {
                 <Button onClick={() => handleSaveSection("display")} disabled={saving}>
                   <Save className="h-4 w-4 mr-2" />
                   Salvar Exibição
+                </Button>
+              </div>
+            </div>
+          </ChartCard>
+        </TabsContent>
+
+        {/* Password Tab */}
+        <TabsContent value="password">
+          <ChartCard title="Alterar Senha">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Senha Atual</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={password.currentPassword}
+                  onChange={(e) => {
+                    setPassword({ ...password, currentPassword: e.target.value });
+                    setPasswordError("");
+                  }}
+                  placeholder="Digite sua senha atual"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Nova Senha</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={password.newPassword}
+                  onChange={(e) => {
+                    setPassword({ ...password, newPassword: e.target.value });
+                    setPasswordError("");
+                  }}
+                  placeholder="Digite sua nova senha (mínimo 6 caracteres)"
+                />
+                <p className="text-xs text-muted-foreground">
+                  A senha deve ter pelo menos 6 caracteres
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={password.confirmPassword}
+                  onChange={(e) => {
+                    setPassword({ ...password, confirmPassword: e.target.value });
+                    setPasswordError("");
+                  }}
+                  placeholder="Confirme sua nova senha"
+                />
+              </div>
+
+              {passwordError && (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <p className="text-sm text-destructive">{passwordError}</p>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button 
+                  onClick={() => handleSaveSection("password")} 
+                  disabled={saving}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? "Alterando..." : "Alterar Senha"}
                 </Button>
               </div>
             </div>

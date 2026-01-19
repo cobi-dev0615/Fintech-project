@@ -20,6 +20,167 @@ export async function consultantRoutes(fastify: FastifyInstance) {
     return (request.user as any).userId;
   };
 
+  // Get consultant profile
+  fastify.get('/profile', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      
+      // Get user data
+      const userResult = await db.query(
+        `SELECT id, full_name, email, role, phone, birth_date, risk_profile, created_at
+         FROM users WHERE id = $1`,
+        [consultantId]
+      );
+      
+      if (userResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'User not found' });
+      }
+      
+      const user = userResult.rows[0];
+      
+      // Get consultant profile if exists
+      const profileResult = await db.query(
+        `SELECT company_name, certification, watermark_text, calendly_url
+         FROM consultant_profiles WHERE user_id = $1`,
+        [consultantId]
+      );
+      
+      const profile = profileResult.rows[0] || {
+        company_name: null,
+        certification: null,
+        watermark_text: null,
+        calendly_url: null,
+      };
+      
+      // Map database fields to frontend fields
+      return reply.send({
+        user: {
+          ...user,
+          cref: profile.certification,
+          specialty: profile.company_name,
+          bio: profile.watermark_text,
+          calendly_url: profile.calendly_url,
+        }
+      });
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error', details: error.message });
+    }
+  });
+
+  // Update consultant profile
+  fastify.patch('/profile', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const body = request.body as any;
+      
+      // Update user fields
+      const userUpdates: string[] = [];
+      const userValues: any[] = [];
+      let paramCount = 1;
+      
+      if (body.full_name) {
+        userUpdates.push(`full_name = $${paramCount++}`);
+        userValues.push(body.full_name);
+      }
+      if (body.phone) {
+        userUpdates.push(`phone = $${paramCount++}`);
+        userValues.push(body.phone);
+      }
+      if (body.birth_date) {
+        userUpdates.push(`birth_date = $${paramCount++}`);
+        userValues.push(body.birth_date);
+      }
+      
+      if (userUpdates.length > 0) {
+        userValues.push(consultantId);
+        await db.query(
+          `UPDATE users SET ${userUpdates.join(', ')}, updated_at = NOW()
+           WHERE id = $${paramCount}`,
+          userValues
+        );
+      }
+      
+      // Update consultant profile fields
+      // Map frontend fields: cref -> certification, bio -> watermark_text, specialty -> stored separately for now
+      const profileFields: any = {};
+      if (body.cref !== undefined) {
+        profileFields.certification = body.cref || null;
+      }
+      if (body.bio !== undefined) {
+        profileFields.watermark_text = body.bio || null;
+      }
+      if (body.specialty !== undefined) {
+        // Store specialty in company_name for now (can be extended later with a proper field)
+        profileFields.company_name = body.specialty || null;
+      }
+      if (body.company_name !== undefined) {
+        profileFields.company_name = body.company_name || null;
+      }
+      if (body.calendly_url !== undefined) {
+        profileFields.calendly_url = body.calendly_url || null;
+      }
+      
+      if (Object.keys(profileFields).length > 0) {
+        const profileFieldNames = Object.keys(profileFields);
+        const profileValues: any[] = Object.values(profileFields);
+        
+        // Build placeholders for INSERT VALUES
+        const insertPlaceholders = profileFieldNames.map((_, i) => `$${i + 2}`).join(', ');
+        
+        // Build UPDATE clause using EXCLUDED
+        const updateClause = profileFieldNames.map(key => `${key} = EXCLUDED.${key}`).join(', ');
+        
+        // Upsert consultant profile
+        await db.query(
+          `INSERT INTO consultant_profiles (user_id, ${profileFieldNames.join(', ')}, updated_at)
+           VALUES ($1, ${insertPlaceholders}, NOW())
+           ON CONFLICT (user_id)
+           DO UPDATE SET ${updateClause}, updated_at = NOW()`,
+          [consultantId, ...profileValues]
+        );
+      }
+      
+      // Get updated user data
+      const userResult = await db.query(
+        `SELECT id, full_name, email, role, phone, birth_date, risk_profile, created_at
+         FROM users WHERE id = $1`,
+        [consultantId]
+      );
+      
+      const profileResult = await db.query(
+        `SELECT company_name, certification, watermark_text, calendly_url
+         FROM consultant_profiles WHERE user_id = $1`,
+        [consultantId]
+      );
+      
+      const profile = profileResult.rows[0] || {
+        company_name: null,
+        certification: null,
+        watermark_text: null,
+        calendly_url: null,
+      };
+      
+      // Map database fields to frontend fields
+      return reply.send({
+        user: {
+          ...userResult.rows[0],
+          cref: profile.certification,
+          specialty: profile.company_name,
+          bio: profile.watermark_text,
+          calendly_url: profile.calendly_url,
+        }
+      });
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error', details: error.message });
+    }
+  });
+
   // Dashboard Metrics
   fastify.get('/dashboard/metrics', {
     preHandler: [requireConsultant],

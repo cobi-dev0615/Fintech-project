@@ -7,6 +7,7 @@ import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Textarea } from "@/components/ui/textarea";
 import { consultantApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const ClientProfile = () => {
   const { id } = useParams();
@@ -48,7 +49,11 @@ const ClientProfile = () => {
       setNewNote("");
     } catch (err: any) {
       console.error("Error adding note:", err);
-      alert(err?.error || "Erro ao adicionar anotação");
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao adicionar anotação",
+        variant: "destructive",
+      });
     }
   };
 

@@ -29,6 +29,7 @@ import CompoundInterest from "./pages/calculators/CompoundInterest";
 import UsufructCalculator from "./pages/calculators/UsufructCalculator";
 import ITCMDCalculator from "./pages/calculators/ITCMDCalculator";
 import ProfitabilitySimulator from "./pages/calculators/ProfitabilitySimulator";
+import CustomerSettings from "./pages/Settings";
 
 // Consultant pages
 import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
@@ -51,7 +52,21 @@ import DAMAProspecting from "./pages/admin/DAMAProspecting";
 import FinancialReports from "./pages/admin/FinancialReports";
 import Settings from "./pages/admin/Settings";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Disable refetch on window focus globally
+      retry: (failureCount, error: any) => {
+        // Don't retry on 401 errors
+        if (error?.statusCode === 401 || error?.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {
+          return false;
+        }
+        // Retry up to 2 times for other errors
+        return failureCount < 2;
+      },
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -83,6 +98,7 @@ const App = () => (
             <Route path="calculators/usufruct" element={<UsufructCalculator />} />
             <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
             <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
+            <Route path="settings" element={<CustomerSettings />} />
             <Route path="more" element={<Dashboard />} />
           </Route>
 

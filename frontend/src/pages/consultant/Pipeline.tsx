@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { consultantApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface Prospect {
   id: string;
@@ -33,6 +34,7 @@ const Pipeline = () => {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchPipeline = async () => {
@@ -74,7 +76,11 @@ const Pipeline = () => {
       );
     } catch (err: any) {
       console.error("Error updating prospect stage:", err);
-      alert(err?.error || "Erro ao atualizar estágio");
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao atualizar estágio",
+        variant: "destructive",
+      });
     }
   };
 

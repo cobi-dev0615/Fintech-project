@@ -3,6 +3,23 @@ import { CheckCircle2, XCircle, Clock, RefreshCw, Trash2, Link2 } from "lucide-r
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { connectionsApi } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface Connection {
   id: string;
@@ -17,6 +34,13 @@ const Connections = () => {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<'open_finance' | 'b3' | ''>('');
+  const [selectedInstitution, setSelectedInstitution] = useState<string>('');
+  const [institutions, setInstitutions] = useState<any[]>([]);
+  const [loadingInstitutions, setLoadingInstitutions] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchConnections = async () => {
@@ -46,6 +70,96 @@ const Connections = () => {
 
     fetchConnections();
   }, []);
+
+  // Fetch institutions when provider changes
+  useEffect(() => {
+    const fetchInstitutions = async () => {
+      if (!selectedProvider) {
+        setInstitutions([]);
+        setSelectedInstitution('');
+        return;
+      }
+
+      try {
+        setLoadingInstitutions(true);
+        const data = await connectionsApi.getInstitutions(selectedProvider);
+        setInstitutions(data.institutions || []);
+        setSelectedInstitution('');
+      } catch (err: any) {
+        console.error('Error fetching institutions:', err);
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar instituições",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingInstitutions(false);
+      }
+    };
+
+    fetchInstitutions();
+  }, [selectedProvider, toast]);
+
+  const handleCreateConnection = async () => {
+    if (!selectedProvider) {
+      toast({
+        title: "Erro",
+        description: "Selecione um provedor",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setCreating(true);
+      await connectionsApi.create({
+        provider: selectedProvider,
+        institutionId: selectedInstitution || undefined,
+      });
+
+      toast({
+        title: "Sucesso",
+        description: "Conexão criada com sucesso",
+      });
+
+      // Refresh connections list
+      const data = await connectionsApi.getAll();
+      const mappedConnections: Connection[] = data.connections.map((conn: any) => ({
+        id: conn.id,
+        name: conn.institution_name || conn.provider,
+        type: conn.provider === "b3" ? "b3" : "bank",
+        status: conn.status === "connected" ? "connected" :
+                conn.status === "pending" ? "pending" :
+                conn.status === "needs_reauth" ? "expired" :
+                conn.status === "failed" ? "error" :
+                conn.status === "revoked" ? "disconnected" : "disconnected",
+        lastSync: conn.last_sync_at ? new Date(conn.last_sync_at).toLocaleString("pt-BR") : undefined,
+      }));
+      setConnections(mappedConnections);
+
+      // Reset form and close dialog
+      setSelectedProvider('');
+      setSelectedInstitution('');
+      setIsDialogOpen(false);
+    } catch (err: any) {
+      console.error('Error creating connection:', err);
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao criar conexão",
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setSelectedProvider('');
+      setSelectedInstitution('');
+    }
+  };
 
   const getStatusIcon = (status: Connection["status"]) => {
     switch (status) {
@@ -120,7 +234,10 @@ const Connections = () => {
             Gerencie suas conexões Open Finance e B3
           </p>
         </div>
-        <Button className="w-full md:w-auto">
+        <Button 
+          className="w-full md:w-auto"
+          onClick={() => setIsDialogOpen(true)}
+        >
           <Link2 className="h-4 w-4 mr-2" />
           Nova Conexão
         </Button>
@@ -206,6 +323,85 @@ const Connections = () => {
           ))
         )}
       </div>
+
+      {/* Create Connection Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Conexão</DialogTitle>
+            <DialogDescription>
+              Selecione o provedor e a instituição para criar uma nova conexão
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="provider">Provedor</Label>
+              <Select
+                value={selectedProvider}
+                onValueChange={(value) => setSelectedProvider(value as 'open_finance' | 'b3')}
+              >
+                <SelectTrigger id="provider">
+                  <SelectValue placeholder="Selecione um provedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open_finance">Open Finance</SelectItem>
+                  <SelectItem value="b3">B3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedProvider && (
+              <div className="space-y-2">
+                <Label htmlFor="institution">Instituição {loadingInstitutions && "(Carregando...)"}</Label>
+                <Select
+                  value={selectedInstitution}
+                  onValueChange={setSelectedInstitution}
+                  disabled={loadingInstitutions || institutions.length === 0}
+                >
+                  <SelectTrigger id="institution">
+                    <SelectValue placeholder={
+                      loadingInstitutions 
+                        ? "Carregando instituições..." 
+                        : institutions.length === 0 
+                        ? "Nenhuma instituição disponível"
+                        : "Selecione uma instituição (opcional)"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {institutions.map((inst) => (
+                      <SelectItem key={inst.id} value={inst.id}>
+                        {inst.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {institutions.length === 0 && !loadingInstitutions && (
+                  <p className="text-xs text-muted-foreground">
+                    Nenhuma instituição encontrada. Você pode criar a conexão sem selecionar uma instituição.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => handleDialogOpenChange(false)}
+              disabled={creating}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateConnection}
+              disabled={creating || !selectedProvider}
+            >
+              {creating ? "Criando..." : "Criar Conexão"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
