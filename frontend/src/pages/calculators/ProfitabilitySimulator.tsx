@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Percent, Calculator, TrendingUp, Info } from "lucide-react";
+import { useLocation, Link } from "react-router-dom";
+import { Percent, Calculator, TrendingUp, Info, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,14 +50,25 @@ const ProfitabilitySimulator = () => {
     });
   };
 
+  const location = useLocation();
+  const isConsultantRoute = location.pathname.startsWith('/consultant');
+  const backPath = isConsultantRoute ? '/consultant/calculators' : '/app/calculators';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Simulador de Rentabilidade</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Compare diferentes cenários de investimento e rentabilidade
-          </p>
+        <div className="flex items-center gap-4">
+          <Link to={backPath}>
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Simulador de Rentabilidade</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Compare diferentes cenários de investimento e rentabilidade
+            </p>
+          </div>
         </div>
       </div>
 

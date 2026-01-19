@@ -20,7 +20,7 @@ interface Report {
 }
 
 const ProfessionalReports = () => {
-  const [selectedClient, setSelectedClient] = useState("");
+  const [selectedClient, setSelectedClient] = useState("all");
   const [reportType, setReportType] = useState("");
   const [includeWatermark, setIncludeWatermark] = useState(true);
   const [customBranding, setCustomBranding] = useState(false);
@@ -74,14 +74,14 @@ const ProfessionalReports = () => {
     try {
       setGenerating(true);
       const result = await consultantApi.generateReport({
-        clientId: selectedClient || undefined,
+        clientId: selectedClient === "all" ? undefined : selectedClient,
         type: reportType,
         includeWatermark,
         customBranding,
       });
       setReports([result.report, ...reports]);
       alert(result.message);
-      setSelectedClient("");
+      setSelectedClient("all");
       setReportType("");
     } catch (err: any) {
       alert(err?.error || "Erro ao gerar relatório");
@@ -118,7 +118,7 @@ const ProfessionalReports = () => {
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Geral (sem cliente específico)</SelectItem>
+                  <SelectItem value="all">Geral (sem cliente específico)</SelectItem>
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}

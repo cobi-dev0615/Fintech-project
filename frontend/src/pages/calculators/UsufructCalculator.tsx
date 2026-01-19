@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Home, Calculator, Info } from "lucide-react";
+import { useLocation, Link } from "react-router-dom";
+import { Home, Calculator, Info, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,14 +68,25 @@ const UsufructCalculator = () => {
     });
   };
 
+  const location = useLocation();
+  const isConsultantRoute = location.pathname.startsWith('/consultant');
+  const backPath = isConsultantRoute ? '/consultant/calculators' : '/app/calculators';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Calculadora de Usufruto</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Calcule o valor do usufruto e da nua propriedade em doações e heranças
-          </p>
+        <div className="flex items-center gap-4">
+          <Link to={backPath}>
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Calculadora de Usufruto</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Calcule o valor do usufruto e da nua propriedade em doações e heranças
+            </p>
+          </div>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   PieChart as RechartsPieChart,
   Pie,
@@ -100,8 +101,8 @@ const PortfolioSimulator = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Simulador de Portfólio</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Simulador de Portfólio</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Crie projeções de portfólio para apresentar aos clientes
           </p>
         </div>
@@ -198,28 +199,28 @@ const PortfolioSimulator = () => {
               <ChartCard title="Resultados da Simulação">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                    <div className="text-sm text-muted-foreground mb-1">Valor Final</div>
-                  <div className="text-2xl font-bold text-primary">
-                      R$ {results.finalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Valor Final</div>
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary break-words">
+                      R$ {results.finalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
-                    <div className="text-sm text-muted-foreground mb-1">Retorno Total</div>
-                    <div className="text-2xl font-bold text-success">
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Retorno Total</div>
+                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-success break-words">
                       +{results.totalReturn.toFixed(1)}%
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-muted border border-border">
-                    <div className="text-sm text-muted-foreground mb-1">Valor Atual</div>
-                  <div className="text-2xl font-bold">
-                      R$ {results.currentValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Valor Atual</div>
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold break-words">
+                      R$ {results.currentValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-semibold mb-4">Projeção de Crescimento</h3>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <h3 className="text-xs sm:text-sm font-semibold mb-4">Projeção de Crescimento</h3>
+                  <ResponsiveContainer width="100%" height={250} className="text-xs">
                     <LineChart data={results.projection}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="year" />
@@ -241,27 +242,28 @@ const PortfolioSimulator = () => {
               </ChartCard>
 
               <ChartCard title="Análise de Cenários">
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4 break-words">
                   Comparação dos diferentes perfis de investimento para o cliente {results.client}
                 </p>
                 <div className="space-y-3">
                   {Object.entries(scenarioConfig).map(([key, config]) => (
                     <div key={key} className="p-3 rounded-lg border border-border">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold">{config.name}</div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm sm:text-base font-semibold truncate">{config.name}</div>
                           <div className="text-xs text-muted-foreground">
                             Retorno esperado: {config.expectedReturn}% a.a.
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex-shrink-0">
                           <div className="font-semibold">
                             {key === scenario ? (
-                              <Badge className="bg-primary">Atual</Badge>
+                              <Badge className="bg-primary text-xs">Atual</Badge>
                             ) : (
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="text-xs"
                                 onClick={() => {
                                   setScenario(key as any);
                                   setTimeout(simulate, 100);

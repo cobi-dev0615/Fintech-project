@@ -39,6 +39,7 @@ import Messages from "./pages/consultant/Messages";
 import ProfessionalReports from "./pages/consultant/ProfessionalReports";
 import PortfolioSimulator from "./pages/consultant/PortfolioSimulator";
 import SendInvitations from "./pages/consultant/SendInvitations";
+import ConsultantSettings from "./pages/consultant/Settings";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -101,6 +102,7 @@ const App = () => (
             <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
             <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
             <Route path="simulator" element={<PortfolioSimulator />} />
+            <Route path="settings" element={<ConsultantSettings />} />
           </Route>
 
           {/* Admin Routes */}
