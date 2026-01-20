@@ -22,6 +22,7 @@ import {
   DollarSign,
   UserPlus,
   Bell,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ interface NavItem {
 const customerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/app/dashboard", enabled: true },
   { icon: Bell, label: "Notificações", href: "/app/notifications", enabled: true },
+  { icon: Package, label: "Planos", href: "/app/plans", enabled: true },
   { icon: Link2, label: "Conexões", href: "/app/connections", enabled: false },
   { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: false },
   { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: false },
@@ -56,6 +58,7 @@ const customerNavItems: NavItem[] = [
 const consultantNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/consultant/dashboard", enabled: true },
   { icon: Bell, label: "Notificações", href: "/consultant/notifications", enabled: true },
+  { icon: Package, label: "Planos", href: "/consultant/plans", enabled: true },
   { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: false },
   { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: false },
   { icon: UserPlus, label: "Enviar Convites", href: "/consultant/invitations", enabled: false },

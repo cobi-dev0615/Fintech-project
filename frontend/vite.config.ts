@@ -36,6 +36,8 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
+    // Exclude heavy dependencies from pre-bundling (load on demand)
+    exclude: ['recharts'],
     // Reduce concurrent pre-bundling to prevent timeouts
     esbuildOptions: {
       target: 'esnext',
@@ -45,12 +47,63 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        // Optimize code splitting for better performance
+        manualChunks: (id) => {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            // React and core libraries
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react';
+            }
+            // Radix UI components (large library)
+            if (id.includes('@radix-ui')) {
+              return 'vendor-radix';
+            }
+            // Chart library (recharts is heavy)
+            if (id.includes('recharts')) {
+              return 'vendor-charts';
+            }
+            // Date utilities
+            if (id.includes('date-fns')) {
+              return 'vendor-dates';
+            }
+            // Form libraries
+            if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
+              return 'vendor-forms';
+            }
+            // Query library
+            if (id.includes('@tanstack/react-query')) {
+              return 'vendor-query';
+            }
+            // Other vendor libraries
+            return 'vendor-other';
+          }
+          // Split large page components
+          if (id.includes('/pages/admin/')) {
+            return 'pages-admin';
+          }
+          if (id.includes('/pages/consultant/')) {
+            return 'pages-consultant';
+          }
+          if (id.includes('/pages/calculators/')) {
+            return 'pages-calculators';
+          }
+        },
+        // Optimize chunk file names
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
       },
     },
     // Improve chunking for large files
     target: 'esnext',
     minify: 'esbuild',
+    // Enable CSS code splitting
+    cssCodeSplit: true,
+    // Optimize asset inlining threshold (inline small assets)
+    assetsInlineLimit: 4096, // 4kb
+    // Source maps for production (can disable for smaller bundles)
+    sourcemap: false,
   },
   // Improve dev server stability
   define: {

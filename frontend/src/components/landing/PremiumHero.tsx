@@ -114,7 +114,7 @@ const PremiumHero = () => {
                     minHeight: '400px',
                     maxHeight: '600px',
                     objectFit: 'contain',
-                    pointerEvents: 'auto',
+                    pointerEvents: 'none',
                     backgroundColor: 'transparent',
                   }}
                   onError={(e) => {
@@ -158,7 +158,7 @@ const PremiumHero = () => {
                 style={{ 
                   animationDelay: '0.5s',
                   animationFillMode: 'forwards',
-                  zIndex: 180,
+                  zIndex: 250,
                 }}
               >
                 <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-40 md:w-48 lg:w-52 transform rotate-1 transition-[shadow,border-color,background-color] duration-[2000ms] hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-right">
@@ -183,7 +183,7 @@ const PremiumHero = () => {
                 style={{ 
                   animationDelay: '0.7s',
                   animationFillMode: 'forwards',
-                  zIndex: 180,
+                  zIndex: 250,
                 }}
               >
                 <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-36 md:w-40 lg:w-44 transform -rotate-1 transition-[shadow,border-color,background-color] duration-[2000ms] hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-left">
@@ -205,7 +205,7 @@ const PremiumHero = () => {
                 style={{ 
                   animationDelay: '0.9s',
                   animationFillMode: 'forwards',
-                  zIndex: 180,
+                  zIndex: 250,
                 }}
               >
                 <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-40 md:w-44 lg:w-48 transform rotate-1 transition-[shadow,border-color,background-color] duration-[2000ms] hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float">
@@ -229,7 +229,7 @@ const PremiumHero = () => {
                 style={{ 
                   animationDelay: '1.1s',
                   animationFillMode: 'forwards',
-                  zIndex: 180,
+                  zIndex: 250,
                 }}
               >
                 <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-36 md:w-40 lg:w-48 transform -rotate-1 transition-[shadow,border-color,background-color] duration-[2000ms] hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-right">
@@ -254,7 +254,7 @@ const PremiumHero = () => {
                 style={{ 
                   animationDelay: '1.3s',
                   animationFillMode: 'forwards',
-                  zIndex: 180,
+                  zIndex: 250,
                 }}
               >
                 <div className="bg-card/60 backdrop-blur-md border border-warning/30 rounded-xl p-3 shadow-xl w-44 md:w-52 lg:w-56 transform rotate-1 transition-[shadow,border-color,background-color] duration-[2000ms] hover:scale-105 hover:shadow-2xl hover:border-warning/50 hover:bg-card/80 group animate-float-deep">

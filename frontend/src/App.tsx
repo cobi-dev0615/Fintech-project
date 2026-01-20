@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,53 +6,64 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ScrollToTop from "@/components/ui/ScrollToTop";
 
-// Public pages
-import Index from "./pages/Index";
-import Pricing from "./pages/Pricing";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Onboarding from "./pages/Onboarding";
-import NotFound from "./pages/NotFound";
-
-// App pages (Customer)
+// Critical components - load immediately
 import AppLayout from "./components/layout/AppLayout";
-import Dashboard from "./pages/Dashboard";
-import Connections from "./pages/Connections";
-import Accounts from "./pages/Accounts";
-import Cards from "./pages/Cards";
-import Investments from "./pages/Investments";
-import B3Portfolio from "./pages/B3Portfolio";
-import Reports from "./pages/Reports";
-import Goals from "./pages/Goals";
-import Calculators from "./pages/Calculators";
-import FIRECalculator from "./pages/calculators/FIRECalculator";
-import CompoundInterest from "./pages/calculators/CompoundInterest";
-import UsufructCalculator from "./pages/calculators/UsufructCalculator";
-import ITCMDCalculator from "./pages/calculators/ITCMDCalculator";
-import ProfitabilitySimulator from "./pages/calculators/ProfitabilitySimulator";
-import CustomerSettings from "./pages/Settings";
-import Notifications from "./pages/Notifications";
 
-// Consultant pages
-import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
-import ClientsList from "./pages/consultant/ClientsList";
-import ClientProfile from "./pages/consultant/ClientProfile";
-import Pipeline from "./pages/consultant/Pipeline";
-import Messages from "./pages/consultant/Messages";
-import ProfessionalReports from "./pages/consultant/ProfessionalReports";
-import PortfolioSimulator from "./pages/consultant/PortfolioSimulator";
-import SendInvitations from "./pages/consultant/SendInvitations";
-import ConsultantSettings from "./pages/consultant/Settings";
+// Lazy load all pages for code splitting
+// Public pages
+const Index = lazy(() => import("./pages/Index"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Admin pages
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import UserManagement from "./pages/admin/UserManagement";
-import Subscriptions from "./pages/admin/Subscriptions";
-import PlanManagement from "./pages/admin/PlanManagement";
-import IntegrationsMonitor from "./pages/admin/IntegrationsMonitor";
-import DAMAProspecting from "./pages/admin/DAMAProspecting";
-import FinancialReports from "./pages/admin/FinancialReports";
-import Settings from "./pages/admin/Settings";
+// App pages (Customer) - lazy loaded
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Connections = lazy(() => import("./pages/Connections"));
+const Accounts = lazy(() => import("./pages/Accounts"));
+const Cards = lazy(() => import("./pages/Cards"));
+const Investments = lazy(() => import("./pages/Investments"));
+const B3Portfolio = lazy(() => import("./pages/B3Portfolio"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Goals = lazy(() => import("./pages/Goals"));
+const Calculators = lazy(() => import("./pages/Calculators"));
+const FIRECalculator = lazy(() => import("./pages/calculators/FIRECalculator"));
+const CompoundInterest = lazy(() => import("./pages/calculators/CompoundInterest"));
+const UsufructCalculator = lazy(() => import("./pages/calculators/UsufructCalculator"));
+const ITCMDCalculator = lazy(() => import("./pages/calculators/ITCMDCalculator"));
+const ProfitabilitySimulator = lazy(() => import("./pages/calculators/ProfitabilitySimulator"));
+const CustomerSettings = lazy(() => import("./pages/Settings"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const PlanPurchase = lazy(() => import("./pages/PlanPurchase"));
+
+// Consultant pages - lazy loaded
+const ConsultantDashboard = lazy(() => import("./pages/consultant/ConsultantDashboard"));
+const ClientsList = lazy(() => import("./pages/consultant/ClientsList"));
+const ClientProfile = lazy(() => import("./pages/consultant/ClientProfile"));
+const Pipeline = lazy(() => import("./pages/consultant/Pipeline"));
+const Messages = lazy(() => import("./pages/consultant/Messages"));
+const ProfessionalReports = lazy(() => import("./pages/consultant/ProfessionalReports"));
+const PortfolioSimulator = lazy(() => import("./pages/consultant/PortfolioSimulator"));
+const SendInvitations = lazy(() => import("./pages/consultant/SendInvitations"));
+const ConsultantSettings = lazy(() => import("./pages/consultant/Settings"));
+
+// Admin pages - lazy loaded
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const Subscriptions = lazy(() => import("./pages/admin/Subscriptions"));
+const PlanManagement = lazy(() => import("./pages/admin/PlanManagement"));
+const IntegrationsMonitor = lazy(() => import("./pages/admin/IntegrationsMonitor"));
+const DAMAProspecting = lazy(() => import("./pages/admin/DAMAProspecting"));
+const FinancialReports = lazy(() => import("./pages/admin/FinancialReports"));
+const Settings = lazy(() => import("./pages/admin/Settings"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,71 +87,75 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          
-          {/* App Routes (Customer) */}
-          <Route path="/app" element={<AppLayout />}>
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="connections" element={<Connections />} />
-            <Route path="accounts" element={<Accounts />} />
-            <Route path="cards" element={<Cards />} />
-            <Route path="investments" element={<Investments />} />
-            <Route path="investments/b3" element={<B3Portfolio />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="goals" element={<Goals />} />
-            <Route path="calculators" element={<Calculators />} />
-            <Route path="calculators/fire" element={<FIRECalculator />} />
-            <Route path="calculators/compound" element={<CompoundInterest />} />
-            <Route path="calculators/usufruct" element={<UsufructCalculator />} />
-            <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
-            <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
-            <Route path="settings" element={<CustomerSettings />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="more" element={<Dashboard />} />
-          </Route>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            
+            {/* App Routes (Customer) */}
+            <Route path="/app" element={<AppLayout />}>
+              <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+              <Route path="connections" element={<Suspense fallback={<PageLoader />}><Connections /></Suspense>} />
+              <Route path="accounts" element={<Suspense fallback={<PageLoader />}><Accounts /></Suspense>} />
+              <Route path="cards" element={<Suspense fallback={<PageLoader />}><Cards /></Suspense>} />
+              <Route path="investments" element={<Suspense fallback={<PageLoader />}><Investments /></Suspense>} />
+              <Route path="investments/b3" element={<Suspense fallback={<PageLoader />}><B3Portfolio /></Suspense>} />
+              <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
+              <Route path="goals" element={<Suspense fallback={<PageLoader />}><Goals /></Suspense>} />
+              <Route path="calculators" element={<Suspense fallback={<PageLoader />}><Calculators /></Suspense>} />
+              <Route path="calculators/fire" element={<Suspense fallback={<PageLoader />}><FIRECalculator /></Suspense>} />
+              <Route path="calculators/compound" element={<Suspense fallback={<PageLoader />}><CompoundInterest /></Suspense>} />
+              <Route path="calculators/usufruct" element={<Suspense fallback={<PageLoader />}><UsufructCalculator /></Suspense>} />
+              <Route path="calculators/itcmd" element={<Suspense fallback={<PageLoader />}><ITCMDCalculator /></Suspense>} />
+              <Route path="calculators/profitability" element={<Suspense fallback={<PageLoader />}><ProfitabilitySimulator /></Suspense>} />
+              <Route path="settings" element={<Suspense fallback={<PageLoader />}><CustomerSettings /></Suspense>} />
+              <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
+              <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanPurchase /></Suspense>} />
+              <Route path="more" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+            </Route>
 
-          {/* Consultant Routes */}
-          <Route path="/consultant" element={<AppLayout />}>
-            <Route path="dashboard" element={<ConsultantDashboard />} />
-            <Route path="clients" element={<ClientsList />} />
-            <Route path="clients/:id" element={<ClientProfile />} />
-            <Route path="pipeline" element={<Pipeline />} />
-            <Route path="invitations" element={<SendInvitations />} />
-            <Route path="messages" element={<Messages />} />
-            <Route path="reports" element={<ProfessionalReports />} />
-            <Route path="calculators" element={<Calculators />} />
-            <Route path="calculators/fire" element={<FIRECalculator />} />
-            <Route path="calculators/compound" element={<CompoundInterest />} />
-            <Route path="calculators/usufruct" element={<UsufructCalculator />} />
-            <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
-            <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
-            <Route path="simulator" element={<PortfolioSimulator />} />
-            <Route path="settings" element={<ConsultantSettings />} />
-            <Route path="notifications" element={<Notifications />} />
-          </Route>
+            {/* Consultant Routes */}
+            <Route path="/consultant" element={<AppLayout />}>
+              <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><ConsultantDashboard /></Suspense>} />
+              <Route path="clients" element={<Suspense fallback={<PageLoader />}><ClientsList /></Suspense>} />
+              <Route path="clients/:id" element={<Suspense fallback={<PageLoader />}><ClientProfile /></Suspense>} />
+              <Route path="pipeline" element={<Suspense fallback={<PageLoader />}><Pipeline /></Suspense>} />
+              <Route path="invitations" element={<Suspense fallback={<PageLoader />}><SendInvitations /></Suspense>} />
+              <Route path="messages" element={<Suspense fallback={<PageLoader />}><Messages /></Suspense>} />
+              <Route path="reports" element={<Suspense fallback={<PageLoader />}><ProfessionalReports /></Suspense>} />
+              <Route path="calculators" element={<Suspense fallback={<PageLoader />}><Calculators /></Suspense>} />
+              <Route path="calculators/fire" element={<Suspense fallback={<PageLoader />}><FIRECalculator /></Suspense>} />
+              <Route path="calculators/compound" element={<Suspense fallback={<PageLoader />}><CompoundInterest /></Suspense>} />
+              <Route path="calculators/usufruct" element={<Suspense fallback={<PageLoader />}><UsufructCalculator /></Suspense>} />
+              <Route path="calculators/itcmd" element={<Suspense fallback={<PageLoader />}><ITCMDCalculator /></Suspense>} />
+              <Route path="calculators/profitability" element={<Suspense fallback={<PageLoader />}><ProfitabilitySimulator /></Suspense>} />
+              <Route path="simulator" element={<Suspense fallback={<PageLoader />}><PortfolioSimulator /></Suspense>} />
+              <Route path="settings" element={<Suspense fallback={<PageLoader />}><ConsultantSettings /></Suspense>} />
+              <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
+              <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanPurchase /></Suspense>} />
+            </Route>
 
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AppLayout />}>
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} />
-            <Route path="subscriptions" element={<Subscriptions />} />
-            <Route path="plans" element={<PlanManagement />} />
-            <Route path="integrations" element={<IntegrationsMonitor />} />
-            <Route path="prospecting" element={<DAMAProspecting />} />
-            <Route path="financial" element={<FinancialReports />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="notifications" element={<Notifications />} />
-          </Route>
-          
-          {/* Catch-all */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AppLayout />}>
+              <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
+              <Route path="users" element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
+              <Route path="subscriptions" element={<Suspense fallback={<PageLoader />}><Subscriptions /></Suspense>} />
+              <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanManagement /></Suspense>} />
+              <Route path="integrations" element={<Suspense fallback={<PageLoader />}><IntegrationsMonitor /></Suspense>} />
+              <Route path="prospecting" element={<Suspense fallback={<PageLoader />}><DAMAProspecting /></Suspense>} />
+              <Route path="financial" element={<Suspense fallback={<PageLoader />}><FinancialReports /></Suspense>} />
+              <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
+              <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
+            </Route>
+            
+            {/* Catch-all */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
         <ScrollToTop />
       </BrowserRouter>
     </TooltipProvider>

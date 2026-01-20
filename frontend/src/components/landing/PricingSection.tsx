@@ -1,9 +1,12 @@
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { publicApi } from "@/lib/api";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+
+// PricingSection component - displays plans with smart routing based on auth status
 
 interface Plan {
   name: string;
@@ -19,6 +22,8 @@ const PricingSection = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -254,12 +259,25 @@ const PricingSection = () => {
                 }}
               >
               <Button
-                asChild
+                onClick={() => {
+                  // If user is authenticated, go to purchase page
+                  // Otherwise, go to login page
+                  if (user) {
+                    // Determine the correct purchase page based on user role
+                    if (user.role === 'consultant') {
+                      navigate('/consultant/plans');
+                    } else {
+                      navigate('/app/plans');
+                    }
+                  } else {
+                    navigate('/login');
+                  }
+                }}
                 variant={plan.featured ? "default" : "outline"}
-                  className="w-full transition-transform duration-300 hover:scale-105"
+                className="w-full transition-transform duration-300 hover:scale-105"
                 size="lg"
               >
-                <Link to="/register">{plan.cta}</Link>
+                {plan.cta}
               </Button>
             </div>
             </div>

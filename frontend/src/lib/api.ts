@@ -383,6 +383,47 @@ export const notificationsApi = {
     api.delete<{ success: boolean }>(`/notifications/${id}`),
 };
 
+// Subscription endpoints
+export const subscriptionsApi = {
+  getMySubscription: () =>
+    api.get<{
+      subscription: {
+        id: string;
+        status: string;
+        startedAt: string;
+        currentPeriodStart: string;
+        currentPeriodEnd: string;
+        canceledAt: string | null;
+        plan: {
+          id: string;
+          code: string;
+          name: string;
+          priceCents: number;
+        };
+      } | null;
+    }>('/subscriptions/me'),
+
+  createSubscription: (planId: string) =>
+    api.post<{
+      subscription: {
+        id: string;
+        status: string;
+        startedAt: string;
+        currentPeriodStart: string;
+        currentPeriodEnd: string;
+        plan: {
+          id: string;
+          code: string;
+          name: string;
+          priceCents: number;
+        };
+      };
+    }>('/subscriptions', { planId }),
+
+  cancelSubscription: () =>
+    api.patch<{ message: string }>('/subscriptions/cancel'),
+};
+
 // Public endpoints (no authentication required)
 export const publicApi = {
   getPlans: () =>
