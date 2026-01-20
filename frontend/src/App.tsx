@@ -30,6 +30,7 @@ import UsufructCalculator from "./pages/calculators/UsufructCalculator";
 import ITCMDCalculator from "./pages/calculators/ITCMDCalculator";
 import ProfitabilitySimulator from "./pages/calculators/ProfitabilitySimulator";
 import CustomerSettings from "./pages/Settings";
+import Notifications from "./pages/Notifications";
 
 // Consultant pages
 import ConsultantDashboard from "./pages/consultant/ConsultantDashboard";
@@ -99,6 +100,7 @@ const App = () => (
             <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
             <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
             <Route path="settings" element={<CustomerSettings />} />
+            <Route path="notifications" element={<Notifications />} />
             <Route path="more" element={<Dashboard />} />
           </Route>
 
@@ -119,6 +121,7 @@ const App = () => (
             <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
             <Route path="simulator" element={<PortfolioSimulator />} />
             <Route path="settings" element={<ConsultantSettings />} />
+            <Route path="notifications" element={<Notifications />} />
           </Route>
 
           {/* Admin Routes */}
@@ -131,6 +134,7 @@ const App = () => (
             <Route path="prospecting" element={<DAMAProspecting />} />
             <Route path="financial" element={<FinancialReports />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="notifications" element={<Notifications />} />
           </Route>
           
           {/* Catch-all */}

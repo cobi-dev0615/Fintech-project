@@ -1,17 +1,10 @@
 import { useState, useEffect } from "react";
-import { Search, UserX, UserCheck, MoreVertical, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users } from "lucide-react";
+import { Search, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users, Eye, Trash2, Edit, Save, X, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +13,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface User {
   id: string;
@@ -74,10 +79,18 @@ interface UserDetail {
 
 const UserManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userDetail, setUserDetail] = useState<UserDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingRole, setEditingRole] = useState<string>("");
+  const [editingStatus, setEditingStatus] = useState<string>("");
+  const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -89,12 +102,10 @@ const UserManagement = () => {
     totalPages: 0,
   });
 
-  // Reset to page 1 when search query changes
+  // Reset to page 1 when filters change
   useEffect(() => {
-    if (searchQuery) {
-      setPage(1);
-    }
-  }, [searchQuery]);
+    setPage(1);
+  }, [searchQuery, roleFilter, statusFilter]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -102,6 +113,8 @@ const UserManagement = () => {
         setLoading(true);
         const response = await adminApi.getUsers({ 
           search: searchQuery || undefined,
+          role: roleFilter || undefined,
+          status: statusFilter || undefined,
           page,
           limit: 20,
         });
@@ -124,7 +137,7 @@ const UserManagement = () => {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, page]);
+  }, [searchQuery, roleFilter, statusFilter, page]);
 
   const filteredUsers = users;
 
@@ -164,72 +177,16 @@ const UserManagement = () => {
     );
   };
 
-  const handleBlockUser = async (userId: string) => {
-    try {
-      await adminApi.updateUserStatus(userId, 'blocked');
-      setUsers(users.map(u => u.id === userId ? { ...u, status: 'blocked' } : u));
-      toast({
-        title: "Sucesso",
-        description: "Usuário bloqueado com sucesso",
-      });
-    } catch (error: any) {
-      console.error('Failed to block user:', error);
-      toast({
-        title: "Erro",
-        description: error?.error || 'Falha ao bloquear usuário',
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUnblockUser = async (userId: string) => {
-    try {
-      await adminApi.updateUserStatus(userId, 'active');
-      setUsers(users.map(u => u.id === userId ? { ...u, status: 'active' } : u));
-      toast({
-        title: "Sucesso",
-        description: "Usuário desbloqueado com sucesso",
-      });
-    } catch (error: any) {
-      console.error('Failed to unblock user:', error);
-      toast({
-        title: "Erro",
-        description: error?.error || 'Falha ao desbloquear usuário',
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleChangeRole = async (userId: string, newRole: string) => {
-    try {
-      await adminApi.updateUserRole(userId, newRole);
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole as any } : u));
-      // Refresh user detail if it's open
-      if (selectedUser?.id === userId && userDetail) {
-        const detailResponse = await adminApi.getUser(userId);
-        setUserDetail(detailResponse.user);
-      }
-      toast({
-        title: "Sucesso",
-        description: 'Role atualizado com sucesso',
-      });
-    } catch (error: any) {
-      console.error('Failed to update role:', error);
-      toast({
-        title: "Erro",
-        description: error?.error || 'Falha ao atualizar role',
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleViewDetails = async (user: User) => {
     setSelectedUser(user);
     setIsDetailDialogOpen(true);
+    setIsEditing(false);
     setDetailLoading(true);
     try {
       const response = await adminApi.getUser(user.id);
       setUserDetail(response.user);
+      setEditingRole(response.user.role);
+      setEditingStatus(response.user.status);
     } catch (error: any) {
       console.error('Failed to fetch user details:', error);
       toast({
@@ -237,8 +194,6 @@ const UserManagement = () => {
         description: error?.error || 'Falha ao carregar detalhes do usuário',
         variant: "destructive",
       });
-      // Close dialog on error if desired
-      // setIsDetailDialogOpen(false);
     } finally {
       setDetailLoading(false);
     }
@@ -246,8 +201,102 @@ const UserManagement = () => {
 
   const handleCloseDetail = () => {
     setIsDetailDialogOpen(false);
+    setIsEditing(false);
     setSelectedUser(null);
     setUserDetail(null);
+    setEditingRole("");
+    setEditingStatus("");
+  };
+
+  const handleStartEdit = () => {
+    if (userDetail) {
+      setEditingRole(userDetail.role);
+      setEditingStatus(userDetail.status);
+      setIsEditing(true);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (userDetail) {
+      setEditingRole(userDetail.role);
+      setEditingStatus(userDetail.status);
+      setIsEditing(false);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!selectedUser || !userDetail) return;
+
+    setSaving(true);
+    try {
+      // Update role if changed
+      if (editingRole !== userDetail.role) {
+        await adminApi.updateUserRole(selectedUser.id, editingRole);
+      }
+
+      // Update status if changed
+      if (editingStatus !== userDetail.status) {
+        await adminApi.updateUserStatus(selectedUser.id, editingStatus as 'active' | 'blocked');
+      }
+
+      // Refresh user detail
+      const response = await adminApi.getUser(selectedUser.id);
+      setUserDetail(response.user);
+      
+      // Update users list
+      setUsers(users.map(u => {
+        if (u.id === selectedUser.id) {
+          return {
+            ...u,
+            role: editingRole as any,
+            status: editingStatus as any,
+          };
+        }
+        return u;
+      }));
+
+      setIsEditing(false);
+      toast({
+        title: "Sucesso",
+        description: "Alterações salvas com sucesso",
+      });
+    } catch (error: any) {
+      console.error('Failed to save changes:', error);
+      toast({
+        title: "Erro",
+        description: error?.error || 'Falha ao salvar alterações',
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteClick = (user: User) => {
+    setDeletingUserId(user.id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deletingUserId) return;
+
+    try {
+      // TODO: Implement delete user API endpoint
+      // await adminApi.deleteUser(deletingUserId);
+      toast({
+        title: "Info",
+        description: "Funcionalidade de exclusão ainda não implementada",
+      });
+      setIsDeleteDialogOpen(false);
+      setDeletingUserId(null);
+    } catch (error: any) {
+      console.error('Failed to delete user:', error);
+      toast({
+        title: "Erro",
+        description: error?.error || 'Falha ao excluir usuário',
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -262,16 +311,125 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Filters */}
       <ChartCard>
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar usuários por nome ou email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold text-foreground">Filtros</h3>
+              {(roleFilter || statusFilter || searchQuery) && (
+                <Badge variant="secondary" className="ml-2">
+                  {[searchQuery && "Busca", roleFilter && "Role", statusFilter && "Status"].filter(Boolean).length} ativo{(roleFilter && statusFilter && searchQuery) || (roleFilter && statusFilter) || (roleFilter && searchQuery) || (statusFilter && searchQuery) ? "s" : ""}
+                </Badge>
+              )}
+            </div>
+            {(roleFilter || statusFilter || searchQuery) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery("");
+                  setRoleFilter("");
+                  setStatusFilter("");
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4 mr-1.5" />
+                Limpar todos
+              </Button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="relative flex-1">
+              <Label htmlFor="search" className="sr-only">Buscar</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+                <Input
+                  id="search"
+                  placeholder="Buscar por nome ou email"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Select value={roleFilter || ""} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value)}>
+                <SelectTrigger id="role-filter" className={roleFilter ? "border-primary/50" : ""}>
+                  <SelectValue placeholder="Selecione uma role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as roles</SelectItem>
+                  <SelectItem value="customer">Cliente</SelectItem>
+                  <SelectItem value="consultant">Consultor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
+                <SelectTrigger id="status-filter" className={statusFilter ? "border-primary/50" : ""}>
+                  <SelectValue placeholder="Selecione um status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="blocked">Bloqueado</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {(roleFilter || statusFilter || searchQuery) && (
+            <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border">
+              <span className="text-xs font-medium text-muted-foreground mr-1">Filtros aplicados:</span>
+              {searchQuery && (
+                <Badge variant="secondary" className="gap-1.5 px-2.5 py-1">
+                  <Search className="h-3 w-3" />
+                  <span className="max-w-[200px] truncate">{searchQuery}</span>
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="ml-0.5 hover:bg-background/50 rounded-full p-0.5 transition-colors"
+                    aria-label="Remover filtro de busca"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {roleFilter && (
+                <Badge variant="secondary" className="gap-1.5 px-2.5 py-1">
+                  <Shield className="h-3 w-3" />
+                  <span>{roleFilter === "customer" ? "Cliente" : roleFilter === "consultant" ? "Consultor" : roleFilter}</span>
+                  <button
+                    onClick={() => setRoleFilter("")}
+                    className="ml-0.5 hover:bg-background/50 rounded-full p-0.5 transition-colors"
+                    aria-label="Remover filtro de role"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {statusFilter && (
+                <Badge variant="secondary" className="gap-1.5 px-2.5 py-1">
+                  {statusFilter === "active" ? (
+                    <span className="h-2 w-2 rounded-full bg-success" />
+                  ) : statusFilter === "blocked" ? (
+                    <span className="h-2 w-2 rounded-full bg-destructive" />
+                  ) : (
+                    <span className="h-2 w-2 rounded-full bg-warning" />
+                  )}
+                  <span>{statusFilter === "active" ? "Ativo" : statusFilter === "blocked" ? "Bloqueado" : "Pendente"}</span>
+                  <button
+                    onClick={() => setStatusFilter("")}
+                    className="ml-0.5 hover:bg-background/50 rounded-full p-0.5 transition-colors"
+                    aria-label="Remover filtro de status"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       </ChartCard>
 
@@ -308,7 +466,34 @@ const UserManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <Users className="h-12 w-12 text-muted-foreground/50" />
+                      <p className="text-sm font-medium text-foreground">Nenhum usuário encontrado</p>
+                      {(searchQuery || roleFilter || statusFilter) ? (
+                        <p className="text-xs text-muted-foreground">
+                          Tente ajustar os filtros ou{" "}
+                          <button
+                            onClick={() => {
+                              setSearchQuery("");
+                              setRoleFilter("");
+                              setStatusFilter("");
+                            }}
+                            className="text-primary hover:underline"
+                          >
+                            limpar todos os filtros
+                          </button>
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Não há usuários cadastrados</p>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user) => (
                 <tr
                   key={user.id}
                   className="border-b border-border hover:bg-muted/50 transition-colors"
@@ -333,44 +518,30 @@ const UserManagement = () => {
                       {new Date(user.createdAt).toLocaleDateString("pt-BR")}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetails(user)}>
-                          Ver detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleChangeRole(user.id, user.role === 'customer' ? 'consultant' : 'customer')}>
-                          <Shield className="h-4 w-4 mr-2" />
-                          Alterar para {user.role === 'customer' ? 'Consultor' : 'Cliente'}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {user.status === "active" ? (
-                          <DropdownMenuItem
-                            onClick={() => handleBlockUser(user.id)}
-                            className="text-destructive"
-                          >
-                            <UserX className="h-4 w-4 mr-2" />
-                            Bloquear
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem
-                            onClick={() => handleUnblockUser(user.id)}
-                          >
-                            <UserCheck className="h-4 w-4 mr-2" />
-                            Desbloquear
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleViewDetails(user)}
+                        title="Ver Detalhes"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteClick(user)}
+                        className="text-destructive hover:text-destructive"
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -487,16 +658,42 @@ const UserManagement = () => {
                     </div>
                   )}
                   <div>
-                    <label className="text-sm text-muted-foreground">Role</label>
-                    <div className="mt-1">
-                      {getRoleBadge(userDetail.role)}
-                    </div>
+                    <Label className="text-sm text-muted-foreground">Role</Label>
+                    {isEditing ? (
+                      <Select value={editingRole} onValueChange={setEditingRole}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="customer">Cliente</SelectItem>
+                          <SelectItem value="consultant">Consultor</SelectItem>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="mt-1">
+                        {getRoleBadge(userDetail.role)}
+                      </div>
+                    )}
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground">Status</label>
-                    <div className="mt-1">
-                      {getStatusBadge(userDetail.status)}
-                    </div>
+                    <Label className="text-sm text-muted-foreground">Status</Label>
+                    {isEditing ? (
+                      <Select value={editingStatus} onValueChange={setEditingStatus}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Ativo</SelectItem>
+                          <SelectItem value="blocked">Bloqueado</SelectItem>
+                          <SelectItem value="pending">Pendente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="mt-1">
+                        {getStatusBadge(userDetail.status)}
+                      </div>
+                    )}
                   </div>
                   {userDetail.riskProfile && (
                     <div>
@@ -639,10 +836,67 @@ const UserManagement = () => {
                   </div>
                 </div>
               )}
+
+              {/* Edit Actions */}
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
+                {isEditing ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleSaveChanges}
+                      disabled={saving}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {saving ? "Salvando..." : "Salvar Alterações"}
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={handleStartEdit}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar Role e Status
+                  </Button>
+                )}
+              </div>
             </div>
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setIsDeleteDialogOpen(false);
+              setDeletingUserId(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

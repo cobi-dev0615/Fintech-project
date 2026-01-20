@@ -38,16 +38,16 @@ interface NavItem {
   enabled?: boolean; // Whether this menu item is enabled/active
 }
 
-// Customer navigation items - all enabled
+// Customer navigation items - only Dashboard enabled
 const customerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/app/dashboard", enabled: true },
-  { icon: Link2, label: "Conexões", href: "/app/connections", enabled: true },
-  { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true },
-  { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: true },
-  { icon: TrendingUp, label: "Investimentos", href: "/app/investments", enabled: true },
-  { icon: FileText, label: "Relatórios", href: "/app/reports", enabled: true },
-  { icon: Target, label: "Metas", href: "/app/goals", enabled: true },
-  { icon: Calculator, label: "Calculadoras", href: "/app/calculators", enabled: true },
+  { icon: Link2, label: "Conexões", href: "/app/connections", enabled: false },
+  { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: false },
+  { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: false },
+  { icon: TrendingUp, label: "Investimentos", href: "/app/investments", enabled: false },
+  { icon: FileText, label: "Relatórios", href: "/app/reports", enabled: false },
+  { icon: Target, label: "Metas", href: "/app/goals", enabled: false },
+  { icon: Calculator, label: "Calculadoras", href: "/app/calculators", enabled: false },
 ];
 
 // Consultant navigation items - only Dashboard enabled
@@ -68,10 +68,10 @@ const adminNavItems: NavItem[] = [
   { icon: Shield, label: "Usuários", href: "/admin/users", enabled: true },
   { icon: SubscriptionIcon, label: "Assinaturas", href: "/admin/subscriptions", enabled: true },
   { icon: CreditCard, label: "Planos", href: "/admin/plans", enabled: true },
-  { icon: DollarSign, label: "Financeiro", href: "/admin/financial", enabled: false },
-  { icon: Activity, label: "Integrações", href: "/admin/integrations", enabled: false },
-  { icon: Search, label: "Prospecção", href: "/admin/prospecting", enabled: false },
-  { icon: Settings, label: "Configurações", href: "/admin/settings", enabled: false },
+  { icon: DollarSign, label: "Financeiro", href: "/admin/financial", enabled: true },
+  { icon: Activity, label: "Integrações", href: "/admin/integrations", enabled: true },
+  { icon: Search, label: "Prospecção", href: "/admin/prospecting", enabled: true },
+  { icon: Settings, label: "Configurações", href: "/admin/settings", enabled: true },
 ];
 
 const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
@@ -139,17 +139,21 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
       <div className="flex items-center justify-between h-16 px-4 border-b border-border">
         {!collapsed && (
           <Link to={getDashboardPath()} className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">F</span>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="zurT Logo" 
+              className="h-12 w-12 object-contain"
+            />
             <span className="font-semibold text-lg text-foreground">zurT</span>
           </Link>
         )}
         {collapsed && (
           <Link to={getDashboardPath()} className="mx-auto">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">F</span>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="zurT Logo" 
+              className="h-12 w-12 object-contain"
+            />
           </Link>
         )}
         <Button
@@ -161,7 +165,7 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />
           ) : (
-          <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
           )}
         </Button>
       </div>

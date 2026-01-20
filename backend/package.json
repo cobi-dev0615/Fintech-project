@@ -10,6 +10,8 @@
     "start": "node dist/index.js",
     "db:migrate": "psql $DATABASE_URL -f schema.sql",
     "db:migrate:admin": "tsx src/db/run-migration.ts",
+    "db:migrate:full": "tsx src/db/execute-schema.ts",
+    "db:update-plans": "tsx src/db/update-plans.ts",
     "db:test": "tsx src/db/test-connection.ts",
     "db:seed": "tsx src/db/seed.ts",
     "lint": "eslint src --ext .ts",

@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { CreditCard, Save, Plus, Trash2 } from "lucide-react";
+import { CreditCard, Save, Plus, Trash2, Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Plan {
   id?: string;
@@ -27,9 +38,12 @@ interface Plan {
 const PlanManagement = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
   const [newFeature, setNewFeature] = useState("");
   const { toast } = useToast();
 
@@ -41,9 +55,9 @@ const PlanManagement = () => {
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      const settings = await adminApi.getSettings();
+      const response = await adminApi.getPlans();
       setPlans(
-        settings.plans.map((p) => ({
+        response.plans.map((p) => ({
           id: p.id,
           code: p.code,
           name: p.name,
@@ -55,13 +69,13 @@ const PlanManagement = () => {
       );
     } catch (error: any) {
       console.error('Failed to fetch plans:', error);
-      // Fallback to default plans if API fails
-      setPlans([
-        { id: "free", code: "free", name: "Gratuito", price: 0, features: [], connectionLimit: 1, isActive: true },
-        { id: "basic", code: "basic", name: "Básico", price: 99.90, features: ["5 conexões"], connectionLimit: 5, isActive: true },
-        { id: "pro", code: "pro", name: "Pro", price: 299.90, features: ["Conexões ilimitadas", "Relatórios avançados"], connectionLimit: null, isActive: true },
-        { id: "enterprise", code: "enterprise", name: "Empresarial", price: 499.90, features: ["Tudo do Pro", "API", "Suporte dedicado"], connectionLimit: null, isActive: true },
-      ]);
+      toast({
+        title: "Erro",
+        description: error?.error || 'Falha ao carregar planos',
+        variant: "destructive",
+      });
+      // Set empty array instead of fallback data to show error state
+      setPlans([]);
     } finally {
       setLoading(false);
     }
@@ -154,6 +168,77 @@ const PlanManagement = () => {
     }
   };
 
+  const handleDeleteClick = (plan: Plan) => {
+    setPlanToDelete(plan);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeletePlan = async () => {
+    if (!planToDelete || !planToDelete.id) return;
+
+    setDeleting(true);
+    try {
+      await adminApi.deletePlan(planToDelete.id);
+      toast({
+        title: "Sucesso",
+        description: `Plano "${planToDelete.name}" excluído com sucesso!`,
+      });
+      // Refresh plans after delete
+      await fetchPlans();
+      setIsDeleteDialogOpen(false);
+      setPlanToDelete(null);
+    } catch (error: any) {
+      console.error("Failed to delete plan:", error);
+      toast({
+        title: "Erro",
+        description: error?.error || error?.details || "Falha ao excluir plano",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Get main plans for card display (free, basic, pro)
+  const mainPlans = plans.filter(p => ['free', 'basic', 'pro'].includes(p.code.toLowerCase()));
+  const getPlanDescription = (code: string) => {
+    const descriptions: Record<string, string> = {
+      free: 'Ideal para começar',
+      basic: 'Para quem quer mais',
+      pro: 'Controle total',
+    };
+    return descriptions[code.toLowerCase()] || '';
+  };
+
+  const getPlanFeatures = (plan: Plan) => {
+    // If features are defined, use them, otherwise generate from plan properties
+    if (plan.features && plan.features.length > 0) {
+      return plan.features;
+    }
+    
+    // Generate features based on plan code and properties
+    const features: string[] = [];
+    if (plan.connectionLimit !== null) {
+      features.push(`${plan.connectionLimit} conexão${plan.connectionLimit > 1 ? 'ões' : ''} bancária${plan.connectionLimit > 1 ? 's' : ''}`);
+    } else {
+      features.push('Conexões ilimitadas');
+    }
+    
+    if (plan.code.toLowerCase() === 'free') {
+      features.push('Dashboard básico', 'Cotações de mercado');
+    } else if (plan.code.toLowerCase() === 'basic') {
+      features.push('Relatórios mensais', 'Câmbio e Crédito', 'Suporte por email');
+    } else if (plan.code.toLowerCase() === 'pro') {
+      features.push('IA Financeira', 'Relatórios ilimitados', 'Suporte prioritário', 'Alertas personalizados');
+    }
+    
+    return features;
+  };
+
+  const isPopularPlan = (code: string) => {
+    return code.toLowerCase() === 'pro';
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -169,6 +254,76 @@ const PlanManagement = () => {
           {saving ? "Salvando..." : "Salvar Alterações"}
         </Button>
       </div>
+
+      {/* Plan Cards */}
+      {!loading && mainPlans.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {mainPlans.map((plan) => {
+            const isPopular = isPopularPlan(plan.code);
+            const planFeatures = getPlanFeatures(plan);
+            const isFree = plan.price === 0;
+            
+            return (
+              <div
+                key={plan.id || plan.code}
+                className={`relative rounded-lg border-2 p-6 transition-all ${
+                  isPopular
+                    ? 'border-primary bg-primary/5 scale-105'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                {isPopular && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
+                    <Star className="h-3 w-3 mr-1" />
+                    Mais Popular
+                  </Badge>
+                )}
+                
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
+                    <p className="text-sm text-muted-foreground">{getPlanDescription(plan.code)}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-foreground">
+                        R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                      {!isFree && (
+                        <span className="text-sm text-muted-foreground">/mês</span>
+                      )}
+                    </div>
+                    {isFree && (
+                      <span className="text-sm text-muted-foreground">para sempre</span>
+                    )}
+                  </div>
+                  
+                  <ul className="space-y-3 mt-6">
+                    {planFeatures.map((feature, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-foreground">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <Button
+                    className={`w-full mt-6 ${
+                      isPopular
+                        ? 'bg-primary hover:bg-primary/90'
+                        : 'bg-primary/90 hover:bg-primary'
+                    }`}
+                    variant={isPopular ? 'default' : 'default'}
+                  >
+                    {isFree ? 'Começar Grátis' : `Assinar ${plan.name.split(' ')[0]}`}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Plans List */}
       <ChartCard title={`${plans.length} Plano${plans.length !== 1 ? "s" : ""}`}>
@@ -222,9 +377,21 @@ const PlanManagement = () => {
                       )}
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => handleEditPlan(plan)}>
-                    Editar
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEditPlan(plan)}>
+                      Editar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteClick(plan)}
+                      className="text-destructive hover:text-destructive"
+                      title="Excluir plano"
+                      disabled={plan.code.toLowerCase() === 'free'}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -395,6 +562,41 @@ const PlanManagement = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o plano "{planToDelete?.name}"? Esta ação não pode ser desfeita.
+              {planToDelete?.code.toLowerCase() === 'free' && (
+                <span className="block mt-2 text-destructive font-medium">
+                  O plano gratuito não pode ser excluído.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setPlanToDelete(null);
+              }}
+              disabled={deleting}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePlan}
+              disabled={deleting || planToDelete?.code.toLowerCase() === 'free'}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

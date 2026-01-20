@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Bell, Search, Menu, Clock } from "lucide-react";
+import { Search, Menu, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import NotificationDropdown from "@/components/notifications/NotificationDropdown";
 
 interface TopBarProps {
   onMenuClick?: () => void;
@@ -77,10 +78,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, showD
       </div>
       
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground hover:bg-muted">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
-        </Button>
+        <NotificationDropdown />
         <Avatar className="h-9 w-9 cursor-pointer border border-border">
           <AvatarImage src="" />
           <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">

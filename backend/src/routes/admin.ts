@@ -10,9 +10,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
       await request.jwtVerify();
       if ((request.user as any).role !== 'admin') {
         reply.code(403).send({ error: 'Access denied. Admin role required.' });
+        return;
       }
     } catch (err) {
-      reply.send(err);
+      reply.code(401).send({ error: 'Unauthorized', details: (err as any).message });
+      return;
     }
   };
 
@@ -177,10 +179,32 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const limitNum = Math.min(parseInt(limit) || 20, 100); // Max 100 per page
       const offset = (pageNum - 1) * limitNum;
       
+      // Check if subscriptions table exists
+      let hasSubscriptions = false;
+      try {
+        await db.query('SELECT 1 FROM subscriptions LIMIT 1');
+        hasSubscriptions = true;
+      } catch {
+        // Table doesn't exist, use simple query
+        hasSubscriptions = false;
+      }
+
+      // Check if blocked_users table exists for status filtering
+      let hasBlockedUsersTable = false;
+      try {
+        await db.query('SELECT 1 FROM blocked_users LIMIT 1');
+        hasBlockedUsersTable = true;
+      } catch {
+        hasBlockedUsersTable = false;
+      }
+
       // Build WHERE clause
       let whereClause = 'WHERE 1=1';
       const params: any[] = [];
       let paramIndex = 1;
+
+      // Exclude admin users from the list
+      whereClause += ` AND u.role != 'admin'`;
 
       if (search) {
         whereClause += ` AND (u.full_name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
@@ -195,22 +219,26 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
 
       if (status) {
-        // Status can be 'active' (is_active = true) or 'inactive' (is_active = false)
-        if (status === 'active') {
-          whereClause += ` AND u.is_active = true`;
-        } else if (status === 'inactive') {
-          whereClause += ` AND u.is_active = false`;
+        if (status === 'blocked') {
+          if (hasBlockedUsersTable) {
+            whereClause += ` AND EXISTS(SELECT 1 FROM blocked_users WHERE user_id = u.id)`;
+          } else {
+            // If table doesn't exist, no users can be blocked
+            whereClause += ` AND 1=0`;
+          }
+        } else if (status === 'active') {
+          if (hasBlockedUsersTable) {
+            whereClause += ` AND u.is_active = true AND NOT EXISTS(SELECT 1 FROM blocked_users WHERE user_id = u.id)`;
+          } else {
+            whereClause += ` AND u.is_active = true`;
+          }
+        } else if (status === 'pending') {
+          if (hasBlockedUsersTable) {
+            whereClause += ` AND u.is_active = false AND NOT EXISTS(SELECT 1 FROM blocked_users WHERE user_id = u.id)`;
+          } else {
+            whereClause += ` AND u.is_active = false`;
+          }
         }
-      }
-
-      // Check if subscriptions table exists
-      let hasSubscriptions = false;
-      try {
-        await db.query('SELECT 1 FROM subscriptions LIMIT 1');
-        hasSubscriptions = true;
-      } catch {
-        // Table doesn't exist, use simple query
-        hasSubscriptions = false;
       }
 
       // Get total count
@@ -235,50 +263,105 @@ export async function adminRoutes(fastify: FastifyInstance) {
       // Get paginated results
       let dataQuery: string;
       const dataParams = [...params];
+
       if (hasSubscriptions) {
-        dataQuery = `
-          SELECT 
-            u.id,
-            u.full_name,
-            u.email,
-            u.role,
-            u.created_at,
-            s.status as subscription_status,
-            p.name as plan_name
-          FROM users u
-          LEFT JOIN subscriptions s ON u.id = s.user_id AND s.status = 'active'
-          LEFT JOIN plans p ON s.plan_id = p.id
-          ${whereClause}
-          ORDER BY u.created_at DESC
-          LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-        `;
+        if (hasBlockedUsersTable) {
+          dataQuery = `
+            SELECT 
+              u.id,
+              u.full_name,
+              u.email,
+              u.role,
+              u.is_active,
+              (SELECT EXISTS(SELECT 1 FROM blocked_users WHERE user_id = u.id)) as is_blocked,
+              u.created_at,
+              s.status as subscription_status,
+              p.name as plan_name
+            FROM users u
+            LEFT JOIN subscriptions s ON u.id = s.user_id AND s.status = 'active'
+            LEFT JOIN plans p ON s.plan_id = p.id
+            ${whereClause}
+            ORDER BY u.created_at DESC
+            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+          `;
+        } else {
+          dataQuery = `
+            SELECT 
+              u.id,
+              u.full_name,
+              u.email,
+              u.role,
+              u.is_active,
+              false as is_blocked,
+              u.created_at,
+              s.status as subscription_status,
+              p.name as plan_name
+            FROM users u
+            LEFT JOIN subscriptions s ON u.id = s.user_id AND s.status = 'active'
+            LEFT JOIN plans p ON s.plan_id = p.id
+            ${whereClause}
+            ORDER BY u.created_at DESC
+            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+          `;
+        }
       } else {
-        dataQuery = `
-          SELECT 
-            u.id,
-            u.full_name,
-            u.email,
-            u.role,
-            u.created_at
-          FROM users u
-          ${whereClause}
-          ORDER BY u.created_at DESC
-          LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-        `;
+        if (hasBlockedUsersTable) {
+          dataQuery = `
+            SELECT 
+              u.id,
+              u.full_name,
+              u.email,
+              u.role,
+              u.is_active,
+              (SELECT EXISTS(SELECT 1 FROM blocked_users WHERE user_id = u.id)) as is_blocked,
+              u.created_at
+            FROM users u
+            ${whereClause}
+            ORDER BY u.created_at DESC
+            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+          `;
+        } else {
+          dataQuery = `
+            SELECT 
+              u.id,
+              u.full_name,
+              u.email,
+              u.role,
+              u.is_active,
+              false as is_blocked,
+              u.created_at
+            FROM users u
+            ${whereClause}
+            ORDER BY u.created_at DESC
+            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+          `;
+        }
       }
       dataParams.push(limitNum, offset);
       const result = await db.query(dataQuery, dataParams);
 
-      return {
-        users: result.rows.map((row: any) => ({
-          id: row.id,
-          name: row.full_name,
-          email: row.email,
-          role: row.role,
-          status: hasSubscriptions ? (row.subscription_status === 'active' ? 'active' : 'pending') : 'pending',
-          plan: hasSubscriptions ? (row.plan_name || null) : null,
-          createdAt: row.created_at,
-        })),
+      const response = {
+        users: result.rows.map((row: any) => {
+          // Determine status based on is_blocked and is_active
+          let status = 'pending';
+          if (row.is_blocked) {
+            status = 'blocked';
+          } else if (row.is_active) {
+            status = 'active';
+          } else {
+            status = 'pending';
+          }
+          
+          return {
+            id: row.id,
+            name: row.full_name,
+            email: row.email,
+            role: row.role,
+            status: status,
+            plan: hasSubscriptions ? (row.plan_name || null) : null,
+            createdAt: row.created_at,
+          };
+        }),
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -286,10 +369,12 @@ export async function adminRoutes(fastify: FastifyInstance) {
           totalPages: Math.ceil(total / limitNum),
         },
       };
+
+      return reply.send(response);
     } catch (error: any) {
       fastify.log.error('Error fetching users:', error);
       console.error('Full error:', error);
-      reply.code(500).send({ error: 'Failed to fetch users', details: error.message });
+      return reply.code(500).send({ error: 'Failed to fetch users', details: error.message });
     }
   });
 
@@ -476,7 +561,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
           isActive: user.is_active,
           birthDate: user.birth_date || null,
           riskProfile: user.risk_profile || null,
-          status: isBlocked ? 'blocked' : (user.is_active ? 'active' : 'inactive'),
+          status: isBlocked ? 'blocked' : (user.is_active ? 'active' : 'pending'),
           createdAt: user.created_at,
           updatedAt: user.updated_at,
           subscription,
@@ -1291,6 +1376,115 @@ export async function adminRoutes(fastify: FastifyInstance) {
   });
 
   // =========================
+  // PLANS ENDPOINTS
+  // =========================
+
+  // Get all plans
+  fastify.get('/plans', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      type PlanItem = {
+        id: string;
+        code: string;
+        name: string;
+        priceCents: number;
+        connectionLimit: number | null;
+        features: string[];
+        isActive: boolean;
+      };
+      let plans: PlanItem[] = [];
+      try {
+        const plansResult = await db.query(
+          `SELECT id, code, name, price_cents, connection_limit, features_json, is_active
+           FROM plans
+           ORDER BY price_cents ASC`
+        );
+        plans = plansResult.rows.map(row => ({
+          id: row.id,
+          code: row.code,
+          name: row.name,
+          priceCents: row.price_cents,
+          connectionLimit: row.connection_limit,
+          features: row.features_json?.features || [],
+          isActive: row.is_active,
+        }));
+      } catch (e: any) {
+        // Plans table might not exist
+        fastify.log.warn('Plans table does not exist or error fetching plans:', e?.message || e);
+      }
+
+      return reply.send({ plans });
+    } catch (error: any) {
+      fastify.log.error('Error fetching plans:', error);
+      reply.code(500).send({ error: 'Failed to fetch plans', details: error.message });
+    }
+  });
+
+  // Delete a plan
+  fastify.delete('/plans/:id', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply: FastifyReply) => {
+    try {
+      const { id } = request.params;
+      const adminId = getAdminId(request);
+
+      // Check if plan exists
+      const planResult = await db.query(
+        'SELECT code, name FROM plans WHERE id = $1',
+        [id]
+      );
+
+      if (planResult.rows.length === 0) {
+        reply.code(404).send({ error: 'Plan not found' });
+        return;
+      }
+
+      const plan = planResult.rows[0];
+
+      // Check if plan has active subscriptions
+      let hasActiveSubscriptions = false;
+      try {
+        const subResult = await db.query(
+          'SELECT COUNT(*) as count FROM subscriptions WHERE plan_id = $1 AND status = $2',
+          [id, 'active']
+        );
+        hasActiveSubscriptions = parseInt(subResult.rows[0].count) > 0;
+      } catch {
+        // Subscriptions table might not exist
+      }
+
+      if (hasActiveSubscriptions) {
+        reply.code(400).send({ 
+          error: 'Cannot delete plan with active subscriptions',
+          details: 'Please cancel or migrate all active subscriptions before deleting this plan'
+        });
+        return;
+      }
+
+      // Delete the plan
+      await db.query('DELETE FROM plans WHERE id = $1', [id]);
+
+      // Log audit
+      await logAudit({
+        adminId,
+        action: 'plan_deleted',
+        resourceType: 'plan',
+        resourceId: id,
+        oldValue: { code: plan.code, name: plan.name },
+        newValue: null,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      return reply.send({ message: 'Plan deleted successfully' });
+    } catch (error: any) {
+      fastify.log.error('Error deleting plan:', error);
+      reply.code(500).send({ error: 'Failed to delete plan', details: error.message });
+    }
+  });
+
+  // =========================
   // SETTINGS ENDPOINTS
   // =========================
 
@@ -1300,7 +1494,16 @@ export async function adminRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       // Get plans
-      let plans = [];
+      type PlanItem = {
+        id: string;
+        code: string;
+        name: string;
+        priceCents: number;
+        connectionLimit: number | null;
+        features: string[];
+        isActive: boolean;
+      };
+      let plans: PlanItem[] = [];
       try {
         const plansResult = await db.query(
           `SELECT id, code, name, price_cents, connection_limit, features_json, is_active
@@ -1415,8 +1618,15 @@ export async function adminRoutes(fastify: FastifyInstance) {
         }
       }
 
-      logAudit(getAdminId(request), 'settings.plans.update', 'plans', null, {
-        plansUpdated: plans.length,
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'settings.plans.update',
+        resourceType: 'plans',
+        newValue: {
+          plansUpdated: plans.length,
+        },
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
       });
 
       return { message: 'Plans updated successfully' };
@@ -1441,7 +1651,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       // In a real implementation, save to a settings table
       // For now, just log the action
-      logAudit(getAdminId(request), 'settings.email.update', 'settings', null, emailSettings);
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'settings.email.update',
+        resourceType: 'settings',
+        newValue: emailSettings,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
 
       return { message: 'Email settings updated successfully' };
     } catch (error: any) {
@@ -1463,7 +1680,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       // In a real implementation, save to a settings table
       // For now, just log the action
-      logAudit(getAdminId(request), 'settings.platform.update', 'settings', null, platformSettings);
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'settings.platform.update',
+        resourceType: 'settings',
+        newValue: platformSettings,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
 
       return { message: 'Platform settings updated successfully' };
     } catch (error: any) {
@@ -1488,7 +1712,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       // In a real implementation, save to a settings table
       // For now, just log the action
-      logAudit(getAdminId(request), 'settings.customization.update', 'settings', null, customization);
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'settings.customization.update',
+        resourceType: 'settings',
+        newValue: customization,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
 
       return { message: 'Customization settings updated successfully' };
     } catch (error: any) {
@@ -1510,8 +1741,15 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       // In a real implementation, save to a settings table
       // For now, just log the action
-      logAudit(getAdminId(request), 'settings.policies.update', 'settings', null, {
-        policiesUpdated: Object.keys(policies).length,
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'settings.policies.update',
+        resourceType: 'settings',
+        newValue: {
+          policiesUpdated: Object.keys(policies).length,
+        },
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
       });
 
       return { message: 'Policies updated successfully' };
