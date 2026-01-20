@@ -1,8 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Calculator, TrendingUp, Home, Coins, Percent } from "lucide-react";
 import ChartCard from "@/components/dashboard/ChartCard";
 
 const Calculators = () => {
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/consultant') ? '/consultant' : '/app';
+
   const calculators = [
     {
       id: "fire",
@@ -10,7 +13,7 @@ const Calculators = () => {
       description: "Financial Independence, Retire Early - Calcule quanto precisa para alcançar independência financeira",
       icon: TrendingUp,
       color: "bg-blue-500/10 text-blue-500",
-      href: "/app/calculators/fire",
+      href: `${basePath}/calculators/fire`,
     },
     {
       id: "compound",
@@ -18,7 +21,7 @@ const Calculators = () => {
       description: "Calcule o valor futuro de seus investimentos com juros compostos",
       icon: Calculator,
       color: "bg-green-500/10 text-green-500",
-      href: "/app/calculators/compound",
+      href: `${basePath}/calculators/compound`,
     },
     {
       id: "usufruct",
@@ -26,7 +29,7 @@ const Calculators = () => {
       description: "Calcule o valor do usufruto e da nua propriedade em doações e heranças",
       icon: Home,
       color: "bg-purple-500/10 text-purple-500",
-      href: "/app/calculators/usufruct",
+      href: `${basePath}/calculators/usufruct`,
     },
     {
       id: "itcmd",
@@ -34,7 +37,7 @@ const Calculators = () => {
       description: "Calcule o Imposto de Transmissão Causa Mortis e Doação",
       icon: Coins,
       color: "bg-orange-500/10 text-orange-500",
-      href: "/app/calculators/itcmd",
+      href: `${basePath}/calculators/itcmd`,
     },
     {
       id: "profitability",
@@ -42,7 +45,7 @@ const Calculators = () => {
       description: "Compare diferentes cenários de investimento e rentabilidade",
       icon: Percent,
       color: "bg-pink-500/10 text-pink-500",
-      href: "/app/calculators/profitability",
+      href: `${basePath}/calculators/profitability`,
     },
   ];
 

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Search, UserPlus, MoreVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { consultantApi } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Client {
   id: string;
@@ -23,31 +25,26 @@ interface Client {
 
 const ClientsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        setLoading(true);
-        const data = await consultantApi.getClients({ search: searchQuery || undefined });
-        setClients(data.clients);
-        setError(null);
-      } catch (err: any) {
-        setError(err?.error || "Erro ao carregar clientes");
-        console.error("Error fetching clients:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const debounceTimer = setTimeout(() => {
-      fetchClients();
+  // Debounce search query
+  useMemo(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
     }, 300);
-
-    return () => clearTimeout(debounceTimer);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['consultant', 'clients', debouncedSearch],
+    queryFn: () => consultantApi.getClients({ search: debouncedSearch || undefined }),
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+    keepPreviousData: true, // Show previous data while fetching
+  });
+
+  const clients = data?.clients || [];
+  const loading = isLoading;
 
   const filteredClients = clients;
 
@@ -103,24 +100,26 @@ const ClientsList = () => {
       </ChartCard>
 
       {/* Clients List */}
-      <ChartCard title={`${filteredClients.length} Cliente${filteredClients.length !== 1 ? "s" : ""}`}>
+      <ChartCard title={`${clients.length} Cliente${clients.length !== 1 ? "s" : ""}`}>
         <div className="space-y-3">
           {loading ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">Carregando...</p>
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
             </div>
           ) : error ? (
             <div className="text-center py-8">
-              <p className="text-sm text-destructive">{error}</p>
+              <p className="text-sm text-destructive">{(error as any)?.error || "Erro ao carregar clientes"}</p>
             </div>
-          ) : filteredClients.length === 0 ? (
+          ) : clients.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-sm text-muted-foreground">
                 Nenhum cliente encontrado
               </p>
             </div>
           ) : (
-            filteredClients.map((client) => (
+            clients.map((client) => (
               <Link
                 key={client.id}
                 to={`/consultant/clients/${client.id}`}

@@ -35,9 +35,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'],
-    // Exclude heavy dependencies from pre-bundling (load on demand)
-    exclude: ['recharts'],
+    include: ['react', 'react-dom', 'react-router-dom', 'recharts'],
     // Reduce concurrent pre-bundling to prevent timeouts
     esbuildOptions: {
       target: 'esnext',

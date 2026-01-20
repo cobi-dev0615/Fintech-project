@@ -70,6 +70,8 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false, // Disable refetch on window focus globally
+      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+      gcTime: 10 * 60 * 1000, // Keep unused data in cache for 10 minutes (formerly cacheTime)
       retry: (failureCount, error: any) => {
         // Don't retry on 401 errors
         if (error?.statusCode === 401 || error?.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER') {

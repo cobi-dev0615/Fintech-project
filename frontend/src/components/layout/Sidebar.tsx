@@ -54,18 +54,18 @@ const customerNavItems: NavItem[] = [
   { icon: Calculator, label: "Calculadoras", href: "/app/calculators", enabled: false },
 ];
 
-// Consultant navigation items - only Dashboard enabled
+// Consultant navigation items - all enabled
 const consultantNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/consultant/dashboard", enabled: true },
   { icon: Bell, label: "Notificações", href: "/consultant/notifications", enabled: true },
   { icon: Package, label: "Planos", href: "/consultant/plans", enabled: true },
-  { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: false },
-  { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: false },
-  { icon: UserPlus, label: "Enviar Convites", href: "/consultant/invitations", enabled: false },
-  { icon: MessageSquare, label: "Mensagens", href: "/consultant/messages", enabled: false },
-  { icon: FileText, label: "Relatórios", href: "/consultant/reports", enabled: false },
-  { icon: Calculator, label: "Calculadoras", href: "/consultant/calculators", enabled: false },
-  { icon: TrendingUp, label: "Simulador", href: "/consultant/simulator", enabled: false },
+  { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: true },
+  { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: true },
+  { icon: UserPlus, label: "Enviar Convites", href: "/consultant/invitations", enabled: true },
+  { icon: MessageSquare, label: "Mensagens", href: "/consultant/messages", enabled: true },
+  { icon: FileText, label: "Relatórios", href: "/consultant/reports", enabled: true },
+  { icon: Calculator, label: "Calculadoras", href: "/consultant/calculators", enabled: true },
+  { icon: TrendingUp, label: "Simulador", href: "/consultant/simulator", enabled: true },
 ];
 
 // Admin navigation items - all enabled

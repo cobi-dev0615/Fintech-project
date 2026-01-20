@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, Send, Search, UserPlus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Message {
   id: string;
@@ -33,75 +35,57 @@ interface Conversation {
 const Messages = () => {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [conversations, setConversations] = useState<Message[]>([]);
-  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        setLoading(true);
-        const data = await consultantApi.getConversations();
-        setConversations(data.conversations);
-      } catch (err: any) {
-        console.error("Error fetching conversations:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: conversationsData, isLoading: conversationsLoading } = useQuery({
+    queryKey: ['consultant', 'conversations'],
+    queryFn: () => consultantApi.getConversations(),
+    staleTime: 30 * 1000, // 30 seconds (messages change frequently)
+    gcTime: 2 * 60 * 1000, // 2 minutes (formerly cacheTime)
+    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+  });
 
-    fetchConversations();
-  }, []);
+  const conversations = conversationsData?.conversations || [];
 
-  useEffect(() => {
-    if (!selectedConversation) {
-      setCurrentConversation(null);
-      return;
-    }
+  const { data: conversationData, isLoading: conversationLoading } = useQuery({
+    queryKey: ['consultant', 'conversation', selectedConversation],
+    queryFn: () => consultantApi.getConversation(selectedConversation!),
+    enabled: !!selectedConversation,
+    staleTime: 10 * 1000, // 10 seconds
+    gcTime: 1 * 60 * 1000, // 1 minute (formerly cacheTime)
+  });
 
-    const fetchConversation = async () => {
-      try {
-        const data = await consultantApi.getConversation(selectedConversation);
-        setCurrentConversation({
-          id: data.conversation.id,
-          clientId: data.conversation.clientId,
-          clientName: data.conversation.clientName,
-          messages: data.messages,
-        });
-      } catch (err: any) {
-        console.error("Error fetching conversation:", err);
-      }
-    };
+  const currentConversation = conversationData ? {
+    id: conversationData.conversation.id,
+    clientId: conversationData.conversation.clientId,
+    clientName: conversationData.conversation.clientName,
+    messages: conversationData.messages || [],
+  } : null;
 
-    fetchConversation();
-  }, [selectedConversation]);
-
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return;
-
-    try {
-      setSending(true);
-      const result = await consultantApi.sendMessage(selectedConversation, newMessage);
-      setCurrentConversation((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          messages: [...prev.messages, result.message],
-        };
-      });
+  const sendMessageMutation = useMutation({
+    mutationFn: ({ conversationId, content }: { conversationId: string; content: string }) =>
+      consultantApi.sendMessage(conversationId, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversation', selectedConversation] });
+      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
       setNewMessage("");
-    } catch (err: any) {
-      console.error("Error sending message:", err);
+    },
+    onError: (err: any) => {
       toast({
         title: "Erro",
         description: err?.error || "Erro ao enviar mensagem",
         variant: "destructive",
       });
-    } finally {
-      setSending(false);
-    }
+    },
+  });
+
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !selectedConversation) return;
+    sendMessageMutation.mutate({
+      conversationId: selectedConversation,
+      content: newMessage,
+    });
   };
 
   return (
@@ -140,56 +124,58 @@ const Messages = () => {
           </div>
           <ScrollArea className="flex-1">
             <div className="space-y-1 p-2">
-              {loading ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Carregando...</p>
+              {conversationsLoading ? (
+                <div className="space-y-3 p-4">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
                 </div>
               ) : conversations.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Nenhuma conversa ainda</p>
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  Nenhuma conversa encontrada
                 </div>
               ) : (
                 conversations.map((conversation) => (
-                <button
-                  key={conversation.id}
-                  onClick={() => setSelectedConversation(conversation.id)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    selectedConversation === conversation.id
-                      ? "bg-primary/10 border border-primary/20"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-semibold text-primary">
-                            {conversation.clientName.charAt(0)}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-sm text-foreground truncate">
-                            {conversation.clientName}
+                  <button
+                    key={conversation.id}
+                    onClick={() => setSelectedConversation(conversation.id)}
+                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                      selectedConversation === conversation.id
+                        ? "bg-primary/10 border border-primary/20"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-semibold text-primary">
+                              {conversation.clientName.charAt(0)}
+                            </span>
                           </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {conversation.lastMessage}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm text-foreground truncate">
+                              {conversation.clientName}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {conversation.lastMessage}
+                            </div>
                           </div>
                         </div>
                       </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {conversation.timestamp}
+                        </span>
+                        {conversation.unread > 0 && (
+                          <Badge className="bg-primary text-primary-foreground text-xs">
+                            {conversation.unread}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {conversation.timestamp}
-                      </span>
-                      {conversation.unread > 0 && (
-                        <Badge className="bg-primary text-primary-foreground text-xs">
-                          {conversation.unread}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))
+                  </button>
+                ))
               )}
             </div>
           </ScrollArea>
@@ -205,12 +191,12 @@ const Messages = () => {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <span className="text-sm font-semibold text-primary">
-                        {currentConversation.clientName.charAt(0)}
+                        {currentConversation?.clientName?.charAt(0)}
                       </span>
                     </div>
                     <div>
                       <div className="font-semibold text-foreground">
-                        {currentConversation.clientName}
+                        {currentConversation?.clientName}
                       </div>
                       <div className="text-xs text-muted-foreground">Cliente</div>
                     </div>
@@ -220,7 +206,7 @@ const Messages = () => {
                 {/* Messages */}
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-4">
-                    {currentConversation.messages.map((message) => (
+                    {currentConversation?.messages?.map((message: any) => (
                       <div
                         key={message.id}
                         className={`flex ${
@@ -257,7 +243,7 @@ const Messages = () => {
                         }
                       }}
                     />
-                    <Button onClick={handleSendMessage} size="icon" className="flex-shrink-0" disabled={sending || !newMessage.trim()}>
+                    <Button onClick={handleSendMessage} size="icon" className="flex-shrink-0" disabled={sendMessageMutation.isLoading || !newMessage.trim()}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>

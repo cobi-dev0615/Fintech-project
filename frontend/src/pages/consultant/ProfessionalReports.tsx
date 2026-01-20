@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileText, Download, Plus, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Report {
   id: string;
@@ -25,10 +27,7 @@ const ProfessionalReports = () => {
   const [reportType, setReportType] = useState("");
   const [includeWatermark, setIncludeWatermark] = useState(true);
   const [customBranding, setCustomBranding] = useState(false);
-  const [reports, setReports] = useState<Report[]>([]);
-  const [clients, setClients] = useState<Array<{ id: string; name: string }>>([]);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const reportTypes = [
@@ -47,25 +46,50 @@ const ProfessionalReports = () => {
     custom: "Relatório Personalizado",
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [reportsData, clientsData] = await Promise.all([
-          consultantApi.getReports(),
-          consultantApi.getClients(),
-        ]);
-        setReports(reportsData.reports);
-        setClients(clientsData.clients.map((c: any) => ({ id: c.id, name: c.name })));
-      } catch (err: any) {
-        console.error("Error fetching data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Fetch reports and clients in parallel with caching
+  const { data: reportsData, isLoading: reportsLoading } = useQuery({
+    queryKey: ['consultant', 'reports'],
+    queryFn: () => consultantApi.getReports(),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+  });
 
-    fetchData();
-  }, []);
+  const { data: clientsData, isLoading: clientsLoading } = useQuery({
+    queryKey: ['consultant', 'clients', ''],
+    queryFn: () => consultantApi.getClients(),
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+  });
+
+  const reports = reportsData?.reports || [];
+  const clients = clientsData?.clients?.map((c: any) => ({ id: c.id, name: c.name })) || [];
+  const loading = reportsLoading || clientsLoading;
+
+  const generateMutation = useMutation({
+    mutationFn: (params: {
+      clientId?: string;
+      type: string;
+      includeWatermark: boolean;
+      customBranding: boolean;
+    }) => consultantApi.generateReport(params),
+    onSuccess: (result) => {
+      // Invalidate and refetch reports
+      queryClient.invalidateQueries({ queryKey: ['consultant', 'reports'] });
+      toast({
+        title: "Sucesso",
+        description: result.message,
+      });
+      setSelectedClient("all");
+      setReportType("");
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao gerar relatório",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleGenerateReport = async () => {
     if (!reportType) {
@@ -77,31 +101,12 @@ const ProfessionalReports = () => {
       return;
     }
 
-    try {
-      setGenerating(true);
-      const result = await consultantApi.generateReport({
-        clientId: selectedClient === "all" ? undefined : selectedClient,
-        type: reportType,
-        includeWatermark,
-        customBranding,
-      });
-      setReports([result.report, ...reports]);
-      toast({
-        title: "Sucesso",
-        description: result.message,
-      });
-      setSelectedClient("all");
-      setReportType("");
-    } catch (err: any) {
-      toast({
-        title: "Erro",
-        description: err?.error || "Erro ao gerar relatório",
-        variant: "destructive",
-      });
-      console.error("Error generating report:", err);
-    } finally {
-      setGenerating(false);
-    }
+    generateMutation.mutate({
+      clientId: selectedClient === "all" ? undefined : selectedClient,
+      type: reportType,
+      includeWatermark,
+      customBranding,
+    });
   };
 
   return (
@@ -182,9 +187,9 @@ const ProfessionalReports = () => {
             </div>
           </div>
 
-          <Button className="w-full md:w-auto" disabled={!reportType || generating} onClick={handleGenerateReport}>
+          <Button className="w-full md:w-auto" disabled={!reportType || generateMutation.isLoading} onClick={handleGenerateReport}>
             <FileText className="h-4 w-4 mr-2" />
-            {generating ? "Gerando..." : "Gerar Relatório PDF"}
+            {generateMutation.isLoading ? "Gerando..." : "Gerar Relatório PDF"}
           </Button>
         </div>
       </ChartCard>
@@ -193,8 +198,10 @@ const ProfessionalReports = () => {
       <ChartCard title="Relatórios Gerados">
         <div className="space-y-3">
           {loading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>Carregando...</p>
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
             </div>
           ) : reports.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">

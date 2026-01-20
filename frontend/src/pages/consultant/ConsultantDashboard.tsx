@@ -1,37 +1,37 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Users, TrendingUp, Calendar, AlertCircle } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Link } from "react-router-dom";
 import { consultantApi } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ConsultantDashboard = () => {
-  const [metrics, setMetrics] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: metrics, isLoading, error } = useQuery({
+    queryKey: ['consultant', 'dashboard', 'metrics'],
+    queryFn: () => consultantApi.getDashboardMetrics(),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+  });
 
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        setLoading(true);
-        const data = await consultantApi.getDashboardMetrics();
-        setMetrics(data);
-        setError(null);
-      } catch (err: any) {
-        setError(err?.error || "Erro ao carregar dados");
-        console.error("Error fetching dashboard metrics:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMetrics();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Carregando...</p>
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+        </div>
       </div>
     );
   }
@@ -39,7 +39,7 @@ const ConsultantDashboard = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">{error}</p>
+        <p className="text-destructive">{(error as any)?.error || "Erro ao carregar dados"}</p>
       </div>
     );
   }

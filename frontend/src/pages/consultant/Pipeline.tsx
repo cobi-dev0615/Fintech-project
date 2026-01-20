@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, User, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Prospect {
   id: string;
@@ -31,28 +33,18 @@ const Pipeline = () => {
     'lost': 'Perdido',
   };
 
-  const [prospects, setProspects] = useState<Prospect[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchPipeline = async () => {
-      try {
-        setLoading(true);
-        const data = await consultantApi.getPipeline();
-        setProspects(data.prospects);
-        setError(null);
-      } catch (err: any) {
-        setError(err?.error || "Erro ao carregar pipeline");
-        console.error("Error fetching pipeline:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['consultant', 'pipeline'],
+    queryFn: () => consultantApi.getPipeline(),
+    staleTime: 1 * 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+  });
 
-    fetchPipeline();
-  }, []);
+  const prospects = data?.prospects || [];
+  const loading = isLoading;
 
   const moveProspect = async (prospectId: string, direction: "left" | "right") => {
     const prospect = prospects.find(p => p.id === prospectId);
@@ -69,13 +61,22 @@ const Pipeline = () => {
       return;
     }
 
+    // Optimistic update
+    queryClient.setQueryData(['consultant', 'pipeline'], (old: any) => ({
+      ...old,
+      prospects: old.prospects.map((p: Prospect) =>
+        p.id === prospectId ? { ...p, stage: newStage } : p
+      ),
+    }));
+
     try {
       await consultantApi.updateProspectStage(prospectId, newStage);
-      setProspects((prev) =>
-        prev.map((p) => (p.id === prospectId ? { ...p, stage: newStage } : p))
-      );
+      // Refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['consultant', 'pipeline'] });
     } catch (err: any) {
       console.error("Error updating prospect stage:", err);
+      // Revert on error
+      queryClient.invalidateQueries({ queryKey: ['consultant', 'pipeline'] });
       toast({
         title: "Erro",
         description: err?.error || "Erro ao atualizar estágio",
@@ -104,13 +105,15 @@ const Pipeline = () => {
         </Button>
       </div>
 
-      {loading ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Carregando...</p>
+      {loading && !prospects.length ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-96" />
+          ))}
         </div>
       ) : error ? (
         <div className="text-center py-8">
-          <p className="text-destructive">{error}</p>
+          <p className="text-destructive">{(error as any)?.error || "Erro ao carregar pipeline"}</p>
         </div>
       ) : (
         /* Pipeline Kanban */
