@@ -36,6 +36,7 @@ const ProfitabilitySimulator = lazy(() => import("./pages/calculators/Profitabil
 const CustomerSettings = lazy(() => import("./pages/Settings"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const PlanPurchase = lazy(() => import("./pages/PlanPurchase"));
+const Payment = lazy(() => import("./pages/Payment"));
 
 // Consultant pages - lazy loaded
 const ConsultantDashboard = lazy(() => import("./pages/consultant/ConsultantDashboard"));
@@ -115,6 +116,7 @@ const App = () => (
               <Route path="settings" element={<Suspense fallback={<PageLoader />}><CustomerSettings /></Suspense>} />
               <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
               <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanPurchase /></Suspense>} />
+              <Route path="payment" element={<Suspense fallback={<PageLoader />}><Payment /></Suspense>} />
               <Route path="more" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
             </Route>
 
@@ -137,6 +139,7 @@ const App = () => (
               <Route path="settings" element={<Suspense fallback={<PageLoader />}><ConsultantSettings /></Suspense>} />
               <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
               <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanPurchase /></Suspense>} />
+              <Route path="payment" element={<Suspense fallback={<PageLoader />}><Payment /></Suspense>} />
             </Route>
 
             {/* Admin Routes */}

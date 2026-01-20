@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, CreditCard, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Check, CreditCard, Loader2, CheckCircle2, XCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { publicApi, subscriptionsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +33,7 @@ interface Plan {
 interface CurrentSubscription {
   id: string;
   status: string;
+  currentPeriodEnd: string | null;
   plan: {
     id: string;
     code: string;
@@ -66,6 +69,7 @@ const PlanPurchase = () => {
         setCurrentSubscription({
           id: subscriptionResponse.subscription.id,
           status: subscriptionResponse.subscription.status,
+          currentPeriodEnd: subscriptionResponse.subscription.currentPeriodEnd,
           plan: subscriptionResponse.subscription.plan,
         });
       }
@@ -99,43 +103,15 @@ const PlanPurchase = () => {
   const handleConfirmPurchase = async () => {
     if (!selectedPlanId) return;
 
-    try {
-      setPurchasing(selectedPlanId);
-      const response = await subscriptionsApi.createSubscription(selectedPlanId);
+    // Redirect to payment page with plan ID
+    setShowConfirmDialog(false);
+    const planId = selectedPlanId;
+    setSelectedPlanId(null);
 
-      toast({
-        title: "Sucesso!",
-        description: `Plano ${response.subscription.plan.name} ativado com sucesso!`,
-        variant: "default",
-      });
-
-      // Update current subscription
-      setCurrentSubscription({
-        id: response.subscription.id,
-        status: response.subscription.status,
-        plan: response.subscription.plan,
-      });
-
-      setShowConfirmDialog(false);
-      setSelectedPlanId(null);
-
-      // Redirect to dashboard after a short delay (based on current route)
-      setTimeout(() => {
-        if (location.pathname.startsWith('/consultant')) {
-          navigate('/consultant/dashboard');
-        } else {
-          navigate('/app/dashboard');
-        }
-      }, 1500);
-    } catch (error: any) {
-      console.error('Failed to purchase plan:', error);
-      toast({
-        title: "Erro",
-        description: error?.error || 'Falha ao assinar plano',
-        variant: "destructive",
-      });
-    } finally {
-      setPurchasing(null);
+    if (location.pathname.startsWith('/consultant')) {
+      navigate('/consultant/payment', { state: { planId } });
+    } else {
+      navigate('/app/payment', { state: { planId } });
     }
   };
 
@@ -180,13 +156,32 @@ const PlanPurchase = () => {
       {currentSubscription && currentSubscription.status === 'active' && (
         <Card className="mb-6 border-primary/20 bg-primary/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-              Plano Atual
-            </CardTitle>
-            <CardDescription>
-              Você está atualmente no plano <strong>{currentSubscription.plan.name}</strong>
-            </CardDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  Plano Atual
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Você está atualmente no plano <strong className="text-foreground">{currentSubscription.plan.name}</strong>
+                </CardDescription>
+                {currentSubscription.currentPeriodEnd && (
+                  <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      Válido até:{" "}
+                      <strong className="text-foreground">
+                        {format(parseISO(currentSubscription.currentPeriodEnd), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      </strong>
+                    </span>
+                  </div>
+                )}
+              </div>
+              <Badge variant="default" className="bg-primary">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Ativo
+              </Badge>
+            </div>
           </CardHeader>
         </Card>
       )}

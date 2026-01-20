@@ -75,7 +75,26 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).userId;
-      const { planId } = request.body as { planId: string };
+      const { planId, payment } = request.body as { 
+        planId: string;
+        payment?: {
+          paymentMethod: string;
+          cardNumber: string;
+          cardName: string;
+          expiryDate: string;
+          cvv: string;
+          billing: {
+            name: string;
+            email: string;
+            phone: string;
+            document: string;
+            zipCode: string;
+            address: string;
+            city: string;
+            state: string;
+          };
+        };
+      };
 
       if (!planId) {
         return reply.code(400).send({ error: 'planId is required' });
@@ -149,6 +168,48 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
       );
 
       const subscription = result.rows[0];
+
+      // Create payment record if payment information is provided
+      if (payment) {
+        let hasPayments = false;
+        try {
+          await db.query('SELECT 1 FROM payments LIMIT 1');
+          hasPayments = true;
+        } catch {}
+
+        if (hasPayments) {
+          // Extract last 4 digits of card
+          const last4 = payment.cardNumber.slice(-4);
+          
+          // Create payment record
+          await db.query(
+            `INSERT INTO payments (
+              subscription_id,
+              user_id,
+              amount_cents,
+              currency,
+              status,
+              provider,
+              provider_payload
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+              subscription.id,
+              userId,
+              plan.price_cents,
+              'BRL',
+              'paid', // Assuming payment is successful when using ASAA
+              payment.paymentMethod || 'ASAA',
+              JSON.stringify({
+                cardLast4: last4,
+                cardName: payment.cardName,
+                expiryDate: payment.expiryDate,
+                billing: payment.billing,
+              }),
+            ]
+          );
+        }
+      }
 
       return reply.code(201).send({
         subscription: {

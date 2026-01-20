@@ -403,7 +403,23 @@ export const subscriptionsApi = {
       } | null;
     }>('/subscriptions/me'),
 
-  createSubscription: (planId: string) =>
+  createSubscription: (planId: string, paymentData?: {
+    paymentMethod: string;
+    cardNumber: string;
+    cardName: string;
+    expiryDate: string;
+    cvv: string;
+    billing: {
+      name: string;
+      email: string;
+      phone: string;
+      document: string;
+      zipCode: string;
+      address: string;
+      city: string;
+      state: string;
+    };
+  }) =>
     api.post<{
       subscription: {
         id: string;
@@ -418,7 +434,7 @@ export const subscriptionsApi = {
           priceCents: number;
         };
       };
-    }>('/subscriptions', { planId }),
+    }>('/subscriptions', { planId, ...(paymentData && { payment: paymentData }) }),
 
   cancelSubscription: () =>
     api.patch<{ message: string }>('/subscriptions/cancel'),
