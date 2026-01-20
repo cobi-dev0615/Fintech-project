@@ -383,6 +383,22 @@ export const notificationsApi = {
     api.delete<{ success: boolean }>(`/notifications/${id}`),
 };
 
+// Public endpoints (no authentication required)
+export const publicApi = {
+  getPlans: () =>
+    api.get<{
+      plans: Array<{
+        id: string;
+        code: string;
+        name: string;
+        priceCents: number;
+        connectionLimit: number | null;
+        features: string[];
+        isActive: boolean;
+      }>;
+    }>('/plans'),
+};
+
 // Admin endpoints
 export const adminApi = {
   // Plans

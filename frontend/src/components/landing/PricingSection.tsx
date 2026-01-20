@@ -2,53 +2,93 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { publicApi } from "@/lib/api";
+import { useState, useEffect } from "react";
 
-const plans = [
-  {
-    name: "Gratuito",
-    subtitle: "Ideal para começar",
-    price: "R$ 0",
-    period: "para sempre",
-    features: [
-      "1 conexão bancária",
-      "Dashboard básico",
-      "Cotações de mercado",
-    ],
-    cta: "Começar Grátis",
-    featured: false,
-  },
-  {
-    name: "Básico",
-    subtitle: "Para quem quer mais",
-    price: "R$ 29,90",
-    period: "/mês",
-    features: [
-      "3 conexões bancárias",
-      "Relatórios mensais",
-      "Câmbio e Crédito",
-      "Suporte por email",
-    ],
-    cta: "Assinar Básico",
-    featured: false,
-  },
-  {
-    name: "Profissional",
-    subtitle: "Controle total",
-    price: "R$ 79,90",
-    period: "/mês",
-    features: [
-      "10 conexões bancárias",
-      "IA Financeira",
-      "Relatórios ilimitados",
-      "Suporte prioritário",
-      "Alertas personalizados",
-    ],
-    cta: "Assinar Pro",
-    featured: true,
-  },
-];
+interface Plan {
+  name: string;
+  subtitle: string;
+  price: string;
+  period: string;
+  features: string[];
+  cta: string;
+  featured: boolean;
+}
 
 const PricingSection = () => {
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await publicApi.getPlans();
+        
+        // Map backend plans to frontend format
+        const mappedPlans: Plan[] = response.plans
+          .filter(plan => plan.isActive) // Only show active plans
+          .map((plan) => {
+            // Determine subtitle and CTA based on plan code
+            const getSubtitle = (code: string, name: string) => {
+              if (code === 'free') return 'Ideal para começar';
+              if (code === 'basic') return 'Para quem quer mais';
+              if (code === 'pro' || code === 'professional') return 'Controle total';
+              return name;
+            };
+
+            const getCta = (code: string, name: string) => {
+              if (code === 'free') return 'Começar Grátis';
+              if (code === 'basic') return 'Assinar Básico';
+              if (code === 'pro' || code === 'professional') return 'Assinar Pro';
+              return `Assinar ${name}`;
+            };
+
+            // Format price
+            const formatPrice = (cents: number) => {
+              if (cents === 0) return 'R$ 0';
+              const reais = cents / 100;
+              return `R$ ${reais.toFixed(2).replace('.', ',')}`;
+            };
+
+            // Determine period
+            const period = plan.priceCents === 0 ? 'para sempre' : '/mês';
+
+            // Determine if featured (pro/professional is usually featured)
+            const featured = plan.code === 'pro' || plan.code === 'professional';
+
+            return {
+              name: plan.name,
+              subtitle: getSubtitle(plan.code, plan.name),
+              price: formatPrice(plan.priceCents),
+              period,
+              features: plan.features || [],
+              cta: getCta(plan.code, plan.name),
+              featured,
+            };
+          })
+          .sort((a, b) => {
+            // Sort by featured first, then by price
+            if (a.featured && !b.featured) return -1;
+            if (!a.featured && b.featured) return 1;
+            return 0;
+          });
+
+        setPlans(mappedPlans);
+      } catch (err: any) {
+        console.error('Failed to fetch plans:', err);
+        setError('Erro ao carregar planos');
+        // Fallback to empty array or default plans if needed
+        setPlans([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlans();
+  }, []);
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -64,11 +104,24 @@ const PricingSection = () => {
         </div>
 
         {/* Plans Grid */}
-        <div 
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto"
-          style={{ perspective: '1200px', transformStyle: 'preserve-3d' }}
-        >
-          {plans.map((plan, index) => {
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="text-muted-foreground">Carregando planos...</div>
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="text-destructive">{error}</div>
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="text-muted-foreground">Nenhum plano disponível no momento.</div>
+          </div>
+        ) : (
+          <div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto"
+            style={{ perspective: '1200px', transformStyle: 'preserve-3d' }}
+          >
+            {plans.map((plan, index) => {
             // Different 3D rotations for each card
             const rotations = [
               { rotateX: '1deg', rotateY: '-2deg' }, // Left card
@@ -212,7 +265,8 @@ const PricingSection = () => {
             </div>
           );
           })}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );

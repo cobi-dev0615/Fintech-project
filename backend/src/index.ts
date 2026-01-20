@@ -15,6 +15,7 @@ import { consultantRoutes } from './routes/consultant.js';
 import { reportsRoutes } from './routes/reports.js';
 import { goalsRoutes } from './routes/goals.js';
 import { notificationsRoutes } from './routes/notifications.js';
+import { plansRoutes } from './routes/plans.js';
 import { setupWebSocket } from './websocket/websocket.js';
 
 dotenv.config();
@@ -120,6 +121,7 @@ await fastify.register(consultantRoutes, { prefix: '/api/consultant' });
 await fastify.register(reportsRoutes, { prefix: '/api/reports' });
 await fastify.register(goalsRoutes, { prefix: '/api/goals' });
 await fastify.register(notificationsRoutes, { prefix: '/api/notifications' });
+await fastify.register(plansRoutes, { prefix: '/api/plans' });
 
 // Start server
 const start = async () => {

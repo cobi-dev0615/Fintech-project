@@ -21,6 +21,7 @@ import {
   MessageSquare,
   DollarSign,
   UserPlus,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ interface NavItem {
 // Customer navigation items - only Dashboard enabled
 const customerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/app/dashboard", enabled: true },
+  { icon: Bell, label: "Notificações", href: "/app/notifications", enabled: true },
   { icon: Link2, label: "Conexões", href: "/app/connections", enabled: false },
   { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: false },
   { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: false },
@@ -53,6 +55,7 @@ const customerNavItems: NavItem[] = [
 // Consultant navigation items - only Dashboard enabled
 const consultantNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/consultant/dashboard", enabled: true },
+  { icon: Bell, label: "Notificações", href: "/consultant/notifications", enabled: true },
   { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: false },
   { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: false },
   { icon: UserPlus, label: "Enviar Convites", href: "/consultant/invitations", enabled: false },
@@ -65,6 +68,7 @@ const consultantNavItems: NavItem[] = [
 // Admin navigation items - all enabled
 const adminNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard", enabled: true },
+  { icon: Bell, label: "Notificações", href: "/admin/notifications", enabled: true },
   { icon: Shield, label: "Usuários", href: "/admin/users", enabled: true },
   { icon: SubscriptionIcon, label: "Assinaturas", href: "/admin/subscriptions", enabled: true },
   { icon: CreditCard, label: "Planos", href: "/admin/plans", enabled: true },
