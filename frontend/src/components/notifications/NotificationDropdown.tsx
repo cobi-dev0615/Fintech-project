@@ -141,7 +141,7 @@ const NotificationDropdown = () => {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-96 p-0 bg-popover" align="end">
-        <div className="flex flex-col h-[600px]">
+        <div className="flex flex-col h-[300px]">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="font-semibold text-foreground">Notificações</h3>

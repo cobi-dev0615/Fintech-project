@@ -35,7 +35,9 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'recharts'],
+    include: ['react', 'react-dom', 'react-router-dom', 'recharts', 'date-fns'],
+    // Force re-bundling to fix content length mismatch errors
+    force: true,
     // Reduce concurrent pre-bundling to prevent timeouts
     esbuildOptions: {
       target: 'esnext',

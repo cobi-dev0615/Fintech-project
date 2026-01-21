@@ -4,7 +4,7 @@ import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import NetWorthChart from "@/components/dashboard/NetWorthChart";
 import RecentTransactions from "@/components/dashboard/RecentTransactions";
 import AlertList, { Alert } from "@/components/dashboard/AlertList";
-import { dashboardApi, accountsApi } from "@/lib/api";
+import { dashboardApi } from "@/lib/api";
 
 const Dashboard = () => {
   const [summary, setSummary] = useState<any>(null);
@@ -16,10 +16,7 @@ const Dashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [summaryData, transactionsData] = await Promise.all([
-          dashboardApi.getSummary(),
-          accountsApi.getTransactions(undefined, 5, 0),
-        ]);
+        const summaryData = await dashboardApi.getSummary();
         setSummary(summaryData);
         
         // Convert transactions to alerts format if needed

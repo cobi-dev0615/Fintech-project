@@ -425,7 +425,7 @@ export const subscriptionsApi = {
       city: string;
       state: string;
     };
-  }) =>
+  }, billingPeriod?: 'monthly' | 'annual') =>
     api.post<{
       subscription: {
         id: string;
@@ -440,7 +440,7 @@ export const subscriptionsApi = {
           priceCents: number;
         };
       };
-    }>('/subscriptions', { planId, ...(paymentData && { payment: paymentData }) }),
+    }>('/subscriptions', { planId, billingPeriod: billingPeriod || 'monthly', ...(paymentData && { payment: paymentData }) }),
 
   cancelSubscription: () =>
     api.patch<{ message: string }>('/subscriptions/cancel'),
@@ -448,18 +448,25 @@ export const subscriptionsApi = {
 
 // Public endpoints (no authentication required)
 export const publicApi = {
-  getPlans: () =>
-    api.get<{
+  getPlans: (role?: 'customer' | 'consultant', billingPeriod?: 'monthly' | 'annual') => {
+    const params = new URLSearchParams();
+    if (role) params.append('role', role);
+    if (billingPeriod) params.append('billingPeriod', billingPeriod);
+    return api.get<{
       plans: Array<{
         id: string;
         code: string;
         name: string;
+        monthlyPriceCents: number;
+        annualPriceCents: number;
         priceCents: number;
         connectionLimit: number | null;
         features: string[];
         isActive: boolean;
+        role: string | null;
       }>;
-    }>('/plans'),
+    }>(`/plans${params.toString() ? `?${params.toString()}` : ''}`);
+  },
 };
 
 // Admin endpoints
@@ -754,6 +761,98 @@ export const adminApi = {
     cookiePolicy: string;
   }) =>
     api.put<{ message: string }>('/admin/settings/policies', policies),
+
+  // Payment history
+  getPaymentHistory: (params?: { 
+    page?: number; 
+    limit?: number; 
+    status?: string; 
+    userId?: string; 
+    startDate?: string; 
+    endDate?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.userId) queryParams.append('userId', params.userId);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    return api.get<{
+      payments: Array<{
+        id: string;
+        amountCents: number;
+        currency: string;
+        status: string;
+        paidAt: string | null;
+        provider: string | null;
+        providerPaymentId: string | null;
+        createdAt: string;
+        user: {
+          id: string;
+          name: string;
+          email: string;
+        };
+        subscription: {
+          id: string;
+          plan: {
+            name: string;
+            code: string;
+          };
+        } | null;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/admin/payments${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  },
+
+  // Login history
+  getLoginHistory: (params?: { 
+    page?: number; 
+    limit?: number; 
+    userId?: string; 
+    startDate?: string; 
+    endDate?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.userId) queryParams.append('userId', params.userId);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    return api.get<{
+      loginHistory: Array<{
+        id: string;
+        userId: string;
+        ipAddress: string | null;
+        userAgent: string | null;
+        success: boolean;
+        createdAt: string;
+        user: {
+          id: string;
+          name: string;
+          email: string;
+          role: string;
+        };
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/admin/login-history${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  },
+
+  deletePayment: (id: string) =>
+    api.delete<{ success: boolean; message: string }>(`/admin/payments/${id}`),
+
+  deleteLoginHistory: (id: string) =>
+    api.delete<{ success: boolean; message: string }>(`/admin/login-history/${id}`),
 };
 
 // Consultant endpoints

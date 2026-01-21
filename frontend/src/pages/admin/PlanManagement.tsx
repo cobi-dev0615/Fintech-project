@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CreditCard, Save, Plus, Trash2, Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +38,7 @@ interface Plan {
 }
 
 const PlanManagement = () => {
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -47,39 +49,55 @@ const PlanManagement = () => {
   const [newFeature, setNewFeature] = useState("");
   const { toast } = useToast();
 
-  // Load plans on mount
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const fetchPlans = async () => {
-    try {
-      setLoading(true);
+  // Fetch plans with React Query
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['admin', 'plans'],
+    queryFn: async () => {
       const response = await adminApi.getPlans();
-      setPlans(
-        response.plans.map((p) => ({
-          id: p.id,
-          code: p.code,
-          name: p.name,
-          price: p.priceCents / 100,
-          features: p.features || [],
-          connectionLimit: p.connectionLimit,
-          isActive: p.isActive,
-        }))
-      );
-    } catch (error: any) {
-      console.error('Failed to fetch plans:', error);
+      return response.plans.map((p) => ({
+        id: p.id,
+        code: p.code,
+        name: p.name,
+        price: p.priceCents / 100,
+        features: p.features || [],
+        connectionLimit: p.connectionLimit,
+        isActive: p.isActive,
+      }));
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  });
+
+  // Update local plans state when query data changes
+  useEffect(() => {
+    if (data) {
+      setPlans(data);
+    }
+  }, [data]);
+
+  // Delete plan mutation
+  const deletePlanMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await adminApi.deletePlan(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'plans'] });
+      toast({
+        title: "Sucesso",
+        description: `Plano excluído com sucesso!`,
+      });
+      setIsDeleteDialogOpen(false);
+      setPlanToDelete(null);
+    },
+    onError: (error: any) => {
       toast({
         title: "Erro",
-        description: error?.error || 'Falha ao carregar planos',
+        description: error?.error || error?.details || "Falha ao excluir plano",
         variant: "destructive",
       });
-      // Set empty array instead of fallback data to show error state
-      setPlans([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
   const handleEditPlan = (plan: Plan) => {
     setEditingPlan({ ...plan });
@@ -155,7 +173,7 @@ const PlanManagement = () => {
         description: "Planos salvos com sucesso!",
       });
       // Refresh plans after save
-      await fetchPlans();
+      queryClient.invalidateQueries({ queryKey: ['admin', 'plans'] });
     } catch (error: any) {
       console.error("Failed to save plans:", error);
       toast({
@@ -175,32 +193,11 @@ const PlanManagement = () => {
 
   const handleDeletePlan = async () => {
     if (!planToDelete || !planToDelete.id) return;
-
     setDeleting(true);
-    try {
-      await adminApi.deletePlan(planToDelete.id);
-      toast({
-        title: "Sucesso",
-        description: `Plano "${planToDelete.name}" excluído com sucesso!`,
-      });
-      // Refresh plans after delete
-      await fetchPlans();
-      setIsDeleteDialogOpen(false);
-      setPlanToDelete(null);
-    } catch (error: any) {
-      console.error("Failed to delete plan:", error);
-      toast({
-        title: "Erro",
-        description: error?.error || error?.details || "Falha ao excluir plano",
-        variant: "destructive",
-      });
-    } finally {
-      setDeleting(false);
-    }
+    await deletePlanMutation.mutateAsync(planToDelete.id);
+    setDeleting(false);
   };
 
-  // Get main plans for card display (free, basic, pro)
-  const mainPlans = plans.filter(p => ['free', 'basic', 'pro'].includes(p.code.toLowerCase()));
   const getPlanDescription = (code: string) => {
     const descriptions: Record<string, string> = {
       free: 'Ideal para começar',
@@ -239,6 +236,53 @@ const PlanManagement = () => {
     return code.toLowerCase() === 'pro';
   };
 
+  // Loading state with skeleton loaders
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Page Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-40" />
+        </div>
+
+        {/* Plan Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-96" />
+          ))}
+        </div>
+
+        {/* Plans List Skeleton */}
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gerencie planos e preços de assinatura
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-destructive">{(error as any)?.error || "Erro ao carregar planos"}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const mainPlans = plans.filter(p => ['free', 'basic', 'pro'].includes(p.code.toLowerCase()));
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -256,7 +300,7 @@ const PlanManagement = () => {
       </div>
 
       {/* Plan Cards */}
-      {!loading && mainPlans.length > 0 && (
+      {mainPlans.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {mainPlans.map((plan) => {
             const isPopular = isPopularPlan(plan.code);
@@ -327,12 +371,7 @@ const PlanManagement = () => {
 
       {/* Plans List */}
       <ChartCard title={`${plans.length} Plano${plans.length !== 1 ? "s" : ""}`}>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">Carregando planos...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
+        <div className="space-y-4">
             {plans.map((plan) => (
               <div
                 key={plan.id || plan.code}
@@ -404,8 +443,7 @@ const PlanManagement = () => {
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Novo Plano
             </Button>
-          </div>
-        )}
+        </div>
       </ChartCard>
 
       {/* Plan Edit Dialog */}

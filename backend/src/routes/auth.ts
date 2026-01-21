@@ -2,6 +2,41 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { db } from '../db/connection.js';
+import { getClientIp } from '../utils/audit.js';
+
+// Helper function to log login attempts
+async function logLoginAttempt(userId: string | null, request: FastifyRequest, success: boolean, email?: string) {
+  try {
+    // Check if login_history table exists
+    let hasLoginHistory = false;
+    try {
+      await db.query('SELECT 1 FROM login_history LIMIT 1');
+      hasLoginHistory = true;
+    } catch {}
+
+    if (hasLoginHistory) {
+      const ipAddress = getClientIp(request);
+      const userAgent = request.headers['user-agent'] || null;
+
+      // If no userId but we have email, try to find the user
+      if (!userId && email) {
+        const userResult = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+        if (userResult.rows.length > 0) {
+          userId = userResult.rows[0].id;
+        }
+      }
+
+      await db.query(
+        `INSERT INTO login_history (user_id, ip_address, user_agent, success)
+         VALUES ($1, $2, $3, $4)`,
+        [userId, ipAddress, userAgent, success]
+      );
+    }
+  } catch (error) {
+    // Don't throw - login logging shouldn't break the login flow
+    console.error('Failed to log login attempt:', error);
+  }
+}
 
 const registerSchema = z.object({
   full_name: z.string().min(2),
@@ -77,6 +112,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       );
       
       if (result.rows.length === 0) {
+        // Log failed login attempt (user not found)
+        await logLoginAttempt(null, request, false, body.email);
         return reply.code(401).send({ error: 'Invalid credentials' });
       }
       
@@ -88,14 +125,21 @@ export async function authRoutes(fastify: FastifyInstance) {
       
       // Verify password
       if (!user.password_hash) {
+        // Log failed login attempt
+        await logLoginAttempt(user.id, request, false, body.email);
         return reply.code(401).send({ error: 'Invalid credentials' });
       }
       
       const validPassword = await bcrypt.compare(body.password, user.password_hash);
       
       if (!validPassword) {
+        // Log failed login attempt
+        await logLoginAttempt(user.id, request, false, body.email);
         return reply.code(401).send({ error: 'Invalid credentials' });
       }
+      
+      // Log successful login
+      await logLoginAttempt(user.id, request, true, body.email);
       
       // Generate JWT
       const token = fastify.jwt.sign({ userId: user.id, role: user.role });

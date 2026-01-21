@@ -118,33 +118,110 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).userId;
-      const { months = 6 } = request.query as any;
+      const monthsParam = parseInt((request.query as any)?.months || '7', 10);
       
-      // Check if transactions table exists
+      // Check which tables exist
+      let hasBankAccounts = false;
+      let hasHoldings = false;
       let hasTransactions = false;
+
+      try {
+        await db.query('SELECT 1 FROM bank_accounts LIMIT 1');
+        hasBankAccounts = true;
+      } catch {}
+
+      try {
+        await db.query('SELECT 1 FROM holdings LIMIT 1');
+        hasHoldings = true;
+      } catch {}
+
       try {
         await db.query('SELECT 1 FROM transactions LIMIT 1');
         hasTransactions = true;
       } catch {}
 
-      if (!hasTransactions) {
-        return reply.send({ data: [] });
+      // Get current net worth
+      let currentNetWorth = 0;
+      if (hasBankAccounts || hasHoldings) {
+        try {
+          let queryParts: string[] = [];
+          if (hasBankAccounts) {
+            queryParts.push(`SELECT balance_cents, 0 as market_value_cents FROM bank_accounts WHERE user_id = $1`);
+          }
+          if (hasHoldings) {
+            queryParts.push(`SELECT 0 as balance_cents, market_value_cents FROM holdings WHERE user_id = $1`);
+          }
+          
+          if (queryParts.length > 0) {
+            const netWorthResult = await db.query(
+              `SELECT 
+                COALESCE(SUM(balance_cents), 0) + COALESCE(SUM(market_value_cents), 0) as net_worth
+               FROM (${queryParts.join(' UNION ALL ')}) combined`,
+              [userId]
+            );
+            currentNetWorth = Number(netWorthResult.rows[0]?.net_worth || 0);
+          }
+        } catch (error) {
+          fastify.log.error('Error calculating current net worth:', error);
+        }
       }
+
+      // Get monthly transaction changes
+      let monthlyChanges: Array<{ month: Date; change: number }> = [];
+      if (hasTransactions) {
+        try {
+          const result = await db.query(
+            `SELECT 
+              DATE_TRUNC('month', occurred_at) as month,
+              SUM(amount_cents) as change
+             FROM transactions
+             WHERE user_id = $1 
+               AND occurred_at >= NOW() - INTERVAL '${monthsParam} months'
+             GROUP BY DATE_TRUNC('month', occurred_at)
+             ORDER BY month ASC`,
+            [userId]
+          );
+          
+          monthlyChanges = result.rows.map((row: any) => ({
+            month: new Date(row.month),
+            change: Number(row.change || 0),
+          }));
+        } catch (error) {
+          fastify.log.error('Error getting monthly changes:', error);
+        }
+      }
+
+      // Calculate cumulative net worth for each month
+      // Start from current net worth and work backwards
+      const data: Array<{ month: string; value: number }> = [];
+      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       
-      // This is a simplified version - in production, you'd calculate historical snapshots
-      const result = await db.query(
-        `SELECT 
-          DATE_TRUNC('month', occurred_at) as month,
-          SUM(amount_cents) as change
-         FROM transactions
-         WHERE user_id = $1 
-           AND occurred_at >= NOW() - INTERVAL '${months} months'
-         GROUP BY DATE_TRUNC('month', occurred_at)
-         ORDER BY month ASC`,
-        [userId]
-      );
+      // Generate all months in the range
+      const now = new Date();
+      const months: Date[] = [];
+      for (let i = monthsParam - 1; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(date);
+      }
+
+      // For each month, calculate net worth by subtracting future changes
+      months.forEach((monthDate) => {
+        // Sum all changes that occurred after this month
+        const futureChanges = monthlyChanges
+          .filter((mc) => mc.month > monthDate)
+          .reduce((sum, mc) => sum + mc.change, 0);
+        
+        // Net worth at this month = current net worth - future changes
+        const netWorthAtMonth = currentNetWorth - futureChanges;
+        
+        const monthName = monthNames[monthDate.getMonth()];
+        data.push({
+          month: monthName,
+          value: Math.max(0, netWorthAtMonth / 100), // Convert cents to reais
+        });
+      });
       
-      return reply.send({ data: result.rows });
+      return reply.send({ data });
     } catch (error) {
       fastify.log.error(error);
       // Return empty array instead of error to prevent frontend crashes

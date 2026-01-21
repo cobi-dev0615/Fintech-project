@@ -75,8 +75,9 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).userId;
-      const { planId, payment } = request.body as { 
+      const { planId, billingPeriod = 'monthly', payment } = request.body as { 
         planId: string;
+        billingPeriod?: 'monthly' | 'annual';
         payment?: {
           paymentMethod: string;
           cardNumber: string;
@@ -113,10 +114,20 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
       }
 
       // Verify plan exists and is active
-      const planResult = await db.query(
-        'SELECT id, code, name, price_cents, is_active FROM plans WHERE id = $1',
-        [planId]
-      );
+      // Check if plans table has monthly_price_cents and annual_price_cents columns
+      let hasBillingColumns = false;
+      try {
+        await db.query('SELECT monthly_price_cents, annual_price_cents FROM plans LIMIT 1');
+        hasBillingColumns = true;
+      } catch {}
+
+      let planQuery = 'SELECT id, code, name, price_cents, is_active';
+      if (hasBillingColumns) {
+        planQuery += ', monthly_price_cents, annual_price_cents';
+      }
+      planQuery += ' FROM plans WHERE id = $1';
+      
+      const planResult = await db.query(planQuery, [planId]);
 
       if (planResult.rows.length === 0) {
         return reply.code(404).send({ error: 'Plan not found' });
@@ -146,11 +157,25 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
         );
       }
 
-      // Calculate period dates
+      // Calculate period dates based on billing period
       const now = new Date();
       const periodStart = now;
       const periodEnd = new Date(now);
-      periodEnd.setMonth(periodEnd.getMonth() + 1); // 1 month subscription
+      if (billingPeriod === 'annual') {
+        periodEnd.setFullYear(periodEnd.getFullYear() + 1); // 1 year subscription
+      } else {
+        periodEnd.setMonth(periodEnd.getMonth() + 1); // 1 month subscription
+      }
+      
+      // Get the correct price based on billing period
+      let planPrice = plan.price_cents;
+      if (hasBillingColumns) {
+        if (billingPeriod === 'annual' && plan.annual_price_cents !== null) {
+          planPrice = plan.annual_price_cents;
+        } else if (billingPeriod === 'monthly' && plan.monthly_price_cents !== null) {
+          planPrice = plan.monthly_price_cents;
+        }
+      }
 
       // Create new subscription
       const result = await db.query(
@@ -196,7 +221,7 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
             [
               subscription.id,
               userId,
-              plan.price_cents,
+              planPrice,
               'BRL',
               'paid', // Assuming payment is successful when using ASAA
               payment.paymentMethod || 'ASAA',
@@ -205,6 +230,7 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
                 cardName: payment.cardName,
                 expiryDate: payment.expiryDate,
                 billing: payment.billing,
+                billingPeriod: billingPeriod,
               }),
             ]
           );

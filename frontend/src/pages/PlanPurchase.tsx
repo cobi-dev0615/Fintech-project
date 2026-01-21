@@ -3,9 +3,11 @@ import { Check, CreditCard, Loader2, CheckCircle2, XCircle, Calendar } from "luc
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { publicApi, subscriptionsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,10 +26,13 @@ interface Plan {
   id: string;
   code: string;
   name: string;
+  monthlyPriceCents: number;
+  annualPriceCents: number;
   priceCents: number;
   connectionLimit: number | null;
   features: string[];
   isActive: boolean;
+  role: string | null;
 }
 
 interface CurrentSubscription {
@@ -42,48 +47,69 @@ interface CurrentSubscription {
 }
 
 const PlanPurchase = () => {
+  const { user } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<CurrentSubscription | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [plansLoading, setPlansLoading] = useState(false);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Determine user role - default to customer if not available
+  const userRole = user?.role || (location.pathname.startsWith('/consultant') ? 'consultant' : 'customer');
 
+  // Initial data fetch (subscription + plans)
   useEffect(() => {
-    fetchData();
+    const fetchInitialData = async () => {
+      try {
+        setInitialLoading(true);
+        const subscriptionResponse = await subscriptionsApi.getMySubscription().catch(() => ({ subscription: null }));
+        
+        if (subscriptionResponse.subscription) {
+          setCurrentSubscription({
+            id: subscriptionResponse.subscription.id,
+            status: subscriptionResponse.subscription.status,
+            currentPeriodEnd: subscriptionResponse.subscription.currentPeriodEnd,
+            plan: subscriptionResponse.subscription.plan,
+          });
+        }
+      } catch (error: any) {
+        console.error('Failed to fetch subscription:', error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    fetchInitialData();
   }, []);
 
-  const fetchData = async () => {
+  // Fetch plans when billing period or role changes
+  const fetchPlans = async () => {
     try {
-      setLoading(true);
-      const [plansResponse, subscriptionResponse] = await Promise.all([
-        publicApi.getPlans(),
-        subscriptionsApi.getMySubscription().catch(() => ({ subscription: null })),
-      ]);
-
+      setPlansLoading(true);
+      const plansResponse = await publicApi.getPlans(userRole as 'customer' | 'consultant', billingPeriod);
       setPlans(plansResponse.plans);
-      if (subscriptionResponse.subscription) {
-        setCurrentSubscription({
-          id: subscriptionResponse.subscription.id,
-          status: subscriptionResponse.subscription.status,
-          currentPeriodEnd: subscriptionResponse.subscription.currentPeriodEnd,
-          plan: subscriptionResponse.subscription.plan,
-        });
-      }
     } catch (error: any) {
-      console.error('Failed to fetch data:', error);
+      console.error('Failed to fetch plans:', error);
       toast({
         title: "Erro",
         description: error?.error || 'Falha ao carregar planos',
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setPlansLoading(false);
     }
   };
+
+  // Fetch plans on mount and when billing period changes
+  useEffect(() => {
+    fetchPlans();
+  }, [billingPeriod, userRole]);
 
   const handlePurchaseClick = (planId: string) => {
     // Don't allow purchasing the same plan
@@ -103,15 +129,15 @@ const PlanPurchase = () => {
   const handleConfirmPurchase = async () => {
     if (!selectedPlanId) return;
 
-    // Redirect to payment page with plan ID
+    // Redirect to payment page with plan ID and billing period
     setShowConfirmDialog(false);
     const planId = selectedPlanId;
     setSelectedPlanId(null);
 
     if (location.pathname.startsWith('/consultant')) {
-      navigate('/consultant/payment', { state: { planId } });
+      navigate('/consultant/payment', { state: { planId, billingPeriod } });
     } else {
-      navigate('/app/payment', { state: { planId } });
+      navigate('/app/payment', { state: { planId, billingPeriod } });
     }
   };
 
@@ -119,6 +145,29 @@ const PlanPurchase = () => {
     if (cents === 0) return 'Grátis';
     const reais = cents / 100;
     return `R$ ${reais.toFixed(2).replace('.', ',')}`;
+  };
+
+  const getPlanCardColor = (plan: Plan) => {
+    // Different colors for customer vs consultant plans
+    if (userRole === 'consultant') {
+      // Consultant plans - use teal/cyan colors
+      return {
+        border: 'border-teal-500/30',
+        hover: 'hover:border-teal-500/50',
+        featured: 'border-teal-500 shadow-lg shadow-teal-500/10',
+        badge: 'bg-teal-500 text-teal-50',
+        ring: 'ring-teal-500',
+      };
+    } else {
+      // Customer plans - use blue colors (default)
+      return {
+        border: 'border-primary/30',
+        hover: 'hover:border-primary/50',
+        featured: 'border-primary shadow-lg shadow-primary/10',
+        badge: 'bg-primary text-primary-foreground',
+        ring: 'ring-primary',
+      };
+    }
   };
 
   const getSubtitle = (code: string) => {
@@ -136,7 +185,7 @@ const PlanPurchase = () => {
     return code === 'pro' || code === 'professional';
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -154,12 +203,18 @@ const PlanPurchase = () => {
       </div>
 
       {currentSubscription && currentSubscription.status === 'active' && (
-        <Card className="mb-6 border-primary/20 bg-primary/5">
+        <Card className={cn(
+          "mb-6 border-primary/20 bg-primary/5",
+          userRole === 'consultant' && "border-teal-500/20 bg-teal-500/5"
+        )}>
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <CheckCircle2 className={cn(
+                    "h-5 w-5 text-primary",
+                    userRole === 'consultant' && "text-teal-500"
+                  )} />
                   Plano Atual
                 </CardTitle>
                 <CardDescription className="text-base">
@@ -177,7 +232,10 @@ const PlanPurchase = () => {
                   </div>
                 )}
               </div>
-              <Badge variant="default" className="bg-primary">
+              <Badge variant="default" className={cn(
+                "bg-primary",
+                userRole === 'consultant' && "bg-teal-500"
+              )}>
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 Ativo
               </Badge>
@@ -186,31 +244,71 @@ const PlanPurchase = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {plans.map((plan) => {
+      {/* Billing Period Toggle */}
+      <div className="mb-6 flex justify-center">
+        <Tabs value={billingPeriod} onValueChange={(value) => setBillingPeriod(value as 'monthly' | 'annual')}>
+          <TabsList>
+            <TabsTrigger value="monthly">Mensal</TabsTrigger>
+            <TabsTrigger value="annual">Anual</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Plans Grid */}
+      <div className="relative">
+        {plansLoading && (
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        <div className={cn(
+          "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6",
+          plansLoading && "opacity-50"
+        )}>
+          {plans.map((plan) => {
           const isCurrent = isCurrentPlan(plan.id);
           const featured = isFeatured(plan.code);
           const isFree = plan.priceCents === 0;
+          const colors = getPlanCardColor(plan);
+          const currentPrice = billingPeriod === 'annual' ? plan.annualPriceCents : plan.monthlyPriceCents;
+          const monthlyEquivalent = billingPeriod === 'annual' ? Math.round(plan.annualPriceCents / 12) : plan.monthlyPriceCents;
+          const savings = billingPeriod === 'annual' && plan.annualPriceCents > 0 
+            ? Math.round(((plan.monthlyPriceCents * 12 - plan.annualPriceCents) / (plan.monthlyPriceCents * 12)) * 100)
+            : 0;
 
           return (
             <Card
               key={plan.id}
               className={cn(
                 "relative flex flex-col transition-all duration-300",
-                featured && "border-primary shadow-lg shadow-primary/10 scale-105",
-                !featured && "hover:border-primary/30",
-                isCurrent && "ring-2 ring-primary"
+                featured && colors.featured + " scale-105",
+                !featured && colors.hover,
+                isCurrent && `ring-2 ${colors.ring}`
               )}
             >
               {featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">
+                <div className={cn(
+                  "absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap",
+                  colors.badge
+                )}>
                   Mais Popular
+                </div>
+              )}
+
+              {billingPeriod === 'annual' && savings > 0 && (
+                <div className="absolute top-2 right-2">
+                  <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
+                    Economize {savings}%
+                  </Badge>
                 </div>
               )}
 
               {isCurrent && (
                 <div className="absolute top-4 right-4">
-                  <Badge variant="default" className="bg-primary">
+                  <Badge variant="default" className={cn(
+                    "bg-primary",
+                    userRole === 'consultant' && "bg-teal-500"
+                  )}>
                     <CheckCircle2 className="h-3 w-3 mr-1" />
                     Ativo
                   </Badge>
@@ -223,12 +321,19 @@ const PlanPurchase = () => {
                 <div className="mt-4">
                   <div className="flex items-baseline gap-1">
                     <span className="text-4xl font-bold text-foreground">
-                      {formatPrice(plan.priceCents)}
+                      {formatPrice(currentPrice)}
                     </span>
                     {!isFree && (
-                      <span className="text-sm text-muted-foreground">/mês</span>
+                      <span className="text-sm text-muted-foreground">
+                        /{billingPeriod === 'annual' ? 'ano' : 'mês'}
+                      </span>
                     )}
                   </div>
+                  {billingPeriod === 'annual' && !isFree && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatPrice(monthlyEquivalent)}/mês equivalente
+                    </p>
+                  )}
                   {plan.connectionLimit !== null && (
                     <p className="text-sm text-muted-foreground mt-1">
                       Até {plan.connectionLimit} conexões
@@ -256,7 +361,10 @@ const PlanPurchase = () => {
                   onClick={() => handlePurchaseClick(plan.id)}
                   disabled={isCurrent || purchasing !== null}
                   variant={featured ? "default" : "outline"}
-                  className="w-full"
+                  className={cn(
+                    "w-full",
+                    userRole === 'consultant' && featured && "bg-teal-500 hover:bg-teal-600"
+                  )}
                   size="lg"
                 >
                   {purchasing === plan.id ? (
@@ -282,6 +390,7 @@ const PlanPurchase = () => {
             </Card>
           );
         })}
+        </div>
       </div>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
@@ -289,7 +398,7 @@ const PlanPurchase = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Assinatura</AlertDialogTitle>
             <AlertDialogDescription>
-              {selectedPlanId && (
+                  {selectedPlanId && (
                 <>
                   Você está prestes a assinar o plano{" "}
                   <strong>
@@ -303,7 +412,7 @@ const PlanPurchase = () => {
                         {formatPrice(
                           plans.find((p) => p.id === selectedPlanId)?.priceCents || 0
                         )}
-                        /mês
+                        /{billingPeriod === 'annual' ? 'ano' : 'mês'}
                       </strong>
                     </>
                   )}

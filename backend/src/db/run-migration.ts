@@ -48,6 +48,8 @@ async function runAllMigrations() {
   try {
     console.log('Starting database migrations...');
     await runMigration('001_create_admin_tables.sql');
+    await runMigration('002_add_plan_role_and_billing.sql');
+    await runMigration('003_create_login_history.sql');
     console.log('✅ All migrations completed');
   } catch (error) {
     console.error('Migration failed:', error);

@@ -56,8 +56,12 @@ const Payment = () => {
     billingState: '',
   });
 
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
+
   useEffect(() => {
     const planId = location.state?.planId || new URLSearchParams(location.search).get('planId');
+    const billing = location.state?.billingPeriod || 'monthly';
+    setBillingPeriod(billing);
     
     if (!planId) {
       toast({
@@ -72,13 +76,14 @@ const Payment = () => {
       return;
     }
 
-    fetchPlan(planId);
+    fetchPlan(planId, billing);
   }, [location]);
 
-  const fetchPlan = async (planId: string) => {
+  const fetchPlan = async (planId: string, billing: 'monthly' | 'annual' = 'monthly') => {
     try {
       setLoading(true);
-      const response = await publicApi.getPlans();
+      const userRole = user?.role || (location.pathname.startsWith('/consultant') ? 'consultant' : 'customer');
+      const response = await publicApi.getPlans(userRole as 'customer' | 'consultant', billing);
       const foundPlan = response.plans.find(p => p.id === planId);
       
       if (!foundPlan) {
@@ -200,7 +205,7 @@ const Payment = () => {
           city: formData.billingCity,
           state: formData.billingState,
         },
-      });
+      }, billingPeriod);
 
       toast({
         title: "Sucesso!",

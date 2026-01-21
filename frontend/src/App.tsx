@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ScrollToTop from "@/components/ui/ScrollToTop";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { WebSocketProvider } from "@/contexts/WebSocketContext";
 
 // Critical components - load immediately
 import AppLayout from "./components/layout/AppLayout";
@@ -58,6 +60,8 @@ const IntegrationsMonitor = lazy(() => import("./pages/admin/IntegrationsMonitor
 const DAMAProspecting = lazy(() => import("./pages/admin/DAMAProspecting"));
 const FinancialReports = lazy(() => import("./pages/admin/FinancialReports"));
 const Settings = lazy(() => import("./pages/admin/Settings"));
+const PaymentHistory = lazy(() => import("./pages/admin/PaymentHistory"));
+const LoginHistory = lazy(() => import("./pages/admin/LoginHistory"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -90,8 +94,10 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
+        <WebSocketProvider>
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/pricing" element={<Pricing />} />
@@ -150,6 +156,8 @@ const App = () => (
               <Route path="users" element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
               <Route path="subscriptions" element={<Suspense fallback={<PageLoader />}><Subscriptions /></Suspense>} />
               <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanManagement /></Suspense>} />
+              <Route path="payments" element={<Suspense fallback={<PageLoader />}><PaymentHistory /></Suspense>} />
+              <Route path="login-history" element={<Suspense fallback={<PageLoader />}><LoginHistory /></Suspense>} />
               <Route path="integrations" element={<Suspense fallback={<PageLoader />}><IntegrationsMonitor /></Suspense>} />
               <Route path="prospecting" element={<Suspense fallback={<PageLoader />}><DAMAProspecting /></Suspense>} />
               <Route path="financial" element={<Suspense fallback={<PageLoader />}><FinancialReports /></Suspense>} />
@@ -160,8 +168,10 @@ const App = () => (
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </Suspense>
+          </Suspense>
+        </ErrorBoundary>
         <ScrollToTop />
+      </WebSocketProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

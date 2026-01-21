@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Users, TrendingUp, CreditCard, AlertCircle, Activity } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useEffect, useCallback } from "react";
+import { Users, TrendingUp, AlertCircle, Activity } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useWebSocket } from "@/contexts/WebSocketContext";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   LineChart,
   Line,
@@ -17,88 +19,91 @@ import {
 } from "recharts";
 
 const AdminDashboard = () => {
-  const [loading, setLoading] = useState(true);
-  const [kpiData, setKpiData] = useState({
+  const queryClient = useQueryClient();
+
+  // Fetch metrics with React Query for caching and better performance
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['admin', 'dashboard', 'metrics'],
+    queryFn: () => adminApi.getDashboardMetrics(),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1, // Only retry once for faster failure
+  });
+
+  // WebSocket connection for real-time updates - uses singleton connection from context
+  const handleWebSocketMessage = useCallback((message: any) => {
+    if (message.type === 'metrics_updated' || message.type === 'metrics_refresh') {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard', 'metrics'] });
+    }
+  }, [queryClient]);
+
+  // Subscribe to WebSocket messages - connection is maintained at app level
+  const { lastMessage } = useWebSocket(handleWebSocketMessage);
+
+  // Handle WebSocket updates
+  useEffect(() => {
+    if (lastMessage && (lastMessage.type === 'metrics_updated' || lastMessage.type === 'metrics_refresh')) {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard', 'metrics'] });
+    }
+  }, [lastMessage, queryClient]);
+
+  // Format alerts with localized time
+  const formattedAlerts = useMemo(() => {
+    if (!data?.alerts) return [];
+    return data.alerts.map(alert => ({
+      ...alert,
+      time: new Date(alert.time).toLocaleString('pt-BR'),
+    }));
+  }, [data?.alerts]);
+
+  // Loading state with skeleton loaders
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Page Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
+
+        {/* KPI Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+
+        {/* Charts Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+        </div>
+
+        {/* Alerts Skeleton */}
+        <Skeleton className="h-48" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-destructive">{(error as any)?.error || "Erro ao carregar métricas"}</p>
+      </div>
+    );
+  }
+
+  const kpiData = data?.kpis || {
     activeUsers: 0,
     newUsers: 0,
     mrr: 0,
     churnRate: 0,
-  });
-  const [userGrowthData, setUserGrowthData] = useState<Array<{ month: string; users: number }>>([]);
-  const [revenueData, setRevenueData] = useState<Array<{ month: string; revenue: number }>>([]);
-  const [alerts, setAlerts] = useState<Array<{ id: string; type: string; message: string; time: string }>>([]);
-
-  const fetchMetrics = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await adminApi.getDashboardMetrics();
-      
-      setKpiData(data.kpis);
-      setUserGrowthData(data.userGrowth);
-      setRevenueData(data.revenue);
-      setAlerts(data.alerts.map(alert => ({
-        ...alert,
-        time: new Date(alert.time).toLocaleString('pt-BR'),
-      })));
-    } catch (error: any) {
-      console.error('Failed to fetch metrics:', error);
-      // Fallback to empty data on error
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // WebSocket connection for real-time updates
-  const webSocketUrl = useMemo(() => {
-    // Use same logic as API base URL to determine backend URL
-    const origin = window.location.origin;
-    
-    // If accessing from localhost, use localhost for WebSocket
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return 'ws://localhost:5000/ws';
-    }
-    
-    // If accessing from public IP, use same IP for WebSocket with backend port
-    try {
-      const url = new URL(origin);
-      const hostname = url.hostname;
-      const protocol = origin.startsWith('https') ? 'wss' : 'ws';
-      return `${protocol}://${hostname}:5000/ws`;
-    } catch {
-      // Fallback to localhost
-      return 'ws://localhost:5000/ws';
-    }
-  }, []); // Only calculate once
-
-  const handleWebSocketMessage = useCallback((message: any) => {
-    // Refresh metrics when receiving update notification
-    if (message.type === 'metrics_updated' || message.type === 'metrics_refresh') {
-      fetchMetrics();
-    }
-  }, [fetchMetrics]);
-
-  const { connected, lastMessage } = useWebSocket(webSocketUrl, handleWebSocketMessage);
-
-  useEffect(() => {
-    fetchMetrics();
-  }, []);
-
-  // Refresh when WebSocket receives update
-  useEffect(() => {
-    if (lastMessage && (lastMessage.type === 'metrics_updated' || lastMessage.type === 'metrics_refresh')) {
-      fetchMetrics();
-    }
-  }, [lastMessage]);
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground">Carregando métricas...</p>
-        </div>
-      </div>
-    );
-  }
+  };
+  const userGrowthData = data?.userGrowth || [];
+  const revenueData = data?.revenue || [];
 
   return (
     <div className="space-y-6">
@@ -140,7 +145,7 @@ const AdminDashboard = () => {
         />
         <ProfessionalKpiCard
           title="Alertas Ativos"
-          value={alerts.length.toString()}
+          value={formattedAlerts.length.toString()}
           change="requerem atenção"
           changeType="warning"
           icon={AlertCircle}
@@ -155,38 +160,44 @@ const AdminDashboard = () => {
           subtitle="Evolução mensal"
         >
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={userGrowthData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                  dy={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                  width={50}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "6px",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="users"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {userGrowthData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={userGrowthData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    width={50}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "6px",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="users"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Sem dados disponíveis
+              </div>
+            )}
           </div>
         </ChartCard>
 
@@ -195,34 +206,40 @@ const AdminDashboard = () => {
           subtitle="MRR (R$)"
         >
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                  dy={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                  tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-                  width={50}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "6px",
-                  }}
-                  formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`}
-                />
-                <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {revenueData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                    width={50}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "6px",
+                    }}
+                    formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`}
+                  />
+                  <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Sem dados disponíveis
+              </div>
+            )}
           </div>
         </ChartCard>
       </div>
@@ -230,7 +247,8 @@ const AdminDashboard = () => {
       {/* Alerts Panel */}
       <ChartCard title="Alertas do Sistema" subtitle="Requerem atenção">
         <div className="space-y-3">
-          {alerts.map((alert) => (
+          {formattedAlerts.length > 0 ? (
+            formattedAlerts.map((alert) => (
             <div
               key={alert.id}
               className={`flex items-start gap-3 p-3 rounded-lg border ${
@@ -255,7 +273,12 @@ const AdminDashboard = () => {
                 <p className="text-xs text-muted-foreground mt-1">{alert.time}</p>
               </div>
             </div>
-          ))}
+            ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum alerta no momento
+            </div>
+          )}
         </div>
       </ChartCard>
     </div>

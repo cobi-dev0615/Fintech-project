@@ -17,6 +17,8 @@ import {
   Shield,
   CreditCard as SubscriptionIcon,
   Activity,
+  Clock,
+  Receipt,
   Search,
   MessageSquare,
   DollarSign,
@@ -79,6 +81,8 @@ const adminNavItems: NavItem[] = [
   { icon: Activity, label: "Integrações", href: "/admin/integrations", enabled: true },
   { icon: Search, label: "Prospecção", href: "/admin/prospecting", enabled: true },
   { icon: Settings, label: "Configurações", href: "/admin/settings", enabled: true },
+  { icon: Receipt, label: "Histórico de Pagamentos", href: "/admin/payments", enabled: true },
+  { icon: Clock, label: "Histórico de Login", href: "/admin/login-history", enabled: true },
 ];
 
 const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {

@@ -1,0 +1,288 @@
+import { createContext, useContext, useEffect, useRef, useState, useCallback, ReactNode } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+
+interface WebSocketMessage {
+  type: string;
+  message?: string;
+  timestamp?: string;
+  [key: string]: any;
+}
+
+type MessageHandler = (message: WebSocketMessage) => void;
+
+interface WebSocketContextType {
+  connected: boolean;
+  lastMessage: WebSocketMessage | null;
+  subscribe: (handler: MessageHandler) => () => void;
+  send: (message: any) => void;
+}
+
+const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
+
+// Singleton WebSocket manager - maintains one connection across the app
+class WebSocketManager {
+  private ws: WebSocket | null = null;
+  private url: string | null = null;
+  private token: string | null = null;
+  private userId: string | null = null;
+  private userRole: string | null = null;
+  private handlers: Set<MessageHandler> = new Set();
+  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 3000;
+  private isIntentionallyClosed = false;
+  
+  private connected = false;
+  private lastMessage: WebSocketMessage | null = null;
+  private setConnected: ((connected: boolean) => void) | null = null;
+  private setLastMessage: ((message: WebSocketMessage | null) => void) | null = null;
+
+  setStateCallbacks(setConnected: (connected: boolean) => void, setLastMessage: (message: WebSocketMessage | null) => void) {
+    this.setConnected = setConnected;
+    this.setLastMessage = setLastMessage;
+  }
+
+  private getWebSocketUrl(): string {
+    const origin = window.location.origin;
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return 'ws://localhost:5000/ws';
+    }
+    try {
+      const url = new URL(origin);
+      const hostname = url.hostname;
+      const protocol = origin.startsWith('https') ? 'wss' : 'ws';
+      return `${protocol}://${hostname}:5000/ws`;
+    } catch {
+      return 'ws://localhost:5000/ws';
+    }
+  }
+
+  connect(userId: string, userRole: string) {
+    // Only connect for admin users
+    if (userRole !== 'admin') {
+      return;
+    }
+
+    // If already connected or connecting, don't reconnect
+    if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
+      // Update user info if connection exists
+      this.userId = userId;
+      this.userRole = userRole;
+      return;
+    }
+
+    // Get token
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.warn('No auth token found for WebSocket connection');
+      return;
+    }
+
+    this.token = token;
+    this.userId = userId;
+    this.userRole = userRole;
+    this.url = this.getWebSocketUrl();
+    this.isIntentionallyClosed = false;
+    this.reconnectAttempts = 0;
+
+    this.doConnect();
+  }
+
+  private doConnect() {
+    if (!this.url || !this.token) return;
+
+    try {
+      const wsUrlWithToken = `${this.url}?token=${encodeURIComponent(this.token)}`;
+      console.log('Connecting to WebSocket:', wsUrlWithToken.replace(/\?token=[^&]+/, '?token=***'));
+      
+      this.ws = new WebSocket(wsUrlWithToken);
+      
+      this.ws.onopen = () => {
+        console.log('WebSocket connected');
+        this.connected = true;
+        this.reconnectAttempts = 0;
+        if (this.setConnected) {
+          this.setConnected(true);
+        }
+        
+        // Authenticate with user info
+        if (this.userId && this.userRole) {
+          this.ws?.send(JSON.stringify({
+            type: 'authenticate',
+            userId: this.userId,
+            role: this.userRole,
+          }));
+        }
+      };
+
+      this.ws.onmessage = (event) => {
+        try {
+          const message: WebSocketMessage = JSON.parse(event.data);
+          
+          if (message.type === 'authenticated') {
+            console.log('WebSocket authenticated');
+          } else {
+            this.lastMessage = message;
+            if (this.setLastMessage) {
+              this.setLastMessage(message);
+            }
+            // Notify all subscribers
+            this.handlers.forEach(handler => {
+              try {
+                handler(message);
+              } catch (error) {
+                console.error('Error in WebSocket message handler:', error);
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
+        }
+      };
+
+      this.ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        this.connected = false;
+        if (this.setConnected) {
+          this.setConnected(false);
+        }
+      };
+
+      this.ws.onclose = (event) => {
+        console.log('WebSocket disconnected', { 
+          code: event.code, 
+          reason: event.reason, 
+          wasClean: event.wasClean 
+        });
+        
+        this.connected = false;
+        this.ws = null;
+        if (this.setConnected) {
+          this.setConnected(false);
+        }
+
+        // Only reconnect if not intentionally closed and we haven't exceeded max attempts
+        if (!this.isIntentionallyClosed && this.reconnectAttempts < this.maxReconnectAttempts && event.code !== 1000) {
+          this.reconnectAttempts++;
+          const delay = this.reconnectDelay * Math.min(this.reconnectAttempts, 3); // Exponential backoff, max 3x
+          console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+          
+          this.reconnectTimeout = setTimeout(() => {
+            this.doConnect();
+          }, delay);
+        } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+          console.warn('Max reconnection attempts reached. WebSocket will not reconnect.');
+        }
+      };
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+      this.connected = false;
+      if (this.setConnected) {
+        this.setConnected(false);
+      }
+    }
+  }
+
+  disconnect() {
+    this.isIntentionallyClosed = true;
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    if (this.ws) {
+      this.ws.close(1000, 'Client disconnect');
+      this.ws = null;
+    }
+    this.connected = false;
+    if (this.setConnected) {
+      this.setConnected(false);
+    }
+  }
+
+  subscribe(handler: MessageHandler): () => void {
+    this.handlers.add(handler);
+    // Return unsubscribe function
+    return () => {
+      this.handlers.delete(handler);
+    };
+  }
+
+  send(message: any) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(message));
+    } else {
+      console.warn('WebSocket is not open. Message not sent:', message);
+    }
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  getLastMessage(): WebSocketMessage | null {
+    return this.lastMessage;
+  }
+}
+
+// Singleton instance
+const wsManager = new WebSocketManager();
+
+export function WebSocketProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const [connected, setConnected] = useState(false);
+  const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
+
+  // Set state callbacks in manager
+  useEffect(() => {
+    wsManager.setStateCallbacks(setConnected, setLastMessage);
+  }, []);
+
+  // Connect/disconnect based on user role
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      wsManager.connect(user.id, user.role);
+    } else {
+      wsManager.disconnect();
+    }
+
+    // Cleanup on unmount or user change
+    return () => {
+      // Don't disconnect here - we want to keep connection alive during navigation
+      // Only disconnect when user logs out or changes role
+      if (!user || user.role !== 'admin') {
+        wsManager.disconnect();
+      }
+    };
+  }, [user?.id, user?.role]);
+
+  const subscribe = useCallback((handler: MessageHandler) => {
+    return wsManager.subscribe(handler);
+  }, []);
+
+  const send = useCallback((message: any) => {
+    wsManager.send(message);
+  }, []);
+
+  return (
+    <WebSocketContext.Provider value={{ connected, lastMessage, subscribe, send }}>
+      {children}
+    </WebSocketContext.Provider>
+  );
+}
+
+export function useWebSocket(handler?: MessageHandler) {
+  const context = useContext(WebSocketContext);
+  if (!context) {
+    throw new Error('useWebSocket must be used within WebSocketProvider');
+  }
+
+  // Subscribe to messages if handler provided
+  useEffect(() => {
+    if (handler) {
+      return context.subscribe(handler);
+    }
+  }, [context, handler]);
+
+  return context;
+}

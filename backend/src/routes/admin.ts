@@ -1758,5 +1758,318 @@ export async function adminRoutes(fastify: FastifyInstance) {
       reply.code(500).send({ error: 'Failed to update policies', details: error.message });
     }
   });
+
+  // Get payment history
+  fastify.get('/payments', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { page = '1', limit = '50', status, userId, startDate, endDate } = request.query as any;
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      // Check if payments table exists
+      let hasPayments = false;
+      try {
+        await db.query('SELECT 1 FROM payments LIMIT 1');
+        hasPayments = true;
+      } catch {}
+
+      if (!hasPayments) {
+        return reply.send({
+          payments: [],
+          pagination: { page: 1, limit: parseInt(limit), total: 0, totalPages: 0 },
+        });
+      }
+
+      let query = `
+        SELECT 
+          p.id,
+          p.amount_cents,
+          p.currency,
+          p.status,
+          p.paid_at,
+          p.provider,
+          p.provider_payment_id,
+          p.created_at,
+          u.id as user_id,
+          u.full_name as user_name,
+          u.email as user_email,
+          s.id as subscription_id,
+          pl.name as plan_name,
+          pl.code as plan_code
+        FROM payments p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN subscriptions s ON p.subscription_id = s.id
+        LEFT JOIN plans pl ON s.plan_id = pl.id
+        WHERE 1=1
+      `;
+
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      if (status) {
+        query += ` AND p.status = $${paramIndex}`;
+        params.push(status);
+        paramIndex++;
+      }
+
+      if (userId) {
+        query += ` AND p.user_id = $${paramIndex}`;
+        params.push(userId);
+        paramIndex++;
+      }
+
+      if (startDate) {
+        query += ` AND p.created_at >= $${paramIndex}`;
+        params.push(startDate);
+        paramIndex++;
+      }
+
+      if (endDate) {
+        query += ` AND p.created_at <= $${paramIndex}`;
+        params.push(endDate);
+        paramIndex++;
+      }
+
+      // Get total count
+      const countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
+      const countResult = await db.query(countQuery, params);
+      const total = parseInt(countResult.rows[0]?.total || '0', 10);
+
+      // Add ordering and pagination
+      query += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+      params.push(parseInt(limit), offset);
+
+      const result = await db.query(query, params);
+
+      return reply.send({
+        payments: result.rows.map((row: any) => ({
+          id: row.id,
+          amountCents: row.amount_cents,
+          currency: row.currency,
+          status: row.status,
+          paidAt: row.paid_at,
+          provider: row.provider,
+          providerPaymentId: row.provider_payment_id,
+          createdAt: row.created_at,
+          user: {
+            id: row.user_id,
+            name: row.user_name,
+            email: row.user_email,
+          },
+          subscription: row.subscription_id ? {
+            id: row.subscription_id,
+            plan: {
+              name: row.plan_name,
+              code: row.plan_code,
+            },
+          } : null,
+        })),
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error('Error fetching payment history:', error);
+      reply.code(500).send({ error: 'Failed to fetch payment history', details: error.message });
+    }
+  });
+
+  // Get login history
+  fastify.get('/login-history', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { page = '1', limit = '50', userId, startDate, endDate } = request.query as any;
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      // Check if login_history table exists
+      let hasLoginHistory = false;
+      try {
+        await db.query('SELECT 1 FROM login_history LIMIT 1');
+        hasLoginHistory = true;
+      } catch {}
+
+      if (!hasLoginHistory) {
+        return reply.send({
+          loginHistory: [],
+          pagination: { page: 1, limit: parseInt(limit), total: 0, totalPages: 0 },
+        });
+      }
+
+      let query = `
+        SELECT 
+          lh.id,
+          lh.user_id,
+          lh.ip_address,
+          lh.user_agent,
+          lh.success,
+          lh.created_at,
+          u.full_name as user_name,
+          u.email as user_email,
+          u.role as user_role
+        FROM login_history lh
+        LEFT JOIN users u ON lh.user_id = u.id
+        WHERE 1=1
+      `;
+
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      if (userId) {
+        query += ` AND lh.user_id = $${paramIndex}`;
+        params.push(userId);
+        paramIndex++;
+      }
+
+      if (startDate) {
+        query += ` AND lh.created_at >= $${paramIndex}`;
+        params.push(startDate);
+        paramIndex++;
+      }
+
+      if (endDate) {
+        query += ` AND lh.created_at <= $${paramIndex}`;
+        params.push(endDate);
+        paramIndex++;
+      }
+
+      // Get total count
+      const countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
+      const countResult = await db.query(countQuery, params);
+      const total = parseInt(countResult.rows[0]?.total || '0', 10);
+
+      // Add ordering and pagination
+      query += ` ORDER BY lh.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+      params.push(parseInt(limit), offset);
+
+      const result = await db.query(query, params);
+
+      return reply.send({
+        loginHistory: result.rows.map((row: any) => ({
+          id: row.id,
+          userId: row.user_id,
+          ipAddress: row.ip_address,
+          userAgent: row.user_agent,
+          success: row.success,
+          createdAt: row.created_at,
+          user: {
+            id: row.user_id,
+            name: row.user_name,
+            email: row.user_email,
+            role: row.user_role,
+          },
+        })),
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error('Error fetching login history:', error);
+      reply.code(500).send({ error: 'Failed to fetch login history', details: error.message });
+    }
+  });
+
+  // Delete a payment record
+  fastify.delete('/payments/:id', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as any;
+
+      // Check if payments table exists
+      let hasPayments = false;
+      try {
+        await db.query('SELECT 1 FROM payments LIMIT 1');
+        hasPayments = true;
+      } catch {}
+
+      if (!hasPayments) {
+        return reply.code(404).send({ error: 'Payment not found' });
+      }
+
+      // Verify payment exists
+      const verifyResult = await db.query(
+        'SELECT id FROM payments WHERE id = $1',
+        [id]
+      );
+
+      if (verifyResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Payment not found' });
+      }
+
+      // Delete the payment
+      await db.query('DELETE FROM payments WHERE id = $1', [id]);
+
+      // Log the action
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'payment_deleted',
+        resourceType: 'payment',
+        resourceId: id,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      return reply.send({ success: true, message: 'Payment deleted successfully' });
+    } catch (error: any) {
+      fastify.log.error('Error deleting payment:', error);
+      reply.code(500).send({ error: 'Failed to delete payment', details: error.message });
+    }
+  });
+
+  // Delete a login history record
+  fastify.delete('/login-history/:id', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as any;
+
+      // Check if login_history table exists
+      let hasLoginHistory = false;
+      try {
+        await db.query('SELECT 1 FROM login_history LIMIT 1');
+        hasLoginHistory = true;
+      } catch {}
+
+      if (!hasLoginHistory) {
+        return reply.code(404).send({ error: 'Login history record not found' });
+      }
+
+      // Verify record exists
+      const verifyResult = await db.query(
+        'SELECT id FROM login_history WHERE id = $1',
+        [id]
+      );
+
+      if (verifyResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Login history record not found' });
+      }
+
+      // Delete the record
+      await db.query('DELETE FROM login_history WHERE id = $1', [id]);
+
+      // Log the action
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'login_history_deleted',
+        resourceType: 'login_history',
+        resourceId: id,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      return reply.send({ success: true, message: 'Login history record deleted successfully' });
+    } catch (error: any) {
+      fastify.log.error('Error deleting login history record:', error);
+      reply.code(500).send({ error: 'Failed to delete login history record', details: error.message });
+    }
+  });
 }
 

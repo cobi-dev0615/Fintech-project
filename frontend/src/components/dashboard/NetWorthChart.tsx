@@ -1,19 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import ChartCard from "./ChartCard";
-
-const data = [
-  { month: "Jul", value: 98000 },
-  { month: "Ago", value: 102000 },
-  { month: "Set", value: 99500 },
-  { month: "Out", value: 108000 },
-  { month: "Nov", value: 115000 },
-  { month: "Dez", value: 112000 },
-  { month: "Jan", value: 124532 },
-];
+import { dashboardApi } from "@/lib/api";
 
 const NetWorthChart = () => {
   const [timeRange, setTimeRange] = useState<"7M" | "1A" | "Tudo">("7M");
+  const [data, setData] = useState<Array<{ month: string; value: number }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const months = timeRange === "7M" ? 7 : timeRange === "1A" ? 12 : 24;
+        const response = await dashboardApi.getNetWorthEvolution(months);
+        setData(response.data || []);
+      } catch (error) {
+        console.error("Error fetching net worth evolution:", error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [timeRange]);
 
   return (
     <ChartCard
@@ -41,8 +52,17 @@ const NetWorthChart = () => {
       }
     >
       <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-muted-foreground">Carregando...</p>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm text-muted-foreground">Nenhum dado disponível</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
             <defs>
               <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />
@@ -88,6 +108,7 @@ const NetWorthChart = () => {
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
     </ChartCard>
   );
