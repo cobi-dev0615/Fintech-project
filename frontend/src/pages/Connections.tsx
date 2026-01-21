@@ -12,6 +12,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -40,6 +50,9 @@ const Connections = () => {
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [loadingInstitutions, setLoadingInstitutions] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [connectionToDelete, setConnectionToDelete] = useState<Connection | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -158,6 +171,52 @@ const Connections = () => {
     if (!open) {
       setSelectedProvider('');
       setSelectedInstitution('');
+    }
+  };
+
+  const handleDeleteClick = (connection: Connection) => {
+    setConnectionToDelete(connection);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConnection = async () => {
+    if (!connectionToDelete) return;
+
+    try {
+      setDeleting(true);
+      await connectionsApi.delete(connectionToDelete.id);
+
+      toast({
+        title: "Sucesso",
+        description: "Conexão excluída com sucesso",
+      });
+
+      // Refresh connections list
+      const data = await connectionsApi.getAll();
+      const mappedConnections: Connection[] = data.connections.map((conn: any) => ({
+        id: conn.id,
+        name: conn.institution_name || conn.provider,
+        type: conn.provider === "b3" ? "b3" : "bank",
+        status: conn.status === "connected" ? "connected" :
+                conn.status === "pending" ? "pending" :
+                conn.status === "needs_reauth" ? "expired" :
+                conn.status === "failed" ? "error" :
+                conn.status === "revoked" ? "disconnected" : "disconnected",
+        lastSync: conn.last_sync_at ? new Date(conn.last_sync_at).toLocaleString("pt-BR") : undefined,
+      }));
+      setConnections(mappedConnections);
+
+      setIsDeleteDialogOpen(false);
+      setConnectionToDelete(null);
+    } catch (err: any) {
+      console.error('Error deleting connection:', err);
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao excluir conexão",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -315,6 +374,7 @@ const Connections = () => {
                 variant="ghost"
                 size="sm"
                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => handleDeleteClick(connection)}
               >
                 <Trash2 className="h-3 w-3" />
               </Button>
@@ -402,6 +462,29 @@ const Connections = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a conexão com <strong>{connectionToDelete?.name}</strong>?
+              Esta ação não pode ser desfeita e todos os dados relacionados a esta conexão serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConnection}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -242,4 +242,43 @@ export async function cardsRoutes(fastify: FastifyInstance) {
       return reply.code(500).send({ error: 'Internal server error', details: error.message });
     }
   });
+
+  // Delete a credit card
+  fastify.delete('/:id', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const { id } = request.params as any;
+
+      // Check if credit_cards table exists
+      let hasCreditCards = false;
+      try {
+        await db.query('SELECT 1 FROM credit_cards LIMIT 1');
+        hasCreditCards = true;
+      } catch {}
+
+      if (!hasCreditCards) {
+        return reply.code(404).send({ error: 'Card not found' });
+      }
+
+      // Verify card belongs to user
+      const verifyResult = await db.query(
+        'SELECT id FROM credit_cards WHERE id = $1 AND user_id = $2',
+        [id, userId]
+      );
+
+      if (verifyResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Card not found' });
+      }
+
+      // Delete the card
+      await db.query('DELETE FROM credit_cards WHERE id = $1 AND user_id = $2', [id, userId]);
+
+      return reply.send({ success: true, message: 'Card deleted successfully' });
+    } catch (error: any) {
+      fastify.log.error('Error deleting credit card:', error);
+      return reply.code(500).send({ error: 'Internal server error', details: error.message });
+    }
+  });
 }

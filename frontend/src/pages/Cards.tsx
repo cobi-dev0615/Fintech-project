@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CreditCard, Calendar, AlertTriangle, TrendingUp, Plus } from "lucide-react";
+import { CreditCard, Calendar, AlertTriangle, TrendingUp, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import AlertList, { Alert } from "@/components/dashboard/AlertList";
@@ -37,6 +47,9 @@ const Cards = () => {
     institutionId: '',
     connectionId: '',
   });
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [cardToDelete, setCardToDelete] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -226,6 +239,51 @@ const Cards = () => {
     }
   };
 
+  const handleDeleteClick = () => {
+    if (!currentCard) return;
+    setCardToDelete(currentCard);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteCard = async () => {
+    if (!cardToDelete) return;
+
+    try {
+      setDeleting(true);
+      await cardsApi.delete(cardToDelete.id);
+
+      toast({
+        title: "Sucesso",
+        description: "Cartão excluído com sucesso",
+      });
+
+      // Refresh cards list
+      const data = await cardsApi.getAll();
+      setCards(data.cards);
+      
+      // Reset selected card if the deleted card was selected
+      if (selectedCard === cardToDelete.id) {
+        if (data.cards.length > 0) {
+          setSelectedCard(data.cards[0].id);
+        } else {
+          setSelectedCard("");
+        }
+      }
+
+      setIsDeleteDialogOpen(false);
+      setCardToDelete(null);
+    } catch (err: any) {
+      console.error('Error deleting card:', err);
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao excluir cartão",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -245,18 +303,30 @@ const Cards = () => {
             Cadastrar Cartão
           </Button>
           {cards.length > 0 && (
-            <Select value={selectedCard} onValueChange={setSelectedCard}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Selecione um cartão" />
-              </SelectTrigger>
-              <SelectContent>
-                  {cards.map((card) => (
-                    <SelectItem key={card.id} value={card.id}>
-                      {card.display_name || card.institution_name} •••• {card.last4 || ""}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={selectedCard} onValueChange={setSelectedCard}>
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectValue placeholder="Selecione um cartão" />
+                </SelectTrigger>
+                <SelectContent>
+                    {cards.map((card) => (
+                      <SelectItem key={card.id} value={card.id}>
+                        {card.display_name || card.institution_name} •••• {card.last4 || ""}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {currentCard && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={handleDeleteClick}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -521,6 +591,29 @@ const Cards = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o cartão <strong>{cardToDelete?.display_name || cardToDelete?.institution_name} •••• {cardToDelete?.last4}</strong>?
+              Esta ação não pode ser desfeita e todos os dados relacionados a este cartão serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCard}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

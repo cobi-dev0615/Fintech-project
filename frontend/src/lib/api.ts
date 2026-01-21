@@ -226,6 +226,9 @@ export const connectionsApi = {
   
   create: (data: { provider: 'open_finance' | 'b3'; institutionId?: string }) =>
     api.post<{ connection: any }>('/connections', data),
+  
+  delete: (id: string) =>
+    api.delete<{ success: boolean; message: string }>(`/connections/${id}`),
 };
 
 // Accounts endpoints
@@ -270,6 +273,9 @@ export const cardsApi = {
     currency?: string;
   }) =>
     api.post<{ card: any }>('/cards', data),
+  
+  delete: (id: string) =>
+    api.delete<{ success: boolean; message: string }>(`/cards/${id}`),
 };
 
 // Investments endpoints

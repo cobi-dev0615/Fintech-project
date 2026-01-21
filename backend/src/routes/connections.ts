@@ -182,4 +182,43 @@ export async function connectionsRoutes(fastify: FastifyInstance) {
       return reply.code(500).send({ error: 'Internal server error', details: error.message });
     }
   });
+
+  // Delete a connection
+  fastify.delete('/:id', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const { id } = request.params as any;
+
+      // Check if connections table exists
+      let hasConnections = false;
+      try {
+        await db.query('SELECT 1 FROM connections LIMIT 1');
+        hasConnections = true;
+      } catch {}
+
+      if (!hasConnections) {
+        return reply.code(404).send({ error: 'Connection not found' });
+      }
+
+      // Verify connection belongs to user
+      const verifyResult = await db.query(
+        'SELECT id FROM connections WHERE id = $1 AND user_id = $2',
+        [id, userId]
+      );
+
+      if (verifyResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Connection not found' });
+      }
+
+      // Delete the connection
+      await db.query('DELETE FROM connections WHERE id = $1 AND user_id = $2', [id, userId]);
+
+      return reply.send({ success: true, message: 'Connection deleted successfully' });
+    } catch (error: any) {
+      fastify.log.error('Error deleting connection:', error);
+      return reply.code(500).send({ error: 'Internal server error', details: error.message });
+    }
+  });
 }
