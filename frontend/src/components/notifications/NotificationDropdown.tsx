@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -22,13 +23,25 @@ interface Notification {
 
 const NotificationDropdown = () => {
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchNotifications = async () => {
+  // Fetch unread count once on mount – cached, no polling
+  const { data: unreadData } = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () => notificationsApi.getUnreadCount(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
+  const unreadCount = unreadData?.count ?? 0;
+
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
       const response = await notificationsApi.getAll(1, 10);
@@ -38,31 +51,20 @@ const NotificationDropdown = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await notificationsApi.getUnreadCount();
-      setUnreadCount(response.count);
-    } catch (error: any) {
-      console.error('Failed to fetch unread count:', error);
-    }
-  };
-
+  // Fetch notifications only when opening the dropdown
   useEffect(() => {
-    fetchUnreadCount();
     if (open) {
       fetchNotifications();
     }
-  }, [open]);
+  }, [open, fetchNotifications]);
 
-  // Poll for unread count every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchUnreadCount();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const setUnreadCount = useCallback((value: number | ((prev: number) => number)) => {
+    queryClient.setQueryData(['notifications', 'unread-count'], (old: { count: number } | undefined) => ({
+      count: typeof value === 'function' ? value(old?.count ?? 0) : value,
+    }));
+  }, [queryClient]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -70,7 +72,7 @@ const NotificationDropdown = () => {
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, isRead: true } : n)
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setUnreadCount((prev: number) => Math.max(0, prev - 1));
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -86,7 +88,7 @@ const NotificationDropdown = () => {
       await notificationsApi.delete(id);
       const notification = notifications.find(n => n.id === id);
       if (notification && !notification.isRead) {
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setUnreadCount((prev: number) => Math.max(0, prev - 1));
       }
       setNotifications(prev => prev.filter(n => n.id !== id));
       toast({

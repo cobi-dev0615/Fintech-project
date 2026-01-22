@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, Save, Plus, Trash2, Check, Star } from "lucide-react";
+import { Plus, Trash2, Edit2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -35,11 +34,12 @@ interface Plan {
   features: string[];
   connectionLimit?: number | null;
   isActive?: boolean;
+  role?: string | null;
 }
 
 const PlanManagement = () => {
   const queryClient = useQueryClient();
-  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'customer' | 'consultant'>('customer');
   const [deleting, setDeleting] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
@@ -62,6 +62,7 @@ const PlanManagement = () => {
         features: p.features || [],
         connectionLimit: p.connectionLimit,
         isActive: p.isActive,
+        role: p.role || null,
       }));
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -99,6 +100,37 @@ const PlanManagement = () => {
     },
   });
 
+  // Save plan mutation (auto-save on dialog close)
+  const savePlanMutation = useMutation({
+    mutationFn: async (plan: Plan) => {
+      await adminApi.updatePlans([
+        {
+          code: plan.code,
+          name: plan.name,
+          priceCents: Math.round(plan.price * 100),
+          connectionLimit: plan.connectionLimit || null,
+          features: plan.features,
+          isActive: plan.isActive ?? true,
+          role: plan.role || null,
+        }
+      ]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'plans'] });
+      toast({
+        title: "Sucesso",
+        description: "Plano salvo com sucesso!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error?.error || "Falha ao salvar plano",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEditPlan = (plan: Plan) => {
     setEditingPlan({ ...plan });
     setIsPlanDialogOpen(true);
@@ -112,11 +144,12 @@ const PlanManagement = () => {
       features: [],
       connectionLimit: null,
       isActive: true,
+      role: activeTab,
     });
     setIsPlanDialogOpen(true);
   };
 
-  const handleSavePlan = () => {
+  const handleSavePlan = async () => {
     if (!editingPlan) return;
 
     if (!editingPlan.code || !editingPlan.name) {
@@ -128,11 +161,16 @@ const PlanManagement = () => {
       return;
     }
 
+    // Update local state immediately for better UX
     if (editingPlan.id) {
       setPlans(plans.map((p) => (p.id === editingPlan.id ? editingPlan : p)));
     } else {
       setPlans([...plans, { ...editingPlan, id: editingPlan.code }]);
     }
+
+    // Save to backend
+    await savePlanMutation.mutateAsync(editingPlan);
+    
     setIsPlanDialogOpen(false);
     setEditingPlan(null);
     setNewFeature("");
@@ -155,37 +193,6 @@ const PlanManagement = () => {
     });
   };
 
-  const handleSavePlans = async () => {
-    setSaving(true);
-    try {
-      await adminApi.updatePlans(
-        plans.map((p) => ({
-          code: p.code,
-          name: p.name,
-          priceCents: Math.round(p.price * 100),
-          connectionLimit: p.connectionLimit || null,
-          features: p.features,
-          isActive: p.isActive ?? true,
-        }))
-      );
-      toast({
-        title: "Sucesso",
-        description: "Planos salvos com sucesso!",
-      });
-      // Refresh plans after save
-      queryClient.invalidateQueries({ queryKey: ['admin', 'plans'] });
-    } catch (error: any) {
-      console.error("Failed to save plans:", error);
-      toast({
-        title: "Erro",
-        description: error?.error || "Falha ao salvar planos",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleDeleteClick = (plan: Plan) => {
     setPlanToDelete(plan);
     setIsDeleteDialogOpen(true);
@@ -198,66 +205,33 @@ const PlanManagement = () => {
     setDeleting(false);
   };
 
-  const getPlanDescription = (code: string) => {
-    const descriptions: Record<string, string> = {
-      free: 'Ideal para começar',
-      basic: 'Para quem quer mais',
-      pro: 'Controle total',
-    };
-    return descriptions[code.toLowerCase()] || '';
+  // Filter plans by role
+  const getFilteredPlans = () => {
+    return plans.filter(p => {
+      if (activeTab === 'customer') {
+        return p.role === 'customer' || p.role === null;
+      } else {
+        return p.role === 'consultant';
+      }
+    });
   };
 
-  const getPlanFeatures = (plan: Plan) => {
-    // If features are defined, use them, otherwise generate from plan properties
-    if (plan.features && plan.features.length > 0) {
-      return plan.features;
-    }
-    
-    // Generate features based on plan code and properties
-    const features: string[] = [];
-    if (plan.connectionLimit !== null) {
-      features.push(`${plan.connectionLimit} conexão${plan.connectionLimit > 1 ? 'ões' : ''} bancária${plan.connectionLimit > 1 ? 's' : ''}`);
-    } else {
-      features.push('Conexões ilimitadas');
-    }
-    
-    if (plan.code.toLowerCase() === 'free') {
-      features.push('Dashboard básico', 'Cotações de mercado');
-    } else if (plan.code.toLowerCase() === 'basic') {
-      features.push('Relatórios mensais', 'Câmbio e Crédito', 'Suporte por email');
-    } else if (plan.code.toLowerCase() === 'pro') {
-      features.push('IA Financeira', 'Relatórios ilimitados', 'Suporte prioritário', 'Alertas personalizados');
-    }
-    
-    return features;
-  };
-
-  const isPopularPlan = (code: string) => {
-    return code.toLowerCase() === 'pro';
-  };
+  const filteredPlans = getFilteredPlans();
 
   // Loading state with skeleton loaders
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {/* Page Header Skeleton */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-64" />
-          </div>
-          <Skeleton className="h-10 w-40" />
+        <div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
         </div>
-
-        {/* Plan Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
+        <Skeleton className="h-10 w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-96" />
           ))}
         </div>
-
-        {/* Plans List Skeleton */}
-        <Skeleton className="h-64" />
       </div>
     );
   }
@@ -266,13 +240,11 @@ const PlanManagement = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Gerencie planos e preços de assinatura
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gerencie planos e preços de assinatura
+          </p>
         </div>
         <div className="flex items-center justify-center h-64">
           <p className="text-destructive">{(error as any)?.error || "Erro ao carregar planos"}</p>
@@ -281,170 +253,147 @@ const PlanManagement = () => {
     );
   }
 
-  const mainPlans = plans.filter(p => ['free', 'basic', 'pro'].includes(p.code.toLowerCase()));
+  // Card colors based on role
+  const getCardColors = (role: string | null | undefined) => {
+    if (role === 'consultant') {
+      return 'border-purple-500/50 bg-purple-500/5 hover:border-purple-500';
+    }
+    return 'border-blue-500/50 bg-blue-500/5 hover:border-blue-500';
+  };
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gerencie planos e preços de assinatura
-          </p>
-        </div>
-        <Button onClick={handleSavePlans} disabled={saving}>
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? "Salvando..." : "Salvar Alterações"}
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Gerencie planos e preços de assinatura
+        </p>
       </div>
 
-      {/* Plan Cards */}
-      {mainPlans.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {mainPlans.map((plan) => {
-            const isPopular = isPopularPlan(plan.code);
-            const planFeatures = getPlanFeatures(plan);
-            const isFree = plan.price === 0;
-            
-            return (
-              <div
-                key={plan.id || plan.code}
-                className={`relative rounded-lg border-2 p-6 transition-all ${
-                  isPopular
-                    ? 'border-primary bg-primary/5 scale-105'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                {isPopular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
-                    <Star className="h-3 w-3 mr-1" />
-                    Mais Popular
-                  </Badge>
-                )}
-                
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground">{getPlanDescription(plan.code)}</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-foreground">
-                        R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </span>
-                      {!isFree && (
-                        <span className="text-sm text-muted-foreground">/mês</span>
-                      )}
-                    </div>
-                    {isFree && (
-                      <span className="text-sm text-muted-foreground">para sempre</span>
-                    )}
-                  </div>
-                  
-                  <ul className="space-y-3 mt-6">
-                    {planFeatures.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-foreground">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  <Button
-                    className={`w-full mt-6 ${
-                      isPopular
-                        ? 'bg-primary hover:bg-primary/90'
-                        : 'bg-primary/90 hover:bg-primary'
-                    }`}
-                    variant={isPopular ? 'default' : 'default'}
-                  >
-                    {isFree ? 'Começar Grátis' : `Assinar ${plan.name.split(' ')[0]}`}
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'customer' | 'consultant')}>
+        <div className="flex justify-center">
+          <TabsList>
+            <TabsTrigger value="customer">Cliente</TabsTrigger>
+            <TabsTrigger value="consultant">Consultor</TabsTrigger>
+          </TabsList>
         </div>
-      )}
 
-      {/* Plans List */}
-      <ChartCard title={`${plans.length} Plano${plans.length !== 1 ? "s" : ""}`}>
-        <div className="space-y-4">
-            {plans.map((plan) => (
-              <div
-                key={plan.id || plan.code}
-                className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-foreground">{plan.name}</h3>
-                      <span className="text-lg font-bold text-primary">
-                        R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês
-                      </span>
-                      {plan.connectionLimit !== null && (
-                        <span className="text-sm text-muted-foreground">
-                          ({plan.connectionLimit} conexões)
-                        </span>
-                      )}
-                      {plan.connectionLimit === null && (
-                        <span className="text-sm text-muted-foreground">
-                          (Ilimitado)
-                        </span>
-                      )}
-                      {!plan.isActive && (
-                        <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
-                          Inativo
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {plan.features.map((feature, index) => (
-                        <span
-                          key={index}
-                          className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground"
-                        >
-                          {feature}
-                        </span>
-                      ))}
-                      {plan.features.length === 0 && (
-                        <span className="text-xs text-muted-foreground italic">
-                          Nenhuma feature definida
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEditPlan(plan)}>
-                      Editar
+        <TabsContent value={activeTab} className="mt-6">
+          {/* Plan Cards Grid */}
+          <div className="flex flex-wrap gap-6">
+            {/* Plan Cards */}
+            {filteredPlans.map((plan) => {
+              const isFree = plan.price === 0;
+              const cardColors = getCardColors(plan.role);
+              
+              return (
+                <div
+                  key={plan.id || plan.code}
+                  className={`relative rounded-lg border-2 p-6 transition-all w-[280px] ${cardColors}`}
+                >
+                  {/* Edit and Delete Icons */}
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleEditPlan(plan)}
+                      title="Editar plano"
+                    >
+                      <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleDeleteClick(plan)}
-                      className="text-destructive hover:text-destructive"
                       title="Excluir plano"
                       disabled={plan.code.toLowerCase() === 'free'}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground uppercase">{plan.code}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-bold text-foreground">
+                          R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                        {!isFree && (
+                          <span className="text-sm text-muted-foreground">/mês</span>
+                        )}
+                      </div>
+                      {isFree && (
+                        <span className="text-sm text-muted-foreground">para sempre</span>
+                      )}
+                    </div>
+                    
+                    {plan.connectionLimit !== null && (
+                      <p className="text-sm text-muted-foreground">
+                        {plan.connectionLimit} conexão{plan.connectionLimit > 1 ? 'ões' : ''}
+                      </p>
+                    )}
+                    {plan.connectionLimit === null && (
+                      <p className="text-sm text-muted-foreground">Conexões ilimitadas</p>
+                    )}
+                    
+                    <ul className="space-y-2 mt-4 max-h-48 overflow-y-auto">
+                      {plan.features.slice(0, 5).map((feature, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-foreground">{feature}</span>
+                        </li>
+                      ))}
+                      {plan.features.length > 5 && (
+                        <li className="text-xs text-muted-foreground">
+                          +{plan.features.length - 5} mais
+                        </li>
+                      )}
+                      {plan.features.length === 0 && (
+                        <li className="text-xs text-muted-foreground italic">
+                          Nenhuma feature definida
+                        </li>
+                      )}
+                    </ul>
+
+                    {!plan.isActive && (
+                      <div className="mt-2">
+                        <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
+                          Inativo
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              );
+            })}
+
+            {/* Add Plan Card */}
+            <div
+              className={`relative rounded-lg border-2 border-dashed p-6 transition-all cursor-pointer hover:border-primary w-[280px] ${getCardColors(activeTab)}`}
+              onClick={handleAddPlan}
+            >
+              <div className="flex flex-col items-center justify-center h-full min-h-[300px]">
+                <div className="rounded-full bg-primary/10 p-4 mb-4">
+                  <Plus className="h-8 w-8 text-primary" />
+                </div>
+                <p className="text-sm font-medium text-foreground">Adicionar Plano</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Clique para criar um novo plano
+                </p>
               </div>
-            ))}
-            {plans.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhum plano cadastrado
-              </div>
-            )}
-            <Button variant="outline" className="w-full" onClick={handleAddPlan}>
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar Novo Plano
-            </Button>
-        </div>
-      </ChartCard>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Plan Edit Dialog */}
       <Dialog open={isPlanDialogOpen} onOpenChange={setIsPlanDialogOpen}>
@@ -526,6 +475,21 @@ const PlanManagement = () => {
               </div>
 
               <div className="space-y-2">
+                <Label>Role</Label>
+                <select
+                  value={editingPlan.role || ''}
+                  onChange={(e) =>
+                    setEditingPlan({ ...editingPlan, role: e.target.value || null })
+                  }
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                >
+                  <option value="">Todos</option>
+                  <option value="customer">Cliente</option>
+                  <option value="consultant">Consultor</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
                 <Label>Features do Plano</Label>
                 <div className="space-y-2">
                   {editingPlan.features.map((feature, index) => (
@@ -590,9 +554,8 @@ const PlanManagement = () => {
                   >
                     Cancelar
                   </Button>
-                  <Button onClick={handleSavePlan}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Salvar
+                  <Button onClick={handleSavePlan} disabled={savePlanMutation.isPending}>
+                    {savePlanMutation.isPending ? "Salvando..." : "Salvar"}
                   </Button>
                 </div>
               </div>
@@ -640,4 +603,3 @@ const PlanManagement = () => {
 };
 
 export default PlanManagement;
-

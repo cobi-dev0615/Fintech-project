@@ -28,7 +28,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
     preHandler: [requireAdmin],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const cacheKey = 'admin:dashboard:metrics';
+      const year = parseInt((request.query as any)?.year || new Date().getFullYear().toString(), 10);
+      const cacheKey = `admin:dashboard:metrics:${year}`;
       
       // Try to get from cache first
       const cachedData = cache.get(cacheKey);
@@ -86,20 +87,21 @@ export async function adminRoutes(fastify: FastifyInstance) {
         churnRate = 0;
       }
 
-      // Get user growth data (last 7 months)
+      // Get user growth data for the selected year (all 12 months)
       const growthResult = await db.query(
         `SELECT 
            TO_CHAR(created_at, 'Mon') as month,
            EXTRACT(MONTH FROM created_at) as month_num,
            COUNT(*) as users
          FROM users
-         WHERE created_at >= NOW() - INTERVAL '7 months'
+         WHERE EXTRACT(YEAR FROM created_at) = $1
          AND role IN ('customer', 'consultant')
          GROUP BY month, month_num
-         ORDER BY month_num DESC`
+         ORDER BY month_num ASC`,
+        [year]
       );
 
-      // Get revenue data (last 7 months) - handle missing tables
+      // Get revenue data for the selected year (all 12 months) - handle missing tables
       let revenueResult;
       try {
         revenueResult = await db.query(
@@ -110,9 +112,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
            FROM payments p
            JOIN subscriptions s ON p.subscription_id = s.id
            WHERE p.status = 'paid'
-           AND p.created_at >= NOW() - INTERVAL '7 months'
+           AND EXTRACT(YEAR FROM p.created_at) = $1
            GROUP BY month, month_num
-           ORDER BY month_num DESC`
+           ORDER BY month_num ASC`,
+          [year]
         );
       } catch (e) {
         // Tables might not exist yet
@@ -1392,13 +1395,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
         connectionLimit: number | null;
         features: string[];
         isActive: boolean;
+        role: string | null;
       };
       let plans: PlanItem[] = [];
       try {
         const plansResult = await db.query(
-          `SELECT id, code, name, price_cents, connection_limit, features_json, is_active
+          `SELECT id, code, name, price_cents, connection_limit, features_json, is_active, role
            FROM plans
-           ORDER BY price_cents ASC`
+           ORDER BY role NULLS LAST, price_cents ASC`
         );
         plans = plansResult.rows.map(row => ({
           id: row.id,
@@ -1408,6 +1412,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
           connectionLimit: row.connection_limit,
           features: row.features_json?.features || [],
           isActive: row.is_active,
+          role: row.role || null,
         }));
       } catch (e: any) {
         // Plans table might not exist
@@ -1568,6 +1573,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         connectionLimit: number | null;
         features: string[];
         isActive: boolean;
+        role?: string | null;
       }> };
 
       // Check if plans table exists
@@ -1590,22 +1596,23 @@ export async function adminRoutes(fastify: FastifyInstance) {
           await db.query(
             `UPDATE plans
              SET name = $1, price_cents = $2, connection_limit = $3,
-                 features_json = $4, is_active = $5, updated_at = now()
-             WHERE code = $6`,
+                 features_json = $4, is_active = $5, role = $6, updated_at = now()
+             WHERE code = $7`,
             [
               plan.name,
               plan.priceCents,
               plan.connectionLimit,
               JSON.stringify({ features: plan.features }),
               plan.isActive,
+              plan.role || null,
               plan.code,
             ]
           );
         } else {
           // Insert new plan
           await db.query(
-            `INSERT INTO plans (code, name, price_cents, connection_limit, features_json, is_active)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
+            `INSERT INTO plans (code, name, price_cents, connection_limit, features_json, is_active, role)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
             [
               plan.code,
               plan.name,
@@ -1613,6 +1620,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
               plan.connectionLimit,
               JSON.stringify({ features: plan.features }),
               plan.isActive,
+              plan.role || null,
             ]
           );
         }

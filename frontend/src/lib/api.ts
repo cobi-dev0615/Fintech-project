@@ -482,6 +482,7 @@ export const adminApi = {
         connectionLimit: number | null;
         features: string[];
         isActive: boolean;
+        role: string | null;
       }>;
     }>('/admin/plans'),
 
@@ -489,8 +490,9 @@ export const adminApi = {
     api.delete<{ message: string }>(`/admin/plans/${id}`),
 
   // Dashboard metrics
-  getDashboardMetrics: () =>
-    api.get<{
+  getDashboardMetrics: (year?: number) => {
+    const params = year ? `?year=${year}` : '';
+    return api.get<{
       kpis: {
         activeUsers: number;
         newUsers: number;
@@ -500,7 +502,8 @@ export const adminApi = {
       userGrowth: Array<{ month: string; users: number }>;
       revenue: Array<{ month: string; revenue: number }>;
       alerts: Array<{ id: string; type: string; message: string; time: string }>;
-    }>('/admin/dashboard/metrics'),
+    }>(`/admin/dashboard/metrics${params}`);
+  },
 
   // User management
   getUsers: (params?: { search?: string; role?: string; status?: string; page?: number; limit?: number }) => {
@@ -727,6 +730,7 @@ export const adminApi = {
     connectionLimit: number | null;
     features: string[];
     isActive: boolean;
+    role?: string | null;
   }>) =>
     api.put<{ message: string }>('/admin/settings/plans', { plans }),
 
