@@ -581,13 +581,15 @@ export const adminApi = {
     api.patch<{ message: string }>(`/admin/users/${id}/status`, { status }),
 
   // Subscriptions
-  getSubscriptions: (params?: { search?: string; status?: string; plan?: string; page?: number; limit?: number }) => {
+  getSubscriptions: (params?: { search?: string; status?: string; plan?: string; page?: number; limit?: number; startDate?: string; endDate?: string }) => {
     const queryParams = new URLSearchParams();
     if (params?.search) queryParams.append('search', params.search);
     if (params?.status) queryParams.append('status', params.status);
     if (params?.plan) queryParams.append('plan', params.plan);
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
     return api.get<{ 
       subscriptions: Array<{
         id: string;
@@ -607,6 +609,33 @@ export const adminApi = {
       };
     }>(`/admin/subscriptions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
   },
+
+  getSubscription: (id: string) =>
+    api.get<{
+      id: string;
+      userId: string;
+      planId: string;
+      status: string;
+      currentPeriodStart: string;
+      currentPeriodEnd: string;
+      canceledAt: string | null;
+      createdAt: string;
+      updatedAt: string;
+      user: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+      };
+      plan: {
+        id: string;
+        name: string;
+        code: string;
+        price: number;
+        connectionLimit: number | null;
+        features: string[];
+      };
+    }>(`/admin/subscriptions/${id}`),
 
   // Financial reports
   getFinancialReports: () =>

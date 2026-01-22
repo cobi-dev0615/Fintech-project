@@ -725,7 +725,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         };
       }
 
-      const { search, status, plan, page = '1', limit = '20' } = request.query as any;
+      const { search, status, plan, page = '1', limit = '20', startDate, endDate } = request.query as any;
       const pageNum = parseInt(page) || 1;
       const limitNum = Math.min(parseInt(limit) || 20, 100); // Max 100 per page
       const offset = (pageNum - 1) * limitNum;
@@ -750,6 +750,19 @@ export async function adminRoutes(fastify: FastifyInstance) {
       if (plan) {
         whereClause += ` AND p.name = $${paramIndex}`;
         params.push(plan);
+        paramIndex++;
+      }
+
+      // Date range filtering - filter by subscription creation date
+      if (startDate) {
+        whereClause += ` AND s.created_at >= $${paramIndex}::date`;
+        params.push(startDate);
+        paramIndex++;
+      }
+
+      if (endDate) {
+        whereClause += ` AND s.created_at <= $${paramIndex}::date + INTERVAL '1 day'`;
+        params.push(endDate);
         paramIndex++;
       }
 
@@ -807,6 +820,84 @@ export async function adminRoutes(fastify: FastifyInstance) {
       fastify.log.error('Error fetching subscriptions:', error);
       console.error('Full error:', error);
       reply.code(500).send({ error: 'Failed to fetch subscriptions', details: error.message });
+    }
+  });
+
+  // Get subscription details by ID
+  fastify.get('/subscriptions/:id', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const { id } = request.params;
+
+      // Check if subscriptions table exists
+      try {
+        await db.query('SELECT 1 FROM subscriptions LIMIT 1');
+      } catch {
+        reply.code(404).send({ error: 'Subscription not found' });
+        return;
+      }
+
+      const result = await db.query(
+        `SELECT 
+          s.id,
+          s.user_id,
+          s.plan_id,
+          s.status,
+          s.current_period_start,
+          s.current_period_end,
+          s.canceled_at,
+          s.created_at,
+          s.updated_at,
+          u.full_name as user_name,
+          u.email as user_email,
+          u.phone as user_phone,
+          p.name as plan_name,
+          p.code as plan_code,
+          p.price_cents / 100.0 as plan_price,
+          p.connection_limit,
+          p.features_json
+        FROM subscriptions s
+        JOIN users u ON s.user_id = u.id
+        JOIN plans p ON s.plan_id = p.id
+        WHERE s.id = $1`,
+        [id]
+      );
+
+      if (result.rows.length === 0) {
+        reply.code(404).send({ error: 'Subscription not found' });
+        return;
+      }
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        userId: row.user_id,
+        planId: row.plan_id,
+        status: row.status,
+        currentPeriodStart: row.current_period_start,
+        currentPeriodEnd: row.current_period_end,
+        canceledAt: row.canceled_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        user: {
+          id: row.user_id,
+          name: row.user_name,
+          email: row.user_email,
+          phone: row.user_phone,
+        },
+        plan: {
+          id: row.plan_id,
+          name: row.plan_name,
+          code: row.plan_code,
+          price: parseFloat(row.plan_price),
+          connectionLimit: row.connection_limit,
+          features: row.features_json?.features || [],
+        },
+      };
+    } catch (error: any) {
+      fastify.log.error('Error fetching subscription details:', error);
+      reply.code(500).send({ error: 'Failed to fetch subscription details', details: error.message });
     }
   });
 

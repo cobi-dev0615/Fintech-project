@@ -1,12 +1,25 @@
 import { useState, useEffect } from "react";
-import { Search, TrendingUp, AlertCircle, CreditCard } from "lucide-react";
+import { Search, TrendingUp, AlertCircle, CreditCard, User, Calendar, Package, DollarSign } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Subscription {
   id: string;
@@ -17,6 +30,32 @@ interface Subscription {
   amount: number;
   nextBilling: string;
   createdAt: string;
+}
+
+interface SubscriptionDetail {
+  id: string;
+  userId: string;
+  planId: string;
+  status: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  canceledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+  };
+  plan: {
+    id: string;
+    name: string;
+    code: string;
+    price: number;
+    connectionLimit: number | null;
+    features: string[];
+  };
 }
 
 const Subscriptions = () => {
@@ -32,6 +71,13 @@ const Subscriptions = () => {
     total: 0,
     totalPages: 0,
   });
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState<string | null>(null);
+  const [subscriptionDetail, setSubscriptionDetail] = useState<SubscriptionDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
@@ -43,6 +89,8 @@ const Subscriptions = () => {
           plan: filterPlan !== "all" ? filterPlan : undefined,
           page,
           limit: 20,
+          startDate: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+          endDate: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
         });
         setSubscriptions(response.subscriptions.map(sub => ({
           ...sub,
@@ -58,14 +106,14 @@ const Subscriptions = () => {
     };
 
     const timer = setTimeout(() => {
-      if (searchQuery || filterStatus !== "all" || filterPlan !== "all") {
+      if (searchQuery || filterStatus !== "all" || filterPlan !== "all" || dateRange.from || dateRange.to) {
         setPage(1); // Reset to first page on filter change
       }
       fetchSubscriptions();
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, filterStatus, filterPlan, page]);
+  }, [searchQuery, filterStatus, filterPlan, page, dateRange.from, dateRange.to]);
 
   const filteredSubscriptions = subscriptions;
 
@@ -75,6 +123,24 @@ const Subscriptions = () => {
 
   const activeSubscriptions = subscriptions.filter((sub) => sub.status === "active").length;
   const pastDueSubscriptions = subscriptions.filter((sub) => sub.status === "past_due").length;
+
+  const fetchSubscriptionDetail = async (id: string) => {
+    try {
+      setLoadingDetail(true);
+      const detail = await adminApi.getSubscription(id);
+      setSubscriptionDetail(detail);
+    } catch (error: any) {
+      console.error('Failed to fetch subscription detail:', error);
+      setSubscriptionDetail(null);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handleDetailClick = (id: string) => {
+    setSelectedSubscriptionId(id);
+    fetchSubscriptionDetail(id);
+  };
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -138,7 +204,7 @@ const Subscriptions = () => {
 
       {/* Filters */}
       <ChartCard>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -173,6 +239,58 @@ const Subscriptions = () => {
               <SelectItem value="Enterprise">Enterprise</SelectItem>
             </SelectContent>
           </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !dateRange.from && !dateRange.to && "text-muted-foreground"
+                )}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {dateRange.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
+                      {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                    </>
+                  ) : (
+                    format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                  )
+                ) : (
+                  <span>Selecionar período</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange.from || new Date()}
+                selected={{ from: dateRange.from, to: dateRange.to }}
+                onSelect={(range: { from: Date | undefined; to: Date | undefined } | undefined) => {
+                  setDateRange({
+                    from: range?.from,
+                    to: range?.to,
+                  });
+                }}
+                numberOfMonths={2}
+              />
+              <div className="p-3 border-t border-border flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    setDateRange({ from: undefined, to: undefined });
+                  }}
+                >
+                  Limpar
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </ChartCard>
 
@@ -237,7 +355,7 @@ const Subscriptions = () => {
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => handleDetailClick(sub.id)}>
                       Detalhes
                     </Button>
                   </td>
@@ -301,6 +419,155 @@ const Subscriptions = () => {
         </>
         )}
       </ChartCard>
+
+      {/* Subscription Detail Dialog */}
+      <Dialog open={selectedSubscriptionId !== null} onOpenChange={(open) => !open && setSelectedSubscriptionId(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Assinatura</DialogTitle>
+            <DialogDescription>
+              Informações completas da assinatura
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingDetail ? (
+            <div className="space-y-4">
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+            </div>
+          ) : subscriptionDetail ? (
+            <div className="space-y-6">
+              {/* User Information */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Informações do Usuário
+                </h3>
+                <div className="grid grid-cols-2 gap-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Nome</p>
+                    <p className="text-sm font-medium text-foreground">{subscriptionDetail.user.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Email</p>
+                    <p className="text-sm font-medium text-foreground">{subscriptionDetail.user.email}</p>
+                  </div>
+                  {subscriptionDetail.user.phone && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Telefone</p>
+                      <p className="text-sm font-medium text-foreground">{subscriptionDetail.user.phone}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">ID do Usuário</p>
+                    <p className="text-sm font-mono text-foreground">{subscriptionDetail.userId}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Plan Information */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Informações do Plano
+                </h3>
+                <div className="grid grid-cols-2 gap-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Nome do Plano</p>
+                    <p className="text-sm font-medium text-foreground">{subscriptionDetail.plan.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Código</p>
+                    <p className="text-sm font-medium text-foreground uppercase">{subscriptionDetail.plan.code}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                      <DollarSign className="h-3 w-3" />
+                      Preço Mensal
+                    </p>
+                    <p className="text-sm font-medium text-foreground">
+                      R$ {subscriptionDetail.plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Limite de Conexões</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {subscriptionDetail.plan.connectionLimit === null ? "Ilimitado" : subscriptionDetail.plan.connectionLimit}
+                    </p>
+                  </div>
+                  {subscriptionDetail.plan.features.length > 0 && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground mb-2">Features</p>
+                      <div className="flex flex-wrap gap-2">
+                        {subscriptionDetail.plan.features.map((feature, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {feature}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Subscription Details */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Detalhes da Assinatura
+                </h3>
+                <div className="grid grid-cols-2 gap-4 p-4 rounded-lg border border-border bg-muted/30">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Status</p>
+                    {getStatusBadge(subscriptionDetail.status)}
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">ID da Assinatura</p>
+                    <p className="text-sm font-mono text-foreground">{subscriptionDetail.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Período Atual - Início</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {new Date(subscriptionDetail.currentPeriodStart).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Período Atual - Fim</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {new Date(subscriptionDetail.currentPeriodEnd).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                  {subscriptionDetail.canceledAt && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Cancelado em</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {new Date(subscriptionDetail.canceledAt).toLocaleString("pt-BR")}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Criado em</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {new Date(subscriptionDetail.createdAt).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Atualizado em</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {new Date(subscriptionDetail.updatedAt).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              Erro ao carregar detalhes da assinatura
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

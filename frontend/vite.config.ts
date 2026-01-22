@@ -27,6 +27,10 @@ export default defineConfig(({ mode }) => ({
     },
     // Improve connection stability
     cors: true,
+    // Improve file serving stability
+    middlewareMode: false,
+    // Increase chunk size limit to prevent content length mismatches
+    chunkSizeWarningLimit: 2000,
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
@@ -35,7 +39,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'recharts', 'date-fns'],
+    include: ['react', 'react-dom', 'react-router-dom', 'recharts', 'date-fns', 'react-day-picker', 'lucide-react'],
     // Force re-bundling to fix content length mismatch errors
     force: true,
     // Reduce concurrent pre-bundling to prevent timeouts
