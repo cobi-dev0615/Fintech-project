@@ -82,10 +82,52 @@ const SendInvitations = () => {
     }
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(invitationLink);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+  const handleCopyLink = async () => {
+    try {
+      // Check if clipboard API is available
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(invitationLink);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2000);
+        toast({
+          title: "Link copiado",
+          description: "O link de convite foi copiado para a área de transferência",
+        });
+      } else {
+        // Fallback for browsers without clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = invitationLink;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          setCopiedLink(true);
+          setTimeout(() => setCopiedLink(false), 2000);
+          toast({
+            title: "Link copiado",
+            description: "O link de convite foi copiado para a área de transferência",
+          });
+        } catch (err) {
+          toast({
+            title: "Erro",
+            description: "Não foi possível copiar o link. Por favor, copie manualmente.",
+            variant: "destructive",
+          });
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
+    } catch (err) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível copiar o link. Por favor, copie manualmente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {

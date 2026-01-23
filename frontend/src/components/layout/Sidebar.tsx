@@ -46,6 +46,7 @@ interface NavItem {
 const customerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/app/dashboard", enabled: true },
   { icon: Bell, label: "Notificações", href: "/app/notifications", enabled: true },
+  { icon: UserPlus, label: "Convites", href: "/app/invitations", enabled: true },
   { icon: Package, label: "Planos", href: "/app/plans", enabled: true },
   { icon: Link2, label: "Conexões", href: "/app/connections", enabled: true },
   { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true },

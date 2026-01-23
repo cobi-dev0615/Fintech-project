@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, User, Bell, Palette, Save, Lock } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Save, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { CountrySelect } from "@/components/ui/country-select";
 import { userApi, authApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,13 +31,6 @@ const Settings = () => {
     marketingEmails: false,
   });
 
-  const [display, setDisplay] = useState({
-    theme: "system" as "light" | "dark" | "system",
-    language: "pt-BR",
-    dateFormat: "DD/MM/YYYY",
-    currencyFormat: "pt-BR",
-  });
-
   const [password, setPassword] = useState({
     currentPassword: "",
     newPassword: "",
@@ -56,6 +50,7 @@ const Settings = () => {
           name: user.full_name || "",
           email: user.email || "",
           phone: user.phone || "",
+          countryCode: user.country_code || "BR",
           birthDate: user.birth_date || "",
           riskProfile: user.risk_profile || "",
         });
@@ -80,6 +75,7 @@ const Settings = () => {
       await userApi.updateProfile({
         full_name: profile.name,
         phone: profile.phone || undefined,
+        country_code: profile.countryCode || "BR",
         birth_date: profile.birthDate || undefined,
         risk_profile: profile.riskProfile || undefined,
       });
@@ -168,7 +164,7 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">
             <User className="h-4 w-4 mr-2" />
             Perfil
@@ -176,10 +172,6 @@ const Settings = () => {
           <TabsTrigger value="notifications">
             <Bell className="h-4 w-4 mr-2" />
             Notificações
-          </TabsTrigger>
-          <TabsTrigger value="display">
-            <Palette className="h-4 w-4 mr-2" />
-            Exibição
           </TabsTrigger>
           <TabsTrigger value="password">
             <Lock className="h-4 w-4 mr-2" />
@@ -217,13 +209,23 @@ const Settings = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={profile.phone}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                  placeholder="(00) 00000-0000"
-                />
+                <div className="flex gap-2">
+                  <CountrySelect
+                    value={profile.countryCode}
+                    onValueChange={(value) => setProfile({ ...profile, countryCode: value })}
+                  />
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    placeholder="(00) 00000-0000"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Selecione o país e insira o número de telefone
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -331,72 +333,6 @@ const Settings = () => {
                     setNotifications({ ...notifications, marketingEmails: checked })
                   }
                 />
-              </div>
-            </div>
-          </ChartCard>
-        </TabsContent>
-
-        {/* Display Tab */}
-        <TabsContent value="display">
-          <ChartCard title="Preferências de Exibição">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="theme">Tema</Label>
-                <select
-                  id="theme"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                  value={display.theme}
-                  onChange={(e) =>
-                    setDisplay({
-                      ...display,
-                      theme: e.target.value as "light" | "dark" | "system",
-                    })
-                  }
-                >
-                  <option value="system">Sistema</option>
-                  <option value="light">Claro</option>
-                  <option value="dark">Escuro</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="language">Idioma</Label>
-                <select
-                  id="language"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                  value={display.language}
-                  onChange={(e) => setDisplay({ ...display, language: e.target.value })}
-                >
-                  <option value="pt-BR">Português (Brasil)</option>
-                  <option value="en-US">English (US)</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dateFormat">Formato de Data</Label>
-                <select
-                  id="dateFormat"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                  value={display.dateFormat}
-                  onChange={(e) => setDisplay({ ...display, dateFormat: e.target.value })}
-                >
-                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="currencyFormat">Formato de Moeda</Label>
-                <select
-                  id="currencyFormat"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                  value={display.currencyFormat}
-                  onChange={(e) => setDisplay({ ...display, currencyFormat: e.target.value })}
-                >
-                  <option value="pt-BR">R$ (Brasil)</option>
-                  <option value="en-US">$ (US)</option>
-                </select>
               </div>
             </div>
           </ChartCard>

@@ -1,5 +1,10 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
+import {
+  getUserNotificationPreferences,
+  updateUserNotificationPreferences,
+  NotificationType,
+} from '../utils/notifications.js';
 
 export async function notificationsRoutes(fastify: FastifyInstance) {
   // Get all notifications for user
@@ -222,6 +227,68 @@ export async function notificationsRoutes(fastify: FastifyInstance) {
       }
 
       await db.query(`DELETE FROM alerts WHERE id = $1 AND user_id = $2`, [id, userId]);
+
+      return reply.send({ success: true });
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Get user's notification preferences
+  fastify.get('/preferences', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const preferences = await getUserNotificationPreferences(userId);
+      return reply.send({ preferences });
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Update user's notification preferences
+  fastify.patch('/preferences/:type', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const { type } = request.params as { type: string };
+      const { enabled, emailEnabled, pushEnabled } = request.body as {
+        enabled?: boolean;
+        emailEnabled?: boolean;
+        pushEnabled?: boolean;
+      };
+
+      // Validate notification type
+      const validTypes: NotificationType[] = [
+        'account_activity',
+        'transaction_alert',
+        'investment_update',
+        'report_ready',
+        'message_received',
+        'consultant_assignment',
+        'subscription_update',
+        'system_announcement',
+        'goal_milestone',
+        'connection_status',
+      ];
+
+      if (!validTypes.includes(type as NotificationType)) {
+        return reply.code(400).send({ error: 'Invalid notification type' });
+      }
+
+      await updateUserNotificationPreferences(
+        userId,
+        type as NotificationType,
+        {
+          enabled,
+          emailEnabled,
+          pushEnabled,
+        }
+      );
 
       return reply.send({ success: true });
     } catch (error) {

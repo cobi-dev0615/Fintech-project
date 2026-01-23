@@ -91,6 +91,10 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         userUpdates.push(`phone = $${paramCount++}`);
         userValues.push(body.phone);
       }
+      if (body.country_code) {
+        userUpdates.push(`country_code = $${paramCount++}`);
+        userValues.push(body.country_code);
+      }
       if (body.birth_date) {
         userUpdates.push(`birth_date = $${paramCount++}`);
         userValues.push(body.birth_date);
@@ -719,7 +723,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       );
 
       // Clear cache
-      cache.del(`consultant:${consultantId}:dashboard:metrics`);
+      cache.delete(`consultant:${consultantId}:dashboard:metrics`);
 
       return {
         note: {
@@ -817,42 +821,81 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       const consultantId = getConsultantId(request);
       const { id, name, email, phone, stage, notes } = request.body as any;
 
+      // Check if crm_leads table exists
+      let hasCrmLeads = false;
+      try {
+        await db.query('SELECT 1 FROM crm_leads LIMIT 1');
+        hasCrmLeads = true;
+      } catch {
+        hasCrmLeads = false;
+      }
+
+      if (!hasCrmLeads) {
+        return reply.code(400).send({ error: 'CRM leads table does not exist. Please run database migrations.' });
+      }
+
+      // Validate stage enum value
+      const validStages = ['lead', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
+      const finalStage = stage && validStages.includes(stage) ? stage : 'lead';
+
+      // Convert empty strings to null for optional fields
+      const finalName = name && name.trim() ? name.trim() : null;
+      const finalEmail = email && email.trim() ? email.trim() : null;
+      const finalPhone = phone && phone.trim() ? phone.trim() : null;
+      const finalNotes = notes && notes.trim() ? notes.trim() : null;
+
       if (id) {
         // Update existing
+        if (!finalEmail) {
+          return reply.code(400).send({ error: 'Email is required' });
+        }
+
         const result = await db.query(
           `UPDATE crm_leads
            SET full_name = $1, email = $2, phone = $3, stage = $4, notes = $5, updated_at = NOW()
            WHERE id = $6 AND consultant_id = $7
-           RETURNING id, full_name, email, phone, stage, notes`,
-          [name, email, phone, stage || 'lead', notes, id, consultantId]
+           RETURNING id, full_name as name, email, phone, stage, notes, created_at`,
+          [finalName, finalEmail, finalPhone, finalStage, finalNotes, id, consultantId]
         );
 
         if (result.rows.length === 0) {
           return reply.code(404).send({ error: 'Prospect not found' });
         }
 
+        // Clear cache
+        cache.delete(`consultant:${consultantId}:dashboard:metrics`);
+
         return { prospect: result.rows[0] };
       } else {
         // Create new
-        if (!email) {
+        if (!finalEmail) {
           return reply.code(400).send({ error: 'Email is required' });
         }
 
         const result = await db.query(
           `INSERT INTO crm_leads (consultant_id, full_name, email, phone, stage, notes)
            VALUES ($1, $2, $3, $4, $5, $6)
-           RETURNING id, full_name, email, phone, stage, notes, created_at`,
-          [consultantId, name, email, phone, stage || 'lead', notes]
+           RETURNING id, full_name as name, email, phone, stage, notes, created_at`,
+          [consultantId, finalName, finalEmail, finalPhone, finalStage, finalNotes]
         );
 
         // Clear cache
-        cache.del(`consultant:${consultantId}:dashboard:metrics`);
+        cache.delete(`consultant:${consultantId}:dashboard:metrics`);
 
         return { prospect: result.rows[0] };
       }
     } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: 'Internal server error' });
+      fastify.log.error('Error creating/updating prospect:', error);
+      fastify.log.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+        constraint: error.constraint,
+      });
+      return reply.code(500).send({ 
+        error: 'Internal server error',
+        details: error.message || 'Unknown error'
+      });
     }
   });
 
@@ -865,15 +908,37 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       const { id } = request.params as any;
       const { stage } = request.body as any;
 
+      // Check if crm_leads table exists
+      let hasCrmLeads = false;
+      try {
+        await db.query('SELECT 1 FROM crm_leads LIMIT 1');
+        hasCrmLeads = true;
+      } catch {
+        hasCrmLeads = false;
+      }
+
+      if (!hasCrmLeads) {
+        return reply.code(400).send({ error: 'CRM leads table does not exist. Please run database migrations.' });
+      }
+
       if (!stage) {
         return reply.code(400).send({ error: 'Stage is required' });
+      }
+
+      // Validate stage enum value
+      const validStages = ['lead', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
+      if (!validStages.includes(stage)) {
+        return reply.code(400).send({ 
+          error: 'Invalid stage value',
+          details: `Stage must be one of: ${validStages.join(', ')}`
+        });
       }
 
       const result = await db.query(
         `UPDATE crm_leads
          SET stage = $1, updated_at = NOW()
          WHERE id = $2 AND consultant_id = $3
-         RETURNING id, stage`,
+         RETURNING id, full_name as name, email, phone, stage, notes, created_at`,
         [stage, id, consultantId]
       );
 
@@ -882,12 +947,21 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       }
 
       // Clear cache
-      cache.del(`consultant:${consultantId}:dashboard:metrics`);
+      cache.delete(`consultant:${consultantId}:dashboard:metrics`);
 
       return { prospect: result.rows[0] };
     } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: 'Internal server error' });
+      fastify.log.error('Error updating prospect stage:', error);
+      fastify.log.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+        constraint: error.constraint,
+      });
+      return reply.code(500).send({ 
+        error: 'Internal server error',
+        details: error.message || 'Unknown error'
+      });
     }
   });
 
@@ -911,7 +985,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       }
 
       // Clear cache
-      cache.del(`consultant:${consultantId}:dashboard:metrics`);
+      cache.delete(`consultant:${consultantId}:dashboard:metrics`);
 
       return { message: 'Prospect deleted' };
     } catch (error: any) {
@@ -1055,6 +1129,95 @@ export async function consultantRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Create or Get Conversation
+  fastify.post('/messages/conversations', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { customerId } = request.body as any;
+
+      if (!customerId) {
+        return reply.code(400).send({ error: 'Customer ID is required' });
+      }
+
+      // Check if customer exists and is a customer
+      const customerCheck = await db.query(
+        `SELECT id, role FROM users WHERE id = $1`,
+        [customerId]
+      );
+
+      if (customerCheck.rows.length === 0) {
+        return reply.code(404).send({ error: 'Customer not found' });
+      }
+
+      if (customerCheck.rows[0].role !== 'customer') {
+        return reply.code(400).send({ error: 'User is not a customer' });
+      }
+
+      // Check if relationship exists (consultant must have access to this customer)
+      const relationshipCheck = await db.query(
+        `SELECT 1 FROM customer_consultants 
+         WHERE consultant_id = $1 AND customer_id = $2 AND status = 'active'`,
+        [consultantId, customerId]
+      );
+
+      if (relationshipCheck.rows.length === 0) {
+        return reply.code(403).send({ 
+          error: 'No active relationship with this customer. Please send an invitation first.' 
+        });
+      }
+
+      // Check if conversation already exists
+      const existingConv = await db.query(
+        `SELECT id FROM conversations 
+         WHERE consultant_id = $1 AND customer_id = $2`,
+        [consultantId, customerId]
+      );
+
+      if (existingConv.rows.length > 0) {
+        // Return existing conversation
+        const convId = existingConv.rows[0].id;
+        const customerResult = await db.query(
+          `SELECT full_name FROM users WHERE id = $1`,
+          [customerId]
+        );
+
+        return {
+          conversation: {
+            id: convId,
+            clientId: customerId,
+            clientName: customerResult.rows[0].full_name || 'Cliente',
+          },
+        };
+      }
+
+      // Create new conversation
+      const result = await db.query(
+        `INSERT INTO conversations (consultant_id, customer_id)
+         VALUES ($1, $2)
+         RETURNING id`,
+        [consultantId, customerId]
+      );
+
+      const customerResult = await db.query(
+        `SELECT full_name FROM users WHERE id = $1`,
+        [customerId]
+      );
+
+      return {
+        conversation: {
+          id: result.rows[0].id,
+          clientId: customerId,
+          clientName: customerResult.rows[0].full_name || 'Cliente',
+        },
+      };
+    } catch (error: any) {
+      fastify.log.error('Error creating conversation:', error);
+      reply.code(500).send({ error: 'Failed to create conversation', details: error.message });
+    }
+  });
+
   // Get Conversations
   fastify.get('/messages/conversations', {
     preHandler: [requireConsultant],
@@ -1134,11 +1297,13 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         conversations = result.rows.map(row => ({
           id: row.id,
           clientId: row.customer_id,
-          clientName: row.client_name,
+          clientName: row.client_name || 'Cliente',
           lastMessage: row.last_message || 'Nenhuma mensagem',
           timestamp: row.last_message_time 
-            ? new Date(row.last_message_time).toLocaleString('pt-BR')
-            : 'Nunca',
+            ? new Date(row.last_message_time).toISOString()
+            : row.updated_at 
+            ? new Date(row.updated_at).toISOString()
+            : new Date().toISOString(),
           unread: parseInt(row.unread_count) || 0,
         }));
       } catch (error: any) {
@@ -1190,7 +1355,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         `SELECT 
            m.id,
            m.sender_id,
-           m.body as content,
+           m.body,
            m.created_at as timestamp,
            u.role
          FROM messages m
@@ -1211,8 +1376,8 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       const messages = messagesResult.rows.map(row => ({
         id: row.id,
         sender: row.role === 'consultant' ? 'consultant' : 'client',
-        content: row.content,
-        timestamp: new Date(row.timestamp).toLocaleString('pt-BR'),
+        content: row.body,
+        timestamp: new Date(row.timestamp).toISOString(),
       }));
 
       return {
@@ -1272,7 +1437,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
           id: result.rows[0].id,
           sender: 'consultant',
           content: result.rows[0].body,
-          timestamp: new Date(result.rows[0].created_at).toLocaleString('pt-BR'),
+          timestamp: new Date(result.rows[0].created_at).toISOString(),
         },
       };
     } catch (error: any) {
@@ -1340,7 +1505,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
           id: row.id,
           clientName: row.client_name || 'Geral',
           type: row.type,
-          generatedAt: new Date(row.generated_at).toLocaleDateString('pt-BR'),
+          generatedAt: new Date(row.generated_at).toISOString(),
           status: row.file_url ? 'generated' : 'pending',
           hasWatermark: row.params_json?.watermark || false,
           downloadUrl: row.file_url,
@@ -1369,17 +1534,47 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         return reply.code(400).send({ error: 'Report type is required' });
       }
 
+      // Validate report type
+      const validTypes = [
+        'consolidated',
+        'portfolio_analysis',
+        'financial_planning',
+        'monthly',
+        'custom',
+        'transactions',
+        'monthly_evolution',
+        'advisor_custom',
+      ];
+      if (!validTypes.includes(type)) {
+        return reply.code(400).send({ 
+          error: `Invalid report type. Valid types: ${validTypes.join(', ')}` 
+        });
+      }
+
       if (clientId) {
         // Verify access
         const accessCheck = await db.query(
           `SELECT 1 FROM customer_consultants 
-           WHERE consultant_id = $1 AND customer_id = $2`,
+           WHERE consultant_id = $1 AND customer_id = $2 AND status = 'active'`,
           [consultantId, clientId]
         );
 
         if (accessCheck.rows.length === 0) {
           return reply.code(403).send({ error: 'Access denied to this client' });
         }
+      }
+
+      // Check if reports table exists
+      let hasReports = false;
+      try {
+        await db.query('SELECT 1 FROM reports LIMIT 1');
+        hasReports = true;
+      } catch {
+        hasReports = false;
+      }
+
+      if (!hasReports) {
+        return reply.code(500).send({ error: 'Reports table does not exist' });
       }
 
       // Create report record
@@ -1398,21 +1593,21 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         ]
       );
 
-      // TODO: Actually generate PDF report here
-      // For now, we'll just return the report record
+      // Clear cache
+      cache.delete(`consultant:${consultantId}:dashboard:metrics`);
 
       return {
         report: {
           id: result.rows[0].id,
           type,
-          generatedAt: new Date(result.rows[0].created_at).toLocaleDateString('pt-BR'),
+          generatedAt: new Date(result.rows[0].created_at).toISOString(),
           status: 'pending', // Will be 'generated' once PDF is created
         },
-        message: 'Report generation started. It will be available shortly.',
+        message: 'Relatório iniciado. Estará disponível em breve.',
       };
     } catch (error: any) {
-      fastify.log.error(error);
-      return reply.code(500).send({ error: 'Internal server error' });
+      fastify.log.error('Error generating report:', error);
+      reply.code(500).send({ error: 'Failed to generate report', details: error.message });
     }
   });
 }

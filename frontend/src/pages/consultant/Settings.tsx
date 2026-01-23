@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, User, Bell, Palette, Save, Lock } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Save, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { CountrySelect } from "@/components/ui/country-select";
 import { consultantApi, userApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,13 +34,6 @@ const Settings = () => {
     weeklySummary: true,
   });
 
-  const [display, setDisplay] = useState({
-    theme: "system" as "light" | "dark" | "system",
-    language: "pt-BR",
-    dateFormat: "DD/MM/YYYY",
-    currencyFormat: "pt-BR",
-  });
-
   const [password, setPassword] = useState({
     currentPassword: "",
     newPassword: "",
@@ -59,6 +53,7 @@ const Settings = () => {
           name: user.full_name || "",
           email: user.email || "",
           phone: user.phone || "",
+          countryCode: user.country_code || "BR",
           bio: user.bio || "",
           specialty: user.specialty || "",
           cpf: "", // CPF is not stored in the database currently
@@ -75,6 +70,7 @@ const Settings = () => {
               name: user.name || user.full_name || "",
               email: user.email || "",
               phone: user.phone || "",
+              countryCode: user.country_code || "BR",
               bio: user.bio || "",
               specialty: user.specialty || "",
               cpf: user.cpf || "",
@@ -99,14 +95,14 @@ const Settings = () => {
       await consultantApi.updateProfile({
         full_name: profile.name,
         phone: profile.phone || undefined,
+        country_code: profile.countryCode || "BR",
         cref: profile.cref || undefined,
         specialty: profile.specialty || undefined,
         bio: profile.bio || undefined,
       });
       
-      // Save notifications and display to localStorage (these don't have backend endpoints yet)
+      // Save notifications to localStorage (these don't have backend endpoints yet)
       localStorage.setItem("consultantNotifications", JSON.stringify(notifications));
-      localStorage.setItem("consultantDisplay", JSON.stringify(display));
 
       toast({
         title: "Sucesso",
@@ -132,6 +128,7 @@ const Settings = () => {
           await consultantApi.updateProfile({
             full_name: profile.name,
             phone: profile.phone || undefined,
+            country_code: profile.countryCode || "BR",
             cref: profile.cref || undefined,
             specialty: profile.specialty || undefined,
             bio: profile.bio || undefined,
@@ -139,9 +136,6 @@ const Settings = () => {
           break;
         case "notifications":
           localStorage.setItem("consultantNotifications", JSON.stringify(notifications));
-          break;
-        case "display":
-          localStorage.setItem("consultantDisplay", JSON.stringify(display));
           break;
         case "password":
           // Validate passwords
@@ -204,7 +198,7 @@ const Settings = () => {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground">Configurações</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Gerencie seu perfil, notificações e preferências de exibição
+            Gerencie seu perfil e notificações
           </p>
         </div>
         <Button onClick={handleSaveAll} disabled={saving}>
@@ -222,10 +216,6 @@ const Settings = () => {
           <TabsTrigger value="notifications">
             <Bell className="h-4 w-4 mr-2" />
             Notificações
-          </TabsTrigger>
-          <TabsTrigger value="display">
-            <Palette className="h-4 w-4 mr-2" />
-            Exibição
           </TabsTrigger>
           <TabsTrigger value="password">
             <Lock className="h-4 w-4 mr-2" />
@@ -268,13 +258,23 @@ const Settings = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={profile.phone}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    placeholder="(11) 99999-9999"
-                  />
+                  <div className="flex gap-2">
+                    <CountrySelect
+                      value={profile.countryCode}
+                      onValueChange={(value) => setProfile({ ...profile, countryCode: value })}
+                    />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profile.phone}
+                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                      placeholder="(11) 99999-9999"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione o país e insira o número de telefone
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -418,91 +418,6 @@ const Settings = () => {
                 <Button onClick={() => handleSaveSection("notifications")} disabled={saving}>
                   <Save className="h-4 w-4 mr-2" />
                   Salvar Notificações
-                </Button>
-              </div>
-            </div>
-          </ChartCard>
-        </TabsContent>
-
-        {/* Display Tab */}
-        <TabsContent value="display">
-          <ChartCard title="Preferências de Exibição">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="theme">Tema</Label>
-                <select
-                  id="theme"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={display.theme}
-                  onChange={(e) =>
-                    setDisplay({ ...display, theme: e.target.value as "light" | "dark" | "system" })
-                  }
-                >
-                  <option value="system">Sistema</option>
-                  <option value="light">Claro</option>
-                  <option value="dark">Escuro</option>
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  Escolha o tema de exibição da plataforma
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="language">Idioma</Label>
-                <select
-                  id="language"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={display.language}
-                  onChange={(e) => setDisplay({ ...display, language: e.target.value })}
-                >
-                  <option value="pt-BR">Português (Brasil)</option>
-                  <option value="en-US">English (US)</option>
-                  <option value="es-ES">Español</option>
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  Idioma de exibição da interface
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dateFormat">Formato de Data</Label>
-                <select
-                  id="dateFormat"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={display.dateFormat}
-                  onChange={(e) => setDisplay({ ...display, dateFormat: e.target.value })}
-                >
-                  <option value="DD/MM/YYYY">DD/MM/AAAA</option>
-                  <option value="MM/DD/YYYY">MM/DD/AAAA</option>
-                  <option value="YYYY-MM-DD">AAAA-MM-DD</option>
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  Formato preferido para exibição de datas
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="currencyFormat">Formato de Moeda</Label>
-                <select
-                  id="currencyFormat"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={display.currencyFormat}
-                  onChange={(e) => setDisplay({ ...display, currencyFormat: e.target.value })}
-                >
-                  <option value="pt-BR">R$ 1.234,56 (Brasil)</option>
-                  <option value="en-US">$1,234.56 (US)</option>
-                  <option value="en-GB">£1,234.56 (UK)</option>
-                  <option value="de-DE">1.234,56 € (Europa)</option>
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  Formato preferido para exibição de valores monetários
-                </p>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={() => handleSaveSection("display")} disabled={saving}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar Exibição
                 </Button>
               </div>
             </div>

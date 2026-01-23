@@ -50,6 +50,11 @@ async function runAllMigrations() {
     await runMigration('001_create_admin_tables.sql');
     await runMigration('002_add_plan_role_and_billing.sql');
     await runMigration('003_create_login_history.sql');
+    await runMigration('004_add_consultant_plan.sql');
+    await runMigration('005_create_crm_leads.sql');
+    await runMigration('006_create_conversations_messages.sql');
+    await runMigration('007_update_report_types.sql');
+    await runMigration('008_create_notification_preferences.sql');
     console.log('✅ All migrations completed');
   } catch (error) {
     console.error('Migration failed:', error);

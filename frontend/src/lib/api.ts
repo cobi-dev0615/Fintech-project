@@ -387,6 +387,25 @@ export const notificationsApi = {
 
   delete: (id: string) =>
     api.delete<{ success: boolean }>(`/notifications/${id}`),
+  
+  getPreferences: () =>
+    api.get<{
+      preferences: Record<string, {
+        enabled: boolean;
+        emailEnabled: boolean;
+        pushEnabled: boolean;
+      }>;
+    }>('/notifications/preferences'),
+  
+  updatePreference: (
+    type: string,
+    preferences: {
+      enabled?: boolean;
+      emailEnabled?: boolean;
+      pushEnabled?: boolean;
+    }
+  ) =>
+    api.patch<{ success: boolean }>(`/notifications/preferences/${type}`, preferences),
 };
 
 // Subscription endpoints
@@ -447,6 +466,48 @@ export const subscriptionsApi = {
 };
 
 // Public endpoints (no authentication required)
+// Customer endpoints
+export const customerApi = {
+  // Invitations
+  getInvitations: () =>
+    api.get<{
+      invitations: Array<{
+        id: string;
+        consultantId: string;
+        consultantName: string;
+        consultantEmail: string;
+        status: string;
+        sentAt: string;
+        expiresAt: string | null;
+      }>;
+    }>('/customer/invitations'),
+
+  acceptInvitation: (id: string) =>
+    api.post<{
+      invitation: {
+        id: string;
+        consultantId: string;
+        status: string;
+      };
+    }>(`/customer/invitations/${id}/accept`),
+
+  declineInvitation: (id: string) =>
+    api.post<{ message: string }>(`/customer/invitations/${id}/decline`),
+
+  // Consultants
+  getConsultants: () =>
+    api.get<{
+      consultants: Array<{
+        id: string;
+        consultantId: string;
+        name: string;
+        email: string;
+        isPrimary: boolean;
+        status: string;
+      }>;
+    }>('/customer/consultants'),
+};
+
 export const publicApi = {
   getPlans: (role?: 'customer' | 'consultant', billingPeriod?: 'monthly' | 'annual') => {
     const params = new URLSearchParams();
@@ -479,6 +540,8 @@ export const adminApi = {
         code: string;
         name: string;
         priceCents: number;
+        monthlyPriceCents: number | null;
+        annualPriceCents: number | null;
         connectionLimit: number | null;
         features: string[];
         isActive: boolean;
@@ -756,6 +819,8 @@ export const adminApi = {
     code: string;
     name: string;
     priceCents: number;
+    monthlyPriceCents?: number | null;
+    annualPriceCents?: number | null;
     connectionLimit: number | null;
     features: string[];
     isActive: boolean;
@@ -1036,6 +1101,15 @@ export const consultantApi = {
         unread: number;
       }>;
     }>('/consultant/messages/conversations'),
+
+  createConversation: (customerId: string) =>
+    api.post<{
+      conversation: {
+        id: string;
+        clientId: string;
+        clientName: string;
+      };
+    }>('/consultant/messages/conversations', { customerId }),
 
   getConversation: (id: string) =>
     api.get<{

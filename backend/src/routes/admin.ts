@@ -1483,6 +1483,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
         code: string;
         name: string;
         priceCents: number;
+        monthlyPriceCents: number | null;
+        annualPriceCents: number | null;
         connectionLimit: number | null;
         features: string[];
         isActive: boolean;
@@ -1491,15 +1493,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
       let plans: PlanItem[] = [];
       try {
         const plansResult = await db.query(
-          `SELECT id, code, name, price_cents, connection_limit, features_json, is_active, role
+          `SELECT id, code, name, price_cents, monthly_price_cents, annual_price_cents, connection_limit, features_json, is_active, role
            FROM plans
-           ORDER BY role NULLS LAST, price_cents ASC`
+           ORDER BY role NULLS LAST, COALESCE(monthly_price_cents, price_cents) ASC`
         );
         plans = plansResult.rows.map(row => ({
           id: row.id,
           code: row.code,
           name: row.name,
           priceCents: row.price_cents,
+          monthlyPriceCents: row.monthly_price_cents,
+          annualPriceCents: row.annual_price_cents,
           connectionLimit: row.connection_limit,
           features: row.features_json?.features || [],
           isActive: row.is_active,
@@ -1661,6 +1665,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
         code: string;
         name: string;
         priceCents: number;
+        monthlyPriceCents?: number | null;
+        annualPriceCents?: number | null;
         connectionLimit: number | null;
         features: string[];
         isActive: boolean;
@@ -1686,12 +1692,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
           // Update existing plan
           await db.query(
             `UPDATE plans
-             SET name = $1, price_cents = $2, connection_limit = $3,
-                 features_json = $4, is_active = $5, role = $6, updated_at = now()
-             WHERE code = $7`,
+             SET name = $1, price_cents = $2, monthly_price_cents = $3, annual_price_cents = $4,
+                 connection_limit = $5, features_json = $6, is_active = $7, role = $8, updated_at = now()
+             WHERE code = $9`,
             [
               plan.name,
               plan.priceCents,
+              plan.monthlyPriceCents ?? plan.priceCents,
+              plan.annualPriceCents ?? (plan.priceCents > 0 ? plan.priceCents * 10 : 0),
               plan.connectionLimit,
               JSON.stringify({ features: plan.features }),
               plan.isActive,
@@ -1702,12 +1710,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
         } else {
           // Insert new plan
           await db.query(
-            `INSERT INTO plans (code, name, price_cents, connection_limit, features_json, is_active, role)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            `INSERT INTO plans (code, name, price_cents, monthly_price_cents, annual_price_cents, connection_limit, features_json, is_active, role)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
             [
               plan.code,
               plan.name,
               plan.priceCents,
+              plan.monthlyPriceCents ?? plan.priceCents,
+              plan.annualPriceCents ?? (plan.priceCents > 0 ? plan.priceCents * 10 : 0),
               plan.connectionLimit,
               JSON.stringify({ features: plan.features }),
               plan.isActive,

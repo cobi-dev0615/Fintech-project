@@ -170,7 +170,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const userId = (request.user as any).userId;
       
       const result = await db.query(
-        'SELECT id, full_name, email, role, created_at FROM users WHERE id = $1',
+        'SELECT id, full_name, email, role, phone, country_code, birth_date, risk_profile, created_at FROM users WHERE id = $1',
         [userId]
       );
       

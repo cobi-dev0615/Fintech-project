@@ -47,6 +47,10 @@ export async function usersRoutes(fastify: FastifyInstance) {
         updates.push(`phone = $${paramCount++}`);
         values.push(body.phone);
       }
+      if (body.country_code) {
+        updates.push(`country_code = $${paramCount++}`);
+        values.push(body.country_code);
+      }
       if (body.birth_date) {
         updates.push(`birth_date = $${paramCount++}`);
         values.push(body.birth_date);
@@ -65,7 +69,7 @@ export async function usersRoutes(fastify: FastifyInstance) {
       const result = await db.query(
         `UPDATE users SET ${updates.join(', ')}, updated_at = NOW()
          WHERE id = $${paramCount}
-         RETURNING id, full_name, email, role, phone, birth_date, risk_profile`,
+         RETURNING id, full_name, email, role, phone, country_code, birth_date, risk_profile`,
         values
       );
       

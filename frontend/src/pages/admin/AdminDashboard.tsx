@@ -26,7 +26,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -93,7 +93,7 @@ const UserGrowthChart = memo(function UserGrowthChart() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={50} />
-              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px" }} />
+              <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px" }} />
               <Line type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -159,7 +159,7 @@ const RevenueChart = memo(function RevenueChart() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} width={50} />
-              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px" }} formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`} />
+              <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px" }} formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`} />
               <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

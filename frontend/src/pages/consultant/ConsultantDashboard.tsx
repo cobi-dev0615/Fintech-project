@@ -62,43 +62,60 @@ const ConsultantDashboard = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <ProfessionalKpiCard
-          title="Total de Clientes"
-          value={metrics?.kpis?.totalClients?.toString() || "0"}
-          change={metrics?.kpis?.newClients > 0 ? `+${metrics.kpis.newClients} este mês` : ""}
-          changeType={metrics?.kpis?.newClients > 0 ? "positive" : "neutral"}
-          icon={Users}
-          subtitle=""
-        />
-        <ProfessionalKpiCard
-          title="Patrimônio Total"
-          value={`R$ ${(metrics?.kpis?.totalNetWorth / 1000000).toFixed(1)}M`}
-          change=""
-          changeType="neutral"
-          icon={TrendingUp}
-          subtitle="sob gestão"
-        />
-        <ProfessionalKpiCard
-          title="Tarefas Pendentes"
-          value={metrics?.kpis?.pendingTasks?.toString() || "0"}
-          change=""
-          changeType="neutral"
-          icon={Calendar}
-          subtitle="para hoje"
-        />
-        <ProfessionalKpiCard
-          title="Prospectos"
-          value={metrics?.kpis?.prospects?.toString() || "0"}
-          change=""
-          changeType="neutral"
-          icon={AlertCircle}
-          subtitle="no pipeline"
-        />
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-[2px] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+          <div className="bg-card rounded-lg h-full">
+            <ProfessionalKpiCard
+              title="Total de Clientes"
+              value={metrics?.kpis?.totalClients?.toString() || "0"}
+              change={metrics?.kpis?.newClients > 0 ? `+${metrics.kpis.newClients} este mês` : ""}
+              changeType={metrics?.kpis?.newClients > 0 ? "positive" : "neutral"}
+              icon={Users}
+              subtitle=""
+            />
+          </div>
+        </div>
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 p-[2px] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+          <div className="bg-card rounded-lg h-full">
+            <ProfessionalKpiCard
+              title="Patrimônio Total"
+              value={`R$ ${(metrics?.kpis?.totalNetWorth / 1000000).toFixed(1)}M`}
+              change=""
+              changeType="neutral"
+              icon={TrendingUp}
+              subtitle="sob gestão"
+            />
+          </div>
+        </div>
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 p-[2px] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+          <div className="bg-card rounded-lg h-full">
+            <ProfessionalKpiCard
+              title="Tarefas Pendentes"
+              value={metrics?.kpis?.pendingTasks?.toString() || "0"}
+              change=""
+              changeType="neutral"
+              icon={Calendar}
+              subtitle="para hoje"
+            />
+          </div>
+        </div>
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-pink-500 to-rose-600 p-[2px] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+          <div className="bg-card rounded-lg h-full">
+            <ProfessionalKpiCard
+              title="Prospectos"
+              value={metrics?.kpis?.prospects?.toString() || "0"}
+              change=""
+              changeType="neutral"
+              icon={AlertCircle}
+              subtitle="no pipeline"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Pipeline and Tasks */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Pipeline de Prospecção" subtitle="Status dos prospectos">
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 border-2 border-indigo-500/20 shadow-md hover:shadow-lg transition-all duration-300">
+          <ChartCard title="Pipeline de Prospecção" subtitle="Status dos prospectos" className="bg-transparent">
           <div className="space-y-4">
             {pipelineData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
@@ -134,8 +151,10 @@ const ConsultantDashboard = () => {
             </Link>
           </div>
         </ChartCard>
+        </div>
 
-        <ChartCard title="Próximas Tarefas" subtitle="Ações pendentes">
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-teal-500/10 border-2 border-cyan-500/20 shadow-md hover:shadow-lg transition-all duration-300">
+          <ChartCard title="Próximas Tarefas" subtitle="Ações pendentes" className="bg-transparent">
           <div className="space-y-3">
             {recentTasks.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
@@ -176,10 +195,12 @@ const ConsultantDashboard = () => {
             </Link>
           </div>
         </ChartCard>
+        </div>
       </div>
 
       {/* Quick Actions */}
-      <ChartCard title="Ações Rápidas">
+      <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border-2 border-violet-500/20 shadow-md hover:shadow-lg transition-all duration-300">
+        <ChartCard title="Ações Rápidas" className="bg-transparent">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link to="/consultant/clients">
             <div className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
@@ -210,6 +231,7 @@ const ConsultantDashboard = () => {
           </Link>
         </div>
       </ChartCard>
+      </div>
     </div>
   );
 };

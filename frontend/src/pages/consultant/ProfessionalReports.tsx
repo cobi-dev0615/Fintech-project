@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Download, Plus, Settings, User } from "lucide-react";
+import { FileText, Download, Plus, Settings, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format, formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Report {
   id: string;
@@ -47,18 +49,19 @@ const ProfessionalReports = () => {
   };
 
   // Fetch reports and clients in parallel with caching
-  const { data: reportsData, isLoading: reportsLoading } = useQuery({
+  const { data: reportsData, isLoading: reportsLoading, error: reportsError } = useQuery({
     queryKey: ['consultant', 'reports'],
     queryFn: () => consultantApi.getReports(),
     staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 60000, // Refetch every minute to check for completed reports
   });
 
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
-    queryKey: ['consultant', 'clients', ''],
-    queryFn: () => consultantApi.getClients(),
+    queryKey: ['consultant', 'clients', 'active'],
+    queryFn: () => consultantApi.getClients({ status: 'active', limit: 100 }),
     staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const reports = reportsData?.reports || [];
@@ -77,10 +80,12 @@ const ProfessionalReports = () => {
       queryClient.invalidateQueries({ queryKey: ['consultant', 'reports'] });
       toast({
         title: "Sucesso",
-        description: result.message,
+        description: result.message || "Relatório iniciado. Estará disponível em breve.",
       });
       setSelectedClient("all");
       setReportType("");
+      setIncludeWatermark(true);
+      setCustomBranding(false);
     },
     onError: (err: any) => {
       toast({
@@ -109,6 +114,32 @@ const ProfessionalReports = () => {
     });
   };
 
+  const formatReportDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+      if (diffInHours < 24) {
+        return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+      } else if (diffInHours < 48) {
+        return `Ontem ${format(date, 'HH:mm', { locale: ptBR })}`;
+      } else {
+        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+      }
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Filter reports by selected client
+  const filteredReports = selectedClient === "all" 
+    ? reports 
+    : reports.filter((r: Report) => {
+        const client = clients.find((c: any) => c.id === selectedClient);
+        return client && r.clientName === client.name;
+      });
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -119,10 +150,6 @@ const ProfessionalReports = () => {
             Crie e gerencie relatórios personalizados para seus clientes
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Relatório
-        </Button>
       </div>
 
       {/* Report Generator */}
@@ -137,11 +164,17 @@ const ProfessionalReports = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Geral (sem cliente específico)</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
+                  {clientsLoading ? (
+                    <SelectItem value="loading" disabled>Carregando clientes...</SelectItem>
+                  ) : clients.length === 0 ? (
+                    <SelectItem value="none" disabled>Nenhum cliente ativo</SelectItem>
+                  ) : (
+                    clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -187,10 +220,19 @@ const ProfessionalReports = () => {
             </div>
           </div>
 
-          <Button className="w-full md:w-auto" disabled={!reportType || generateMutation.isLoading} onClick={handleGenerateReport}>
+          <Button 
+            className="w-full md:w-auto" 
+            disabled={!reportType || generateMutation.isLoading || clients.length === 0} 
+            onClick={handleGenerateReport}
+          >
             <FileText className="h-4 w-4 mr-2" />
             {generateMutation.isLoading ? "Gerando..." : "Gerar Relatório PDF"}
           </Button>
+          {clients.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Você precisa ter clientes ativos para gerar relatórios específicos.
+            </p>
+          )}
         </div>
       </ChartCard>
 
@@ -203,13 +245,24 @@ const ProfessionalReports = () => {
                 <Skeleton key={i} className="h-24 w-full" />
               ))}
             </div>
-          ) : reports.length === 0 ? (
+          ) : reportsError ? (
+            <div className="text-center py-12 text-destructive">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Erro ao carregar relatórios</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {(reportsError as any)?.error || "Tente novamente mais tarde"}
+              </p>
+            </div>
+          ) : filteredReports.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhum relatório gerado ainda</p>
+              <p className="text-sm mt-2">
+                {selectedClient !== "all" ? "Nenhum relatório encontrado para este cliente" : "Gere seu primeiro relatório acima"}
+              </p>
             </div>
           ) : (
-            reports.map((report) => (
+            filteredReports.map((report: Report) => (
               <div
                 key={report.id}
                 className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
@@ -219,8 +272,10 @@ const ProfessionalReports = () => {
                     <FileText className="h-6 w-6 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-foreground">{reportTypeLabels[report.type] || report.type}</h3>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h3 className="font-semibold text-foreground">
+                        {reportTypeLabels[report.type] || report.type}
+                      </h3>
                       <Badge variant={report.status === "generated" ? "default" : "secondary"}>
                         {report.status === "generated" ? "Gerado" : "Pendente"}
                       </Badge>
@@ -231,16 +286,22 @@ const ProfessionalReports = () => {
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>Cliente: {report.clientName}</span>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        {report.clientName}
+                      </span>
                       <span>•</span>
-                      <span>Gerado em: {report.generatedAt}</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {formatReportDate(report.generatedAt)}
+                      </span>
                     </div>
                   </div>
                 </div>
                 {report.downloadUrl ? (
                   <Button variant="outline" size="sm" asChild>
-                    <a href={report.downloadUrl} download>
+                    <a href={report.downloadUrl} download target="_blank" rel="noopener noreferrer">
                       <Download className="h-4 w-4 mr-2" />
                       Baixar
                     </a>
@@ -261,4 +322,3 @@ const ProfessionalReports = () => {
 };
 
 export default ProfessionalReports;
-

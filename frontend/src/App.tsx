@@ -37,6 +37,7 @@ const ITCMDCalculator = lazy(() => import("./pages/calculators/ITCMDCalculator")
 const ProfitabilitySimulator = lazy(() => import("./pages/calculators/ProfitabilitySimulator"));
 const CustomerSettings = lazy(() => import("./pages/Settings"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const Invitations = lazy(() => import("./pages/Invitations"));
 const PlanPurchase = lazy(() => import("./pages/PlanPurchase"));
 const Payment = lazy(() => import("./pages/Payment"));
 
@@ -123,6 +124,7 @@ const App = () => (
               <Route path="calculators/profitability" element={<Suspense fallback={<PageLoader />}><ProfitabilitySimulator /></Suspense>} />
               <Route path="settings" element={<Suspense fallback={<PageLoader />}><CustomerSettings /></Suspense>} />
               <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
+              <Route path="invitations" element={<Suspense fallback={<PageLoader />}><Invitations /></Suspense>} />
               <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanPurchase /></Suspense>} />
               <Route path="payment" element={<Suspense fallback={<PageLoader />}><Payment /></Suspense>} />
               <Route path="more" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />

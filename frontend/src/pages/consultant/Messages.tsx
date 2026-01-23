@@ -1,17 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Send, Search, UserPlus, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { MessageSquare, Send, Search, UserPlus, Calendar, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDistanceToNow, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-interface Message {
+interface ConversationItem {
   id: string;
   clientId: string;
   clientName: string;
@@ -20,40 +38,72 @@ interface Message {
   unread: number;
 }
 
+interface Message {
+  id: string;
+  sender: "client" | "consultant";
+  content: string;
+  timestamp: string;
+}
+
 interface Conversation {
   id: string;
   clientId: string;
   clientName: string;
-  messages: {
-    id: string;
-    sender: "client" | "consultant";
-    content: string;
-    timestamp: string;
-  }[];
+  messages: Message[];
+}
+
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
 }
 
 const Messages = () => {
+  const navigate = useNavigate();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Fetch conversations
   const { data: conversationsData, isLoading: conversationsLoading } = useQuery({
     queryKey: ['consultant', 'conversations'],
     queryFn: () => consultantApi.getConversations(),
-    staleTime: 30 * 1000, // 30 seconds (messages change frequently)
-    gcTime: 2 * 60 * 1000, // 2 minutes (formerly cacheTime)
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 2 * 60 * 1000, // 2 minutes
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
   });
 
-  const conversations = conversationsData?.conversations || [];
+  // Fetch clients for create conversation dialog
+  const { data: clientsData } = useQuery({
+    queryKey: ['consultant', 'clients', 'active'],
+    queryFn: () => consultantApi.getClients({ status: 'active', limit: 100 }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
+  const conversations = conversationsData?.conversations || [];
+  const clients = clientsData?.clients || [];
+
+  // Filter conversations by search query
+  const filteredConversations = conversations.filter((conv) =>
+    conv.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Fetch selected conversation messages
   const { data: conversationData, isLoading: conversationLoading } = useQuery({
     queryKey: ['consultant', 'conversation', selectedConversation],
     queryFn: () => consultantApi.getConversation(selectedConversation!),
     enabled: !!selectedConversation,
     staleTime: 10 * 1000, // 10 seconds
-    gcTime: 1 * 60 * 1000, // 1 minute (formerly cacheTime)
+    gcTime: 1 * 60 * 1000, // 1 minute
+    refetchInterval: 15000, // Refetch every 15 seconds when conversation is open
   });
 
   const currentConversation = conversationData ? {
@@ -63,6 +113,36 @@ const Messages = () => {
     messages: conversationData.messages || [],
   } : null;
 
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messagesEndRef.current && currentConversation?.messages) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [currentConversation?.messages]);
+
+  // Create conversation mutation
+  const createConversationMutation = useMutation({
+    mutationFn: (customerId: string) => consultantApi.createConversation(customerId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
+      setSelectedConversation(data.conversation.id);
+      setIsCreateDialogOpen(false);
+      setSelectedClientId("");
+      toast({
+        title: "Conversa criada",
+        description: `Conversa iniciada com ${data.conversation.clientName}`,
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao criar conversa",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: ({ conversationId, content }: { conversationId: string; content: string }) =>
       consultantApi.sendMessage(conversationId, content),
@@ -88,6 +168,55 @@ const Messages = () => {
     });
   };
 
+  const handleCreateConversation = () => {
+    if (!selectedClientId) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione um cliente",
+        variant: "destructive",
+      });
+      return;
+    }
+    createConversationMutation.mutate(selectedClientId);
+  };
+
+  const formatMessageTime = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+      if (diffInHours < 24) {
+        return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+      } else if (diffInHours < 48) {
+        return `Ontem ${format(date, 'HH:mm', { locale: ptBR })}`;
+      } else {
+        return format(date, 'dd/MM/yyyy HH:mm', { locale: ptBR });
+      }
+    } catch {
+      return timestamp;
+    }
+  };
+
+  const formatConversationTime = (timestamp: string) => {
+    try {
+      if (timestamp === 'Nunca') return 'Nunca';
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+      if (diffInHours < 1) {
+        return 'Agora';
+      } else if (diffInHours < 24) {
+        return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+      } else {
+        return format(date, 'dd/MM/yyyy', { locale: ptBR });
+      }
+    } catch {
+      return timestamp;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -99,13 +228,13 @@ const Messages = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => navigate('/consultant/invitations')}>
             <UserPlus className="h-4 w-4 mr-2" />
             Enviar Convite
           </Button>
-          <Button variant="outline">
-            <Calendar className="h-4 w-4 mr-2" />
-            Agendar Reunião
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Conversa
           </Button>
         </div>
       </div>
@@ -119,6 +248,8 @@ const Messages = () => {
               <Input
                 placeholder="Buscar conversas..."
                 className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
@@ -130,12 +261,15 @@ const Messages = () => {
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
-              ) : conversations.length === 0 ? (
+              ) : filteredConversations.length === 0 ? (
                 <div className="text-center py-8 text-sm text-muted-foreground">
-                  Nenhuma conversa encontrada
+                  {searchQuery ? "Nenhuma conversa encontrada" : "Nenhuma conversa encontrada"}
+                  {!searchQuery && conversations.length === 0 && (
+                    <p className="text-xs mt-2">Comece uma nova conversa com um cliente</p>
+                  )}
                 </div>
               ) : (
-                conversations.map((conversation) => (
+                filteredConversations.map((conversation) => (
                   <button
                     key={conversation.id}
                     onClick={() => setSelectedConversation(conversation.id)}
@@ -150,7 +284,7 @@ const Messages = () => {
                         <div className="flex items-center gap-2 mb-1">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                             <span className="text-sm font-semibold text-primary">
-                              {conversation.clientName.charAt(0)}
+                              {conversation.clientName.charAt(0).toUpperCase()}
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -165,11 +299,11 @@ const Messages = () => {
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
                         <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {conversation.timestamp}
+                          {formatConversationTime(conversation.timestamp)}
                         </span>
                         {conversation.unread > 0 && (
-                          <Badge className="bg-primary text-primary-foreground text-xs">
-                            {conversation.unread}
+                          <Badge className="bg-primary text-primary-foreground text-xs min-w-[20px] justify-center">
+                            {conversation.unread > 99 ? '99+' : conversation.unread}
                           </Badge>
                         )}
                       </div>
@@ -184,17 +318,21 @@ const Messages = () => {
         {/* Chat Area */}
         <div className="lg:col-span-2">
           <ChartCard className="h-full flex flex-col p-0">
-            {currentConversation ? (
+            {conversationLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <Skeleton className="h-32 w-full" />
+              </div>
+            ) : currentConversation ? (
               <>
                 {/* Chat Header */}
                 <div className="p-4 border-b border-border">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <span className="text-sm font-semibold text-primary">
-                        {currentConversation?.clientName?.charAt(0)}
+                        {currentConversation?.clientName?.charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <div className="font-semibold text-foreground">
                         {currentConversation?.clientName}
                       </div>
@@ -204,27 +342,38 @@ const Messages = () => {
                 </div>
 
                 {/* Messages */}
-                <ScrollArea className="flex-1 p-4">
+                <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
                   <div className="space-y-4">
-                    {currentConversation?.messages?.map((message: any) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${
-                          message.sender === "consultant" ? "justify-end" : "justify-start"
-                        }`}
-                      >
+                    {currentConversation?.messages?.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Nenhuma mensagem ainda</p>
+                        <p className="text-xs mt-1">Envie a primeira mensagem para começar a conversa</p>
+                      </div>
+                    ) : (
+                      currentConversation?.messages?.map((message: Message) => (
                         <div
-                          className={`max-w-[70%] rounded-lg p-3 ${
-                            message.sender === "consultant"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-foreground"
+                          key={message.id}
+                          className={`flex ${
+                            message.sender === "consultant" ? "justify-end" : "justify-start"
                           }`}
                         >
-                          <p className="text-sm">{message.content}</p>
-                          <p className="text-xs opacity-70 mt-1">{message.timestamp}</p>
+                          <div
+                            className={`max-w-[70%] rounded-lg p-3 ${
+                              message.sender === "consultant"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-foreground"
+                            }`}
+                          >
+                            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                            <p className="text-xs opacity-70 mt-1">
+                              {formatMessageTime(message.timestamp)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
+                    <div ref={messagesEndRef} />
                   </div>
                 </ScrollArea>
 
@@ -242,9 +391,19 @@ const Messages = () => {
                           handleSendMessage();
                         }
                       }}
+                      disabled={sendMessageMutation.isLoading}
                     />
-                    <Button onClick={handleSendMessage} size="icon" className="flex-shrink-0" disabled={sendMessageMutation.isLoading || !newMessage.trim()}>
-                      <Send className="h-4 w-4" />
+                    <Button 
+                      onClick={handleSendMessage} 
+                      size="icon" 
+                      className="flex-shrink-0" 
+                      disabled={sendMessageMutation.isLoading || !newMessage.trim()}
+                    >
+                      {sendMessageMutation.isLoading ? (
+                        <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -253,18 +412,78 @@ const Messages = () => {
               <div className="flex-1 flex items-center justify-center text-center p-8">
                 <div>
                   <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground mb-2">
                     Selecione uma conversa para começar a trocar mensagens
                   </p>
+                  <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" className="mt-4">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Iniciar Nova Conversa
+                  </Button>
                 </div>
               </div>
             )}
           </ChartCard>
         </div>
       </div>
+
+      {/* Create Conversation Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Conversa</DialogTitle>
+            <DialogDescription>
+              Selecione um cliente para iniciar uma conversa
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Nenhum cliente ativo encontrado
+                  </div>
+                ) : (
+                  clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name} ({client.email})
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {clients.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Você precisa ter clientes ativos para iniciar conversas.{" "}
+                <button
+                  onClick={() => {
+                    setIsCreateDialogOpen(false);
+                    navigate('/consultant/invitations');
+                  }}
+                  className="text-primary hover:underline"
+                >
+                  Envie um convite
+                </button>
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleCreateConversation}
+              disabled={!selectedClientId || createConversationMutation.isLoading}
+            >
+              {createConversationMutation.isLoading ? "Criando..." : "Iniciar Conversa"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default Messages;
-

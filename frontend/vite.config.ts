@@ -39,13 +39,30 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'recharts', 'date-fns', 'react-day-picker', 'lucide-react'],
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'recharts',
+      'date-fns',
+      'react-day-picker',
+      'lucide-react',
+    ],
     // Force re-bundling to fix content length mismatch errors
     force: true,
+    // Exclude problematic dependencies from pre-bundling if needed
+    exclude: [],
     // Reduce concurrent pre-bundling to prevent timeouts
     esbuildOptions: {
       target: 'esnext',
+      // Increase memory limit for large dependencies
+      logOverride: { 'this-is-undefined-in-esm': 'silent' },
     },
+    // Handle recharts specifically
+    entries: [
+      'src/main.tsx',
+      'src/pages/**/*.tsx',
+    ],
   },
   build: {
     chunkSizeWarningLimit: 1000,
