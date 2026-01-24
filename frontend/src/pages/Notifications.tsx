@@ -32,6 +32,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Notification {
   id: string;
@@ -51,7 +58,7 @@ const Notifications = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const { toast } = useToast();
 
   const fetchNotifications = async (pageNum: number = 1) => {
@@ -74,8 +81,14 @@ const Notifications = () => {
   };
 
   useEffect(() => {
+    // Reset to page 1 when items per page changes
+    setCurrentPage(1);
+  }, [itemsPerPage]);
+
+  useEffect(() => {
     fetchNotifications(currentPage);
-  }, [currentPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, itemsPerPage]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -159,6 +172,32 @@ const Notifications = () => {
       });
     } catch {
       return '';
+    }
+  };
+
+  const getNotificationTypeLabel = (severity: 'info' | 'warning' | 'critical') => {
+    switch (severity) {
+      case 'info':
+        return 'Informação';
+      case 'warning':
+        return 'Aviso';
+      case 'critical':
+        return 'Crítico';
+      default:
+        return 'Informação';
+    }
+  };
+
+  const getNotificationTypeBadgeColor = (severity: 'info' | 'warning' | 'critical') => {
+    switch (severity) {
+      case 'info':
+        return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'warning':
+        return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      case 'critical':
+        return 'bg-red-500/10 text-red-500 border-red-500/20';
+      default:
+        return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
     }
   };
 
@@ -255,27 +294,31 @@ const Notifications = () => {
 
       {/* Notifications Table */}
       <div className="bg-card/50 backdrop-blur-xl rounded-xl border border-border">
-        {loading && notifications.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">
-            Carregando notificações...
-          </div>
-        ) : notifications.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">
-            Nenhuma notificação encontrada
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16 text-center">No</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Conteúdo</TableHead>
+              <TableHead className="w-40">Data</TableHead>
+              <TableHead className="w-48 text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading && notifications.length === 0 ? (
               <TableRow>
-                <TableHead className="w-16 text-center">No</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Conteúdo</TableHead>
-                <TableHead className="w-40">Data</TableHead>
-                <TableHead className="w-32 text-right">Ações</TableHead>
+                <TableCell colSpan={5} className="p-8 text-center text-muted-foreground">
+                  Carregando notificações...
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {notifications.map((notification, index) => (
+            ) : notifications.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="p-8 text-center text-muted-foreground">
+                  No notifications to display
+                </TableCell>
+              </TableRow>
+            ) : (
+              notifications.map((notification, index) => (
                 <TableRow
                   key={notification.id}
                   className={!notification.isRead ? 'bg-muted/30' : ''}
@@ -285,19 +328,26 @@ const Notifications = () => {
                   </TableCell>
                   <TableCell>
                     <span
-                      className={`text-sm font-medium ${
-                        !notification.isRead
-                          ? 'text-primary'
-                          : 'text-foreground'
-                      }`}
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getNotificationTypeBadgeColor(notification.severity)}`}
                     >
-                      {notification.title}
+                      {getNotificationTypeLabel(notification.severity)}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <p className="text-sm text-muted-foreground line-clamp-2 max-w-lg">
-                      {notification.message}
-                    </p>
+                    <div className="space-y-1">
+                      <p
+                        className={`text-sm font-medium ${
+                          !notification.isRead
+                            ? 'text-primary'
+                            : 'text-foreground'
+                        }`}
+                      >
+                        {notification.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground line-clamp-2 max-w-lg">
+                        {notification.message}
+                      </p>
+                    </div>
                   </TableCell>
                   <TableCell className="w-40">
                     <div className="flex flex-col">
@@ -309,7 +359,7 @@ const Notifications = () => {
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="w-32 text-right">
+                  <TableCell className="w-48 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button
                         variant="ghost"
@@ -334,18 +384,39 @@ const Notifications = () => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center justify-between pt-4">
+        <div className="flex items-center gap-4">
           <div className="text-sm text-muted-foreground">
             Mostrando {notifications.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} a {Math.min(currentPage * itemsPerPage, total)} de {total} notificações
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Itens por página:</span>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="30">30</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {totalPages > 1 && (
           <Pagination>
             <PaginationContent>
               <PaginationItem>
@@ -380,8 +451,8 @@ const Notifications = () => {
               </PaginationItem>
             </PaginationContent>
           </Pagination>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deletingId !== null} onOpenChange={(open) => !open && setDeletingId(null)}>

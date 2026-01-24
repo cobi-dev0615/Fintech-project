@@ -193,8 +193,34 @@ export const userApi = {
   updateProfile: (data: Partial<{ full_name: string; phone: string; birth_date: string; risk_profile: string }>) =>
     api.patch<{ user: any }>('/users/profile', data),
 
+  getUserCounts: () =>
+    api.get<{ totalUsers: number; onlineUsers: number }>('/users/stats/user-counts'),
+
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.patch<{ message: string }>('/users/profile/password', data),
+};
+
+// Comments endpoints
+export const commentsApi = {
+  getAll: (page?: number, limit?: number) =>
+    api.get<{
+      comments: Array<{
+        id: string;
+        content: string;
+        reply: string | null;
+        replied_at: string | null;
+        created_at: string;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/comments${page || limit ? `?page=${page || 1}&limit=${limit || 10}` : ''}`),
+
+  create: (content: string) =>
+    api.post<{ comment: any; message: string }>('/comments', { content }),
 };
 
 // Dashboard endpoints
@@ -463,6 +489,27 @@ export const subscriptionsApi = {
 
   cancelSubscription: () =>
     api.patch<{ message: string }>('/subscriptions/cancel'),
+
+  getHistory: (page?: number, limit?: number) =>
+    api.get<{
+      history: Array<{
+        id: string;
+        status: string;
+        planName: string;
+        priceCents: number;
+        startedAt: string;
+        currentPeriodStart: string;
+        currentPeriodEnd: string;
+        canceledAt: string | null;
+        createdAt: string;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/subscriptions/history${page || limit ? `?page=${page || 1}&limit=${limit || 10}` : ''}`),
 };
 
 // Public endpoints (no authentication required)
@@ -951,6 +998,28 @@ export const adminApi = {
 
   deleteLoginHistory: (id: string) =>
     api.delete<{ success: boolean; message: string }>(`/admin/login-history/${id}`),
+
+  getComments: (page?: number, limit?: number) =>
+    api.get<{
+      comments: Array<{
+        id: string;
+        content: string;
+        reply: string | null;
+        replied_at: string | null;
+        created_at: string;
+        user_name: string;
+        user_email: string;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/admin/comments${page || limit ? `?page=${page || 1}&limit=${limit || 10}` : ''}`),
+
+  replyToComment: (id: string, reply: string) =>
+    api.post<{ comment: any; message: string }>(`/admin/comments/${id}/reply`, { reply }),
 };
 
 // Consultant endpoints

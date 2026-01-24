@@ -26,6 +26,46 @@ export async function usersRoutes(fastify: FastifyInstance) {
       return reply.code(500).send({ error: 'Internal server error' });
     }
   });
+
+  // Get user statistics (total users and online users)
+  fastify.get('/stats/user-counts', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      // Get total users
+      const totalUsersResult = await db.query(
+        "SELECT COUNT(*) as count FROM users WHERE role IN ('customer', 'consultant')"
+      );
+      const totalUsers = parseInt(totalUsersResult.rows[0].count || '0', 10);
+
+      // Get online users (unique users with successful login in the last 15 minutes)
+      // Check if login_history table exists first
+      let onlineUsers = 0;
+      try {
+        const onlineUsersResult = await db.query(
+          `SELECT COUNT(DISTINCT user_id) as count 
+           FROM login_history 
+           WHERE success = true 
+           AND created_at >= NOW() - INTERVAL '15 minutes'`
+        );
+        onlineUsers = parseInt(onlineUsersResult.rows[0].count || '0', 10);
+      } catch (e) {
+        // Table might not exist or other error, fallback to 1 (current user)
+        onlineUsers = 1;
+      }
+
+      // Ensure onlineUsers is at least 1 (the current user)
+      onlineUsers = Math.max(onlineUsers, 1);
+
+      return reply.send({
+        totalUsers,
+        onlineUsers
+      });
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
   
   // Update user profile
   fastify.patch('/profile', {

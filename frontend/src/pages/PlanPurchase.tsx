@@ -194,7 +194,7 @@ const PlanPurchase = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="container-fluid  ">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-2">Escolha seu Plano</h1>
         <p className="text-muted-foreground">
@@ -202,47 +202,6 @@ const PlanPurchase = () => {
         </p>
       </div>
 
-      {currentSubscription && currentSubscription.status === 'active' && (
-        <Card className={cn(
-          "mb-6 border-primary/20 bg-primary/5",
-          userRole === 'consultant' && "border-teal-500/20 bg-teal-500/5"
-        )}>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 className={cn(
-                    "h-5 w-5 text-primary",
-                    userRole === 'consultant' && "text-teal-500"
-                  )} />
-                  Plano Atual
-                </CardTitle>
-                <CardDescription className="text-base">
-                  Você está atualmente no plano <strong className="text-foreground">{currentSubscription.plan.name}</strong>
-                </CardDescription>
-                {currentSubscription.currentPeriodEnd && (
-                  <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      Válido até:{" "}
-                      <strong className="text-foreground">
-                        {format(parseISO(currentSubscription.currentPeriodEnd), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                      </strong>
-                    </span>
-                  </div>
-                )}
-              </div>
-              <Badge variant="default" className={cn(
-                "bg-primary",
-                userRole === 'consultant' && "bg-teal-500"
-              )}>
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Ativo
-              </Badge>
-            </div>
-          </CardHeader>
-        </Card>
-      )}
 
       {/* Billing Period Toggle */}
       <div className="mb-6 flex justify-center">
@@ -310,14 +269,36 @@ const PlanPurchase = () => {
                     userRole === 'consultant' && "bg-teal-500"
                   )}>
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Ativo
+                    Plano Atual
                   </Badge>
                 </div>
               )}
 
               <CardHeader>
-                <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                <CardDescription>{getSubtitle(plan.code)}</CardDescription>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  {isCurrent && (
+                    <CheckCircle2 className={cn(
+                      "h-5 w-5 text-primary",
+                      userRole === 'consultant' && "text-teal-500"
+                    )} />
+                  )}
+                  {plan.name}
+                </CardTitle>
+                <CardDescription>
+                  {isCurrent && currentSubscription?.currentPeriodEnd ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        Válido até:{" "}
+                        <strong className="text-foreground">
+                          {format(parseISO(currentSubscription.currentPeriodEnd), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        </strong>
+                      </span>
+                    </div>
+                  ) : (
+                    getSubtitle(plan.code)
+                  )}
+                </CardDescription>
                 <div className="mt-4">
                   <div className="flex items-baseline gap-1">
                     <span className="text-4xl font-bold text-foreground">

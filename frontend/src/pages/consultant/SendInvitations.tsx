@@ -15,7 +15,7 @@ interface Invitation {
   id: string;
   email: string;
   name?: string | null;
-  status: "pending" | "sent" | "accepted" | "expired";
+  status: string;
   sentAt: string;
   expiresAt: string | null;
 }
@@ -62,7 +62,7 @@ const SendInvitations = () => {
     try {
       setSending(true);
       const result = await consultantApi.sendInvitation({ email, name: name || undefined, message: message || undefined });
-      setInvitations([result.invitation, ...invitations]);
+      setInvitations([{ ...result.invitation, expiresAt: (result.invitation as any).expiresAt || null }, ...invitations]);
       setEmail("");
       setName("");
       setMessage("");
@@ -295,7 +295,7 @@ const SendInvitations = () => {
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
                     <span>Enviado: {invitation.sentAt}</span>
-                    <span>Expira: {invitation.expiresAt}</span>
+                    <span>Expira: {invitation.expiresAt || "N/A"}</span>
                   </div>
                 </div>
               ))

@@ -19,7 +19,7 @@ interface Report {
   clientName: string;
   type: string;
   generatedAt: string;
-  status: "generated" | "pending";
+  status: string;
   hasWatermark: boolean;
   downloadUrl?: string | null;
 }
@@ -135,7 +135,7 @@ const ProfessionalReports = () => {
   // Filter reports by selected client
   const filteredReports = selectedClient === "all" 
     ? reports 
-    : reports.filter((r: Report) => {
+    : reports.filter((r) => {
         const client = clients.find((c: any) => c.id === selectedClient);
         return client && r.clientName === client.name;
       });
@@ -222,11 +222,11 @@ const ProfessionalReports = () => {
 
           <Button 
             className="w-full md:w-auto" 
-            disabled={!reportType || generateMutation.isLoading || clients.length === 0} 
+            disabled={!reportType || generateMutation.isPending || clients.length === 0} 
             onClick={handleGenerateReport}
           >
             <FileText className="h-4 w-4 mr-2" />
-            {generateMutation.isLoading ? "Gerando..." : "Gerar Relatório PDF"}
+            {generateMutation.isPending ? "Gerando..." : "Gerar Relatório PDF"}
           </Button>
           {clients.length === 0 && (
             <p className="text-xs text-muted-foreground">

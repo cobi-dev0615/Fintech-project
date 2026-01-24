@@ -20,6 +20,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        digital: ['"Share Tech Mono"', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",

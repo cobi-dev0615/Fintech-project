@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Link2,
@@ -11,7 +11,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  LogOut,
   Users,
   GitBranch,
   Shield,
@@ -48,6 +47,7 @@ const customerNavItems: NavItem[] = [
   { icon: Bell, label: "Notificações", href: "/app/notifications", enabled: true },
   { icon: UserPlus, label: "Convites", href: "/app/invitations", enabled: true },
   { icon: Package, label: "Planos", href: "/app/plans", enabled: true },
+  { icon: LayoutDashboard, label: "Ativos", href: "/app/assets", enabled: true },
   { icon: Link2, label: "Conexões", href: "/app/connections", enabled: true },
   { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true },
   { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: true },
@@ -61,6 +61,7 @@ const customerNavItems: NavItem[] = [
 const consultantNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/consultant/dashboard", enabled: true },
   { icon: Bell, label: "Notificações", href: "/consultant/notifications", enabled: true },
+  { icon: LayoutDashboard, label: "Ativos", href: "/consultant/assets", enabled: true },
   { icon: Package, label: "Planos", href: "/consultant/plans", enabled: true },
   { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: true },
   { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: true },
@@ -80,6 +81,7 @@ const adminNavItems: NavItem[] = [
   { icon: CreditCard, label: "Planos", href: "/admin/plans", enabled: true },
   { icon: DollarSign, label: "Financeiro", href: "/admin/financial", enabled: true },
   { icon: Activity, label: "Integrações", href: "/admin/integrations", enabled: true },
+  { icon: MessageSquare, label: "Comentários", href: "/admin/comments", enabled: true },
   { icon: Search, label: "Prospecção", href: "/admin/prospecting", enabled: true },
   { icon: Settings, label: "Configurações", href: "/admin/settings", enabled: true },
   { icon: Receipt, label: "Histórico de Pagamentos", href: "/admin/payments", enabled: true },
@@ -88,8 +90,7 @@ const adminNavItems: NavItem[] = [
 
 const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   // Get navigation items based on user role
   const getNavItems = () => {
@@ -119,26 +120,7 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
     }
   };
 
-  // Get settings path based on user role
-  const getSettingsPath = () => {
-    if (!user) return '/app/settings';
-    
-    switch (user.role) {
-      case 'consultant':
-        return '/consultant/settings';
-      case 'admin':
-        return '/admin/settings';
-      default:
-        return '/app/settings';
-    }
-  };
-
   const navItems = getNavItems();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   return (
     <aside
@@ -222,26 +204,6 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-sidebar-border space-y-1">
-        {/* Only show settings in footer if it's not already in main navigation */}
-        {!navItems.some(item => item.href === getSettingsPath()) && (
-          <Link
-            to={getSettingsPath()}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-          >
-            <Settings className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span>Configurações</span>}
-          </Link>
-        )}
-        <button 
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-        >
-          <LogOut className="h-5 w-5 flex-shrink-0" />
-          {!collapsed && <span>Sair</span>}
-        </button>
-      </div>
     </aside>
   );
 };

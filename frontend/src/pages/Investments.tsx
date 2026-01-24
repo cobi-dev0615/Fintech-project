@@ -405,11 +405,11 @@ const Investments = () => {
                     </td>
                     <td
                       className={`py-3 px-4 text-right text-sm font-medium tabular-nums ${
-                        variation >= 0 ? "text-success" : "text-destructive"
+                        holding.variation >= 0 ? "text-success" : "text-destructive"
                       }`}
                     >
-                      {variation >= 0 ? "+" : ""}
-                      {variation.toFixed(2)}%
+                      {holding.variation >= 0 ? "+" : ""}
+                      {holding.variation.toFixed(2)}%
                     </td>
                   </tr>
                 ))

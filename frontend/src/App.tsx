@@ -63,6 +63,8 @@ const FinancialReports = lazy(() => import("./pages/admin/FinancialReports"));
 const Settings = lazy(() => import("./pages/admin/Settings"));
 const PaymentHistory = lazy(() => import("./pages/admin/PaymentHistory"));
 const LoginHistory = lazy(() => import("./pages/admin/LoginHistory"));
+const AdminComments = lazy(() => import("./pages/admin/AdminComments"));
+const Assets = lazy(() => import("./pages/Assets"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -112,6 +114,7 @@ const App = () => (
               <Route path="connections" element={<Suspense fallback={<PageLoader />}><Connections /></Suspense>} />
               <Route path="accounts" element={<Suspense fallback={<PageLoader />}><Accounts /></Suspense>} />
               <Route path="cards" element={<Suspense fallback={<PageLoader />}><Cards /></Suspense>} />
+              <Route path="assets" element={<Suspense fallback={<PageLoader />}><Assets /></Suspense>} />
               <Route path="investments" element={<Suspense fallback={<PageLoader />}><Investments /></Suspense>} />
               <Route path="investments/b3" element={<Suspense fallback={<PageLoader />}><B3Portfolio /></Suspense>} />
               <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
@@ -135,6 +138,7 @@ const App = () => (
               <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><ConsultantDashboard /></Suspense>} />
               <Route path="clients" element={<Suspense fallback={<PageLoader />}><ClientsList /></Suspense>} />
               <Route path="clients/:id" element={<Suspense fallback={<PageLoader />}><ClientProfile /></Suspense>} />
+              <Route path="assets" element={<Suspense fallback={<PageLoader />}><Assets /></Suspense>} />
               <Route path="pipeline" element={<Suspense fallback={<PageLoader />}><Pipeline /></Suspense>} />
               <Route path="invitations" element={<Suspense fallback={<PageLoader />}><SendInvitations /></Suspense>} />
               <Route path="messages" element={<Suspense fallback={<PageLoader />}><Messages /></Suspense>} />
@@ -163,6 +167,7 @@ const App = () => (
               <Route path="integrations" element={<Suspense fallback={<PageLoader />}><IntegrationsMonitor /></Suspense>} />
               <Route path="prospecting" element={<Suspense fallback={<PageLoader />}><DAMAProspecting /></Suspense>} />
               <Route path="financial" element={<Suspense fallback={<PageLoader />}><FinancialReports /></Suspense>} />
+              <Route path="comments" element={<Suspense fallback={<PageLoader />}><AdminComments /></Suspense>} />
               <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
               <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
             </Route>

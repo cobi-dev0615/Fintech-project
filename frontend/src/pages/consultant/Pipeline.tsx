@@ -332,115 +332,119 @@ const Pipeline = () => {
         </div>
       ) : (
         /* Pipeline Kanban */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
           {stageOrder.map((stage) => {
             const stageProspects = getProspectsByStage(stage);
             return (
-              <ChartCard
+              <div
                 key={stage}
-                title={stageLabels[stage] || stage}
-                subtitle={`${stageProspects.length} prospecto${stageProspects.length !== 1 ? "s" : ""}`}
-                className="min-h-[400px]"
+                className="flex flex-col min-h-[400px] max-h-[calc(100vh-200px)] w-full min-w-[280px]"
               >
-                <div className="space-y-3">
-                  {stageProspects.length === 0 ? (
-                    <div className="text-center py-8 text-sm text-muted-foreground">
-                      Nenhum prospecto neste estágio
-                    </div>
-                  ) : (
-                    stageProspects.map((prospect) => (
-                      <div
-                        key={prospect.id}
-                        className="p-4 rounded-lg border border-border bg-card hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-semibold text-foreground mb-1 truncate">
-                              {prospect.name || 'Sem nome'}
-                            </h4>
-                            {prospect.notes && (
-                              <p className="text-xs text-muted-foreground line-clamp-2">
-                                {prospect.notes}
-                              </p>
+                <ChartCard
+                  title={stageLabels[stage] || stage}
+                  subtitle={`${stageProspects.length} prospecto${stageProspects.length !== 1 ? "s" : ""}`}
+                  className="flex flex-col h-full min-w-0 overflow-hidden"
+                >
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 min-w-0">
+                    {stageProspects.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-muted-foreground px-2">
+                        Nenhum prospecto neste estágio
+                      </div>
+                    ) : (
+                      stageProspects.map((prospect) => (
+                        <div
+                          key={prospect.id}
+                          className="p-3 rounded-lg border border-border bg-card hover:shadow-md transition-shadow w-full min-w-0 max-w-full box-border"
+                        >
+                          <div className="flex items-start justify-between mb-2 gap-2 min-w-0">
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <h4 className="text-sm font-semibold text-foreground mb-1 truncate">
+                                {prospect.name || 'Sem nome'}
+                              </h4>
+                              {prospect.notes && (
+                                <p className="text-xs text-muted-foreground line-clamp-2 break-words overflow-hidden">
+                                  {prospect.notes}
+                                </p>
+                              )}
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 flex-shrink-0 ml-1">
+                                  <span className="sr-only">Menu</span>
+                                  <span className="text-muted-foreground text-lg leading-none">⋯</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {prospect.phone && (
+                                  <DropdownMenuItem onClick={() => handlePhoneCall(prospect.phone)}>
+                                    <Phone className="h-4 w-4 mr-2" />
+                                    Ligar
+                                  </DropdownMenuItem>
+                                )}
+                                {prospect.email && (
+                                  <DropdownMenuItem onClick={() => handleSendEmail(prospect.email)}>
+                                    <Mail className="h-4 w-4 mr-2" />
+                                    Enviar Email
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => handleOpenEditDialog(prospect)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleOpenDeleteDialog(prospect)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Remover
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                          
+                          <div className="space-y-1.5 text-xs text-muted-foreground min-w-0">
+                            {prospect.email && (
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Mail className="h-3 w-3 shrink-0 flex-shrink-0" />
+                                <span className="truncate min-w-0 overflow-hidden">{prospect.email}</span>
+                              </div>
+                            )}
+                            {prospect.phone && (
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Phone className="h-3 w-3 shrink-0 flex-shrink-0" />
+                                <span className="truncate min-w-0 overflow-hidden">{prospect.phone}</span>
+                              </div>
                             )}
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
-                                <span className="sr-only">Menu</span>
-                                <span className="text-muted-foreground">⋯</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {prospect.phone && (
-                                <DropdownMenuItem onClick={() => handlePhoneCall(prospect.phone)}>
-                                  <Phone className="h-4 w-4 mr-2" />
-                                  Ligar
-                                </DropdownMenuItem>
-                              )}
-                              {prospect.email && (
-                                <DropdownMenuItem onClick={() => handleSendEmail(prospect.email)}>
-                                  <Mail className="h-4 w-4 mr-2" />
-                                  Enviar Email
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={() => handleOpenEditDialog(prospect)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => handleOpenDeleteDialog(prospect)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Remover
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        
-                        <div className="space-y-2 text-xs text-muted-foreground">
-                          {prospect.email && (
-                            <div className="flex items-center gap-1">
-                              <Mail className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{prospect.email}</span>
-                            </div>
-                          )}
-                          {prospect.phone && (
-                            <div className="flex items-center gap-1">
-                              <Phone className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{prospect.phone}</span>
-                            </div>
-                          )}
-                        </div>
 
-                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-                          {stageOrder.indexOf(stage) > 0 && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 text-xs"
-                              onClick={() => moveProspect(prospect.id, "left")}
-                            >
-                              ← Anterior
-                            </Button>
-                          )}
-                          {stageOrder.indexOf(stage) < stageOrder.length - 1 && stage !== 'won' && stage !== 'lost' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 text-xs"
-                              onClick={() => moveProspect(prospect.id, "right")}
-                            >
-                              Próximo →
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border min-w-0">
+                            {stageOrder.indexOf(stage) > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 text-xs h-7 min-w-0 px-1.5"
+                                onClick={() => moveProspect(prospect.id, "left")}
+                              >
+                                <span className="truncate">← Anterior</span>
+                              </Button>
+                            )}
+                            {stageOrder.indexOf(stage) < stageOrder.length - 1 && stage !== 'won' && stage !== 'lost' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 text-xs h-7 min-w-0 px-1.5"
+                                onClick={() => moveProspect(prospect.id, "right")}
+                              >
+                                <span className="truncate">Próximo →</span>
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </ChartCard>
+                      ))
+                    )}
+                  </div>
+                </ChartCard>
+              </div>
             );
           })}
         </div>

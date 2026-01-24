@@ -2085,6 +2085,92 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Get all comments (for management)
+  fastify.get('/comments', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { page = '1', limit = '10' } = request.query as any;
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      // Check if comments table exists
+      try {
+        await db.query('SELECT 1 FROM comments LIMIT 1');
+      } catch {
+        return reply.send({ comments: [], pagination: { total: 0, totalPages: 0, page: parseInt(page), limit: parseInt(limit) } });
+      }
+
+      // Get total count
+      const countResult = await db.query('SELECT COUNT(*) as total FROM comments');
+      const total = parseInt(countResult.rows[0].total);
+
+      // Get all comments with user info
+      const result = await db.query(
+        `SELECT 
+          c.id, 
+          c.content, 
+          c.reply, 
+          c.replied_at, 
+          c.created_at,
+          u.full_name as user_name,
+          u.email as user_email
+         FROM comments c
+         JOIN users u ON c.user_id = u.id
+         ORDER BY c.created_at DESC
+         LIMIT $1 OFFSET $2`,
+        [parseInt(limit), offset]
+      );
+
+      return reply.send({
+        comments: result.rows,
+        pagination: {
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+          page: parseInt(page),
+          limit: parseInt(limit)
+        }
+      });
+    } catch (error: any) {
+      fastify.log.error('Error fetching admin comments:', error);
+      reply.code(500).send({ error: 'Failed to fetch comments', details: error.message });
+    }
+  });
+
+  // Reply to a comment
+  fastify.post('/comments/:id/reply', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const adminId = getAdminId(request);
+      const { id } = request.params as { id: string };
+      const { reply: replyContent } = request.body as { reply: string };
+
+      if (!replyContent) {
+        return reply.code(400).send({ error: 'Reply content is required' });
+      }
+
+      const result = await db.query(
+        `UPDATE comments 
+         SET reply = $1, replied_at = NOW(), replied_by = $2, updated_at = NOW()
+         WHERE id = $3
+         RETURNING *`,
+        [replyContent, adminId, id]
+      );
+
+      if (result.rows.length === 0) {
+        return reply.code(404).send({ error: 'Comment not found' });
+      }
+
+      return reply.send({
+        comment: result.rows[0],
+        message: 'Reply sent successfully'
+      });
+    } catch (error: any) {
+      fastify.log.error('Error replying to comment:', error);
+      reply.code(500).send({ error: 'Failed to reply to comment', details: error.message });
+    }
+  });
+
   // Delete a payment record
   fastify.delete('/payments/:id', {
     preHandler: [requireAdmin],

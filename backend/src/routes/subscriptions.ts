@@ -69,6 +69,78 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Get user's subscription history
+  fastify.get('/history', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const { page = '1', limit = '10' } = request.query as any;
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      // Check if subscriptions and plans tables exist
+      let hasSubscriptions = false;
+      try {
+        await db.query('SELECT 1 FROM subscriptions LIMIT 1');
+        hasSubscriptions = true;
+      } catch {}
+
+      if (!hasSubscriptions) {
+        return reply.send({ history: [], pagination: { total: 0, totalPages: 0, page: parseInt(page), limit: parseInt(limit) } });
+      }
+
+      // Get total count
+      const countResult = await db.query(
+        'SELECT COUNT(*) as total FROM subscriptions WHERE user_id = $1',
+        [userId]
+      );
+      const total = parseInt(countResult.rows[0].total);
+
+      // Get subscription history
+      const result = await db.query(
+        `SELECT 
+          s.id,
+          s.status,
+          s.started_at,
+          s.current_period_start,
+          s.current_period_end,
+          s.canceled_at,
+          s.created_at,
+          p.name as plan_name,
+          p.price_cents as plan_price_cents
+        FROM subscriptions s
+        JOIN plans p ON s.plan_id = p.id
+        WHERE s.user_id = $1
+        ORDER BY s.created_at DESC
+        LIMIT $2 OFFSET $3`,
+        [userId, parseInt(limit), offset]
+      );
+
+      return reply.send({
+        history: result.rows.map(row => ({
+          id: row.id,
+          status: row.status,
+          planName: row.plan_name,
+          priceCents: row.plan_price_cents,
+          startedAt: row.started_at,
+          currentPeriodStart: row.current_period_start,
+          currentPeriodEnd: row.current_period_end,
+          canceledAt: row.canceled_at,
+          createdAt: row.created_at
+        })),
+        pagination: {
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+          page: parseInt(page),
+          limit: parseInt(limit)
+        }
+      });
+    } catch (error: any) {
+      fastify.log.error('Error fetching subscription history:', error);
+      reply.code(500).send({ error: 'Failed to fetch subscription history', details: error.message });
+    }
+  });
+
   // Create a new subscription
   fastify.post('/', {
     preHandler: [fastify.authenticate],

@@ -1,17 +1,46 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, User, Bell, Save, Lock } from "lucide-react";
+import { 
+  User, 
+  Bell, 
+  Save, 
+  Lock, 
+  ChevronRight,
+  History,
+  LayoutDashboard,
+  MessageSquare,
+  Plus,
+  Loader2
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { CountrySelect } from "@/components/ui/country-select";
-import { consultantApi, userApi } from "@/lib/api";
+import { consultantApi, userApi, subscriptionsApi, commentsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Textarea } from "@/components/ui/textarea";
 
 const Settings = () => {
+  const [activeStep, setActiveStep] = useState<string>("profile");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -20,9 +49,9 @@ const Settings = () => {
     name: "",
     email: "",
     phone: "",
+    countryCode: "BR",
     bio: "",
     specialty: "",
-    cpf: "",
     cref: "",
   });
 
@@ -42,44 +71,43 @@ const Settings = () => {
 
   const [passwordError, setPasswordError] = useState("");
 
-  // Load user data on mount
+  // History State
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyPagination, setHistoryPagination] = useState({ page: 1, totalPages: 1 });
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Comments State
+  const [comments, setComments] = useState<any[]>([]);
+  const [commentsPagination, setCommentsPagination] = useState({ page: 1, totalPages: 1 });
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newComment, setNewComment] = useState("");
+
+  const steps = [
+    { id: "profile", label: "Perfil Profissional", icon: User },
+    { id: "notifications", label: "Notificações", icon: Bell },
+    { id: "password", label: "Senha", icon: Lock },
+    { id: "history", label: "Histórico de Planos", icon: History },
+    { id: "comments", label: "Feedback zurT", icon: MessageSquare },
+  ];
+
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
       try {
         const response = await consultantApi.getProfile();
         const user = response.user;
+        const savedCountryCode = localStorage.getItem("consultantCountryCode") || "BR";
         setProfile({
           name: user.full_name || "",
           email: user.email || "",
           phone: user.phone || "",
-          countryCode: user.country_code || "BR",
+          countryCode: savedCountryCode,
           bio: user.bio || "",
           specialty: user.specialty || "",
-          cpf: "", // CPF is not stored in the database currently
           cref: user.cref || "",
         });
       } catch (error: any) {
         console.error("Failed to load profile:", error);
-        // Fallback to localStorage if API fails
-        try {
-          const userStr = localStorage.getItem("user");
-          if (userStr) {
-            const user = JSON.parse(userStr);
-            setProfile({
-              name: user.name || user.full_name || "",
-              email: user.email || "",
-              phone: user.phone || "",
-              countryCode: user.country_code || "BR",
-              bio: user.bio || "",
-              specialty: user.specialty || "",
-              cpf: user.cpf || "",
-              cref: user.cref || "",
-            });
-          }
-        } catch (e) {
-          console.error("Failed to load from localStorage:", e);
-        }
       } finally {
         setLoading(false);
       }
@@ -88,413 +116,308 @@ const Settings = () => {
     fetchProfile();
   }, []);
 
-  const handleSaveAll = async () => {
+  // Fetch History
+  useEffect(() => {
+    if (activeStep === "history") {
+      fetchHistory(1);
+    }
+  }, [activeStep]);
+
+  // Fetch Comments
+  useEffect(() => {
+    if (activeStep === "comments") {
+      fetchComments(1);
+    }
+  }, [activeStep]);
+
+  const fetchHistory = async (page: number) => {
+    setHistoryLoading(true);
+    try {
+      const response = await subscriptionsApi.getHistory(page);
+      setHistory(response.history);
+      setHistoryPagination({
+        page: response.pagination.page,
+        totalPages: response.pagination.totalPages,
+      });
+    } catch (error) {
+      console.error("Failed to fetch history:", error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const fetchComments = async (page: number) => {
+    setCommentsLoading(true);
+    try {
+      const response = await commentsApi.getAll(page);
+      setComments(response.comments);
+      setCommentsPagination({
+        page: response.pagination.page,
+        totalPages: response.pagination.totalPages,
+      });
+    } catch (error) {
+      console.error("Failed to fetch comments:", error);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      // Save profile via API
       await consultantApi.updateProfile({
         full_name: profile.name,
         phone: profile.phone || undefined,
-        country_code: profile.countryCode || "BR",
         cref: profile.cref || undefined,
         specialty: profile.specialty || undefined,
         bio: profile.bio || undefined,
       });
-      
-      // Save notifications to localStorage (these don't have backend endpoints yet)
-      localStorage.setItem("consultantNotifications", JSON.stringify(notifications));
-
-      toast({
-        title: "Sucesso",
-        description: "Configurações salvas com sucesso!",
-      });
+      localStorage.setItem("consultantCountryCode", profile.countryCode);
+      toast({ title: "Sucesso", description: "Perfil profissional atualizado" });
     } catch (error: any) {
-      console.error("Failed to save settings:", error);
-      toast({
-        title: "Erro",
-        description: error?.error || "Falha ao salvar configurações",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: error?.error || "Erro ao atualizar perfil", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSaveSection = async (section: string) => {
+  const handleSaveNotifications = async () => {
     setSaving(true);
     try {
-      switch (section) {
-        case "profile":
-          await consultantApi.updateProfile({
-            full_name: profile.name,
-            phone: profile.phone || undefined,
-            country_code: profile.countryCode || "BR",
-            cref: profile.cref || undefined,
-            specialty: profile.specialty || undefined,
-            bio: profile.bio || undefined,
-          });
-          break;
-        case "notifications":
-          localStorage.setItem("consultantNotifications", JSON.stringify(notifications));
-          break;
-        case "password":
-          // Validate passwords
-          if (!password.currentPassword || !password.newPassword || !password.confirmPassword) {
-            setPasswordError("Todos os campos são obrigatórios");
-            setSaving(false);
-            return;
-          }
-          if (password.newPassword.length < 6) {
-            setPasswordError("A nova senha deve ter pelo menos 6 caracteres");
-            setSaving(false);
-            return;
-          }
-          if (password.newPassword !== password.confirmPassword) {
-            setPasswordError("As senhas não coincidem");
-            setSaving(false);
-            return;
-          }
-          await userApi.changePassword({
-            currentPassword: password.currentPassword,
-            newPassword: password.newPassword,
-          });
-          setPassword({
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
-          });
-          setPasswordError("");
-          break;
-      }
-      toast({
-        title: "Sucesso",
-        description: "Configurações salvas com sucesso!",
-      });
+      localStorage.setItem("consultantNotifications", JSON.stringify(notifications));
+      toast({ title: "Sucesso", description: "Preferências de notificação atualizadas" });
     } catch (error: any) {
-      console.error(`Failed to save ${section} settings:`, error);
-      if (section === "password") {
-        setPasswordError(error?.error || "Falha ao alterar senha. Verifique se a senha atual está correta.");
-        toast({
-          title: "Erro",
-          description: error?.error || "Falha ao alterar senha. Verifique se a senha atual está correta.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Erro",
-          description: error?.error || `Falha ao salvar configurações de ${section}`,
-          variant: "destructive",
-        });
-      }
+      toast({ title: "Erro", description: "Erro ao atualizar notificações", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
+
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    if (!password.currentPassword || !password.newPassword) {
+      setPasswordError("Preencha todos os campos");
+      return;
+    }
+    setSaving(true);
+    try {
+      await userApi.changePassword({
+        currentPassword: password.currentPassword,
+        newPassword: password.newPassword,
+      });
+      toast({ title: "Sucesso", description: "Senha alterada com sucesso" });
+      setPassword({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error: any) {
+      setPasswordError(error?.error || "Erro ao alterar senha");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    setSaving(true);
+    try {
+      await commentsApi.create(newComment);
+      toast({ title: "Sucesso", description: "Comentário enviado com sucesso" });
+      setNewComment("");
+      fetchComments(1);
+    } catch (error: any) {
+      toast({ title: "Erro", description: "Erro ao enviar comentário", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Configurações</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Gerencie seu perfil e notificações
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">Configurações do Consultor</h1>
+          <p className="text-sm text-muted-foreground mt-1">Gerencie seu perfil profissional e preferências</p>
         </div>
-        <Button onClick={handleSaveAll} disabled={saving}>
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? "Salvando..." : "Salvar Todas as Alterações"}
-        </Button>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="profile">
-            <User className="h-4 w-4 mr-2" />
-            Perfil
-          </TabsTrigger>
-          <TabsTrigger value="notifications">
-            <Bell className="h-4 w-4 mr-2" />
-            Notificações
-          </TabsTrigger>
-          <TabsTrigger value="password">
-            <Lock className="h-4 w-4 mr-2" />
-            Senha
-          </TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Vertical Step Bar (Skewer Style) */}
+        <div className="w-full lg:w-64 relative h-fit">
+          {/* Vertical Skewer Line */}
+          <div className="absolute left-6 top-6 bottom-6 w-px bg-border hidden lg:block z-0" />
+          
+          <div className="flex flex-col gap-6 relative z-10">
+            {steps.map((step, index) => {
+              const isActive = activeStep === step.id;
+              return (
+                <button
+                  key={step.id}
+                  onClick={() => setActiveStep(step.id)}
+                  className="flex items-center group relative w-full text-left"
+                >
+                  {/* Step Circle */}
+                  <div className={cn(
+                    "flex items-center justify-center h-12 w-12 rounded-full border-2 transition-all duration-200 shrink-0 bg-[#020817] z-20",
+                    isActive 
+                      ? "border-success text-success shadow-[0_0_15px_rgba(34,197,94,0.2)]" 
+                      : "border-border text-muted-foreground group-hover:border-success/50"
+                  )}>
+                    <step.icon className="h-5 w-5" />
+                  </div>
 
-        {/* Profile Tab */}
-        <TabsContent value="profile">
-          <ChartCard title="Informações do Perfil">
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <p className="text-muted-foreground">Carregando informações do perfil...</p>
-              </div>
-            ) : (
+                  {/* Step Info */}
+                  <div className="ml-4 flex flex-col">
+                    <span className={cn(
+                      "font-semibold text-sm transition-colors duration-200 uppercase tracking-tight",
+                      isActive ? "text-success" : "text-muted-foreground group-hover:text-foreground"
+                    )}>
+                      {step.label}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">
+                      Passo {index + 1}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1">
+          {activeStep === "profile" && (
+            <ChartCard 
+              title="Perfil Profissional"
+              actions={<Button onClick={handleSaveProfile} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? "Salvando..." : "Salvar Perfil"}</Button>}
+            >
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome Completo</Label>
-                  <Input
-                    id="name"
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    placeholder="Seu nome completo"
-                  />
+                  <div className="space-y-2"><Label htmlFor="name">Nome Completo</Label><Input id="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" value={profile.email} disabled className="bg-muted" /></div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone</Label>
+                    <div className="flex gap-2">
+                      <CountrySelect value={profile.countryCode} onValueChange={(value) => setProfile({ ...profile, countryCode: value })} />
+                      <Input id="phone" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="flex-1" />
+                    </div>
+                  </div>
+                  <div className="space-y-2"><Label htmlFor="cref">CREF</Label><Input id="cref" value={profile.cref} onChange={(e) => setProfile({ ...profile, cref: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="specialty">Especialidade</Label><Input id="specialty" value={profile.specialty} onChange={(e) => setProfile({ ...profile, specialty: e.target.value })} /></div>
                 </div>
+                <div className="space-y-2"><Label htmlFor="bio">Biografia</Label><Textarea id="bio" value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} rows={4} /></div>
+              </div>
+            </ChartCard>
+          )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profile.email}
-                    disabled
-                    placeholder="seu@email.com"
-                    className="bg-muted cursor-not-allowed"
-                  />
-                  <p className="text-xs text-muted-foreground">O e-mail não pode ser alterado</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone</Label>
-                  <div className="flex gap-2">
-                    <CountrySelect
-                      value={profile.countryCode}
-                      onValueChange={(value) => setProfile({ ...profile, countryCode: value })}
-                    />
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                      placeholder="(11) 99999-9999"
-                      className="flex-1"
+          {activeStep === "notifications" && (
+            <ChartCard 
+              title="Notificações"
+              actions={<Button onClick={handleSaveNotifications} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? "Salvando..." : "Salvar Notificações"}</Button>}
+            >
+              <div className="space-y-8 py-4">
+                {Object.entries(notifications).map(([key, value]) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <Label htmlFor={key} className="text-sm font-medium text-foreground/80">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</Label>
+                    <Switch 
+                      id={key} 
+                      checked={value} 
+                      onCheckedChange={(checked) => setNotifications({ ...notifications, [key]: checked })} 
+                      className="data-[state=checked]:bg-success"
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Selecione o país e insira o número de telefone
-                  </p>
-                </div>
+                ))}
+              </div>
+            </ChartCard>
+          )}
 
+          {activeStep === "password" && (
+            <ChartCard 
+              title="Segurança"
+              actions={<Button onClick={handleChangePassword} disabled={saving} size="sm"><Lock className="h-4 w-4 mr-2" />{saving ? "Alterando..." : "Alterar Senha"}</Button>}
+            >
+              <div className="space-y-4">
+                {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
+                <div className="space-y-2"><Label htmlFor="currentPassword">Senha Atual</Label><Input id="currentPassword" type="password" value={password.currentPassword} onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="newPassword">Nova Senha</Label><Input id="newPassword" type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="confirmPassword">Confirmar Nova Senha</Label><Input id="confirmPassword" type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} /></div>
+              </div>
+            </ChartCard>
+          )}
+
+          {activeStep === "history" && (
+            <ChartCard title="Histórico de Planos">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Plano</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historyLoading ? (
+                    <TableRow><TableCell colSpan={3} className="text-center py-8">Carregando...</TableCell></TableRow>
+                  ) : history.length === 0 ? (
+                    <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
+                  ) : (
+                    history.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.planName}</TableCell>
+                        <TableCell>{format(new Date(item.createdAt), "dd/MM/yyyy")}</TableCell>
+                        <TableCell><span className={cn("px-2 py-1 rounded-full text-xs font-medium", item.status === 'active' ? "bg-success/10 text-success" : "bg-muted text-muted-foreground")}>{item.status}</span></TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </ChartCard>
+          )}
+
+          {activeStep === "comments" && (
+            <ChartCard 
+              title="Feedback para Admin"
+              actions={<Button onClick={handleAddComment} disabled={saving || !newComment.trim()} size="sm"><Plus className="h-4 w-4 mr-2" />{saving ? "Enviando..." : "Enviar"}</Button>}
+            >
+              <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF</Label>
-                  <Input
-                    id="cpf"
-                    value={profile.cpf}
-                    onChange={(e) => setProfile({ ...profile, cpf: e.target.value })}
-                    placeholder="000.000.000-00"
-                  />
+                  <Label>Seu Feedback</Label>
+                  <Textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Como podemos melhorar zurT?" className="min-h-[100px]" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cref">CREF (Código de Registro)</Label>
-                  <Input
-                    id="cref"
-                    value={profile.cref}
-                    onChange={(e) => setProfile({ ...profile, cref: e.target.value })}
-                    placeholder="CREF-00000"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="specialty">Especialidade</Label>
-                  <Input
-                    id="specialty"
-                    value={profile.specialty}
-                    onChange={(e) => setProfile({ ...profile, specialty: e.target.value })}
-                    placeholder="Ex: Planejamento Financeiro, Investimentos"
-                  />
+                <div className="border-t pt-6">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mensagem</TableHead>
+                        <TableHead>Resposta</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {commentsLoading ? (
+                        <TableRow><TableCell colSpan={2} className="text-center py-8">Carregando...</TableCell></TableRow>
+                      ) : (
+                        comments.map((c) => (
+                          <TableRow key={c.id}>
+                            <TableCell className="max-w-md truncate">{c.content}</TableCell>
+                            <TableCell>{c.reply || <span className="text-muted-foreground italic">Pendente</span>}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bio">Biografia</Label>
-                <Textarea
-                  id="bio"
-                  value={profile.bio}
-                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                  placeholder="Descreva sua experiência profissional e especialidades..."
-                  rows={4}
-                />
-              </div>
-
-                <div className="flex justify-end">
-                  <Button onClick={() => handleSaveSection("profile")} disabled={saving}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Salvar Perfil
-                  </Button>
-                </div>
-              </div>
-            )}
-          </ChartCard>
-        </TabsContent>
-
-        {/* Notifications Tab */}
-        <TabsContent value="notifications">
-          <ChartCard title="Preferências de Notificações">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="emailNotifications">Notificações por E-mail</Label>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Receba notificações importantes por e-mail
-                  </p>
-                </div>
-                <Switch
-                  id="emailNotifications"
-                  checked={notifications.emailNotifications}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, emailNotifications: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="clientMessages">Mensagens de Clientes</Label>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Notifique-me quando um cliente enviar uma mensagem
-                  </p>
-                </div>
-                <Switch
-                  id="clientMessages"
-                  checked={notifications.clientMessages}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, clientMessages: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="newClients">Novos Clientes</Label>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Notifique-me quando um novo cliente for atribuído
-                  </p>
-                </div>
-                <Switch
-                  id="newClients"
-                  checked={notifications.newClients}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, newClients: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="reportReady">Relatórios Prontos</Label>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Notifique-me quando um relatório estiver pronto para download
-                  </p>
-                </div>
-                <Switch
-                  id="reportReady"
-                  checked={notifications.reportReady}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, reportReady: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="weeklySummary">Resumo Semanal</Label>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Receba um resumo semanal das atividades
-                  </p>
-                </div>
-                <Switch
-                  id="weeklySummary"
-                  checked={notifications.weeklySummary}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, weeklySummary: checked })
-                  }
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={() => handleSaveSection("notifications")} disabled={saving}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar Notificações
-                </Button>
-              </div>
-            </div>
-          </ChartCard>
-        </TabsContent>
-
-        {/* Password Tab */}
-        <TabsContent value="password">
-          <ChartCard title="Alterar Senha">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="currentPassword">Senha Atual</Label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  value={password.currentPassword}
-                  onChange={(e) => {
-                    setPassword({ ...password, currentPassword: e.target.value });
-                    setPasswordError("");
-                  }}
-                  placeholder="Digite sua senha atual"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">Nova Senha</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={password.newPassword}
-                  onChange={(e) => {
-                    setPassword({ ...password, newPassword: e.target.value });
-                    setPasswordError("");
-                  }}
-                  placeholder="Digite sua nova senha (mínimo 6 caracteres)"
-                />
-                <p className="text-xs text-muted-foreground">
-                  A senha deve ter pelo menos 6 caracteres
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={password.confirmPassword}
-                  onChange={(e) => {
-                    setPassword({ ...password, confirmPassword: e.target.value });
-                    setPasswordError("");
-                  }}
-                  placeholder="Confirme sua nova senha"
-                />
-              </div>
-
-              {passwordError && (
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                  <p className="text-sm text-destructive">{passwordError}</p>
-                </div>
-              )}
-
-              <div className="flex justify-end">
-                <Button 
-                  onClick={() => handleSaveSection("password")} 
-                  disabled={saving}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? "Alterando..." : "Alterar Senha"}
-                </Button>
-              </div>
-            </div>
-          </ChartCard>
-        </TabsContent>
-      </Tabs>
+            </ChartCard>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
 export default Settings;
-
