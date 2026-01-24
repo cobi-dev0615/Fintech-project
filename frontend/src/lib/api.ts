@@ -14,12 +14,12 @@ const getApiBaseUrl = () => {
       return 'http://localhost:5000/api';
     }
     
-    // If accessing from public IP, use same IP for API
-    // Extract IP and port from origin (e.g., http://167.71.94.65:8081 -> http://167.71.94.65:5000)
+    // If accessing from public IP, use same hostname but let Nginx proxy handle /api
     try {
       const url = new URL(origin);
       const hostname = url.hostname;
-      return `http://${hostname}:5000/api`;
+      // Use origin as base, Nginx handles /api -> 5000
+      return `${url.protocol}//${hostname}/api`;
     } catch {
       // Fallback to localhost if URL parsing fails
       return 'http://localhost:5000/api';
@@ -206,9 +206,11 @@ export const commentsApi = {
     api.get<{
       comments: Array<{
         id: string;
+        title: string | null;
         content: string;
         reply: string | null;
-        replied_at: string | null;
+        status: string;
+        processed_at: string | null;
         created_at: string;
       }>;
       pagination: {
@@ -219,8 +221,11 @@ export const commentsApi = {
       };
     }>(`/comments${page || limit ? `?page=${page || 1}&limit=${limit || 10}` : ''}`),
 
-  create: (content: string) =>
-    api.post<{ comment: any; message: string }>('/comments', { content }),
+  create: (data: { title?: string; content: string }) =>
+    api.post<{ comment: any; message: string }>('/comments', data),
+
+  delete: (id: string) =>
+    api.delete<{ message: string }>(`/comments/${id}`),
 };
 
 // Dashboard endpoints
@@ -1003,9 +1008,11 @@ export const adminApi = {
     api.get<{
       comments: Array<{
         id: string;
+        title: string | null;
         content: string;
         reply: string | null;
-        replied_at: string | null;
+        status: string;
+        processed_at: string | null;
         created_at: string;
         user_name: string;
         user_email: string;
@@ -1020,6 +1027,9 @@ export const adminApi = {
 
   replyToComment: (id: string, reply: string) =>
     api.post<{ comment: any; message: string }>(`/admin/comments/${id}/reply`, { reply }),
+
+  deleteComment: (id: string) =>
+    api.delete<{ message: string }>(`/admin/comments/${id}`),
 };
 
 // Consultant endpoints

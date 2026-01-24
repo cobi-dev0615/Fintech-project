@@ -110,6 +110,7 @@ const AdminComments = () => {
   const filteredComments = comments.filter(c => 
     c.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.user_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.title && c.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
     c.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -146,6 +147,7 @@ const AdminComments = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Usuário</TableHead>
+                <TableHead>Título</TableHead>
                 <TableHead>Comentário</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Status</TableHead>
@@ -155,13 +157,13 @@ const AdminComments = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                   </TableCell>
                 </TableRow>
               ) : filteredComments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Nenhum comentário encontrado
                   </TableCell>
                 </TableRow>
@@ -173,6 +175,9 @@ const AdminComments = () => {
                         <p className="font-medium text-foreground">{c.user_name}</p>
                         <p className="text-xs text-muted-foreground">{c.user_email}</p>
                       </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {c.title || "-"}
                     </TableCell>
                     <TableCell className="max-w-xs truncate" title={c.content}>
                       {c.content}
@@ -251,6 +256,7 @@ const AdminComments = () => {
           <div className="space-y-4 py-4">
             <div className="bg-muted/50 p-4 rounded-lg">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Comentário de {selectedComment?.user_name}</p>
+              {selectedComment?.title && <p className="text-sm font-bold mb-1">{selectedComment.title}</p>}
               <p className="text-sm text-foreground italic">"{selectedComment?.content}"</p>
             </div>
             <div className="space-y-2">

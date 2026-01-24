@@ -27,7 +27,7 @@ export async function commentsRoutes(fastify: FastifyInstance) {
 
       // Get comments
       const result = await db.query(
-        `SELECT id, content, reply, replied_at, created_at
+        `SELECT id, title, content, reply, status, processed_at, created_at
          FROM comments
          WHERE user_id = $1
          ORDER BY created_at DESC
@@ -56,17 +56,17 @@ export async function commentsRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).userId;
-      const { content } = request.body as { content: string };
+      const { title, content } = request.body as { title: string; content: string };
 
       if (!content) {
         return reply.code(400).send({ error: 'Content is required' });
       }
 
       const result = await db.query(
-        `INSERT INTO comments (user_id, content)
-         VALUES ($1, $2)
-         RETURNING id, content, created_at`,
-        [userId, content]
+        `INSERT INTO comments (user_id, title, content)
+         VALUES ($1, $2, $3)
+         RETURNING id, title, content, created_at`,
+        [userId, title || null, content]
       );
 
       return reply.code(201).send({
@@ -76,6 +76,30 @@ export async function commentsRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       fastify.log.error('Error adding comment:', error);
       reply.code(500).send({ error: 'Failed to add comment', details: error.message });
+    }
+  });
+
+  // Delete a comment
+  fastify.delete('/:id', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const { id } = request.params as { id: string };
+
+      const result = await db.query(
+        'DELETE FROM comments WHERE id = $1 AND user_id = $2 RETURNING id',
+        [id, userId]
+      );
+
+      if (result.rows.length === 0) {
+        return reply.code(404).send({ error: 'Comment not found' });
+      }
+
+      return reply.send({ message: 'Comment deleted successfully' });
+    } catch (error: any) {
+      fastify.log.error('Error deleting comment:', error);
+      reply.code(500).send({ error: 'Failed to delete comment', details: error.message });
     }
   });
 }

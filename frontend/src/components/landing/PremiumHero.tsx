@@ -161,7 +161,7 @@ const PremiumHero = () => {
                   zIndex: 250,
                 }}
               >
-                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-40 md:w-48 lg:w-52 transform rotate-1 transition-[shadow,border-color,background-color] duration-[2000ms] hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-right">
+                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-40 md:w-48 lg:w-52 transform rotate-1 transition-[shadow,border-color,background-color] duration-2000 hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-right">
                   {/* Connecting line indicator pointing to phone */}
                   <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   {/* Glow effect on hover */}
@@ -186,7 +186,7 @@ const PremiumHero = () => {
                   zIndex: 250,
                 }}
               >
-                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-36 md:w-40 lg:w-44 transform -rotate-1 transition-[shadow,border-color,background-color] duration-[2000ms] hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-left">
+                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-36 md:w-40 lg:w-44 transform -rotate-1 transition-[shadow,border-color,background-color] duration-2000 hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-left">
                   {/* Connecting line indicator pointing to phone */}
                   <div className="absolute -right-4 top-1/2 w-4 h-0.5 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   {/* Glow effect on hover */}
@@ -208,7 +208,7 @@ const PremiumHero = () => {
                   zIndex: 250,
                 }}
               >
-                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-40 md:w-44 lg:w-48 transform rotate-1 transition-[shadow,border-color,background-color] duration-[2000ms] hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float">
+                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-40 md:w-44 lg:w-48 transform rotate-1 transition-[shadow,border-color,background-color] duration-2000 hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float">
                   {/* Connecting line indicator pointing to phone */}
                   <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   {/* Glow effect on hover */}
@@ -232,7 +232,7 @@ const PremiumHero = () => {
                   zIndex: 250,
                 }}
               >
-                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-36 md:w-40 lg:w-48 transform -rotate-1 transition-[shadow,border-color,background-color] duration-[2000ms] hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-right">
+                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-36 md:w-40 lg:w-48 transform -rotate-1 transition-[shadow,border-color,background-color] duration-2000 hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-right">
                   {/* Connecting line indicator pointing to phone */}
                   <div className="absolute -right-4 top-1/2 w-4 h-0.5 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   {/* Glow effect on hover */}
@@ -257,7 +257,7 @@ const PremiumHero = () => {
                   zIndex: 250,
                 }}
               >
-                <div className="bg-card/60 backdrop-blur-md border border-warning/30 rounded-xl p-3 shadow-xl w-44 md:w-52 lg:w-56 transform rotate-1 transition-[shadow,border-color,background-color] duration-[2000ms] hover:scale-105 hover:shadow-2xl hover:border-warning/50 hover:bg-card/80 group animate-float-deep">
+                <div className="bg-card/60 backdrop-blur-md border border-warning/30 rounded-xl p-3 shadow-xl w-44 md:w-52 lg:w-56 transform rotate-1 transition-[shadow,border-color,background-color] duration-2000 hover:scale-105 hover:shadow-2xl hover:border-warning/50 hover:bg-card/80 group animate-float-deep">
                   {/* Connecting line indicator pointing to phone */}
                   <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-warning/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   {/* Glow effect on hover */}

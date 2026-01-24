@@ -2108,9 +2108,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const result = await db.query(
         `SELECT 
           c.id, 
+          c.title,
           c.content, 
           c.reply, 
-          c.replied_at, 
+          c.status,
+          c.processed_at, 
           c.created_at,
           u.full_name as user_name,
           u.email as user_email
@@ -2151,7 +2153,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       const result = await db.query(
         `UPDATE comments 
-         SET reply = $1, replied_at = NOW(), replied_by = $2, updated_at = NOW()
+         SET reply = $1, status = 'replied', processed_at = NOW(), processed_by = $2, updated_at = NOW()
          WHERE id = $3
          RETURNING *`,
         [replyContent, adminId, id]
@@ -2168,6 +2170,29 @@ export async function adminRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       fastify.log.error('Error replying to comment:', error);
       reply.code(500).send({ error: 'Failed to reply to comment', details: error.message });
+    }
+  });
+
+  // Delete a comment (Admin)
+  fastify.delete('/comments/:id', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+
+      const result = await db.query(
+        'DELETE FROM comments WHERE id = $1 RETURNING id',
+        [id]
+      );
+
+      if (result.rows.length === 0) {
+        return reply.code(404).send({ error: 'Comment not found' });
+      }
+
+      return reply.send({ message: 'Comment deleted successfully' });
+    } catch (error: any) {
+      fastify.log.error('Error deleting comment:', error);
+      reply.code(500).send({ error: 'Failed to delete comment', details: error.message });
     }
   });
 

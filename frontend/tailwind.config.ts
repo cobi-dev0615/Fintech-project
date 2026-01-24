@@ -20,7 +20,6 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        digital: ['"Share Tech Mono"', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -119,6 +118,9 @@ export default {
         'card-hover': 'var(--shadow-card-hover)',
         'fintech': '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
         'fintech-lg': '0 10px 40px rgba(0, 0, 0, 0.08)',
+      },
+      transitionDuration: {
+        '2000': '2000ms',
       },
       keyframes: {
         "accordion-down": {

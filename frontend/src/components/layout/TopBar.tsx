@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, Menu, Clock, UserCircle, LogOut, Users, Globe } from "lucide-react";
+import { Search, Menu, UserCircle, LogOut, Users, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,13 +21,11 @@ interface TopBarProps {
   onMenuClick?: () => void;
   showMenuButton?: boolean;
   hideSearch?: boolean;
-  showDateTime?: boolean;
 }
 
-const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, showDateTime = false }: TopBarProps) => {
+const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: TopBarProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
   // Fetch user counts
   const { data: userCounts } = useQuery({
@@ -37,25 +34,6 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, showD
     refetchInterval: 60000, // Refetch every minute
     enabled: !!user,
   });
-
-  useEffect(() => {
-    if (!showDateTime) return;
-
-    // Update every second
-    const interval = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [showDateTime]);
-
-  const formatDate = (date: Date) => {
-    return format(date, 'yy.MM.dd');
-  };
-
-  const formatTime = (date: Date) => {
-    return format(date, 'HH:mm:ss');
-  };
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -108,21 +86,6 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, showD
             className="border-0 bg-transparent h-auto p-0 focus-visible:ring-0 w-64 text-foreground placeholder:text-muted-foreground"
           />
         </div>
-        )}
-        {showDateTime && (
-          <div className="hidden md:flex items-center gap-3 text-muted-foreground">
-            <div className="p-2 bg-muted/30 rounded-lg border border-border/50">
-              <Clock className="h-4 w-4 text-success animate-pulse" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground/60 leading-none mb-1">
-                {formatDate(currentDateTime)}
-              </span>
-              <span className="font-digital text-xl leading-none text-success tracking-widest drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]">
-                {formatTime(currentDateTime)}
-              </span>
-            </div>
-          </div>
         )}
       </div>
       

@@ -52,7 +52,8 @@ class WebSocketManager {
       const url = new URL(origin);
       const hostname = url.hostname;
       const protocol = origin.startsWith('https') ? 'wss' : 'ws';
-      return `${protocol}://${hostname}:5000/ws`;
+      // Use origin as base, Nginx handles /ws -> 5000
+      return `${protocol}://${hostname}/ws`;
     } catch {
       return 'ws://localhost:5000/ws';
     }

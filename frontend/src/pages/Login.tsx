@@ -40,7 +40,14 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     // Google OAuth implementation will go here
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/google`;
+    const apiBaseUrl = import.meta.env.VITE_API_URL || 
+      (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
+        ? 'http://localhost:5000' 
+        : `${window.location.origin}/api`);
+    
+    // Remove /api from the end if it's there because OAuth redirect is handled by backend root
+    const backendUrl = apiBaseUrl.endsWith('/api') ? apiBaseUrl.slice(0, -4) : apiBaseUrl;
+    window.location.href = `${backendUrl}/auth/google`;
   };
 
   return (

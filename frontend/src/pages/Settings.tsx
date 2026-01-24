@@ -9,14 +9,15 @@ import {
   LayoutDashboard,
   MessageSquare,
   Plus,
-  Loader2
+  Loader2,
+  Trash2,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Switch } from "@/components/ui/switch";
-import { CountrySelect } from "@/components/ui/country-select";
 import { userApi, authApi, subscriptionsApi, commentsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,16 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 interface ProfileState {
   name: string;
@@ -60,11 +71,36 @@ const Settings = () => {
   const [profile, setProfile] = useState<ProfileState>({
     name: "",
     email: "",
-    phone: "",
+    phone: "+55 ",
     countryCode: "BR",
     birthDate: "",
     riskProfile: "",
   });
+
+  const formatPhone = (value: string) => {
+    // Keep only digits
+    const digits = value.replace(/\D/g, "");
+    
+    // Always ensure it starts with 55
+    let formatted = digits;
+    if (!formatted.startsWith("55")) {
+      formatted = "55" + formatted;
+    }
+
+    // Limit to 13 digits (55 + 11)
+    formatted = formatted.slice(0, 13);
+
+    // Apply mask: +55 (XX) XXXXX-XXXX
+    if (formatted.length <= 2) return `+${formatted}`;
+    if (formatted.length <= 4) return `+${formatted.slice(0, 2)} (${formatted.slice(2)}`;
+    if (formatted.length <= 9) return `+${formatted.slice(0, 2)} (${formatted.slice(2, 4)}) ${formatted.slice(4)}`;
+    return `+${formatted.slice(0, 2)} (${formatted.slice(2, 4)}) ${formatted.slice(4, 9)}-${formatted.slice(9)}`;
+  };
+
+  const validatePhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+    return digits.length >= 12 && digits.length <= 13;
+  };
 
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -91,7 +127,10 @@ const Settings = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [commentsPagination, setCommentsPagination] = useState({ page: 1, totalPages: 1 });
   const [commentsLoading, setCommentsLoading] = useState(false);
-  const [newComment, setNewComment] = useState("");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedComment, setSelectedComment] = useState<any>(null);
+  const [newComment, setNewComment] = useState({ title: "", content: "" });
 
   const steps = [
     { id: "profile", label: "Perfil", icon: User },
@@ -113,7 +152,7 @@ const Settings = () => {
         setProfile({
           name: user.full_name || "",
           email: user.email || "",
-          phone: user.phone || "",
+          phone: user.phone ? formatPhone(user.phone) : "+55 ",
           countryCode: savedCountryCode,
           birthDate: user.birth_date || "",
           riskProfile: user.risk_profile || "",
@@ -175,11 +214,15 @@ const Settings = () => {
   };
 
   const handleSaveProfile = async () => {
+    if (profile.phone && !validatePhone(profile.phone)) {
+      toast({ title: "Erro", description: "Por favor, insira um telefone brasileiro válido", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       await userApi.updateProfile({
         full_name: profile.name,
-        phone: profile.phone || undefined,
+        phone: profile.phone ? profile.phone.replace(/\D/g, "") : undefined,
         birth_date: profile.birthDate || undefined,
         risk_profile: profile.riskProfile || undefined,
       });
@@ -230,17 +273,29 @@ const Settings = () => {
   };
 
   const handleAddComment = async () => {
-    if (!newComment.trim()) return;
+    if (!newComment.content.trim()) return;
     setSaving(true);
     try {
       await commentsApi.create(newComment);
       toast({ title: "Sucesso", description: "Comentário enviado ao administrador" });
-      setNewComment("");
+      setNewComment({ title: "", content: "" });
+      setIsCreateModalOpen(false);
       fetchComments(1);
     } catch (error: any) {
       toast({ title: "Erro", description: "Erro ao enviar comentário", variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteComment = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este comentário?")) return;
+    try {
+      await commentsApi.delete(id);
+      toast({ title: "Sucesso", description: "Comentário excluído" });
+      fetchComments(commentsPagination.page);
+    } catch (error: any) {
+      toast({ title: "Erro", description: "Erro ao excluir comentário", variant: "destructive" });
     }
   };
 
@@ -316,10 +371,13 @@ const Settings = () => {
                 <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" value={profile.email} disabled className="bg-muted" /></div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone</Label>
-                  <div className="flex gap-2">
-                    <CountrySelect value={profile.countryCode} onValueChange={(value) => setProfile({ ...profile, countryCode: value })} />
-                    <Input id="phone" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="flex-1" />
-                  </div>
+                  <Input 
+                    id="phone" 
+                    value={profile.phone} 
+                    onChange={(e) => setProfile({ ...profile, phone: formatPhone(e.target.value) })} 
+                    placeholder="+55 (XX) XXXXX-XXXX"
+                    className="flex-1" 
+                  />
                 </div>
                 <div className="space-y-2"><Label htmlFor="birthDate">Data de Nascimento</Label><Input id="birthDate" type="date" value={profile.birthDate} onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })} /></div>
                 <div className="space-y-2"><Label htmlFor="riskProfile">Perfil de Risco</Label><Input id="riskProfile" value={profile.riskProfile} onChange={(e) => setProfile({ ...profile, riskProfile: e.target.value })} /></div>
@@ -417,39 +475,177 @@ const Settings = () => {
           {activeStep === "comments" && (
             <ChartCard 
               title="Comentários e Feedback"
-              actions={<Button onClick={handleAddComment} disabled={saving || !newComment.trim()} size="sm"><Plus className="h-4 w-4 mr-2" />{saving ? "Enviando..." : "Adicionar Comentário"}</Button>}
+              actions={
+                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo Comentário
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Novo Comentário</DialogTitle>
+                      <DialogDescription>
+                        Envie sua dúvida, sugestão ou feedback para nossa equipe.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Título</Label>
+                        <Input 
+                          id="title" 
+                          value={newComment.title} 
+                          onChange={(e) => setNewComment({ ...newComment, title: e.target.value })} 
+                          placeholder="Ex: Dúvida sobre plano"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="content">Conteúdo</Label>
+                        <Textarea 
+                          id="content" 
+                          value={newComment.content} 
+                          onChange={(e) => setNewComment({ ...newComment, content: e.target.value })} 
+                          placeholder="Digite aqui sua mensagem..."
+                          className="min-h-[150px]"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancelar</Button>
+                      <Button onClick={handleAddComment} disabled={saving || !newComment.content.trim()}>
+                        {saving ? "Enviando..." : "Enviar Comentário"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              }
             >
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Novo Comentário</Label>
-                  <Textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Digite seu feedback ou dúvida aqui..." className="min-h-[100px]" />
-                </div>
-                <div className="border-t pt-6">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Comentário</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Resposta</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {commentsLoading ? (
-                        <TableRow><TableCell colSpan={3} className="text-center py-8">Carregando...</TableCell></TableRow>
-                      ) : comments.length === 0 ? (
-                        <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Nenhum comentário enviado</TableCell></TableRow>
-                      ) : (
-                        comments.map((c) => (
-                          <TableRow key={c.id}>
-                            <TableCell className="max-w-md truncate">{c.content}</TableCell>
-                            <TableCell className="whitespace-nowrap">{format(new Date(c.created_at), "dd/MM/yyyy")}</TableCell>
-                            <TableCell>{c.reply ? <span className="text-primary">{c.reply}</span> : <span className="text-muted-foreground italic">Aguardando...</span>}</TableCell>
-                          </TableRow>
-                        ))
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]">No</TableHead>
+                      <TableHead>Título</TableHead>
+                      <TableHead>Conteúdo</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Processo</TableHead>
+                      <TableHead>Criado em</TableHead>
+                      <TableHead>Processado em</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {commentsLoading ? (
+                      <TableRow><TableCell colSpan={8} className="text-center py-8">Carregando...</TableCell></TableRow>
+                    ) : comments.length === 0 ? (
+                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum comentário enviado</TableCell></TableRow>
+                    ) : (
+                      comments.map((c, index) => (
+                        <TableRow key={c.id}>
+                          <TableCell>{(commentsPagination.page - 1) * 10 + index + 1}</TableCell>
+                          <TableCell className="font-medium">{c.title || "Sem título"}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{c.content}</TableCell>
+                          <TableCell>
+                            <Badge variant={c.status === 'replied' ? 'success' : 'secondary'} className={cn(c.status === 'replied' ? "bg-success/10 text-success border-success/20" : "")}>
+                              {c.status === 'replied' ? 'Respondido' : 'Pendente'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {c.status === 'replied' ? 'Finalizado' : 'Em análise'}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">{format(new Date(c.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {c.processed_at ? format(new Date(c.processed_at), "dd/MM/yyyy HH:mm") : "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => {
+                                  setSelectedComment(c);
+                                  setIsDetailModalOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 text-primary" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleDeleteComment(c.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+
+                {/* Detail Modal */}
+                <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>{selectedComment?.title || "Detalhes do Comentário"}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Sua Mensagem</Label>
+                        <div className="p-4 bg-muted/30 rounded-lg border border-border/50 text-sm whitespace-pre-wrap">
+                          {selectedComment?.content}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground text-right italic">
+                          Enviado em: {selectedComment && format(new Date(selectedComment.created_at), "dd/MM/yyyy HH:mm")}
+                        </p>
+                      </div>
+
+                      {selectedComment?.reply && (
+                        <div className="space-y-2">
+                          <Label className="text-success font-semibold">Resposta do Administrador</Label>
+                          <div className="p-4 bg-success/5 rounded-lg border border-success/20 text-sm whitespace-pre-wrap">
+                            {selectedComment.reply}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground text-right italic">
+                            Respondido em: {selectedComment.processed_at && format(new Date(selectedComment.processed_at), "dd/MM/yyyy HH:mm")}
+                          </p>
+                        </div>
                       )}
-                    </TableBody>
-                  </Table>
-                </div>
+
+                      {!selectedComment?.reply && (
+                        <div className="p-4 bg-muted/20 rounded-lg border border-dashed border-border text-center text-sm text-muted-foreground italic">
+                          Aguardando resposta da nossa equipe...
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={() => setIsDetailModalOpen(false)}>Fechar</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                {commentsPagination.totalPages > 1 && (
+                  <div className="flex justify-end pt-4">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => commentsPagination.page > 1 && fetchComments(commentsPagination.page - 1)}
+                            className={cn(commentsPagination.page === 1 && "pointer-events-none opacity-50")}
+                          />
+                        </PaginationItem>
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => commentsPagination.page < commentsPagination.totalPages && fetchComments(commentsPagination.page + 1)}
+                            className={cn(commentsPagination.page === commentsPagination.totalPages && "pointer-events-none opacity-50")}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </div>
             </ChartCard>
           )}
