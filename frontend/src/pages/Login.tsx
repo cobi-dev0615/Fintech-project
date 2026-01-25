@@ -34,7 +34,14 @@ const Login = () => {
       
       navigate(redirectPath);
     } catch (err: any) {
-      setError(err?.error || "Erro ao fazer login. Verifique suas credenciais.");
+      // Handle approval status errors
+      if (err?.approval_status === 'pending') {
+        setError(err?.message || "Sua conta está aguardando aprovação do administrador. Você receberá uma notificação quando sua conta for aprovada.");
+      } else if (err?.approval_status === 'rejected') {
+        setError(err?.message || "Sua solicitação de registro foi rejeitada. Entre em contato com o suporte para mais informações.");
+      } else {
+        setError(err?.error || "Erro ao fazer login. Verifique suas credenciais.");
+      }
     }
   };
 

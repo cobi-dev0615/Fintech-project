@@ -45,7 +45,16 @@ const Register = () => {
     try {
       const response = await registerAsync({ full_name: name, email, password, role });
       
-      // Redirect based on user role
+      // Check if approval is required
+      if (response?.requiresApproval || response?.user?.approval_status === 'pending') {
+        setError(null);
+        // Show success message and redirect to login
+        alert("Registro realizado com sucesso! Sua conta está aguardando aprovação do administrador. Você receberá uma notificação quando sua conta for aprovada.");
+        navigate("/login");
+        return;
+      }
+      
+      // Redirect based on user role (if already approved)
       const userRole = response?.user?.role || role;
       let redirectPath = "/app/dashboard"; // Default to customer dashboard
       

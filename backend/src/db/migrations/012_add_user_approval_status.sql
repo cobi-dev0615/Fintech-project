@@ -2,20 +2,19 @@
 -- Created: 2024-02-17
 -- Description: Adds approval_status field to track user registration approval
 
--- Add approval_status column to users table
+-- Create enum type for approval status
+DO $$ BEGIN
+  CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Add approval_status column to users table if it doesn't exist
 DO $$ 
 BEGIN
-  -- Check if column already exists
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
     WHERE table_name = 'users' AND column_name = 'approval_status'
   ) THEN
-    -- Create enum type for approval status
-    DO $$ BEGIN
-      CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected');
-    EXCEPTION WHEN duplicate_object THEN NULL;
-    END $$;
-    
     -- Add approval_status column with default 'pending' for new users
     ALTER TABLE users ADD COLUMN approval_status approval_status DEFAULT 'pending';
     

@@ -695,6 +695,12 @@ export const adminApi = {
   updateUserStatus: (id: string, status: 'active' | 'blocked') =>
     api.patch<{ message: string }>(`/admin/users/${id}/status`, { status }),
 
+  approveUser: (id: string) =>
+    api.patch<{ message: string; user: any }>(`/admin/users/${id}/approve`, {}),
+
+  rejectUser: (id: string, reason?: string) =>
+    api.patch<{ message: string; user: any }>(`/admin/users/${id}/reject`, { reason }),
+
   // Subscriptions
   getSubscriptions: (params?: { search?: string; status?: string; plan?: string; page?: number; limit?: number; startDate?: string; endDate?: string }) => {
     const queryParams = new URLSearchParams();

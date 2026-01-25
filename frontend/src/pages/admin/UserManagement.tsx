@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users, Eye, Trash2, Edit, Save, X, Filter } from "lucide-react";
+import { Search, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users, Eye, Trash2, Edit, Save, X, Filter, Check, XCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -299,6 +299,91 @@ const UserManagement = () => {
     }
   };
 
+  const handleApproveUser = async (user: User) => {
+    try {
+      await adminApi.approveUser(user.id);
+      toast({
+        title: "Sucesso",
+        description: `Usuário ${user.name} aprovado com sucesso`,
+      });
+      // Refresh users list
+      const fetchUsers = async () => {
+        setLoading(true);
+        try {
+          const params: any = {
+            page: page.toString(),
+            limit: pagination.limit.toString(),
+          };
+          if (searchQuery) params.search = searchQuery;
+          if (roleFilter) params.role = roleFilter;
+          if (statusFilter) params.status = statusFilter;
+
+          const response = await adminApi.getUsers(params);
+          setUsers(response.users);
+          setPagination(response.pagination);
+        } catch (error: any) {
+          toast({
+            title: "Erro",
+            description: error?.error || "Falha ao carregar usuários",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error?.error || "Falha ao aprovar usuário",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectUser = async (user: User) => {
+    const reason = prompt("Motivo da rejeição (opcional):");
+    try {
+      await adminApi.rejectUser(user.id, reason || undefined);
+      toast({
+        title: "Sucesso",
+        description: `Usuário ${user.name} rejeitado com sucesso`,
+      });
+      // Refresh users list
+      const fetchUsers = async () => {
+        setLoading(true);
+        try {
+          const params: any = {
+            page: page.toString(),
+            limit: pagination.limit.toString(),
+          };
+          if (searchQuery) params.search = searchQuery;
+          if (roleFilter) params.role = roleFilter;
+          if (statusFilter) params.status = statusFilter;
+
+          const response = await adminApi.getUsers(params);
+          setUsers(response.users);
+          setPagination(response.pagination);
+        } catch (error: any) {
+          toast({
+            title: "Erro",
+            description: error?.error || "Falha ao carregar usuários",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error?.error || "Falha ao rejeitar usuário",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -520,6 +605,28 @@ const UserManagement = () => {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center justify-end gap-2">
+                      {user.status === 'pending' && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleApproveUser(user)}
+                            className="text-success hover:text-success"
+                            title="Aprovar"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRejectUser(user)}
+                            className="text-destructive hover:text-destructive"
+                            title="Rejeitar"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"

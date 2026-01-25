@@ -59,6 +59,39 @@ const NotificationDropdown = () => {
           ? `${message.userName || 'Usuário'} enviou um novo comentário`
           : 'Seu comentário foi respondido pelo administrador',
       });
+    } else if (message.type === 'new_registration') {
+      // Refresh unread count for admins when new registration arrives
+      refetchUnreadCount();
+      if (open) {
+        fetchNotifications();
+      }
+      toast({
+        title: 'Nova Solicitação de Registro',
+        description: `${message.userName || 'Usuário'} solicitou registro como ${message.userRole || 'usuário'}`,
+      });
+    } else if (message.type === 'account_approved') {
+      // Refresh unread count when account is approved
+      refetchUnreadCount();
+      if (open) {
+        fetchNotifications();
+      }
+      toast({
+        title: 'Conta Aprovada',
+        description: 'Sua solicitação de registro foi aprovada. Você já pode fazer login.',
+      });
+    } else if (message.type === 'account_rejected') {
+      // Refresh unread count when account is rejected
+      refetchUnreadCount();
+      if (open) {
+        fetchNotifications();
+      }
+      toast({
+        title: 'Solicitação Rejeitada',
+        description: message.reason 
+          ? `Sua solicitação foi rejeitada. Motivo: ${message.reason}`
+          : 'Sua solicitação de registro foi rejeitada. Entre em contato com o suporte.',
+        variant: 'destructive',
+      });
     }
   });
 
