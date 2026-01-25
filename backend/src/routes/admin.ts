@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
 import { cache } from '../utils/cache.js';
 import { logAudit, getClientIp } from '../utils/audit.js';
+import { createAlert } from '../utils/notifications.js';
 
 export async function adminRoutes(fastify: FastifyInstance) {
   // Middleware: Only admins can access these routes
@@ -694,6 +695,187 @@ export async function adminRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       fastify.log.error(error);
       reply.code(500).send({ error: 'Failed to update user status' });
+    }
+  });
+
+  // Approve user registration
+  fastify.patch('/users/:id/approve', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const { id } = request.params;
+      const adminId = getAdminId(request);
+
+      // Get user info
+      const userResult = await db.query(
+        `SELECT id, full_name, email, role, approval_status FROM users WHERE id = $1`,
+        [id]
+      );
+
+      if (userResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'User not found' });
+      }
+
+      const user = userResult.rows[0];
+
+      if (user.approval_status === 'approved') {
+        return reply.code(400).send({ error: 'User is already approved' });
+      }
+
+      // Update approval status
+      await db.query(
+        `UPDATE users SET approval_status = 'approved', updated_at = NOW() WHERE id = $1`,
+        [id]
+      );
+
+      // Log audit
+      await logAudit({
+        adminId,
+        action: 'user_approved',
+        resourceType: 'user',
+        resourceId: id,
+        oldValue: { approval_status: user.approval_status },
+        newValue: { approval_status: 'approved' },
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      // Notify the user about approval
+      try {
+        await createAlert({
+          userId: id,
+          severity: 'info',
+          title: 'Conta Aprovada',
+          message: 'Sua solicitação de registro foi aprovada. Você já pode fazer login no sistema.',
+          notificationType: 'account_activity',
+          linkUrl: '/login',
+          metadata: {
+            adminId,
+            action: 'approved',
+          },
+        });
+
+        // Broadcast to the user via WebSocket
+        const websocket = (fastify as any).websocket;
+        if (websocket && websocket.broadcastToUser) {
+          websocket.broadcastToUser(id, {
+            type: 'account_approved',
+            message: 'Sua conta foi aprovada',
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (error) {
+        fastify.log.error({ err: error }, 'Error sending approval notification');
+      }
+
+      // Invalidate cache
+      cache.delete('admin:dashboard:metrics');
+
+      return reply.send({ 
+        message: 'User approved successfully',
+        user: {
+          id: user.id,
+          full_name: user.full_name,
+          email: user.email,
+          approval_status: 'approved',
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error({ err: error }, 'Error approving user');
+      reply.code(500).send({ error: 'Failed to approve user' });
+    }
+  });
+
+  // Reject user registration
+  fastify.patch('/users/:id/reject', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const { id } = request.params;
+      const { reason } = request.body as { reason?: string };
+      const adminId = getAdminId(request);
+
+      // Get user info
+      const userResult = await db.query(
+        `SELECT id, full_name, email, role, approval_status FROM users WHERE id = $1`,
+        [id]
+      );
+
+      if (userResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'User not found' });
+      }
+
+      const user = userResult.rows[0];
+
+      if (user.approval_status === 'rejected') {
+        return reply.code(400).send({ error: 'User is already rejected' });
+      }
+
+      // Update approval status
+      await db.query(
+        `UPDATE users SET approval_status = 'rejected', updated_at = NOW() WHERE id = $1`,
+        [id]
+      );
+
+      // Log audit
+      await logAudit({
+        adminId,
+        action: 'user_rejected',
+        resourceType: 'user',
+        resourceId: id,
+        oldValue: { approval_status: user.approval_status },
+        newValue: { approval_status: 'rejected', reason },
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      // Notify the user about rejection
+      try {
+        await createAlert({
+          userId: id,
+          severity: 'warning',
+          title: 'Solicitação de Registro Rejeitada',
+          message: reason 
+            ? `Sua solicitação de registro foi rejeitada. Motivo: ${reason}`
+            : 'Sua solicitação de registro foi rejeitada. Entre em contato com o suporte para mais informações.',
+          notificationType: 'account_activity',
+          linkUrl: '/login',
+          metadata: {
+            adminId,
+            action: 'rejected',
+            reason,
+          },
+        });
+
+        // Broadcast to the user via WebSocket
+        const websocket = (fastify as any).websocket;
+        if (websocket && websocket.broadcastToUser) {
+          websocket.broadcastToUser(id, {
+            type: 'account_rejected',
+            message: 'Sua solicitação foi rejeitada',
+            reason,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (error) {
+        fastify.log.error({ err: error }, 'Error sending rejection notification');
+      }
+
+      // Invalidate cache
+      cache.delete('admin:dashboard:metrics');
+
+      return reply.send({ 
+        message: 'User rejected successfully',
+        user: {
+          id: user.id,
+          full_name: user.full_name,
+          email: user.email,
+          approval_status: 'rejected',
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error({ err: error }, 'Error rejecting user');
+      reply.code(500).send({ error: 'Failed to reject user' });
     }
   });
 
@@ -2161,6 +2343,60 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       if (result.rows.length === 0) {
         return reply.code(404).send({ error: 'Comment not found' });
+      }
+
+      const comment = result.rows[0];
+      const commentUserId = comment.user_id;
+
+      // Get admin and user info for notification
+      const [adminResult, userResult] = await Promise.all([
+        db.query('SELECT full_name FROM users WHERE id = $1', [adminId]),
+        db.query('SELECT full_name, email, role FROM users WHERE id = $1', [commentUserId]),
+      ]);
+      const adminName = adminResult.rows[0]?.full_name || 'Administrador';
+      const userName = userResult.rows[0]?.full_name || 'Usuário';
+      const userRole = userResult.rows[0]?.role || 'customer';
+
+      // Determine the correct settings path based on user role
+      let settingsPath = '/app/settings?tab=comments';
+      if (userRole === 'consultant') {
+        settingsPath = '/consultant/settings?tab=comments';
+      } else if (userRole === 'admin') {
+        settingsPath = '/admin/settings?tab=comments';
+      }
+
+      // Notify the comment author about the reply
+      try {
+        await createAlert({
+          userId: commentUserId,
+          severity: 'info',
+          title: 'Resposta ao seu Comentário',
+          message: `Administrador respondeu ao seu comentário: ${comment.title || 'Sem título'}`,
+          notificationType: 'message_received',
+          linkUrl: settingsPath,
+          metadata: {
+            commentId: id,
+            adminId,
+            adminName,
+          },
+        });
+
+        // Broadcast to the comment author via WebSocket
+        const websocket = (fastify as any).websocket;
+        if (websocket && websocket.broadcastToUser) {
+          websocket.broadcastToUser(commentUserId, {
+            type: 'comment_replied',
+            message: 'Seu comentário foi respondido',
+            commentId: id,
+            title: comment.title || 'Sem título',
+            reply: replyContent.substring(0, 100), // First 100 chars
+            adminName,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (error) {
+        // Don't fail the request if notification fails
+        fastify.log.error({ err: error }, 'Error sending notification for comment reply');
       }
 
       return reply.send({

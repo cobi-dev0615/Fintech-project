@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { db } from '../db/connection.js';
 import { getClientIp } from '../utils/audit.js';
+import { createAlert } from '../utils/notifications.js';
 
 // Helper function to log login attempts
 async function logLoginAttempt(userId: string | null, request: FastifyRequest, success: boolean, email?: string) {
@@ -69,27 +70,69 @@ export async function authRoutes(fastify: FastifyInstance) {
       // Hash password
       const passwordHash = await bcrypt.hash(body.password, 10);
       
-      // Create user
+      // Create user with pending approval status
       const result = await db.query(
-        `INSERT INTO users (full_name, email, password_hash, role)
-         VALUES ($1, $2, $3, $4)
-         RETURNING id, full_name, email, role, created_at`,
+        `INSERT INTO users (full_name, email, password_hash, role, approval_status)
+         VALUES ($1, $2, $3, $4, 'pending')
+         RETURNING id, full_name, email, role, approval_status, created_at`,
         [body.full_name, body.email, passwordHash, body.role]
       );
       
       const user = result.rows[0];
       
-      // Generate JWT
-      const token = fastify.jwt.sign({ userId: user.id, role: user.role });
+      // Notify all admins about the new registration
+      try {
+        const adminsResult = await db.query(
+          'SELECT id FROM users WHERE role = $1 AND approval_status = $2',
+          ['admin', 'approved']
+        );
+        
+        for (const admin of adminsResult.rows) {
+          await createAlert({
+            userId: admin.id,
+            severity: 'info',
+            title: 'Nova Solicitação de Registro',
+            message: `${user.full_name} (${user.email}) solicitou registro como ${user.role}`,
+            notificationType: 'account_activity',
+            linkUrl: `/admin/users`,
+            metadata: {
+              userId: user.id,
+              userName: user.full_name,
+              userEmail: user.email,
+              userRole: user.role,
+            },
+          });
+        }
+
+        // Broadcast to connected admin WebSocket clients
+        const websocket = (fastify as any).websocket;
+        if (websocket && websocket.broadcastToAdmins) {
+          websocket.broadcastToAdmins({
+            type: 'new_registration',
+            message: 'Nova solicitação de registro',
+            userId: user.id,
+            userName: user.full_name,
+            userEmail: user.email,
+            userRole: user.role,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (error) {
+        // Don't fail the request if notification fails
+        fastify.log.error({ err: error }, 'Error sending notification for new registration');
+      }
       
+      // Return success but no token - user needs approval
       return reply.code(201).send({
+        message: 'Registration successful. Your account is pending administrator approval.',
+        requiresApproval: true,
         user: {
           id: user.id,
           full_name: user.full_name,
           email: user.email,
           role: user.role,
+          approval_status: user.approval_status,
         },
-        token,
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -107,7 +150,9 @@ export async function authRoutes(fastify: FastifyInstance) {
       
       // Find user
       const result = await db.query(
-        'SELECT id, full_name, email, password_hash, role, is_active FROM users WHERE email = $1',
+        `SELECT id, full_name, email, password_hash, role, is_active, 
+         COALESCE(approval_status, 'approved') as approval_status 
+         FROM users WHERE email = $1`,
         [body.email]
       );
       
@@ -121,6 +166,25 @@ export async function authRoutes(fastify: FastifyInstance) {
       
       if (!user.is_active) {
         return reply.code(403).send({ error: 'Account is inactive' });
+      }
+      
+      // Check approval status
+      if (user.approval_status === 'pending') {
+        await logLoginAttempt(user.id, request, false, body.email);
+        return reply.code(403).send({ 
+          error: 'Account pending approval',
+          message: 'Your account is pending administrator approval. Please wait for approval before logging in.',
+          approval_status: 'pending'
+        });
+      }
+      
+      if (user.approval_status === 'rejected') {
+        await logLoginAttempt(user.id, request, false, body.email);
+        return reply.code(403).send({ 
+          error: 'Account rejected',
+          message: 'Your registration has been rejected by the administrator. Please contact support for more information.',
+          approval_status: 'rejected'
+        });
       }
       
       // Verify password

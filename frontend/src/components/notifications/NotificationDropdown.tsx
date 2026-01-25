@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,6 +9,7 @@ import { notificationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useWebSocket } from "@/contexts/WebSocketContext";
 
 interface Notification {
   id: string;
@@ -23,6 +24,7 @@ interface Notification {
 
 const NotificationDropdown = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -30,7 +32,7 @@ const NotificationDropdown = () => {
   const { toast } = useToast();
 
   // Fetch unread count once on mount – cached, no polling
-  const { data: unreadData } = useQuery({
+  const { data: unreadData, refetch: refetchUnreadCount } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: () => notificationsApi.getUnreadCount(),
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -40,6 +42,25 @@ const NotificationDropdown = () => {
     refetchOnReconnect: false,
   });
   const unreadCount = unreadData?.count ?? 0;
+
+  // Listen for WebSocket notifications
+  useWebSocket((message) => {
+    if (message.type === 'new_comment' || message.type === 'comment_replied') {
+      // Refresh unread count when a new notification arrives
+      refetchUnreadCount();
+      // If dropdown is open, refresh notifications list
+      if (open) {
+        fetchNotifications();
+      }
+      // Show toast notification
+      toast({
+        title: message.type === 'new_comment' ? 'Novo Comentário' : 'Comentário Respondido',
+        description: message.type === 'new_comment' 
+          ? `${message.userName || 'Usuário'} enviou um novo comentário`
+          : 'Seu comentário foi respondido pelo administrador',
+      });
+    }
+  });
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -124,6 +145,15 @@ const NotificationDropdown = () => {
       handleMarkAsRead(notification.id);
     }
     setOpen(false);
+    
+    // Navigate to the notifications page based on current route
+    const notificationsPath = location.pathname.startsWith('/admin') 
+      ? '/admin/notifications' 
+      : location.pathname.startsWith('/consultant')
+      ? '/consultant/notifications'
+      : '/app/notifications';
+    
+    navigate(notificationsPath);
   };
 
   return (

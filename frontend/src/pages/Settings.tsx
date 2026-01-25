@@ -11,7 +11,8 @@ import {
   Plus,
   Loader2,
   Trash2,
-  Eye
+  Eye,
+  RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -476,13 +477,23 @@ const Settings = () => {
             <ChartCard 
               title="Comentários e Feedback"
               actions={
-                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Novo Comentário
-                    </Button>
-                  </DialogTrigger>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => fetchComments(commentsPagination.page)}
+                    disabled={commentsLoading}
+                  >
+                    <RefreshCw className={cn("h-4 w-4 mr-2", commentsLoading && "animate-spin")} />
+                    Atualizar
+                  </Button>
+                  <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Comentário
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Novo Comentário</DialogTitle>
@@ -519,6 +530,7 @@ const Settings = () => {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+                </div>
               }
             >
               <div className="space-y-6">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Menu, UserCircle, LogOut, Users, Globe } from "lucide-react";
+import { Search, Menu, UserCircle, LogOut, Users, Globe, ChevronDown, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,16 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
     refetchInterval: 60000, // Refetch every minute
     enabled: !!user,
   });
+
+  // Get abbreviated name (First name or First + Last Initial)
+  const getAbbreviatedName = () => {
+    if (!user?.full_name) return '';
+    const names = user.full_name.trim().split(' ');
+    if (names.length >= 2) {
+      return `${names[0]} ${names[names.length - 1][0]}.`;
+    }
+    return names[0];
+  };
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -107,16 +117,12 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <Avatar className="h-9 w-9 cursor-pointer border border-border">
-                  <AvatarImage src="" />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
+              <button className="flex items-center justify-center gap-2 px-4 py-2 hover:bg-primary/90 rounded-full transition-all bg-primary text-primary-foreground shadow-sm shadow-primary/20 group">
+                <User className="h-4 w-4" />
+                <span className="text-xs font-bold tracking-tight">{getAbbreviatedName()}</span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56 mt-2">
               <div className="px-2 py-1.5">
                 <p className="text-sm font-medium text-foreground">{user.full_name}</p>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>

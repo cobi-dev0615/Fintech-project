@@ -57,6 +57,8 @@ async function runAllMigrations() {
     await runMigration('008_create_notification_preferences.sql');
     await runMigration('009_create_comments_table.sql');
     await runMigration('010_update_comments_table.sql');
+    await runMigration('011_add_comment_notification_type.sql');
+    await runMigration('012_add_user_approval_status.sql');
     console.log('✅ All migrations completed');
   } catch (error) {
     console.error('Migration failed:', error);

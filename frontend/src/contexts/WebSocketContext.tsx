@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
 interface WebSocketMessage {
@@ -239,9 +239,9 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     wsManager.setStateCallbacks(setConnected, setLastMessage);
   }, []);
 
-  // Connect/disconnect based on user role
+  // Connect/disconnect based on user authentication
   useEffect(() => {
-    if (user && user.role === 'admin') {
+    if (user && user.id && user.role) {
       wsManager.connect(user.id, user.role);
     } else {
       wsManager.disconnect();
@@ -250,8 +250,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     // Cleanup on unmount or user change
     return () => {
       // Don't disconnect here - we want to keep connection alive during navigation
-      // Only disconnect when user logs out or changes role
-      if (!user || user.role !== 'admin') {
+      // Only disconnect when user logs out
+      if (!user || !user.id) {
         wsManager.disconnect();
       }
     };
@@ -265,8 +265,16 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     wsManager.send(message);
   }, []);
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue: WebSocketContextType = useMemo(() => ({
+    connected,
+    lastMessage,
+    subscribe,
+    send,
+  }), [connected, lastMessage, subscribe, send]);
+
   return (
-    <WebSocketContext.Provider value={{ connected, lastMessage, subscribe, send }}>
+    <WebSocketContext.Provider value={contextValue}>
       {children}
     </WebSocketContext.Provider>
   );
@@ -274,13 +282,21 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
 export function useWebSocket(handler?: MessageHandler) {
   const context = useContext(WebSocketContext);
+  
+  // Provide a default context if not available (shouldn't happen, but defensive)
   if (!context) {
-    throw new Error('useWebSocket must be used within WebSocketProvider');
+    console.warn('useWebSocket called outside WebSocketProvider, returning default context');
+    return {
+      connected: false,
+      lastMessage: null,
+      subscribe: () => () => {},
+      send: () => {},
+    };
   }
 
   // Subscribe to messages if handler provided
   useEffect(() => {
-    if (handler) {
+    if (handler && context) {
       return context.subscribe(handler);
     }
   }, [context, handler]);

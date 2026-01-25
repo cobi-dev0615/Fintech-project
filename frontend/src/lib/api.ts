@@ -100,7 +100,7 @@ class ApiClient {
       };
       
       // Handle 401 Unauthorized errors globally
-      if (response.status === 401) {
+      if (response.status === 401 || (errorData && (errorData.statusCode === 401 || errorData.error === 'Unauthorized'))) {
         // Immediately remove token from localStorage to prevent further requests
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
@@ -151,7 +151,7 @@ class ApiClient {
   async patch<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PATCH',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data !== undefined ? JSON.stringify(data) : JSON.stringify({}),
     });
   }
 

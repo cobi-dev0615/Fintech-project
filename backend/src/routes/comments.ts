@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
+import { createAlert } from '../utils/notifications.js';
 
 export async function commentsRoutes(fastify: FastifyInstance) {
   // Get user's comments
@@ -68,6 +69,59 @@ export async function commentsRoutes(fastify: FastifyInstance) {
          RETURNING id, title, content, created_at`,
         [userId, title || null, content]
       );
+
+      // Get user info for notification
+      const userResult = await db.query(
+        'SELECT full_name, email, role FROM users WHERE id = $1',
+        [userId]
+      );
+      const user = userResult.rows[0];
+      const userName = user?.full_name || 'Usuário';
+      const userRole = user?.role || 'customer';
+
+      // Notify all admins about the new comment
+      try {
+        const adminsResult = await db.query(
+          'SELECT id FROM users WHERE role = $1',
+          ['admin']
+        );
+        
+        for (const admin of adminsResult.rows) {
+          await createAlert({
+            userId: admin.id,
+            severity: 'info',
+            title: 'Novo Comentário Recebido',
+            message: `${userName} enviou um novo comentário: ${title || 'Sem título'}`,
+            notificationType: 'message_received',
+            linkUrl: `/admin/comments`,
+            metadata: {
+              commentId: result.rows[0].id,
+              userId,
+              userName,
+              userRole,
+            },
+          });
+        }
+
+        // Broadcast to connected admin WebSocket clients
+        const websocket = (fastify as any).websocket;
+        if (websocket && websocket.broadcastToAdmins) {
+          websocket.broadcastToAdmins({
+            type: 'new_comment',
+            message: 'Novo comentário recebido',
+            commentId: result.rows[0].id,
+            userId,
+            userName,
+            userRole,
+            title: title || 'Sem título',
+            content: content.substring(0, 100), // First 100 chars
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (error) {
+        // Don't fail the request if notification fails
+        fastify.log.error({ err: error }, 'Error sending notification for new comment');
+      }
 
       return reply.code(201).send({
         comment: result.rows[0],

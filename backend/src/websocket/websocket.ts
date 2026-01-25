@@ -4,7 +4,7 @@ import { FastifyInstance } from 'fastify';
 import { db } from '../db/connection.js';
 import { cache } from '../utils/cache.js';
 
-interface AdminWebSocket extends WebSocket {
+interface UserWebSocket extends WebSocket {
   isAlive?: boolean;
   userId?: string;
   role?: string;
@@ -27,8 +27,26 @@ export function setupWebSocket(fastify: FastifyInstance) {
 
   // Broadcast to all connected admin clients
   function broadcastToAdmins(data: any) {
-    wss.clients.forEach((client: AdminWebSocket) => {
+    wss.clients.forEach((client: UserWebSocket) => {
       if (client.role === 'admin' && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(data));
+      }
+    });
+  }
+
+  // Broadcast to a specific user by userId
+  function broadcastToUser(userId: string, data: any) {
+    wss.clients.forEach((client: UserWebSocket) => {
+      if (client.userId === userId && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(data));
+      }
+    });
+  }
+
+  // Broadcast to all connected clients
+  function broadcastToAll(data: any) {
+    wss.clients.forEach((client: UserWebSocket) => {
+      if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(data));
       }
     });
@@ -36,7 +54,7 @@ export function setupWebSocket(fastify: FastifyInstance) {
 
     // Ping clients to check if they're still connected
     setInterval(() => {
-      wss.clients.forEach((ws: AdminWebSocket) => {
+      wss.clients.forEach((ws: UserWebSocket) => {
         if (!ws.isAlive) {
           return ws.terminate();
         }
@@ -45,7 +63,7 @@ export function setupWebSocket(fastify: FastifyInstance) {
       });
     }, 30000);
 
-    wss.on('connection', (ws: AdminWebSocket, request) => {
+    wss.on('connection', (ws: UserWebSocket, request) => {
       ws.isAlive = true;
       console.log('WebSocket connection attempt from:', request.socket.remoteAddress);
 
@@ -77,10 +95,13 @@ export function setupWebSocket(fastify: FastifyInstance) {
         try {
           const data = JSON.parse(message.toString());
           
-          if (data.type === 'authenticate' && data.userId && data.role === 'admin') {
+          if (data.type === 'authenticate' && data.userId && data.role) {
             ws.userId = data.userId;
             ws.role = data.role;
-            ws.send(JSON.stringify({ type: 'authenticated', message: 'Connected to admin updates' }));
+            const roleMessage = data.role === 'admin' 
+              ? 'Connected to admin updates' 
+              : `Connected as ${data.role}`;
+            ws.send(JSON.stringify({ type: 'authenticated', message: roleMessage }));
           } else if (data.type === 'ping') {
             ws.send(JSON.stringify({ type: 'pong' }));
           }
@@ -136,9 +157,11 @@ export function setupWebSocket(fastify: FastifyInstance) {
       }
     }, 10000); // Check every 10 seconds
 
-    // Expose broadcast function for use in routes
+    // Expose broadcast functions for use in routes
     (fastify as any).websocket = {
       broadcastToAdmins,
+      broadcastToUser,
+      broadcastToAll,
     };
 
     fastify.log.info('WebSocket server started on /ws');

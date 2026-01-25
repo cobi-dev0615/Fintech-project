@@ -25,7 +25,30 @@ export function useAuth() {
     checkToken();
     // Listen for storage changes (in case token is removed elsewhere)
     window.addEventListener('storage', checkToken);
-    return () => window.removeEventListener('storage', checkToken);
+    
+    // Proactive session check - verify token expiration periodically
+    const interval = setInterval(() => {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        try {
+          // JWT payload is the second part of the token
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.exp && Date.now() >= payload.exp * 1000) {
+            console.log('Session expired, logging out...');
+            window.dispatchEvent(new CustomEvent('auth:unauthorized', {
+              detail: { message: 'Sua sessão expirou por inatividade. Por favor, faça login novamente.' }
+            }));
+          }
+        } catch (e) {
+          // If token is malformed, we'll let the API calls handle it
+        }
+      }
+    }, 60000); // Check every minute
+
+    return () => {
+      window.removeEventListener('storage', checkToken);
+      clearInterval(interval);
+    };
   }, []);
 
   const { data: currentUser, isLoading, error } = useQuery({
