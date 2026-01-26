@@ -8,13 +8,14 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    hmr: {
-      overlay: false,
-      protocol: 'ws',
-      host: '167.71.94.65',
-      port: 8080,
-      clientPort: 8080,
-    },
+    allowedHosts: [
+      'www.zurt.com.br',
+      'zurt.com.br',
+    ],
+    hmr: false, // Disable HMR to prevent SSL errors when accessed via HTTPS
+    // Note: HMR requires WebSocket support through reverse proxy
+    // If you need HMR over HTTPS, configure nginx to proxy WebSocket connections
+    // For now, disable to avoid ERR_SSL_PROTOCOL_ERROR
     watch: {
       usePolling: false,
     },

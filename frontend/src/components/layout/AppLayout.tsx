@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
-import BottomNav from "./BottomNav";
 
 const AppLayout = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
   
   // Hide search and show date/time on all authenticated pages (customer, consultant, admin)
@@ -25,10 +25,16 @@ const AppLayout = () => {
       <Sidebar
         collapsed={sidebarCollapsed}
         onCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        mobileOpen={mobileSidebarOpen}
+        onMobileOpenChange={setMobileSidebarOpen}
       />
       
-      <div className="flex-1 flex flex-col pb-16 lg:pb-0">
-        <TopBar showMenuButton hideSearch={hideSearch} />
+      <div className="flex-1 flex flex-col">
+        <TopBar 
+          showMenuButton 
+          hideSearch={hideSearch}
+          onMenuClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+        />
         
         <main className={`flex-1 py-4 px-4 ${isCustomerPage ? 'lg:py-4 lg:px-4 xl:py-6 xl:px-4' : 'lg:py-10 lg:px-10'}`}>
           <div className={isCustomerPage ? 'max-w-[95%] xl:max-w-[90%] 2xl:max-w-8xl mx-auto' : 'max-w-8xl mx-auto'}>
@@ -36,8 +42,6 @@ const AppLayout = () => {
           </div>
         </main>
       </div>
-      
-      <BottomNav />
     </div>
   );
 };

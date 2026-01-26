@@ -18,6 +18,7 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const GoogleAuthCallback = lazy(() => import("./pages/GoogleAuthCallback"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // App pages (Customer) - lazy loaded
@@ -107,6 +108,8 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/auth/google" element={<GoogleAuthCallback />} />
+            <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
             
             {/* App Routes (Customer) */}
             <Route path="/app" element={<AppLayout />}>

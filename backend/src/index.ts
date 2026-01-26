@@ -66,11 +66,13 @@ await fastify.register(cors, {
       const originUrl = new URL(normalizedOrigin);
       const originHostname = originUrl.hostname;
       
-      // Check if the hostname matches any of our allowed IPs
+      // Check if the hostname matches any of our allowed IPs or domains
       const allowedHostnames = [
         'localhost',
         '127.0.0.1',
         '167.71.94.65',
+        'www.zurt.com.br',
+        'zurt.com.br',
       ];
       
       if (allowedHostnames.includes(originHostname)) {

@@ -879,6 +879,74 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Delete user
+  fastify.delete('/users/:id', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const { id } = request.params;
+      const adminId = getAdminId(request);
+
+      // Prevent admin from deleting themselves
+      if (id === adminId) {
+        return reply.code(400).send({ error: 'You cannot delete your own account' });
+      }
+
+      // Get user info before deletion for audit log
+      const userResult = await db.query(
+        `SELECT id, full_name, email, role, approval_status, is_active FROM users WHERE id = $1`,
+        [id]
+      );
+
+      if (userResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'User not found' });
+      }
+
+      const user = userResult.rows[0];
+
+      // Prevent deletion of other admin users (optional safety check)
+      if (user.role === 'admin') {
+        return reply.code(403).send({ error: 'Cannot delete admin users' });
+      }
+
+      // Log audit before deletion
+      await logAudit({
+        adminId,
+        action: 'user_deleted',
+        resourceType: 'user',
+        resourceId: id,
+        oldValue: {
+          full_name: user.full_name,
+          email: user.email,
+          role: user.role,
+          approval_status: user.approval_status,
+          is_active: user.is_active,
+        },
+        newValue: null,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      // Delete the user (CASCADE will handle related records)
+      await db.query('DELETE FROM users WHERE id = $1', [id]);
+
+      // Invalidate cache
+      cache.delete('admin:dashboard:metrics');
+
+      return reply.send({ 
+        message: 'User deleted successfully',
+        deletedUser: {
+          id: user.id,
+          full_name: user.full_name,
+          email: user.email,
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error({ err: error }, 'Error deleting user');
+      reply.code(500).send({ error: 'Failed to delete user' });
+    }
+  });
+
   // Get all subscriptions with pagination
   fastify.get('/subscriptions', {
     preHandler: [requireAdmin],

@@ -71,15 +71,14 @@ const Register = () => {
   };
 
   const handleGoogleSignUp = () => {
-    // Google OAuth implementation will go here
+    // Google OAuth implementation
     const apiBaseUrl = import.meta.env.VITE_API_URL || 
       (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
-        ? 'http://localhost:5000' 
+        ? 'http://localhost:5000/api' 
         : `${window.location.origin}/api`);
     
-    // Remove /api from the end if it's there because OAuth redirect is handled by backend root
-    const backendUrl = apiBaseUrl.endsWith('/api') ? apiBaseUrl.slice(0, -4) : apiBaseUrl;
-    window.location.href = `${backendUrl}/auth/google`;
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = `${apiBaseUrl}/auth/google`;
   };
 
   return (

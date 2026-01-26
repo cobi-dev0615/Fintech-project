@@ -152,53 +152,6 @@ const PremiumHero = () => {
                 {/* Lines will be animated via CSS */}
               </svg>
 
-              {/* Floating Card 1: Objetivo Carro - Top Right */}
-              <div 
-                className="absolute top-8 right-0 lg:right-0 -right-4 md:right-0 opacity-0 animate-fade-in-up"
-                style={{ 
-                  animationDelay: '0.5s',
-                  animationFillMode: 'forwards',
-                  zIndex: 250,
-                }}
-              >
-                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-40 md:w-48 lg:w-52 transform rotate-1 transition-[shadow,border-color,background-color] duration-2000 hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-right">
-                  {/* Connecting line indicator pointing to phone */}
-                  <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  {/* Glow effect on hover */}
-                  <div className="absolute inset-0 rounded-xl bg-primary/0 group-hover:bg-primary/5 transition-colors duration-300 pointer-events-none" />
-                  <div className="flex items-start gap-2 mb-2">
-                    <Car className="h-4 w-4 text-primary flex-shrink-0 mt-0.5 animate-pulse" style={{ animationDuration: '2s' }} />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-semibold text-foreground mb-1">Objetivo: Carro novo</h4>
-                      <p className="text-sm font-bold text-foreground mb-1">R$ 115.000,00</p>
-                      <p className="text-[10px] text-muted-foreground">67% concluído • 18 meses</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Card 2: Diversificação - Middle Left */}
-              <div 
-                className="absolute top-1/3 -left-4 md:-left-6 lg:-left-8 opacity-0 animate-fade-in-up"
-                style={{ 
-                  animationDelay: '0.7s',
-                  animationFillMode: 'forwards',
-                  zIndex: 250,
-                }}
-              >
-                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-36 md:w-40 lg:w-44 transform -rotate-1 transition-[shadow,border-color,background-color] duration-2000 hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-left">
-                  {/* Connecting line indicator pointing to phone */}
-                  <div className="absolute -right-4 top-1/2 w-4 h-0.5 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  {/* Glow effect on hover */}
-                  <div className="absolute inset-0 rounded-xl bg-primary/0 group-hover:bg-primary/5 transition-colors duration-300 pointer-events-none" />
-                  <div className="flex items-center gap-2 mb-2">
-                    <PieChart className="h-4 w-4 text-primary animate-pulse" style={{ animationDuration: '2s', animationDelay: '0.2s' }} />
-                    <h4 className="text-xs font-semibold text-foreground">Diversificação</h4>
-                  </div>
-                  <p className="text-sm font-bold text-success">Equilibrada</p>
-                </div>
-              </div>
-
               {/* Floating Card 3: Otimizar Renda Variável - Middle Right */}
               <div 
                 className="absolute top-1/2 right-0 -right-4 md:right-0 opacity-0 animate-fade-in-up"

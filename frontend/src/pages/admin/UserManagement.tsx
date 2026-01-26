@@ -281,14 +281,40 @@ const UserManagement = () => {
     if (!deletingUserId) return;
 
     try {
-      // TODO: Implement delete user API endpoint
-      // await adminApi.deleteUser(deletingUserId);
+      await adminApi.deleteUser(deletingUserId);
       toast({
-        title: "Info",
-        description: "Funcionalidade de exclusão ainda não implementada",
+        title: "Sucesso",
+        description: "Usuário excluído com sucesso",
       });
       setIsDeleteDialogOpen(false);
       setDeletingUserId(null);
+      
+      // Refresh users list
+      const fetchUsers = async () => {
+        setLoading(true);
+        try {
+          const params: any = {
+            page: page.toString(),
+            limit: pagination.limit.toString(),
+          };
+          if (searchQuery) params.search = searchQuery;
+          if (roleFilter) params.role = roleFilter;
+          if (statusFilter) params.status = statusFilter;
+
+          const response = await adminApi.getUsers(params);
+          setUsers(response.users);
+          setPagination(response.pagination);
+        } catch (error: any) {
+          toast({
+            title: "Erro",
+            description: error?.error || "Falha ao carregar usuários",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchUsers();
     } catch (error: any) {
       console.error('Failed to delete user:', error);
       toast({

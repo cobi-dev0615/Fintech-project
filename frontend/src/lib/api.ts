@@ -701,6 +701,9 @@ export const adminApi = {
   rejectUser: (id: string, reason?: string) =>
     api.patch<{ message: string; user: any }>(`/admin/users/${id}/reject`, { reason }),
 
+  deleteUser: (id: string) =>
+    api.delete<{ message: string; deletedUser: { id: string; full_name: string; email: string } }>(`/admin/users/${id}`),
+
   // Subscriptions
   getSubscriptions: (params?: { search?: string; status?: string; plan?: string; page?: number; limit?: number; startDate?: string; endDate?: string }) => {
     const queryParams = new URLSearchParams();
