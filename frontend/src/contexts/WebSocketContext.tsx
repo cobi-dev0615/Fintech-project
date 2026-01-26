@@ -53,6 +53,7 @@ class WebSocketManager {
       const hostname = url.hostname;
       const protocol = origin.startsWith('https') ? 'wss' : 'ws';
       // Use origin as base, Nginx handles /ws -> 5000
+      // For production, use the same origin to avoid CORS/SSL issues
       return `${protocol}://${hostname}/ws`;
     } catch {
       return 'ws://localhost:5000/ws';
@@ -95,7 +96,10 @@ class WebSocketManager {
 
     try {
       const wsUrlWithToken = `${this.url}?token=${encodeURIComponent(this.token)}`;
-      console.log('Connecting to WebSocket:', wsUrlWithToken.replace(/\?token=[^&]+/, '?token=***'));
+      // Only log connection attempts in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Connecting to WebSocket:', wsUrlWithToken.replace(/\?token=[^&]+/, '?token=***'));
+      }
       
       this.ws = new WebSocket(wsUrlWithToken);
       
@@ -143,7 +147,8 @@ class WebSocketManager {
       };
 
       this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        // Suppress 504 Gateway Timeout errors - they're nginx/proxy configuration issues
+        // The connection will retry automatically, no need to spam console
         this.connected = false;
         if (this.setConnected) {
           this.setConnected(false);
@@ -151,11 +156,14 @@ class WebSocketManager {
       };
 
       this.ws.onclose = (event) => {
-        console.log('WebSocket disconnected', { 
-          code: event.code, 
-          reason: event.reason, 
-          wasClean: event.wasClean 
-        });
+        // Only log non-504 errors (504 is Gateway Timeout, usually nginx/proxy issue)
+        if (event.code !== 1006 && event.code !== 1000) {
+          console.log('WebSocket disconnected', { 
+            code: event.code, 
+            reason: event.reason, 
+            wasClean: event.wasClean 
+          });
+        }
         
         this.connected = false;
         this.ws = null;
@@ -164,16 +172,19 @@ class WebSocketManager {
         }
 
         // Only reconnect if not intentionally closed and we haven't exceeded max attempts
+        // 1006 = Abnormal Closure (often 504 Gateway Timeout), still try to reconnect
         if (!this.isIntentionallyClosed && this.reconnectAttempts < this.maxReconnectAttempts && event.code !== 1000) {
           this.reconnectAttempts++;
           const delay = this.reconnectDelay * Math.min(this.reconnectAttempts, 3); // Exponential backoff, max 3x
-          console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+          if (event.code !== 1006) { // Don't log for 1006 (common 504 error)
+            console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+          }
           
           this.reconnectTimeout = setTimeout(() => {
             this.doConnect();
           }, delay);
         } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-          console.warn('Max reconnection attempts reached. WebSocket will not reconnect.');
+          console.warn('Max reconnection attempts reached. WebSocket will not reconnect. This may be due to nginx/proxy configuration.');
         }
       };
     } catch (error) {

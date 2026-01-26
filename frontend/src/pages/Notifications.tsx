@@ -16,6 +16,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
@@ -55,6 +63,8 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -207,14 +217,18 @@ const Notifications = () => {
     if (!notification.isRead) {
       handleMarkAsRead(notification.id);
     }
-    if (notification.linkUrl) {
-      window.location.href = notification.linkUrl;
-    } else {
-      // If no link, show notification details in a dialog or modal
-      toast({
-        title: notification.title,
-        description: notification.message,
-      });
+    setSelectedNotification(notification);
+    setIsDetailDialogOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailDialogOpen(false);
+    setSelectedNotification(null);
+  };
+
+  const handleNavigateToLink = () => {
+    if (selectedNotification?.linkUrl) {
+      window.location.href = selectedNotification.linkUrl;
     }
   };
 
@@ -363,12 +377,12 @@ const Notifications = () => {
                     <div className="flex items-center justify-end gap-2">
                       <Button
                         variant="ghost"
-                        size="sm"
-                        className="h-8 text-muted-foreground hover:text-foreground"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         onClick={(e) => handleViewDetail(notification, e)}
+                        title="Ver detalhes"
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Detalhes
+                        <Eye className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -453,6 +467,73 @@ const Notifications = () => {
           </Pagination>
         )}
       </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedNotification?.title || "Detalhes da Notificação"}</DialogTitle>
+            <DialogDescription>
+              Informações completas da notificação
+            </DialogDescription>
+          </DialogHeader>
+          {selectedNotification && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">Tipo:</span>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getNotificationTypeBadgeColor(selectedNotification.severity)}`}
+                  >
+                    {getNotificationTypeLabel(selectedNotification.severity)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">Status:</span>
+                  <span className={`text-sm ${selectedNotification.isRead ? 'text-success' : 'text-warning'}`}>
+                    {selectedNotification.isRead ? 'Lida' : 'Não lida'}
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-muted-foreground">Mensagem:</span>
+                <div className="p-4 bg-muted/30 rounded-lg border border-border/50 text-sm whitespace-pre-wrap">
+                  {selectedNotification.message}
+                </div>
+              </div>
+              {selectedNotification.metadata && Object.keys(selectedNotification.metadata).length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-sm font-medium text-muted-foreground">Informações Adicionais:</span>
+                  <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
+                    <pre className="text-xs text-foreground overflow-auto">
+                      {JSON.stringify(selectedNotification.metadata, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-muted-foreground">Data de Criação:</span>
+                <div className="text-sm text-foreground">
+                  <div>{formatDate(selectedNotification.createdAt)}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {formatTimeAgo(selectedNotification.createdAt)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseDetail}>
+              Fechar
+            </Button>
+            {selectedNotification?.linkUrl && (
+              <Button onClick={handleNavigateToLink}>
+                Ir para Link
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deletingId !== null} onOpenChange={(open) => !open && setDeletingId(null)}>

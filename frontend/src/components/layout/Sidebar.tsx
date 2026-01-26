@@ -28,7 +28,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SidebarProps {
@@ -214,6 +215,9 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
     return (
       <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
         <SheetContent side="left" className="w-80 p-0 bg-sidebar text-sidebar-foreground">
+          <VisuallyHidden.Root asChild>
+            <SheetTitle>Navigation Menu</SheetTitle>
+          </VisuallyHidden.Root>
           <div className="flex flex-col h-full">
             <NavigationContent showLabels={true} onLinkClick={() => onMobileOpenChange?.(false)} />
           </div>
@@ -222,7 +226,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
     );
   }
 
-  // Desktop sidebar
+  // Desktop sidebar (hidden on screens < 1024px, lg = 1024px in Tailwind)
   return (
     <aside
       className={cn(
