@@ -73,13 +73,15 @@ export async function authRoutes(fastify: FastifyInstance) {
       // Auto-approve specific test accounts
       const autoApprovedEmails = ['admin@zurt.com', 'customer@zurt.com', 'consultant@zurt.com'];
       const approvalStatus = autoApprovedEmails.includes(body.email.toLowerCase()) ? 'approved' : 'pending';
+      // New users should be inactive until approved (unless auto-approved)
+      const isActive = autoApprovedEmails.includes(body.email.toLowerCase());
       
       // Create user with appropriate approval status
       const result = await db.query(
         `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active)
-         VALUES ($1, $2, $3, $4, $5, true)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id, full_name, email, role, approval_status, created_at`,
-        [body.full_name, body.email, passwordHash, body.role, approvalStatus]
+        [body.full_name, body.email, passwordHash, body.role, approvalStatus, isActive]
       );
       
       const user = result.rows[0];

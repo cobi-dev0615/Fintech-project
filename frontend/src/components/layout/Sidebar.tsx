@@ -91,9 +91,10 @@ const adminNavItems: NavItem[] = [
   { icon: Clock, label: "Histórico de Login", href: "/admin/login-history", enabled: true },
 ];
 
-const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
+const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOpenChange }: SidebarProps) => {
   const location = useLocation();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   // Get navigation items based on user role
   const getNavItems = () => {
@@ -125,17 +126,13 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
 
   const navItems = getNavItems();
 
-  return (
-    <aside
-      className={cn(
-        "hidden lg:flex flex-col h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 sticky top-0 border-r border-sidebar-border",
-        collapsed ? "w-20" : "w-64"
-      )}
-    >
+  // Shared navigation content component
+  const NavigationContent = ({ showLabels = true, onLinkClick }: { showLabels?: boolean; onLinkClick?: () => void }) => (
+    <>
       {/* Logo */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-        {!collapsed && (
-          <Link to={getDashboardPath()} className="flex items-center gap-2">
+        {showLabels && (
+          <Link to={getDashboardPath()} className="flex items-center gap-2" onClick={onLinkClick}>
             <img 
               src="/logo.png" 
               alt="zurT Logo" 
@@ -144,8 +141,8 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
             <span className="font-semibold text-lg text-foreground">zurT</span>
           </Link>
         )}
-        {collapsed && (
-          <Link to={getDashboardPath()} className="mx-auto">
+        {!showLabels && (
+          <Link to={getDashboardPath()} className="mx-auto" onClick={onLinkClick}>
             <img 
               src="/logo.png" 
               alt="zurT Logo" 
@@ -153,18 +150,20 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
             />
           </Link>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onCollapse}
-          className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </Button>
+        {!isMobile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCollapse}
+            className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -184,7 +183,7 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
                 title="Funcionalidade em breve"
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                {showLabels && <span>{item.label}</span>}
               </div>
             );
           }
@@ -193,6 +192,7 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
             <Link
               key={item.href}
               to={item.href}
+              onClick={onLinkClick}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
@@ -201,12 +201,36 @@ const Sidebar = ({ collapsed = false, onCollapse }: SidebarProps) => {
               )}
             >
               <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-sidebar-primary")} />
-              {!collapsed && <span>{item.label}</span>}
+              {showLabels && <span>{item.label}</span>}
             </Link>
           );
         })}
       </nav>
+    </>
+  );
 
+  // Mobile sidebar (Sheet)
+  if (isMobile) {
+    return (
+      <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
+        <SheetContent side="left" className="w-80 p-0 bg-sidebar text-sidebar-foreground">
+          <div className="flex flex-col h-full">
+            <NavigationContent showLabels={true} onLinkClick={() => onMobileOpenChange?.(false)} />
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // Desktop sidebar
+  return (
+    <aside
+      className={cn(
+        "hidden lg:flex flex-col h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 sticky top-0 border-r border-sidebar-border",
+        collapsed ? "w-20" : "w-64"
+      )}
+    >
+      <NavigationContent showLabels={!collapsed} />
     </aside>
   );
 };

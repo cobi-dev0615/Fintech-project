@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useWebSocket } from "@/contexts/WebSocketContext";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Notification {
   id: string;
@@ -26,10 +27,14 @@ const NotificationDropdown = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  
+  // Check if current user is admin
+  const isAdmin = user?.role === 'admin';
 
   // Fetch unread count once on mount – cached, no polling
   const { data: unreadData, refetch: refetchUnreadCount } = useQuery({
@@ -99,20 +104,29 @@ const NotificationDropdown = () => {
     try {
       setLoading(true);
       const response = await notificationsApi.getAll(1, 10);
-      setNotifications(response.notifications);
+      // Filter notifications: only show registration-related notifications to admins
+      const filteredNotifications = isAdmin 
+        ? response.notifications 
+        : response.notifications.filter(
+            (n: Notification) => 
+              !n.title.includes('Solicitação de Registro') && 
+              !n.title.includes('Registro') &&
+              !(n.metadata?.userRole && n.title.includes('solicitou registro'))
+          );
+      setNotifications(filteredNotifications);
     } catch (error: any) {
       console.error('Failed to fetch notifications:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   // Fetch notifications only when opening the dropdown
   useEffect(() => {
     if (open) {
       fetchNotifications();
     }
-  }, [open, fetchNotifications]);
+  }, [open, fetchNotifications, isAdmin]);
 
   const setUnreadCount = useCallback((value: number | ((prev: number) => number)) => {
     queryClient.setQueryData(['notifications', 'unread-count'], (old: { count: number } | undefined) => ({

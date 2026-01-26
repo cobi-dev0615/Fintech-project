@@ -2,12 +2,15 @@ import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 
 const GoogleAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -35,10 +38,11 @@ const GoogleAuthCallback = () => {
         }
 
         if (token) {
-          // If we have a token directly, store it and redirect
+          // Store token in localStorage and API client
           localStorage.setItem("auth_token", token);
+          api.setToken(token);
           
-          // Fetch user info
+          // Fetch user info to get role for redirect
           const apiBaseUrl = import.meta.env.VITE_API_URL || 
             (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
               ? 'http://localhost:5000/api' 
@@ -52,7 +56,9 @@ const GoogleAuthCallback = () => {
 
           if (response.ok) {
             const data = await response.json();
-            setUser(data.user);
+            
+            // Update the query cache with the user data
+            queryClient.setQueryData(['auth', 'me'], data.user);
             
             // Redirect based on role
             const role = data.user.role;
@@ -87,7 +93,7 @@ const GoogleAuthCallback = () => {
     };
 
     handleCallback();
-  }, [searchParams, navigate, setUser, toast]);
+  }, [searchParams, navigate, toast, queryClient, user]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
