@@ -130,7 +130,7 @@ const StatsSection = () => {
   };
 
   return (
-    <section ref={sectionRef} className="py-20 bg-background">
+    <section id="contents" ref={sectionRef} className="py-20 bg-background">
       <div className="container mx-auto px-4">
         {/* Headline */}
         <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-16 max-w-4xl mx-auto">

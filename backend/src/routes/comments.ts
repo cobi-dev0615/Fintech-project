@@ -91,7 +91,7 @@ export async function commentsRoutes(fastify: FastifyInstance) {
             userId: admin.id,
             severity: 'info',
             title: 'Novo Comentário Recebido',
-            message: `${userName} enviou um novo comentário: ${title || 'Sem título'}`,
+            message: `${userName} enviou um novo comentário`,
             notificationType: 'message_received',
             linkUrl: `/admin/comments`,
             metadata: {
@@ -99,6 +99,8 @@ export async function commentsRoutes(fastify: FastifyInstance) {
               userId,
               userName,
               userRole,
+              content: content, // Store the actual comment content
+              title: title || 'Sem título',
             },
           });
         }

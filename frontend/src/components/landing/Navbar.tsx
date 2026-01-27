@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -7,12 +7,83 @@ import { cn } from "@/lib/utils";
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/#contents", label: "Conteúdos" },
     { href: "/#tools", label: "Ferramentas" },
   ];
+
+  // Handle smooth scrolling for hash links
+  const handleNavClick = (href: string, e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    
+    // Close mobile menu
+    setIsOpen(false);
+    
+    // Extract path and hash
+    const [path, hash] = href.split('#');
+    
+    // Navigate to the path first
+    if (path !== location.pathname) {
+      navigate(path);
+      // Wait for navigation, then scroll to hash
+      setTimeout(() => {
+        if (hash) {
+          const element = document.getElementById(hash);
+          if (element) {
+            // Account for fixed header height
+            const headerOffset = 80;
+            const elementPosition = element.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          }
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      // Already on the same page, just scroll to hash
+      if (hash) {
+        const element = document.getElementById(hash);
+        if (element) {
+          // Account for fixed header height
+          const headerOffset = 80;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  };
+
+  // Handle hash navigation on page load
+  useEffect(() => {
+    if (location.hash) {
+      const hash = location.hash.substring(1); // Remove the '#'
+      setTimeout(() => {
+        const element = document.getElementById(hash);
+        if (element) {
+          const headerOffset = 80;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }, [location.hash]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg">
@@ -26,25 +97,29 @@ const Navbar = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "text-sm font-medium transition-colors",
-                  location.pathname === link.href
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {link.label}
-              </a>
-            ))}
+          <div className="hidden lg:flex items-center gap-8">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.href.split('#')[0];
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleNavClick(link.href, e)}
+                  className={cn(
+                    "text-sm font-medium transition-colors cursor-pointer",
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {link.label}
+                </a>
+              );
+            })}
           </div>
 
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
               <Link to="/register">Criar conta</Link>
             </Button>
@@ -57,7 +132,7 @@ const Navbar = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="lg:hidden"
             onClick={() => setIsOpen(!isOpen)}
           >
             {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -66,24 +141,32 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden py-4 border-t border-border animate-fade-in bg-background">
-            <div className="flex flex-col gap-4">
+          <div className="lg:hidden py-4 border-t border-border animate-fade-in bg-background rounded-xl">
+            <div className="flex flex-col items-center gap-4">
               {navLinks.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => setIsOpen(false)}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors text-center cursor-pointer"
+                  onClick={(e) => handleNavClick(link.href, e)}
                 >
                   {link.label}
                 </a>
               ))}
-              <div className="flex flex-col gap-2 pt-4 border-t border-gray-800">
-                <Button asChild variant="outline" className="w-full">
-                  <Link to="/login">Entrar</Link>
+              <div className="flex flex-col items-center gap-2 pt-4 border-t border-gray-800 w-full">
+                <Button 
+                  asChild 
+                  variant="outline" 
+                  className="w-48 rounded-xl"
+                >
+                  <Link to="/login" onClick={() => setIsOpen(false)}>Entrar</Link>
                 </Button>
-                <Button asChild variant="hero" className="w-full">
-                  <Link to="/register">Começar</Link>
+                <Button 
+                  asChild 
+                  variant="hero" 
+                  className="w-48 rounded-xl"
+                >
+                  <Link to="/register" onClick={() => setIsOpen(false)}>Começar</Link>
                 </Button>
               </div>
             </div>

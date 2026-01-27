@@ -59,6 +59,37 @@ interface Notification {
   createdAt: string;
 }
 
+// Helper function to extract notification type from message
+const getNotificationType = (notification: Notification): string => {
+  // If message contains ":", extract the part before it as the type
+  // This handles cases like "Customer User enviou um novo comentário: title"
+  if (notification.message.includes(':')) {
+    return notification.message.split(':')[0].trim();
+  }
+  return notification.message;
+};
+
+// Helper function to get notification content from metadata or message
+const getNotificationContent = (notification: Notification): string | null => {
+  // First check if metadata has content (the actual comment/content)
+  if (notification.metadata?.content) {
+    return notification.metadata.content;
+  }
+  // Check for title in metadata (for comments, this is the comment title)
+  if (notification.metadata?.title) {
+    return notification.metadata.title;
+  }
+  // If message contains ":", extract the part after it as the content
+  // This is a fallback for older notifications
+  if (notification.message.includes(':')) {
+    const parts = notification.message.split(':');
+    if (parts.length > 1) {
+      return parts.slice(1).join(':').trim();
+    }
+  }
+  return null;
+};
+
 const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -498,19 +529,47 @@ const Notifications = () => {
               <div className="space-y-2">
                 <span className="text-sm font-medium text-muted-foreground">Mensagem:</span>
                 <div className="p-4 bg-muted/30 rounded-lg border border-border/50 text-sm whitespace-pre-wrap">
-                  {selectedNotification.message}
+                  {getNotificationType(selectedNotification)}
                 </div>
               </div>
-              {selectedNotification.metadata && Object.keys(selectedNotification.metadata).length > 0 && (
-                <div className="space-y-2">
-                  <span className="text-sm font-medium text-muted-foreground">Informações Adicionais:</span>
-                  <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
-                    <pre className="text-xs text-foreground overflow-auto">
-                      {JSON.stringify(selectedNotification.metadata, null, 2)}
-                    </pre>
-                  </div>
-                </div>
-              )}
+              {(() => {
+                const content = getNotificationContent(selectedNotification);
+                const hasMetadata = selectedNotification.metadata && Object.keys(selectedNotification.metadata).length > 0;
+                
+                if (content) {
+                  return (
+                    <div className="space-y-2">
+                      <span className="text-sm font-medium text-muted-foreground">Informações Adicionais:</span>
+                      <div className="p-4 bg-muted/30 rounded-lg border border-border/50 text-sm whitespace-pre-wrap">
+                        {content}
+                      </div>
+                      {hasMetadata && Object.keys(selectedNotification.metadata).filter(k => k !== 'content' && k !== 'title').length > 0 && (
+                        <details className="mt-2">
+                          <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                            Ver metadados completos
+                          </summary>
+                          <pre className="text-xs text-foreground overflow-auto mt-2 p-2 bg-muted/20 rounded">
+                            {JSON.stringify(selectedNotification.metadata, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  );
+                } else if (hasMetadata) {
+                  // If no content but has metadata, show metadata
+                  return (
+                    <div className="space-y-2">
+                      <span className="text-sm font-medium text-muted-foreground">Informações Adicionais:</span>
+                      <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
+                        <pre className="text-xs text-foreground overflow-auto">
+                          {JSON.stringify(selectedNotification.metadata, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               <div className="space-y-2">
                 <span className="text-sm font-medium text-muted-foreground">Data de Criação:</span>
                 <div className="text-sm text-foreground">

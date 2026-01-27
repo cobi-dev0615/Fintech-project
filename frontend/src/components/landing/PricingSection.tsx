@@ -95,7 +95,7 @@ const PricingSection = () => {
     fetchPlans();
   }, []);
   return (
-    <section className="py-20 bg-background">
+    <section id="tools" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
