@@ -104,7 +104,9 @@ class WebSocketManager {
       this.ws = new WebSocket(wsUrlWithToken);
       
       this.ws.onopen = () => {
-        console.log('WebSocket connected');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('WebSocket connected');
+        }
         this.connected = true;
         this.reconnectAttempts = 0;
         if (this.setConnected) {
@@ -126,7 +128,9 @@ class WebSocketManager {
           const message: WebSocketMessage = JSON.parse(event.data);
           
           if (message.type === 'authenticated') {
-            console.log('WebSocket authenticated');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('WebSocket authenticated');
+            }
           } else {
             this.lastMessage = message;
             if (this.setLastMessage) {

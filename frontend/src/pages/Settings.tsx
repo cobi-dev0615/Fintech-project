@@ -544,7 +544,7 @@ const Settings = () => {
                       <TableHead>Processo</TableHead>
                       <TableHead>Criado em</TableHead>
                       <TableHead>Processado em</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

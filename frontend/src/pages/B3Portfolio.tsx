@@ -177,29 +177,29 @@ const B3Portfolio = () => {
       <ChartCard title="Posições">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
+            <thead className="bg-muted/50">
               <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Ativo
                 </th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Quantidade
                 </th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Preço Médio
                 </th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Preço Atual
                 </th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Valor
                 </th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   Variação
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-card">
               {positions.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-8 text-muted-foreground">

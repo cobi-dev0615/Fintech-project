@@ -152,7 +152,7 @@ const AdminComments = () => {
                 <TableHead>Comentário</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ação</TableHead>
+                <TableHead>Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

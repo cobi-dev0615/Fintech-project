@@ -315,7 +315,7 @@ const Notifications = () => {
               <TableHead>Tipo</TableHead>
               <TableHead>Conteúdo</TableHead>
               <TableHead className="w-40">Data</TableHead>
-              <TableHead className="w-48 text-right">Ações</TableHead>
+              <TableHead className="w-48">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
