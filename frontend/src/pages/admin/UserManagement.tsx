@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users, Eye, Trash2, Edit, Save, X, Filter, Check, XCircle } from "lucide-react";
+import { Search, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users, Eye, Trash2, Edit, Save, X, Filter, Check, XCircle, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -107,36 +107,42 @@ const UserManagement = () => {
     setPage(1);
   }, [searchQuery, roleFilter, statusFilter]);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const response = await adminApi.getUsers({ 
-          search: searchQuery || undefined,
-          role: roleFilter || undefined,
-          status: statusFilter || undefined,
-          page,
-          limit: 20,
-        });
-        setUsers(response.users.map(user => ({
-          ...user,
-          role: user.role as "customer" | "consultant" | "admin",
-          status: user.status as "active" | "blocked" | "pending",
-        })));
-        setPagination(response.pagination);
-      } catch (error: any) {
-        console.error('Failed to fetch users:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await adminApi.getUsers({ 
+        search: searchQuery || undefined,
+        role: roleFilter || undefined,
+        status: statusFilter || undefined,
+        page,
+        limit: 20,
+      });
+      setUsers(response.users.map(user => ({
+        ...user,
+        role: user.role as "customer" | "consultant" | "admin",
+        status: user.status as "active" | "blocked" | "pending",
+      })));
+      setPagination(response.pagination);
+    } catch (error: any) {
+      console.error('Failed to fetch users:', error);
+      toast({
+        title: "Erro",
+        description: error?.error || "Falha ao carregar usuários",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     // Debounce search
     const timer = setTimeout(() => {
       fetchUsers();
     }, 300);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, roleFilter, statusFilter, page]);
 
   const filteredUsers = users;
@@ -332,8 +338,55 @@ const UserManagement = () => {
         title: "Sucesso",
         description: `Usuário ${user.name} aprovado com sucesso`,
       });
-      // Refresh users list
-      const fetchUsers = async () => {
+      
+      // Optimistically update the user in the list
+      setUsers(users.map(u => {
+        if (u.id === user.id) {
+          return {
+            ...u,
+            status: 'active' as const,
+          };
+        }
+        return u;
+      }));
+      
+      // Refresh users list to ensure sync with backend
+      setLoading(true);
+      try {
+        const params: any = {
+          page: page.toString(),
+          limit: pagination.limit.toString(),
+        };
+        if (searchQuery) params.search = searchQuery;
+        if (roleFilter) params.role = roleFilter;
+        if (statusFilter) params.status = statusFilter;
+
+        const response = await adminApi.getUsers(params);
+        setUsers(response.users.map(user => ({
+          ...user,
+          role: user.role as "customer" | "consultant" | "admin",
+          status: user.status as "active" | "blocked" | "pending",
+        })));
+        setPagination(response.pagination);
+      } catch (error: any) {
+        toast({
+          title: "Erro",
+          description: error?.error || "Falha ao carregar usuários",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    } catch (error: any) {
+      // If user is already approved, still refresh the table
+      if (error?.error?.includes('already approved') || error?.response?.data?.error?.includes('already approved')) {
+        toast({
+          title: "Informação",
+          description: "Usuário já está aprovado. Atualizando lista...",
+          variant: "default",
+        });
+        
+        // Refresh users list even if already approved
         setLoading(true);
         try {
           const params: any = {
@@ -345,25 +398,28 @@ const UserManagement = () => {
           if (statusFilter) params.status = statusFilter;
 
           const response = await adminApi.getUsers(params);
-          setUsers(response.users);
+          setUsers(response.users.map(user => ({
+            ...user,
+            role: user.role as "customer" | "consultant" | "admin",
+            status: user.status as "active" | "blocked" | "pending",
+          })));
           setPagination(response.pagination);
-        } catch (error: any) {
+        } catch (refreshError: any) {
           toast({
             title: "Erro",
-            description: error?.error || "Falha ao carregar usuários",
+            description: refreshError?.error || "Falha ao carregar usuários",
             variant: "destructive",
           });
         } finally {
           setLoading(false);
         }
-      };
-      fetchUsers();
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error?.error || "Falha ao aprovar usuário",
-        variant: "destructive",
-      });
+      } else {
+        toast({
+          title: "Erro",
+          description: error?.error || "Falha ao aprovar usuário",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -375,32 +431,45 @@ const UserManagement = () => {
         title: "Sucesso",
         description: `Usuário ${user.name} rejeitado com sucesso`,
       });
-      // Refresh users list
-      const fetchUsers = async () => {
-        setLoading(true);
-        try {
-          const params: any = {
-            page: page.toString(),
-            limit: pagination.limit.toString(),
+      
+      // Optimistically update the user in the list
+      setUsers(users.map(u => {
+        if (u.id === user.id) {
+          return {
+            ...u,
+            status: 'blocked' as const,
           };
-          if (searchQuery) params.search = searchQuery;
-          if (roleFilter) params.role = roleFilter;
-          if (statusFilter) params.status = statusFilter;
-
-          const response = await adminApi.getUsers(params);
-          setUsers(response.users);
-          setPagination(response.pagination);
-        } catch (error: any) {
-          toast({
-            title: "Erro",
-            description: error?.error || "Falha ao carregar usuários",
-            variant: "destructive",
-          });
-        } finally {
-          setLoading(false);
         }
-      };
-      fetchUsers();
+        return u;
+      }));
+      
+      // Refresh users list to ensure sync with backend
+      setLoading(true);
+      try {
+        const params: any = {
+          page: page.toString(),
+          limit: pagination.limit.toString(),
+        };
+        if (searchQuery) params.search = searchQuery;
+        if (roleFilter) params.role = roleFilter;
+        if (statusFilter) params.status = statusFilter;
+
+        const response = await adminApi.getUsers(params);
+        setUsers(response.users.map(user => ({
+          ...user,
+          role: user.role as "customer" | "consultant" | "admin",
+          status: user.status as "active" | "blocked" | "pending",
+        })));
+        setPagination(response.pagination);
+      } catch (error: any) {
+        toast({
+          title: "Erro",
+          description: error?.error || "Falha ao carregar usuários",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -420,6 +489,16 @@ const UserManagement = () => {
             Gerencie usuários, permissões e roles
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchUsers}
+          disabled={loading}
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Atualizar
+        </Button>
       </div>
 
       {/* Filters */}

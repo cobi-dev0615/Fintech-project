@@ -2,6 +2,10 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
 import { createPreference } from '../services/mercadopago.js';
 
+// Check if using test credentials
+const isTestMode = process.env.MERCADOPAGO_ACCESS_TOKEN?.startsWith('TEST-') || 
+                   process.env.MERCADOPAGO_PUBLIC_KEY?.startsWith('TEST-');
+
 export async function subscriptionsRoutes(fastify: FastifyInstance) {
   // Get user's current subscription
   fastify.get('/me', {
@@ -319,7 +323,10 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
           });
 
           preferenceId = preference.id;
-          checkoutUrl = preference.init_point || preference.sandbox_init_point;
+          // Use sandbox_init_point for test mode, init_point for production
+          checkoutUrl = isTestMode 
+            ? (preference.sandbox_init_point || preference.init_point)
+            : (preference.init_point || preference.sandbox_init_point);
 
           // Update subscription with preference ID
           await db.query(

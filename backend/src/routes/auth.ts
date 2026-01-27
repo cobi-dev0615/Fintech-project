@@ -396,12 +396,23 @@ export async function authRoutes(fastify: FastifyInstance) {
           }
         }
 
-        if (!user.is_active) {
-          return reply.redirect(`${frontendUrl}/auth/google?error=account_inactive`);
+        // If user is approved but not active, activate them automatically
+        if (user.approval_status === 'approved' && !user.is_active) {
+          await db.query(
+            `UPDATE users SET is_active = true, updated_at = NOW() WHERE id = $1`,
+            [user.id]
+          );
+          user.is_active = true;
         }
 
+        // Check if user is pending approval
         if (!isAutoApproved && user.approval_status === 'pending') {
           return reply.redirect(`${frontendUrl}/auth/google?error=account_pending&message=${encodeURIComponent('Your account is pending administrator approval')}`);
+        }
+
+        // Check if user is still not active (shouldn't happen after above check, but safety check)
+        if (!user.is_active) {
+          return reply.redirect(`${frontendUrl}/auth/google?error=account_inactive`);
         }
 
         // Log successful login
@@ -455,9 +466,14 @@ export async function authRoutes(fastify: FastifyInstance) {
         await logLoginAttempt(user.id, request, true, email);
       }
 
-      // Check if user is approved and active before generating token
-      if (!isAutoApproved && (user.approval_status === 'pending' || !user.is_active)) {
+      // Final check: user must be approved and active
+      // Note: We already activated approved users above, so this is just a safety check
+      if (user.approval_status === 'pending') {
         return reply.redirect(`${frontendUrl}/auth/google?error=account_pending&message=${encodeURIComponent('Your account is pending administrator approval. Please wait for approval before logging in.')}`);
+      }
+      
+      if (!user.is_active) {
+        return reply.redirect(`${frontendUrl}/auth/google?error=account_inactive`);
       }
 
       // Generate JWT token

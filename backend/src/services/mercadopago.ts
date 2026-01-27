@@ -7,8 +7,13 @@ const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
 const publicKey = process.env.MERCADOPAGO_PUBLIC_KEY;
 const webhookUrl = process.env.MERCADOPAGO_WEBHOOK_URL || 'https://zurt.com.br/api/mercadopago/webhook';
 
+// Check if using test credentials
+const isTestMode = accessToken?.startsWith('TEST-') || publicKey?.startsWith('TEST-');
+
 if (!accessToken) {
   console.warn('MERCADOPAGO_ACCESS_TOKEN not found in environment variables');
+} else if (isTestMode) {
+  console.log('Mercado Pago: Using TEST credentials (Sandbox mode)');
 }
 
 // Initialize Mercado Pago client

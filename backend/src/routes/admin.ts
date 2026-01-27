@@ -277,6 +277,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
               u.email,
               u.role,
               u.is_active,
+              COALESCE(u.approval_status, 'approved') as approval_status,
               (SELECT EXISTS(SELECT 1 FROM blocked_users WHERE user_id = u.id)) as is_blocked,
               u.created_at,
               s.status as subscription_status,
@@ -296,6 +297,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
               u.email,
               u.role,
               u.is_active,
+              COALESCE(u.approval_status, 'approved') as approval_status,
               false as is_blocked,
               u.created_at,
               s.status as subscription_status,
@@ -317,6 +319,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
               u.email,
               u.role,
               u.is_active,
+              COALESCE(u.approval_status, 'approved') as approval_status,
               (SELECT EXISTS(SELECT 1 FROM blocked_users WHERE user_id = u.id)) as is_blocked,
               u.created_at
             FROM users u
@@ -332,6 +335,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
               u.email,
               u.role,
               u.is_active,
+              COALESCE(u.approval_status, 'approved') as approval_status,
               false as is_blocked,
               u.created_at
             FROM users u
@@ -346,11 +350,18 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       const response = {
         users: result.rows.map((row: any) => {
-          // Determine status based on is_blocked and is_active
+          // Determine status based on is_blocked, is_active, and approval_status
+          const approvalStatus = row.approval_status || 'approved'; // Default to approved for legacy users
           let status = 'pending';
+          
           if (row.is_blocked) {
             status = 'blocked';
+          } else if (approvalStatus === 'approved') {
+            // If user is approved, they should be active (even if is_active is false, we show as active)
+            // This handles the case where approval_status = 'approved' but is_active = false
+            status = 'active';
           } else if (row.is_active) {
+            // Legacy case: user is active but approval_status might be null or pending
             status = 'active';
           } else {
             status = 'pending';
@@ -706,9 +717,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const { id } = request.params;
       const adminId = getAdminId(request);
 
-      // Get user info
+      // Get user info including is_active
       const userResult = await db.query(
-        `SELECT id, full_name, email, role, approval_status FROM users WHERE id = $1`,
+        `SELECT id, full_name, email, role, COALESCE(approval_status, 'approved') as approval_status, is_active FROM users WHERE id = $1`,
         [id]
       );
 
@@ -718,13 +729,42 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       const user = userResult.rows[0];
 
-      if (user.approval_status === 'approved') {
-        return reply.code(400).send({ error: 'User is already approved' });
+      // If user is already approved and active, return success (idempotent)
+      if (user.approval_status === 'approved' && user.is_active) {
+        return reply.send({ 
+          message: 'User is already approved and active',
+          user: {
+            id: user.id,
+            full_name: user.full_name,
+            email: user.email,
+            approval_status: 'approved',
+            is_active: true,
+          },
+        });
       }
 
-      // Update approval status
+      // If user is approved but not active, just activate them
+      if (user.approval_status === 'approved' && !user.is_active) {
+        await db.query(
+          `UPDATE users SET is_active = true, updated_at = NOW() WHERE id = $1`,
+          [id]
+        );
+        
+        return reply.send({ 
+          message: 'User activated successfully',
+          user: {
+            id: user.id,
+            full_name: user.full_name,
+            email: user.email,
+            approval_status: 'approved',
+            is_active: true,
+          },
+        });
+      }
+
+      // Update approval status and activate user
       await db.query(
-        `UPDATE users SET approval_status = 'approved', updated_at = NOW() WHERE id = $1`,
+        `UPDATE users SET approval_status = 'approved', is_active = true, updated_at = NOW() WHERE id = $1`,
         [id]
       );
 
