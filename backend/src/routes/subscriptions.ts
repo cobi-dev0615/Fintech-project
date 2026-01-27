@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
+import { createPreference } from '../services/mercadopago.js';
 
 export async function subscriptionsRoutes(fastify: FastifyInstance) {
   // Get user's current subscription
@@ -266,46 +267,69 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
 
       const subscription = result.rows[0];
 
-      // Create payment record if payment information is provided
-      if (payment) {
-        let hasPayments = false;
+      // Create Mercado Pago preference for payment
+      let preferenceId: string | null = null;
+      let checkoutUrl: string | null = null;
+      
+      if (planPrice > 0) {
         try {
-          await db.query('SELECT 1 FROM payments LIMIT 1');
-          hasPayments = true;
-        } catch {}
-
-        if (hasPayments) {
-          // Extract last 4 digits of card
-          const last4 = payment.cardNumber.slice(-4);
-          
-          // Create payment record
-          await db.query(
-            `INSERT INTO payments (
-              subscription_id,
-              user_id,
-              amount_cents,
-              currency,
-              status,
-              provider,
-              provider_payload
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            [
-              subscription.id,
-              userId,
-              planPrice,
-              'BRL',
-              'paid', // Assuming payment is successful when using ASAA
-              payment.paymentMethod || 'ASAA',
-              JSON.stringify({
-                cardLast4: last4,
-                cardName: payment.cardName,
-                expiryDate: payment.expiryDate,
-                billing: payment.billing,
-                billingPeriod: billingPeriod,
-              }),
-            ]
+          // Get user info for payer
+          const userResult = await db.query(
+            'SELECT full_name, email FROM users WHERE id = $1',
+            [userId]
           );
+          const user = userResult.rows[0];
+
+          // Create Mercado Pago preference
+          const preference = await createPreference({
+            items: [{
+              title: `Plano ${plan.name} - ${billingPeriod === 'monthly' ? 'Mensal' : 'Anual'}`,
+              description: `Assinatura do plano ${plan.name}`,
+              quantity: 1,
+              unit_price: planPrice / 100, // Convert cents to BRL
+            }],
+            payer: payment?.billing ? {
+              name: payment.billing.name,
+              email: payment.billing.email,
+              phone: {
+                area_code: payment.billing.phone.substring(0, 2) || '11',
+                number: payment.billing.phone.substring(2) || '',
+              },
+              identification: {
+                type: 'CPF',
+                number: payment.billing.document.replace(/\D/g, ''),
+              },
+              address: {
+                zip_code: payment.billing.zipCode.replace(/\D/g, ''),
+                street_name: payment.billing.address,
+                city: payment.billing.city,
+                state: payment.billing.state,
+              },
+            } : {
+              name: user?.full_name || 'Usuário',
+              email: user?.email || '',
+            },
+            external_reference: subscription.id,
+            metadata: {
+              subscriptionId: subscription.id,
+              userId,
+              planId,
+              billingPeriod,
+            },
+          });
+
+          preferenceId = preference.id;
+          checkoutUrl = preference.init_point || preference.sandbox_init_point;
+
+          // Update subscription with preference ID
+          await db.query(
+            'UPDATE subscriptions SET metadata_json = $1 WHERE id = $2',
+            [JSON.stringify({ mercadopago_preference_id: preferenceId }), subscription.id]
+          );
+        } catch (error: any) {
+          fastify.log.error('Error creating Mercado Pago preference:', error);
+          // Don't fail the subscription creation, but log the error
+          // The subscription will be created but payment will need to be handled separately
         }
       }
 
@@ -320,9 +344,13 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
             id: plan.id,
             code: plan.code,
             name: plan.name,
-            priceCents: plan.price_cents,
+            priceCents: planPrice,
           },
         },
+        payment: preferenceId ? {
+          preferenceId,
+          checkoutUrl,
+        } : undefined,
       });
     } catch (error: any) {
       fastify.log.error('Error creating subscription:', error);

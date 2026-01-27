@@ -461,10 +461,10 @@ export const subscriptionsApi = {
 
   createSubscription: (planId: string, paymentData?: {
     paymentMethod: string;
-    cardNumber: string;
-    cardName: string;
-    expiryDate: string;
-    cvv: string;
+    cardNumber?: string;
+    cardName?: string;
+    expiryDate?: string;
+    cvv?: string;
     billing: {
       name: string;
       email: string;
@@ -489,6 +489,10 @@ export const subscriptionsApi = {
           name: string;
           priceCents: number;
         };
+      };
+      payment?: {
+        preferenceId: string;
+        checkoutUrl: string;
       };
     }>('/subscriptions', { planId, billingPeriod: billingPeriod || 'monthly', ...(paymentData && { payment: paymentData }) }),
 

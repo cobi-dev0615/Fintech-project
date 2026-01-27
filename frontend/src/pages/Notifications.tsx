@@ -536,7 +536,8 @@ const Notifications = () => {
                 const content = getNotificationContent(selectedNotification);
                 const hasMetadata = selectedNotification.metadata && Object.keys(selectedNotification.metadata).length > 0;
                 
-                if (content) {
+                // Only show "Informações Adicionais" if there's actual content
+                if (content && content.trim() !== '') {
                   return (
                     <div className="space-y-2">
                       <span className="text-sm font-medium text-muted-foreground">Informações Adicionais:</span>
@@ -555,19 +556,8 @@ const Notifications = () => {
                       )}
                     </div>
                   );
-                } else if (hasMetadata) {
-                  // If no content but has metadata, show metadata
-                  return (
-                    <div className="space-y-2">
-                      <span className="text-sm font-medium text-muted-foreground">Informações Adicionais:</span>
-                      <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
-                        <pre className="text-xs text-foreground overflow-auto">
-                          {JSON.stringify(selectedNotification.metadata, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                  );
                 }
+                // If content is empty, don't show the section at all
                 return null;
               })()}
               <div className="space-y-2">

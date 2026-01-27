@@ -18,10 +18,6 @@ interface Plan {
 }
 
 interface PaymentFormData {
-  cardNumber: string;
-  cardName: string;
-  expiryDate: string;
-  cvv: string;
   billingName: string;
   billingEmail: string;
   billingPhone: string;
@@ -42,10 +38,6 @@ const Payment = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [formData, setFormData] = useState<PaymentFormData>({
-    cardNumber: '',
-    cardName: '',
-    expiryDate: '',
-    cvv: '',
     billingName: user?.full_name || '',
     billingEmail: user?.email || '',
     billingPhone: '',
@@ -148,53 +140,14 @@ const Payment = () => {
     
     if (!plan) return;
 
-    // Validate form
-    if (!formData.cardNumber || formData.cardNumber.replace(/\s/g, '').length < 16) {
-      toast({
-        title: "Erro",
-        description: "Número do cartão inválido",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.cardName) {
-      toast({
-        title: "Erro",
-        description: "Nome no cartão é obrigatório",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.expiryDate || formData.expiryDate.length < 5) {
-      toast({
-        title: "Erro",
-        description: "Data de validade inválida",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.cvv || formData.cvv.length < 3) {
-      toast({
-        title: "Erro",
-        description: "CVV inválido",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Validate billing information (card validation removed - Mercado Pago handles payment method)
 
     try {
       setProcessing(true);
 
-      // Create subscription with payment information
+      // Create subscription with Mercado Pago
       const response = await subscriptionsApi.createSubscription(plan.id, {
-        paymentMethod: 'ASAA',
-        cardNumber: formData.cardNumber.replace(/\s/g, ''),
-        cardName: formData.cardName,
-        expiryDate: formData.expiryDate,
-        cvv: formData.cvv,
+        paymentMethod: 'mercadopago',
         billing: {
           name: formData.billingName,
           email: formData.billingEmail,
@@ -207,6 +160,20 @@ const Payment = () => {
         },
       }, billingPeriod);
 
+      // If Mercado Pago checkout URL is provided, redirect to it
+      if (response.payment?.checkoutUrl) {
+        toast({
+          title: "Redirecionando...",
+          description: "Você será redirecionado para o Mercado Pago para finalizar o pagamento.",
+          variant: "default",
+        });
+        
+        // Redirect to Mercado Pago checkout
+        window.location.href = response.payment.checkoutUrl;
+        return;
+      }
+
+      // If no checkout URL (free plan or error), show success
       toast({
         title: "Sucesso!",
         description: `Plano ${response.subscription.plan.name} ativado com sucesso!`,
@@ -283,10 +250,10 @@ const Payment = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                Informações de Pagamento - ASAA
+                Informações de Pagamento - Mercado Pago
               </CardTitle>
               <CardDescription>
-                Complete o pagamento para ativar seu plano
+                Você será redirecionado para o Mercado Pago para finalizar o pagamento de forma segura
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -297,71 +264,13 @@ const Payment = () => {
                   <div className="flex items-center gap-2 p-4 border rounded-lg bg-muted/50">
                     <Lock className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="font-semibold">ASAA</p>
-                      <p className="text-sm text-muted-foreground">Pagamento seguro</p>
+                      <p className="font-semibold">Mercado Pago</p>
+                      <p className="text-sm text-muted-foreground">Pagamento seguro - Cartão, PIX, Boleto e mais</p>
                     </div>
                   </div>
-                </div>
-
-                {/* Card Information */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Cartão de Crédito</h3>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="cardNumber">Número do Cartão *</Label>
-                    <Input
-                      id="cardNumber"
-                      placeholder="0000 0000 0000 0000"
-                      maxLength={19}
-                      value={formData.cardNumber}
-                      onChange={(e) => {
-                        const formatted = formatCardNumber(e.target.value);
-                        setFormData({ ...formData, cardNumber: formatted });
-                      }}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cardName">Nome no Cartão *</Label>
-                    <Input
-                      id="cardName"
-                      placeholder="NOME COMPLETO"
-                      value={formData.cardName}
-                      onChange={(e) => setFormData({ ...formData, cardName: e.target.value.toUpperCase() })}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="expiryDate">Validade *</Label>
-                      <Input
-                        id="expiryDate"
-                        placeholder="MM/AA"
-                        maxLength={5}
-                        value={formData.expiryDate}
-                        onChange={(e) => {
-                          const formatted = formatExpiryDate(e.target.value);
-                          setFormData({ ...formData, expiryDate: formatted });
-                        }}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cvv">CVV *</Label>
-                      <Input
-                        id="cvv"
-                        placeholder="123"
-                        maxLength={4}
-                        type="password"
-                        value={formData.cvv}
-                        onChange={(e) => setFormData({ ...formData, cvv: e.target.value.replace(/\D/g, '') })}
-                        required
-                      />
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Você será redirecionado para o Mercado Pago onde poderá escolher a forma de pagamento desejada.
+                  </p>
                 </div>
 
                 <Separator />
