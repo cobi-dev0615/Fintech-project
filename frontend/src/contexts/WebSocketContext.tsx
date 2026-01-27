@@ -96,8 +96,8 @@ class WebSocketManager {
 
     try {
       const wsUrlWithToken = `${this.url}?token=${encodeURIComponent(this.token)}`;
-      // Only log connection attempts in development
-      if (process.env.NODE_ENV === 'development') {
+      // Log connection attempts in development, or if this is a retry
+      if (process.env.NODE_ENV === 'development' || this.reconnectAttempts > 0) {
         console.log('Connecting to WebSocket:', wsUrlWithToken.replace(/\?token=[^&]+/, '?token=***'));
       }
       
@@ -105,7 +105,7 @@ class WebSocketManager {
       
       this.ws.onopen = () => {
         if (process.env.NODE_ENV === 'development') {
-          console.log('WebSocket connected');
+          console.log('WebSocket connected successfully');
         }
         this.connected = true;
         this.reconnectAttempts = 0;
@@ -151,8 +151,12 @@ class WebSocketManager {
       };
 
       this.ws.onerror = (error) => {
-        // Suppress 504 Gateway Timeout errors - they're nginx/proxy configuration issues
-        // The connection will retry automatically, no need to spam console
+        // Log error details for debugging (especially in development)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('WebSocket error:', error);
+          console.error('WebSocket URL:', this.url);
+          console.error('Connection state:', this.ws?.readyState);
+        }
         this.connected = false;
         if (this.setConnected) {
           this.setConnected(false);
@@ -160,13 +164,25 @@ class WebSocketManager {
       };
 
       this.ws.onclose = (event) => {
-        // Only log non-504 errors (504 is Gateway Timeout, usually nginx/proxy issue)
-        if (event.code !== 1006 && event.code !== 1000) {
-          console.log('WebSocket disconnected', { 
-            code: event.code, 
-            reason: event.reason, 
-            wasClean: event.wasClean 
-          });
+        // Log connection close details for debugging
+        const errorInfo = {
+          code: event.code,
+          reason: event.reason || 'No reason provided',
+          wasClean: event.wasClean,
+          url: this.url,
+        };
+        
+        // Error code meanings:
+        // 1000 = Normal Closure
+        // 1006 = Abnormal Closure (often 504 Gateway Timeout from nginx)
+        // 1008 = Policy Violation (authentication failed)
+        // 1011 = Internal Server Error
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('WebSocket disconnected:', errorInfo);
+        } else if (event.code !== 1006 && event.code !== 1000) {
+          // In production, only log non-common errors
+          console.warn('WebSocket disconnected:', errorInfo);
         }
         
         this.connected = false;
@@ -180,19 +196,26 @@ class WebSocketManager {
         if (!this.isIntentionallyClosed && this.reconnectAttempts < this.maxReconnectAttempts && event.code !== 1000) {
           this.reconnectAttempts++;
           const delay = this.reconnectDelay * Math.min(this.reconnectAttempts, 3); // Exponential backoff, max 3x
-          if (event.code !== 1006) { // Don't log for 1006 (common 504 error)
-            console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+          
+          if (process.env.NODE_ENV === 'development' || (event.code !== 1006 && this.reconnectAttempts <= 2)) {
+            console.log(`WebSocket reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
           }
           
           this.reconnectTimeout = setTimeout(() => {
             this.doConnect();
           }, delay);
         } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-          console.warn('Max reconnection attempts reached. WebSocket will not reconnect. This may be due to nginx/proxy configuration.');
+          console.error(
+            'WebSocket: Max reconnection attempts reached. ' +
+            'This is likely due to nginx/proxy configuration. ' +
+            'Please ensure the /ws location block in nginx has the correct WebSocket proxy settings. ' +
+            'See WEBSOCKET_NGINX_CONFIG.md for configuration details.'
+          );
         }
       };
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
+      console.error('WebSocket URL:', this.url);
       this.connected = false;
       if (this.setConnected) {
         this.setConnected(false);
