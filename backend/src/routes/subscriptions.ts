@@ -215,23 +215,37 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
         return reply.code(400).send({ error: 'Plan is not active' });
       }
 
-      // Check if user already has an active subscription
+      // Check if user already has an active or pending subscription
+      // Include 'past_due' to prevent duplicate pending subscriptions
       const existingSub = await db.query(
         `SELECT id, status FROM subscriptions 
-         WHERE user_id = $1 AND status IN ('active', 'trialing')
+         WHERE user_id = $1 AND status IN ('active', 'trialing', 'past_due')
          ORDER BY created_at DESC
          LIMIT 1`,
         [userId]
       );
 
       if (existingSub.rows.length > 0) {
-        // Cancel existing subscription
-        await db.query(
-          `UPDATE subscriptions 
-           SET status = 'canceled', canceled_at = now(), updated_at = now()
-           WHERE id = $1`,
-          [existingSub.rows[0].id]
-        );
+        const existingStatus = existingSub.rows[0].status;
+        // Only cancel if it's active or trialing
+        // For 'past_due' subscriptions, we'll update it instead of canceling
+        if (existingStatus === 'active' || existingStatus === 'trialing') {
+          await db.query(
+            `UPDATE subscriptions 
+             SET status = 'canceled', canceled_at = now(), updated_at = now()
+             WHERE id = $1`,
+            [existingSub.rows[0].id]
+          );
+        } else if (existingStatus === 'past_due') {
+          // If there's a pending subscription, cancel it first
+          // This prevents duplicate pending subscriptions
+          await db.query(
+            `UPDATE subscriptions 
+             SET status = 'canceled', canceled_at = now(), updated_at = now()
+             WHERE id = $1`,
+            [existingSub.rows[0].id]
+          );
+        }
       }
 
       // Calculate period dates based on billing period
@@ -254,6 +268,11 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
         }
       }
 
+      // Determine initial subscription status
+      // For paid plans: use 'past_due' (pending payment) - will be activated when payment is confirmed
+      // For free plans: use 'active' immediately
+      const initialStatus = planPrice > 0 ? 'past_due' : 'active';
+
       // Create new subscription
       const result = await db.query(
         `INSERT INTO subscriptions (
@@ -266,7 +285,7 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
         )
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id, status, started_at, current_period_start, current_period_end`,
-        [userId, planId, 'active', periodStart, periodStart, periodEnd]
+        [userId, planId, initialStatus, periodStart, periodStart, periodEnd]
       );
 
       const subscription = result.rows[0];

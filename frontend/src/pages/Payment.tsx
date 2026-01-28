@@ -162,6 +162,10 @@ const Payment = () => {
 
       // If Mercado Pago checkout URL is provided, redirect to it
       if (response.payment?.checkoutUrl) {
+        // Store planId and billingPeriod in localStorage for failure redirect
+        localStorage.setItem('lastSelectedPlanId', plan.id);
+        localStorage.setItem('lastBillingPeriod', billingPeriod);
+        
         toast({
           title: "Redirecionando...",
           description: "Você será redirecionado para o Mercado Pago para finalizar o pagamento.",

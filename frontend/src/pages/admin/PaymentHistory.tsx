@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, CreditCard, Loader2, DollarSign, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, CreditCard, Loader2, DollarSign, Trash2, ChevronLeft, ChevronRight, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
@@ -44,10 +44,30 @@ interface Payment {
   } | null;
 }
 
+interface SubscriptionHistory {
+  id: string;
+  status: string;
+  planName: string;
+  planCode: string;
+  priceCents: number;
+  startedAt: string | null;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  canceledAt: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
 const PaymentHistory = () => {
+  const [activeTab, setActiveTab] = useState<"payments" | "subscriptions">("subscriptions");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SubscriptionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({
@@ -58,36 +78,73 @@ const PaymentHistory = () => {
   });
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
+  const [subscriptionToDelete, setSubscriptionToDelete] = useState<SubscriptionHistory | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        setLoading(true);
-        const response = await adminApi.getPaymentHistory({
-          status: filterStatus !== "all" ? filterStatus : undefined,
-          page,
-          limit: 50,
-        });
-        setPayments(response.payments);
-        setPagination(response.pagination);
-      } catch (error: any) {
-        console.error('Failed to fetch payment history:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const response = await adminApi.getPaymentHistory({
+        status: filterStatus !== "all" ? filterStatus : undefined,
+        page,
+        limit: 50,
+      });
+      setPayments(response.payments);
+      setPagination(response.pagination);
+    } catch (error: any) {
+      console.error('Failed to fetch payment history:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar histórico de pagamentos",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const fetchSubscriptions = async () => {
+    try {
+      setLoading(true);
+      const response = await adminApi.getSubscriptionHistory({
+        status: filterStatus !== "all" ? filterStatus : undefined,
+        page,
+        limit: 50,
+      });
+      setSubscriptions(response.history);
+      setPagination(response.pagination);
+    } catch (error: any) {
+      console.error('Failed to fetch subscription history:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar histórico de assinaturas",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       if (filterStatus !== "all" || searchQuery) {
         setPage(1);
       }
-      fetchPayments();
+      if (activeTab === "payments") {
+        fetchPayments();
+      } else {
+        fetchSubscriptions();
+      }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [filterStatus, page, searchQuery]);
+  }, [filterStatus, page, searchQuery, activeTab]);
+
+  // Reset page when switching tabs
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab]);
 
   const filteredPayments = payments.filter((payment) => {
     if (!searchQuery) return true;
@@ -97,6 +154,17 @@ const PaymentHistory = () => {
       payment.user.name.toLowerCase().includes(query) ||
       payment.providerPaymentId?.toLowerCase().includes(query) ||
       payment.id.toLowerCase().includes(query)
+    );
+  });
+
+  const filteredSubscriptions = subscriptions.filter((subscription) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      subscription.user.email.toLowerCase().includes(query) ||
+      subscription.user.name.toLowerCase().includes(query) ||
+      subscription.planName.toLowerCase().includes(query) ||
+      subscription.id.toLowerCase().includes(query)
     );
   });
 
@@ -135,6 +203,13 @@ const PaymentHistory = () => {
 
   const handleDeleteClick = (payment: Payment) => {
     setPaymentToDelete(payment);
+    setSubscriptionToDelete(null);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteSubscriptionClick = (subscription: SubscriptionHistory) => {
+    setSubscriptionToDelete(subscription);
+    setPaymentToDelete(null);
     setIsDeleteDialogOpen(true);
   };
 
@@ -150,17 +225,45 @@ const PaymentHistory = () => {
         description: "Pagamento excluído com sucesso",
       });
 
-      // Remove from local state
-      setPayments(payments.filter(p => p.id !== paymentToDelete.id));
-      setPagination(prev => ({ ...prev, total: prev.total - 1 }));
-
       setIsDeleteDialogOpen(false);
       setPaymentToDelete(null);
+
+      // Refetch payments to ensure data consistency
+      await fetchPayments();
     } catch (err: any) {
       console.error('Error deleting payment:', err);
       toast({
         title: "Erro",
-        description: err?.error || "Erro ao excluir pagamento",
+        description: err?.error || err?.response?.data?.error || "Erro ao excluir pagamento",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteSubscription = async () => {
+    if (!subscriptionToDelete) return;
+
+    try {
+      setDeleting(true);
+      await adminApi.deleteSubscription(subscriptionToDelete.id);
+
+      toast({
+        title: "Sucesso",
+        description: "Assinatura excluída com sucesso",
+      });
+
+      setIsDeleteDialogOpen(false);
+      setSubscriptionToDelete(null);
+
+      // Refetch subscriptions to ensure data consistency
+      await fetchSubscriptions();
+    } catch (err: any) {
+      console.error('Error deleting subscription:', err);
+      toast({
+        title: "Erro",
+        description: err?.error || err?.response?.data?.error || "Erro ao excluir assinatura",
         variant: "destructive",
       });
     } finally {
@@ -213,11 +316,37 @@ const PaymentHistory = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Histórico de Pagamentos</h1>
+          <h1 className="text-2xl font-bold text-foreground">Histórico de Compras de Planos</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Visualize todos os pagamentos de planos realizados na plataforma
+            Visualize todas as compras de planos e pagamentos realizados na plataforma
           </p>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-border">
+        <button
+          onClick={() => setActiveTab("subscriptions")}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+            activeTab === "subscriptions"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Package className="inline h-4 w-4 mr-2" />
+          Histórico de Assinaturas
+        </button>
+        <button
+          onClick={() => setActiveTab("payments")}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+            activeTab === "payments"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <CreditCard className="inline h-4 w-4 mr-2" />
+          Histórico de Pagamentos
+        </button>
       </div>
 
       {/* KPI Cards */}
@@ -262,7 +391,7 @@ const PaymentHistory = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por usuário, email ou ID do pagamento..."
+              placeholder={activeTab === "payments" ? "Buscar por usuário, email ou ID do pagamento..." : "Buscar por usuário, email ou nome do plano..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -283,8 +412,158 @@ const PaymentHistory = () => {
         </div>
       </ChartCard>
 
+      {/* Subscriptions Table */}
+      {activeTab === "subscriptions" && (
+        <ChartCard title={`${pagination.total} Assinatura${pagination.total !== 1 ? "s" : ""}`}>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr className="border-b border-border">
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Data
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Usuário
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Plano
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Preço
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Status
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Ações
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-card">
+                    {filteredSubscriptions.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                          Nenhuma assinatura encontrada
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredSubscriptions.map((subscription) => (
+                        <tr
+                          key={subscription.id}
+                          className="border-b border-border hover:bg-muted/50 transition-colors"
+                        >
+                          <td className="py-3 px-4 text-center">
+                            <div className="text-sm text-foreground">
+                              {format(new Date(subscription.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(subscription.createdAt), "HH:mm:ss", { locale: ptBR })}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="text-sm font-medium text-foreground">{subscription.user.name}</div>
+                            <div className="text-xs text-muted-foreground">{subscription.user.email}</div>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className="text-sm text-foreground">
+                              {subscription.planName}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className="text-sm font-semibold text-foreground">
+                              {formatPrice(subscription.priceCents)}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <Badge className={
+                              subscription.status === 'active' ? "bg-success/10 text-success" :
+                              subscription.status === 'past_due' ? "bg-warning/10 text-warning" :
+                              subscription.status === 'canceled' ? "bg-destructive/10 text-destructive" :
+                              subscription.status === 'trialing' ? "bg-blue-500/10 text-blue-500" :
+                              "bg-muted text-muted-foreground"
+                            }>
+                              {subscription.status === 'active' ? 'Ativo' :
+                               subscription.status === 'past_due' ? 'Atrasado' :
+                               subscription.status === 'canceled' ? 'Cancelado' :
+                               subscription.status === 'trialing' ? 'Período de Teste' :
+                               subscription.status === 'paused' ? 'Pausado' :
+                               subscription.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 mx-auto"
+                              onClick={() => handleDeleteSubscriptionClick(subscription)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
+                  <div className="text-sm text-muted-foreground">
+                    Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={pagination.page === 1}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    {getPageNumbers().map((pageNum, idx) => (
+                      pageNum === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+                      ) : (
+                        <Button
+                          key={pageNum}
+                          variant={pagination.page === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPage(pageNum as number)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                      disabled={pagination.page === pagination.totalPages}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </ChartCard>
+      )}
+
       {/* Payments Table */}
-      <ChartCard title={`${pagination.total} Pagamento${pagination.total !== 1 ? "s" : ""}`}>
+      {activeTab === "payments" && (
+        <ChartCard title={`${pagination.total} Pagamento${pagination.total !== 1 ? "s" : ""}`}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -334,7 +613,7 @@ const PaymentHistory = () => {
                         key={payment.id}
                         className="border-b border-border hover:bg-muted/50 transition-colors"
                       >
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 text-center">
                           <div className="text-sm text-foreground">
                             {format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: ptBR })}
                           </div>
@@ -342,39 +621,39 @@ const PaymentHistory = () => {
                             {format(new Date(payment.createdAt), "HH:mm:ss", { locale: ptBR })}
                           </div>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 text-center">
                           <div className="text-sm font-medium text-foreground">{payment.user.name}</div>
                           <div className="text-xs text-muted-foreground">{payment.user.email}</div>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 text-center">
                           <span className="text-sm text-foreground">
                             {payment.subscription?.plan.name || "N/A"}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right">
+                        <td className="py-3 px-4 text-center">
                           <span className="text-sm font-semibold text-foreground">
                             {formatPrice(payment.amountCents)}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 text-center">
                           {getStatusBadge(payment.status)}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 text-center">
                           <span className="text-sm text-muted-foreground">
                             {payment.provider || "N/A"}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 text-center">
                           <span className="text-xs font-mono text-muted-foreground">
                             {payment.providerPaymentId?.slice(0, 20) || payment.id.slice(0, 8)}
                             {payment.providerPaymentId && payment.providerPaymentId.length > 20 && "..."}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 text-center">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 mx-auto"
                             onClick={() => handleDeleteClick(payment)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -433,6 +712,7 @@ const PaymentHistory = () => {
           </>
         )}
       </ChartCard>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -440,13 +720,29 @@ const PaymentHistory = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o pagamento de <strong>{paymentToDelete?.user.name}</strong>?
-              <br />
-              <span className="text-sm text-muted-foreground mt-2 block">
-                Valor: {paymentToDelete && formatPrice(paymentToDelete.amountCents)}
-                <br />
-                Data: {paymentToDelete && format(new Date(paymentToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-              </span>
+              {paymentToDelete ? (
+                <>
+                  Tem certeza que deseja excluir o pagamento de <strong>{paymentToDelete.user.name}</strong>?
+                  <br />
+                  <span className="text-sm text-muted-foreground mt-2 block">
+                    Valor: {formatPrice(paymentToDelete.amountCents)}
+                    <br />
+                    Data: {format(new Date(paymentToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </span>
+                </>
+              ) : subscriptionToDelete ? (
+                <>
+                  Tem certeza que deseja excluir a assinatura de <strong>{subscriptionToDelete.user.name}</strong>?
+                  <br />
+                  <span className="text-sm text-muted-foreground mt-2 block">
+                    Plano: {subscriptionToDelete.planName}
+                    <br />
+                    Preço: {formatPrice(subscriptionToDelete.priceCents)}
+                    <br />
+                    Data: {format(new Date(subscriptionToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </span>
+                </>
+              ) : null}
               <br />
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
@@ -454,7 +750,7 @@ const PaymentHistory = () => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeletePayment}
+              onClick={paymentToDelete ? handleDeletePayment : handleDeleteSubscription}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

@@ -113,29 +113,81 @@ export async function mercadopagoRoutes(fastify: FastifyInstance) {
         }
 
         // Update subscription status based on payment
+        // Only activate subscription if payment is confirmed as 'paid'
         if (paymentStatus === 'paid') {
-          await db.query(
-            `UPDATE subscriptions 
-             SET status = 'active', updated_at = now()
-             WHERE id = $1`,
+          // Check current subscription status to avoid unnecessary updates
+          const subCheck = await db.query(
+            'SELECT status FROM subscriptions WHERE id = $1',
             [subscriptionId]
           );
+          
+          if (subCheck.rows.length > 0 && subCheck.rows[0].status !== 'active') {
+            // Only update if not already active
+            await db.query(
+              `UPDATE subscriptions 
+               SET status = 'active', 
+                   started_at = COALESCE(started_at, now()),
+                   updated_at = now()
+               WHERE id = $1`,
+              [subscriptionId]
+            );
+            fastify.log.info(`Subscription ${subscriptionId} activated after payment confirmation`);
+          }
         } else if (paymentStatus === 'failed') {
+          // Keep subscription as 'past_due' if payment failed
           await db.query(
             `UPDATE subscriptions 
              SET status = 'past_due', updated_at = now()
-             WHERE id = $1`,
+             WHERE id = $1 AND status != 'past_due'`,
             [subscriptionId]
           );
         }
 
         fastify.log.info(`Payment ${paymentId} processed: ${paymentStatus}`);
       } else if (data.type === 'preference') {
-        // Handle preference notifications if needed
+        // Handle preference notifications
+        // When a preference is updated, check if there are associated payments
         const preferenceId = data.data?.id;
         if (preferenceId) {
-          const preference = await getPreference(preferenceId);
-          fastify.log.info('Preference notification received:', preferenceId);
+          try {
+            const preference = await getPreference(preferenceId);
+            fastify.log.info('Preference notification received:', preferenceId);
+            
+            // If preference has an external_reference (subscription ID), check for payments
+            if (preference.external_reference) {
+              const subscriptionId = preference.external_reference;
+              
+              // Check if there are any approved payments for this subscription
+              const paymentCheck = await db.query(
+                `SELECT id, status FROM payments 
+                 WHERE subscription_id = $1 AND status = 'paid'
+                 ORDER BY created_at DESC LIMIT 1`,
+                [subscriptionId]
+              );
+              
+              // If payment exists and subscription is not active, activate it
+              if (paymentCheck.rows.length > 0) {
+                const subCheck = await db.query(
+                  'SELECT status FROM subscriptions WHERE id = $1',
+                  [subscriptionId]
+                );
+                
+                if (subCheck.rows.length > 0 && subCheck.rows[0].status !== 'active') {
+                  await db.query(
+                    `UPDATE subscriptions 
+                     SET status = 'active', 
+                         started_at = COALESCE(started_at, now()),
+                         updated_at = now()
+                     WHERE id = $1`,
+                    [subscriptionId]
+                  );
+                  fastify.log.info(`Subscription ${subscriptionId} activated via preference notification`);
+                }
+              }
+            }
+          } catch (error: any) {
+            fastify.log.error('Error processing preference notification:', error);
+          }
         }
       }
 

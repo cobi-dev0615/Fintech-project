@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Link2,
@@ -14,7 +15,6 @@ import {
   Users,
   GitBranch,
   Shield,
-  CreditCard as SubscriptionIcon,
   Activity,
   Clock,
   Receipt,
@@ -24,6 +24,9 @@ import {
   UserPlus,
   Bell,
   Package,
+  Building2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,11 +42,18 @@ interface SidebarProps {
   onMobileOpenChange?: (open: boolean) => void;
 }
 
+interface NavSubItem {
+  label: string;
+  href: string;
+  enabled?: boolean;
+}
+
 interface NavItem {
   icon: any;
   label: string;
-  href: string;
+  href?: string; // Optional if it has subitems
   enabled?: boolean; // Whether this menu item is enabled/active
+  subItems?: NavSubItem[]; // Submenu items
 }
 
 // Customer navigation items - all enabled
@@ -53,7 +63,15 @@ const customerNavItems: NavItem[] = [
   { icon: UserPlus, label: "Convites", href: "/app/invitations", enabled: true },
   { icon: Package, label: "Planos", href: "/app/plans", enabled: true },
   { icon: LayoutDashboard, label: "Ativos", href: "/app/assets", enabled: true },
-  { icon: Link2, label: "Conexões", href: "/app/connections", enabled: true },
+  { 
+    icon: Link2, 
+    label: "Conexões", 
+    enabled: true,
+    subItems: [
+      { label: "Open Finance", href: "/app/connections/open-finance", enabled: true },
+      { label: "B3", href: "/app/connections/b3", enabled: true },
+    ]
+  },
   { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true },
   { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: true },
   { icon: TrendingUp, label: "Investimentos", href: "/app/investments", enabled: true },
@@ -82,10 +100,10 @@ const adminNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard", enabled: true },
   { icon: Bell, label: "Notificações", href: "/admin/notifications", enabled: true },
   { icon: Shield, label: "Usuários", href: "/admin/users", enabled: true },
-  { icon: SubscriptionIcon, label: "Assinaturas", href: "/admin/subscriptions", enabled: true },
-  { icon: CreditCard, label: "Planos", href: "/admin/plans", enabled: true },
+  { icon: Package, label: "Planos", href: "/admin/plans", enabled: true },
   { icon: DollarSign, label: "Financeiro", href: "/admin/financial", enabled: true },
   { icon: Activity, label: "Integrações", href: "/admin/integrations", enabled: true },
+  { icon: Building2, label: "Instituições", href: "/admin/institutions", enabled: true },
   { icon: MessageSquare, label: "Comentários", href: "/admin/comments", enabled: true },
   { icon: Search, label: "Prospecção", href: "/admin/prospecting", enabled: true },
   { icon: Receipt, label: "Histórico de Pagamentos", href: "/admin/payments", enabled: true },
@@ -126,6 +144,35 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
   };
 
   const navItems = getNavItems();
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  // Check if a path matches any subitem
+  const isSubItemActive = (subItems?: NavSubItem[]): boolean => {
+    if (!subItems) return false;
+    return subItems.some(subItem => location.pathname === subItem.href);
+  };
+
+  // Toggle expanded state for items with submenus
+  const toggleExpanded = (label: string) => {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  };
+
+  // Auto-expand items with active subitems
+  useEffect(() => {
+    navItems.forEach(item => {
+      if (item.subItems && isSubItemActive(item.subItems)) {
+        setExpandedItems(prev => new Set(prev).add(item.label));
+      }
+    });
+  }, [location.pathname, navItems]);
 
   // Shared navigation content component
   const NavigationContent = ({ showLabels = true, onLinkClick }: { showLabels?: boolean; onLinkClick?: () => void }) => (
@@ -170,14 +217,17 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.href;
           const isEnabled = item.enabled !== false; // Default to true if not specified
+          const hasSubItems = item.subItems && item.subItems.length > 0;
+          const isExpanded = expandedItems.has(item.label);
+          const isSubActive = isSubItemActive(item.subItems);
+          const isActive = item.href ? location.pathname === item.href : isSubActive;
           
           // Render disabled items differently
           if (!isEnabled) {
             return (
               <div
-                key={item.href}
+                key={item.label}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-not-allowed opacity-50"
                 )}
@@ -189,10 +239,73 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
             );
           }
 
+          // Render items with submenus
+          if (hasSubItems && showLabels) {
+            return (
+              <div key={item.label}>
+                <button
+                  onClick={() => toggleExpanded(item.label)}
+                  className={cn(
+                    "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-primary border border-sidebar-primary/30"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-sidebar-primary")} />
+                    <span>{item.label}</span>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4 flex-shrink-0" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                  )}
+                </button>
+                {isExpanded && (
+                  <div className="ml-4 mt-1 space-y-1 border-l border-sidebar-border pl-3">
+                    {item.subItems!.map((subItem) => {
+                      const isSubActive = location.pathname === subItem.href;
+                      const isSubEnabled = subItem.enabled !== false;
+                      
+                      if (!isSubEnabled) {
+                        return (
+                          <div
+                            key={subItem.href}
+                            className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground opacity-50 cursor-not-allowed"
+                          >
+                            <span>{subItem.label}</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <Link
+                          key={subItem.href}
+                          to={subItem.href}
+                          onClick={onLinkClick}
+                          className={cn(
+                            "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md transition-colors",
+                            isSubActive
+                              ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          )}
+                        >
+                          <span>{subItem.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // Render regular items without submenus
           return (
             <Link
-              key={item.href}
-              to={item.href}
+              key={item.href || item.label}
+              to={item.href || '#'}
               onClick={onLinkClick}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",

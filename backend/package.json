@@ -14,6 +14,7 @@
     "db:update-plans": "tsx src/db/update-plans.ts",
     "db:test": "tsx src/db/test-connection.ts",
     "db:seed": "tsx src/db/seed.ts",
+    "db:seed-institutions": "tsx src/db/seed-institutions.ts",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"
   },
@@ -28,9 +29,11 @@
     "@fastify/cors": "^9.0.1",
     "@fastify/jwt": "^8.0.1",
     "@fastify/static": "^7.0.0",
+    "axios": "^1.13.4",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
     "fastify": "^4.26.2",
+    "mercadopago": "^2.12.0",
     "pg": "^8.11.5",
     "ws": "^8.18.0",
     "zod": "^3.23.8"

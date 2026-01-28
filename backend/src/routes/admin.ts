@@ -5,6 +5,22 @@ import { logAudit, getClientIp } from '../utils/audit.js';
 import { createAlert } from '../utils/notifications.js';
 
 export async function adminRoutes(fastify: FastifyInstance) {
+  // Add enabled column to institutions if it doesn't exist
+  try {
+    await db.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'institutions' AND column_name = 'enabled'
+        ) THEN
+          ALTER TABLE institutions ADD COLUMN enabled BOOLEAN NOT NULL DEFAULT true;
+        END IF;
+      END $$;
+    `);
+  } catch (err) {
+    fastify.log.warn('Error checking/adding enabled column to institutions:', err);
+  }
   // Middleware: Only admins can access these routes
   const requireAdmin = async (request: any, reply: any) => {
     try {
@@ -2277,6 +2293,108 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Get subscription history (all subscriptions for admin)
+  fastify.get('/subscriptions/history', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { page = '1', limit = '50', userId, status } = request.query as any;
+      const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      // Check if subscriptions and plans tables exist
+      let hasSubscriptions = false;
+      try {
+        await db.query('SELECT 1 FROM subscriptions LIMIT 1');
+        await db.query('SELECT 1 FROM plans LIMIT 1');
+        hasSubscriptions = true;
+      } catch {}
+
+      if (!hasSubscriptions) {
+        return reply.send({
+          history: [],
+          pagination: { page: 1, limit: parseInt(limit), total: 0, totalPages: 0 },
+        });
+      }
+
+      let query = `
+        SELECT 
+          s.id,
+          s.status,
+          s.started_at,
+          s.current_period_start,
+          s.current_period_end,
+          s.canceled_at,
+          s.created_at,
+          u.id as user_id,
+          u.full_name as user_name,
+          u.email as user_email,
+          p.id as plan_id,
+          p.name as plan_name,
+          p.code as plan_code,
+          p.price_cents as plan_price_cents
+        FROM subscriptions s
+        JOIN plans p ON s.plan_id = p.id
+        JOIN users u ON s.user_id = u.id
+        WHERE 1=1
+      `;
+
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      if (userId) {
+        query += ` AND s.user_id = $${paramIndex}`;
+        params.push(userId);
+        paramIndex++;
+      }
+
+      if (status) {
+        query += ` AND s.status = $${paramIndex}`;
+        params.push(status);
+        paramIndex++;
+      }
+
+      // Get total count
+      const countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
+      const countResult = await db.query(countQuery, params);
+      const total = parseInt(countResult.rows[0]?.total || '0', 10);
+
+      // Add ordering and pagination
+      query += ` ORDER BY s.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+      params.push(parseInt(limit), offset);
+
+      const result = await db.query(query, params);
+
+      return reply.send({
+        history: result.rows.map((row: any) => ({
+          id: row.id,
+          status: row.status,
+          planName: row.plan_name,
+          planCode: row.plan_code,
+          priceCents: row.plan_price_cents,
+          startedAt: row.started_at,
+          currentPeriodStart: row.current_period_start,
+          currentPeriodEnd: row.current_period_end,
+          canceledAt: row.canceled_at,
+          createdAt: row.created_at,
+          user: {
+            id: row.user_id,
+            name: row.user_name,
+            email: row.user_email,
+          },
+        })),
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error('Error fetching subscription history:', error);
+      reply.code(500).send({ error: 'Failed to fetch subscription history', details: error.message });
+    }
+  });
+
   // Get login history
   fastify.get('/login-history', {
     preHandler: [requireAdmin],
@@ -2540,6 +2658,54 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Delete a subscription record
+  fastify.delete('/subscriptions/:id', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as any;
+
+      // Check if subscriptions table exists
+      let hasSubscriptions = false;
+      try {
+        await db.query('SELECT 1 FROM subscriptions LIMIT 1');
+        hasSubscriptions = true;
+      } catch {}
+
+      if (!hasSubscriptions) {
+        return reply.code(404).send({ error: 'Subscription not found' });
+      }
+
+      // Verify subscription exists
+      const verifyResult = await db.query(
+        'SELECT id, user_id FROM subscriptions WHERE id = $1',
+        [id]
+      );
+
+      if (verifyResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Subscription not found' });
+      }
+
+      // Delete the subscription
+      await db.query('DELETE FROM subscriptions WHERE id = $1', [id]);
+
+      // Log the action
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'subscription_deleted',
+        resourceType: 'subscription',
+        resourceId: id,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      return reply.send({ success: true, message: 'Subscription deleted successfully' });
+    } catch (error: any) {
+      fastify.log.error('Error deleting subscription:', error);
+      reply.code(500).send({ error: 'Failed to delete subscription', details: error.message });
+    }
+  });
+
   // Delete a payment record
   fastify.delete('/payments/:id', {
     preHandler: [requireAdmin],
@@ -2633,6 +2799,219 @@ export async function adminRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       fastify.log.error('Error deleting login history record:', error);
       reply.code(500).send({ error: 'Failed to delete login history record', details: error.message });
+    }
+  });
+
+  // =========================
+  // INSTITUTIONS MANAGEMENT
+  // =========================
+
+  // Get all institutions (for admin management)
+  fastify.get('/institutions', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { provider } = request.query as any;
+      
+      let query = `
+        SELECT 
+          id, provider, external_id, name, logo_url, 
+          COALESCE(enabled, true) as enabled,
+          created_at, updated_at
+        FROM institutions
+        WHERE 1=1
+      `;
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      if (provider) {
+        query += ` AND provider = $${paramIndex++}`;
+        params.push(provider);
+      }
+
+      query += ' ORDER BY name ASC';
+
+      const result = await db.query(query, params);
+      
+      return reply.send({ institutions: result.rows });
+    } catch (error: any) {
+      fastify.log.error('Error fetching institutions:', error);
+      reply.code(500).send({ error: 'Failed to fetch institutions', details: error.message });
+    }
+  });
+
+  // Update institution (enable/disable)
+  fastify.patch('/institutions/:id', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as any;
+      const { enabled, name, logo_url } = request.body as any;
+
+      // Check if institution exists
+      const checkResult = await db.query('SELECT id FROM institutions WHERE id = $1', [id]);
+      if (checkResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Institution not found' });
+      }
+
+      // Build update query dynamically
+      const updates: string[] = [];
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      if (enabled !== undefined) {
+        updates.push(`enabled = $${paramIndex++}`);
+        params.push(enabled);
+      }
+      if (name !== undefined) {
+        updates.push(`name = $${paramIndex++}`);
+        params.push(name);
+      }
+      if (logo_url !== undefined) {
+        updates.push(`logo_url = $${paramIndex++}`);
+        params.push(logo_url);
+      }
+
+      if (updates.length === 0) {
+        return reply.code(400).send({ error: 'No fields to update' });
+      }
+
+      updates.push(`updated_at = NOW()`);
+      params.push(id);
+
+      const query = `
+        UPDATE institutions 
+        SET ${updates.join(', ')}
+        WHERE id = $${paramIndex}
+        RETURNING id, provider, external_id, name, logo_url, COALESCE(enabled, true) as enabled, created_at, updated_at
+      `;
+
+      const result = await db.query(query, params);
+
+      // Log the action
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'institution_updated',
+        resourceType: 'institution',
+        resourceId: id,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      return reply.send({ institution: result.rows[0] });
+    } catch (error: any) {
+      fastify.log.error('Error updating institution:', error);
+      reply.code(500).send({ error: 'Failed to update institution', details: error.message });
+    }
+  });
+
+  // Bulk update institutions (enable/disable multiple)
+  fastify.patch('/institutions', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { institutions } = request.body as any;
+
+      if (!Array.isArray(institutions)) {
+        return reply.code(400).send({ error: 'institutions must be an array' });
+      }
+
+      const results = [];
+      for (const inst of institutions) {
+        if (!inst.id || inst.enabled === undefined) {
+          continue;
+        }
+
+        try {
+          const result = await db.query(
+            `UPDATE institutions 
+             SET enabled = $1, updated_at = NOW()
+             WHERE id = $2
+             RETURNING id, name, COALESCE(enabled, true) as enabled`,
+            [inst.enabled, inst.id]
+          );
+          if (result.rows.length > 0) {
+            results.push(result.rows[0]);
+          }
+        } catch (err: any) {
+          fastify.log.warn(`Error updating institution ${inst.id}:`, err);
+        }
+      }
+
+      // Log the action
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'institutions_bulk_updated',
+        resourceType: 'institution',
+        resourceId: undefined, // Bulk operations don't have a single resource ID
+        metadata: { 
+          updatedCount: results.length,
+          institutionIds: results.map(r => r.id)
+        },
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      return reply.send({ institutions: results, updated: results.length });
+    } catch (error: any) {
+      fastify.log.error('Error bulk updating institutions:', error);
+      reply.code(500).send({ error: 'Failed to bulk update institutions', details: error.message });
+    }
+  });
+
+  // Create new institution
+  fastify.post('/institutions', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { provider, name, logo_url, external_id, enabled } = request.body as any;
+
+      // Validate required fields
+      if (!provider || !name) {
+        return reply.code(400).send({ error: 'provider and name are required' });
+      }
+
+      // Validate provider enum
+      if (!['open_finance', 'b3'].includes(provider)) {
+        return reply.code(400).send({ error: 'provider must be "open_finance" or "b3"' });
+      }
+
+      // Check for duplicate (provider + external_id) if external_id is provided
+      if (external_id) {
+        const duplicateCheck = await db.query(
+          'SELECT id FROM institutions WHERE provider = $1 AND external_id = $2',
+          [provider, external_id]
+        );
+        if (duplicateCheck.rows.length > 0) {
+          return reply.code(409).send({ error: 'Institution with this provider and external_id already exists' });
+        }
+      }
+
+      // Insert new institution
+      const result = await db.query(
+        `INSERT INTO institutions (provider, name, logo_url, external_id, enabled)
+         VALUES ($1, $2, $3, $4, COALESCE($5, true))
+         RETURNING id, provider, external_id, name, logo_url, COALESCE(enabled, true) as enabled, created_at, updated_at`,
+        [provider, name, logo_url || null, external_id || null, enabled !== undefined ? enabled : true]
+      );
+
+      const institution = result.rows[0];
+
+      // Log the action
+      await logAudit({
+        adminId: getAdminId(request),
+        action: 'institution_created',
+        resourceType: 'institution',
+        resourceId: institution.id,
+        details: { name: institution.name, provider: institution.provider },
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      return reply.code(201).send({ institution });
+    } catch (error: any) {
+      fastify.log.error('Error creating institution:', error);
+      reply.code(500).send({ error: 'Failed to create institution', details: error.message });
     }
   });
 }

@@ -19,11 +19,16 @@ const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const GoogleAuthCallback = lazy(() => import("./pages/GoogleAuthCallback"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const PaymentFailure = lazy(() => import("./pages/PaymentFailure"));
+const PaymentPending = lazy(() => import("./pages/PaymentPending"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // App pages (Customer) - lazy loaded
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Connections = lazy(() => import("./pages/Connections"));
+const OpenFinance = lazy(() => import("./pages/OpenFinance"));
+const B3 = lazy(() => import("./pages/B3"));
 const Accounts = lazy(() => import("./pages/Accounts"));
 const Cards = lazy(() => import("./pages/Cards"));
 const Investments = lazy(() => import("./pages/Investments"));
@@ -56,10 +61,10 @@ const ConsultantSettings = lazy(() => import("./pages/consultant/Settings"));
 // Admin pages - lazy loaded
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
-const Subscriptions = lazy(() => import("./pages/admin/Subscriptions"));
 const PlanManagement = lazy(() => import("./pages/admin/PlanManagement"));
 const IntegrationsMonitor = lazy(() => import("./pages/admin/IntegrationsMonitor"));
 const DAMAProspecting = lazy(() => import("./pages/admin/DAMAProspecting"));
+const Institutions = lazy(() => import("./pages/admin/Institutions"));
 const FinancialReports = lazy(() => import("./pages/admin/FinancialReports"));
 const Settings = lazy(() => import("./pages/admin/Settings"));
 const PaymentHistory = lazy(() => import("./pages/admin/PaymentHistory"));
@@ -107,6 +112,9 @@ const App = () => (
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/payment/success" element={<Suspense fallback={<PageLoader />}><PaymentSuccess /></Suspense>} />
+            <Route path="/payment/failure" element={<Suspense fallback={<PageLoader />}><PaymentFailure /></Suspense>} />
+            <Route path="/payment/pending" element={<Suspense fallback={<PageLoader />}><PaymentPending /></Suspense>} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/auth/google" element={<GoogleAuthCallback />} />
             <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
@@ -115,6 +123,8 @@ const App = () => (
             <Route path="/app" element={<AppLayout />}>
               <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
               <Route path="connections" element={<Suspense fallback={<PageLoader />}><Connections /></Suspense>} />
+              <Route path="connections/open-finance" element={<Suspense fallback={<PageLoader />}><OpenFinance /></Suspense>} />
+              <Route path="connections/b3" element={<Suspense fallback={<PageLoader />}><B3 /></Suspense>} />
               <Route path="accounts" element={<Suspense fallback={<PageLoader />}><Accounts /></Suspense>} />
               <Route path="cards" element={<Suspense fallback={<PageLoader />}><Cards /></Suspense>} />
               <Route path="assets" element={<Suspense fallback={<PageLoader />}><Assets /></Suspense>} />
@@ -163,12 +173,12 @@ const App = () => (
             <Route path="/admin" element={<AppLayout />}>
               <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
               <Route path="users" element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
-              <Route path="subscriptions" element={<Suspense fallback={<PageLoader />}><Subscriptions /></Suspense>} />
               <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanManagement /></Suspense>} />
               <Route path="payments" element={<Suspense fallback={<PageLoader />}><PaymentHistory /></Suspense>} />
               <Route path="login-history" element={<Suspense fallback={<PageLoader />}><LoginHistory /></Suspense>} />
-              <Route path="integrations" element={<Suspense fallback={<PageLoader />}><IntegrationsMonitor /></Suspense>} />
-              <Route path="prospecting" element={<Suspense fallback={<PageLoader />}><DAMAProspecting /></Suspense>} />
+                <Route path="integrations" element={<Suspense fallback={<PageLoader />}><IntegrationsMonitor /></Suspense>} />
+                <Route path="prospecting" element={<Suspense fallback={<PageLoader />}><DAMAProspecting /></Suspense>} />
+                <Route path="institutions" element={<Suspense fallback={<PageLoader />}><Institutions /></Suspense>} />
               <Route path="financial" element={<Suspense fallback={<PageLoader />}><FinancialReports /></Suspense>} />
               <Route path="comments" element={<Suspense fallback={<PageLoader />}><AdminComments /></Suspense>} />
               <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />

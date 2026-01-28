@@ -255,8 +255,14 @@ export const connectionsApi = {
       `/connections/institutions${provider ? `?provider=${provider}` : ''}`
     ),
   
-  create: (data: { provider: 'open_finance' | 'b3'; institutionId?: string }) =>
+  getConnectToken: () =>
+    api.get<{ connectToken: string }>('/connections/connect-token'),
+  
+  create: (data: { itemId: string; institutionId?: string }) =>
     api.post<{ connection: any }>('/connections', data),
+  
+  sync: (id: string) =>
+    api.post<{ success: boolean; message: string }>(`/connections/${id}/sync`),
   
   delete: (id: string) =>
     api.delete<{ success: boolean; message: string }>(`/connections/${id}`),
@@ -1011,11 +1017,74 @@ export const adminApi = {
     }>(`/admin/login-history${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
   },
 
+  getSubscriptionHistory: (params?: { 
+    page?: number; 
+    limit?: number; 
+    userId?: string; 
+    status?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.userId) queryParams.append('userId', params.userId);
+    if (params?.status) queryParams.append('status', params.status);
+    return api.get<{
+      history: Array<{
+        id: string;
+        status: string;
+        planName: string;
+        planCode: string;
+        priceCents: number;
+        startedAt: string | null;
+        currentPeriodStart: string | null;
+        currentPeriodEnd: string | null;
+        canceledAt: string | null;
+        createdAt: string;
+        user: {
+          id: string;
+          name: string;
+          email: string;
+        };
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/admin/subscriptions/history${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  },
+
+  deleteSubscription: (id: string) =>
+    api.delete<{ success: boolean; message: string }>(`/admin/subscriptions/${id}`),
+
   deletePayment: (id: string) =>
     api.delete<{ success: boolean; message: string }>(`/admin/payments/${id}`),
 
   deleteLoginHistory: (id: string) =>
     api.delete<{ success: boolean; message: string }>(`/admin/login-history/${id}`),
+  
+  // Institutions
+  getInstitutions: (provider?: string) =>
+    api.get<{ institutions: Array<{
+      id: string;
+      provider: string;
+      external_id: string | null;
+      name: string;
+      logo_url: string | null;
+      enabled: boolean;
+      created_at: string;
+      updated_at: string;
+    }> }>(`/admin/institutions${provider ? `?provider=${provider}` : ''}`),
+  
+  createInstitution: (data: { provider: string; name: string; logo_url?: string; external_id?: string; enabled?: boolean }) =>
+    api.post<{ institution: any }>('/admin/institutions', data),
+  
+  updateInstitution: (id: string, data: { enabled?: boolean; name?: string; logo_url?: string }) =>
+    api.patch<{ institution: any }>(`/admin/institutions/${id}`, data),
+  
+  bulkUpdateInstitutions: (institutions: Array<{ id: string; enabled: boolean }>) =>
+    api.patch<{ institutions: any[]; updated: number }>('/admin/institutions', { institutions }),
 
   getComments: (page?: number, limit?: number) =>
     api.get<{

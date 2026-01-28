@@ -14,21 +14,27 @@ export interface AuditLogEntry {
 
 export async function logAudit(entry: AuditLogEntry): Promise<void> {
   try {
+    // Build metadata object with all additional information
+    const metadata: any = {};
+    if (entry.oldValue) metadata.oldValue = entry.oldValue;
+    if (entry.newValue) metadata.newValue = entry.newValue;
+    if (entry.ipAddress) metadata.ipAddress = entry.ipAddress;
+    if (entry.userAgent) metadata.userAgent = entry.userAgent;
+    if (entry.metadata) {
+      // Merge any additional metadata
+      Object.assign(metadata, entry.metadata);
+    }
+
     await db.query(
       `INSERT INTO audit_logs (
-        admin_id, action, resource_type, resource_id,
-        old_value, new_value, ip_address, user_agent, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        actor_user_id, action, entity_type, entity_id, metadata_json
+      ) VALUES ($1, $2, $3, $4, $5)`,
       [
         entry.adminId,
         entry.action,
         entry.resourceType,
-        entry.resourceId || null,
-        entry.oldValue ? JSON.stringify(entry.oldValue) : null,
-        entry.newValue ? JSON.stringify(entry.newValue) : null,
-        entry.ipAddress || null,
-        entry.userAgent || null,
-        entry.metadata ? JSON.stringify(entry.metadata) : null,
+        entry.resourceId || null, // Will be null for bulk operations
+        JSON.stringify(metadata),
       ]
     );
   } catch (error: any) {
