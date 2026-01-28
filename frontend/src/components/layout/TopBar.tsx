@@ -27,12 +27,17 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch user counts
+  // Fetch user counts (with error handling to prevent uncaught promise rejections)
   const { data: userCounts } = useQuery({
     queryKey: ['user-counts'],
     queryFn: () => userApi.getUserCounts(),
     refetchInterval: 60000, // Refetch every minute
     enabled: !!user,
+    retry: false, // Don't retry on failure to avoid spam
+    onError: (error) => {
+      // Silently handle errors - user counts are not critical for app functionality
+      console.debug('Failed to fetch user counts:', error);
+    },
   });
 
   // Get abbreviated name (First name or First + Last Initial)

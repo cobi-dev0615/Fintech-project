@@ -444,17 +444,39 @@ export async function connectionsRoutes(fastify: FastifyInstance) {
   });
 
   // Get Connect Token for Pluggy widget
-  fastify.get('/connect-token', {
+  // Workflow Step 2: Create connect token
+  // CPF is handled by Pluggy Connect widget (step 5), not here
+  fastify.post('/connect-token', {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).userId;
+      
+      if (!userId) {
+        fastify.log.error('No userId found in request');
+        return reply.code(401).send({ error: 'Unauthorized', message: 'User ID not found' });
+      }
+      
+      fastify.log.info(`Creating connect token for user: ${userId}`);
       const connectToken = await createConnectToken(userId);
       
+      if (!connectToken) {
+        fastify.log.error('Connect token is empty or undefined');
+        return reply.code(500).send({ error: 'Failed to create connect token', message: 'Token is empty' });
+      }
+      
+      fastify.log.info('Connect token created successfully');
       return reply.send({ connectToken });
     } catch (error: any) {
       fastify.log.error('Error creating connect token:', error);
-      return reply.code(500).send({ error: 'Failed to create connect token', details: error.message });
+      const errorMessage = error?.message || 'Unknown error';
+      const errorDetails = error?.response?.data || error?.response || error;
+      
+      return reply.code(500).send({ 
+        error: 'Failed to create connect token', 
+        message: errorMessage,
+        details: errorDetails 
+      });
     }
   });
 
@@ -569,6 +591,32 @@ export async function connectionsRoutes(fastify: FastifyInstance) {
       connection.institution_name = institutionName;
       connection.institution_logo = institutionLogo;
 
+      // Automatically sync Pluggy data after successful connection
+      // itemId is saved in external_consent_id field
+      try {
+        fastify.log.info(`Auto-syncing Pluggy data for connection ${connection.id} with itemId ${itemId}`);
+        
+        // Import and use the new Pluggy sync service
+        const { syncPluggyData } = await import('../services/pluggy-sync.js');
+        await syncPluggyData(userId, itemId);
+
+        // Update connection sync status
+        await db.query(
+          'UPDATE connections SET last_sync_at = NOW(), last_sync_status = $1 WHERE id = $2',
+          ['ok', connection.id]
+        );
+
+        fastify.log.info(`Successfully synced Pluggy data for connection ${connection.id}`);
+      } catch (syncError: any) {
+        fastify.log.error('Error auto-syncing Pluggy data (connection still created):', syncError);
+        // Don't fail the connection creation if sync fails
+        // Update connection with error status
+        await db.query(
+          'UPDATE connections SET last_sync_status = $1, last_error = $2 WHERE id = $3',
+          ['error', syncError.message?.substring(0, 255) || 'Sync failed', connection.id]
+        );
+      }
+
       return reply.code(201).send({ connection });
     } catch (error: any) {
       fastify.log.error('Error creating connection:', error);
@@ -604,23 +652,9 @@ export async function connectionsRoutes(fastify: FastifyInstance) {
       // Update item in Pluggy (triggers sync)
       await updateItem(itemId);
 
-      // Fetch and sync accounts
-      const accounts = await getPluggyAccounts(itemId);
-      for (const account of accounts) {
-        await syncAccount(userId, connection.id, account);
-      }
-
-      // Fetch and sync credit cards
-      const creditCards = await getPluggyCreditCards(itemId);
-      for (const card of creditCards) {
-        await syncCreditCard(userId, connection.id, card);
-      }
-
-      // Fetch and sync investments
-      const investments = await getPluggyInvestments(itemId);
-      for (const investment of investments) {
-        await syncInvestment(userId, connection.id, investment);
-      }
+      // Use the new Pluggy sync service
+      const { syncPluggyData } = await import('../services/pluggy-sync.js');
+      await syncPluggyData(userId, itemId);
 
       // Update connection sync status
       await db.query(

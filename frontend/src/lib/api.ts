@@ -45,6 +45,8 @@ class ApiClient {
   private unauthorizedEventDispatched: boolean = false;
   private lastUnauthorizedTime: number = 0;
   private readonly UNAUTHORIZED_COOLDOWN = 5000; // 5 seconds cooldown
+  // Request deduplication: track in-flight requests
+  private pendingRequests: Map<string, Promise<any>> = new Map();
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -72,6 +74,16 @@ class ApiClient {
     isFormData: boolean = false
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    
+    // Create a request key for deduplication (only for GET requests)
+    const isGet = !options.method || options.method === 'GET';
+    const requestKey = isGet ? `${options.method || 'GET'}:${url}` : null;
+    
+    // Check if there's already a pending request for this endpoint
+    if (requestKey && this.pendingRequests.has(requestKey)) {
+      return this.pendingRequests.get(requestKey)!;
+    }
+
     const headers: HeadersInit = { ...options.headers };
 
     // Don't set Content-Type for FormData, browser will set it with boundary
@@ -83,58 +95,78 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      credentials: 'include',
-    });
+    // Create the request promise
+    const requestPromise = (async () => {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers,
+          credentials: 'include',
+        });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        error: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      
-      const error: ApiError = {
-        ...errorData,
-        statusCode: response.status,
-      };
-      
-      // Handle 401 Unauthorized errors globally
-      if (response.status === 401 || (errorData && (errorData.statusCode === 401 || errorData.error === 'Unauthorized'))) {
-        // Immediately remove token from localStorage to prevent further requests
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('auth_token');
-        }
-        
-        // Clear token and trigger re-authentication
-        this.setToken(null);
-        
-        // Prevent multiple unauthorized events in quick succession (circuit breaker)
-        const now = Date.now();
-        const timeSinceLastUnauthorized = now - this.lastUnauthorizedTime;
-        
-        if (!this.unauthorizedEventDispatched || timeSinceLastUnauthorized > this.UNAUTHORIZED_COOLDOWN) {
-          this.unauthorizedEventDispatched = true;
-          this.lastUnauthorizedTime = now;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({
+            error: `HTTP ${response.status}: ${response.statusText}`,
+          }));
           
-          // Dispatch a custom event that components can listen to
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('auth:unauthorized', {
-              detail: { message: 'Sua sessão expirou. Por favor, faça login novamente.' }
-            }));
+          const error: ApiError = {
+            ...errorData,
+            statusCode: response.status,
+          };
+      
+          // Handle 401 Unauthorized errors globally
+          if (response.status === 401 || (errorData && (errorData.statusCode === 401 || errorData.error === 'Unauthorized'))) {
+            // Immediately remove token from localStorage to prevent further requests
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('auth_token');
+            }
+            
+            // Clear token and trigger re-authentication
+            this.setToken(null);
+            
+            // Prevent multiple unauthorized events in quick succession (circuit breaker)
+            const now = Date.now();
+            const timeSinceLastUnauthorized = now - this.lastUnauthorizedTime;
+            
+            if (!this.unauthorizedEventDispatched || timeSinceLastUnauthorized > this.UNAUTHORIZED_COOLDOWN) {
+              this.unauthorizedEventDispatched = true;
+              this.lastUnauthorizedTime = now;
+              
+              // Dispatch a custom event that components can listen to
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('auth:unauthorized', {
+                  detail: { message: 'Sua sessão expirou. Por favor, faça login novamente.' }
+                }));
+              }
+              
+              // Reset flag after cooldown period
+              setTimeout(() => {
+                this.unauthorizedEventDispatched = false;
+              }, this.UNAUTHORIZED_COOLDOWN);
+            }
           }
-          
-          // Reset flag after cooldown period
-          setTimeout(() => {
-            this.unauthorizedEventDispatched = false;
-          }, this.UNAUTHORIZED_COOLDOWN);
-        }
-      }
       
-      throw error;
+          throw error;
+        }
+
+        return response.json();
+      } catch (error) {
+        throw error;
+      }
+    })();
+
+    // Store the promise for GET requests to enable deduplication
+    if (requestKey) {
+      this.pendingRequests.set(requestKey, requestPromise);
+      
+      // Clean up after request completes (success or error)
+      requestPromise
+        .finally(() => {
+          this.pendingRequests.delete(requestKey);
+        });
     }
 
-    return response.json();
+    return requestPromise;
   }
 
   async get<T>(endpoint: string): Promise<T> {
@@ -256,7 +288,7 @@ export const connectionsApi = {
     ),
   
   getConnectToken: () =>
-    api.get<{ connectToken: string }>('/connections/connect-token'),
+    api.post<{ connectToken: string }>('/connections/connect-token', {}),
   
   create: (data: { itemId: string; institutionId?: string }) =>
     api.post<{ connection: any }>('/connections', data),
@@ -266,6 +298,56 @@ export const connectionsApi = {
   
   delete: (id: string) =>
     api.delete<{ success: boolean; message: string }>(`/connections/${id}`),
+};
+
+// Finance endpoints (Pluggy data)
+export const financeApi = {
+  getConnections: () =>
+    api.get<{ connections: any[] }>('/finance/connections'),
+  
+  getAccounts: (itemId?: string) =>
+    api.get<{ accounts: any[]; grouped: any[]; total: number }>(
+      `/finance/accounts${itemId ? `?itemId=${itemId}` : ''}`
+    ),
+  
+  getTransactions: (params?: {
+    from?: string;
+    to?: string;
+    itemId?: string;
+    accountId?: string;
+    q?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.from) queryParams.append('from', params.from);
+    if (params?.to) queryParams.append('to', params.to);
+    if (params?.itemId) queryParams.append('itemId', params.itemId);
+    if (params?.accountId) queryParams.append('accountId', params.accountId);
+    if (params?.q) queryParams.append('q', params.q);
+    // Always send page and limit so backend returns pagination; default page=1, limit=20
+    queryParams.append('page', String(params?.page ?? 1));
+    queryParams.append('limit', String(params?.limit ?? 20));
+    
+    return api.get<{
+      transactions: any[];
+      total?: number;
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/finance/transactions?${queryParams.toString()}`);
+  },
+  
+  getInvestments: (itemId?: string) =>
+    api.get<{ investments: any[]; total: number; breakdown: any[] }>(
+      `/finance/investments${itemId ? `?itemId=${itemId}` : ''}`
+    ),
+  
+  getCards: (itemId?: string) =>
+    api.get<{ cards: any[] }>(
+      `/finance/cards${itemId ? `?itemId=${itemId}` : ''}`
+    ),
+  
+  sync: (itemId?: string) =>
+    api.post<{ success: boolean; message: string }>('/finance/sync', { itemId }),
 };
 
 // Accounts endpoints

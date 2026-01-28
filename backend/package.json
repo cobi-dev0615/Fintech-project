@@ -15,6 +15,8 @@
     "db:test": "tsx src/db/test-connection.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:seed-institutions": "tsx src/db/seed-institutions.ts",
+    "db:migrate:pluggy": "tsx src/db/run-pluggy-migration.ts",
+    "db:migrate:card-balance": "tsx src/db/run-card-balance-migration.ts",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"
   },

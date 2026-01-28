@@ -38,7 +38,18 @@ async function getApiKey(): Promise<string> {
       }
     );
 
+    console.log('Pluggy auth response:', {
+      status: response.status,
+      hasData: !!response.data,
+      dataKeys: response.data ? Object.keys(response.data) : null
+    });
+
     const { apiKey, expiresIn } = response.data;
+    
+    if (!apiKey) {
+      console.error('Pluggy auth response missing apiKey:', response.data);
+      throw new Error('Pluggy authentication failed: missing apiKey in response');
+    }
     
     // Cache the key (expiresIn is in seconds)
     cachedApiKey = {
@@ -48,7 +59,13 @@ async function getApiKey(): Promise<string> {
 
     return apiKey;
   } catch (error: any) {
-    console.error('Error getting Pluggy API key:', error.response?.data || error.message);
+    console.error('Error getting Pluggy API key:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      fullError: error
+    });
     throw new Error(`Failed to authenticate with Pluggy: ${error.message}`);
   }
 }
@@ -72,17 +89,88 @@ async function createPluggyClient(): Promise<AxiosInstance> {
  * Create a Connect Token for frontend widget
  * Connect tokens expire after 30 minutes
  */
-export async function createConnectToken(userId: string): Promise<string> {
+export async function createConnectToken(userId: string, cpf?: string): Promise<string> {
   try {
+    // Validate credentials are available
+    if (!PLUGGY_CLIENT_ID || !PLUGGY_CLIENT_SECRET) {
+      throw new Error('Pluggy credentials not configured. Please check PLUGGY_CLIENT_ID and PLUGGY_CLIENT_SECRET environment variables.');
+    }
+
     const client = await createPluggyClient();
-    const response = await client.post('/connect_token', {
+    
+    // Note: CPF is handled by Pluggy Connect widget itself during the connection flow
+    // We don't pass CPF to connect_token endpoint - the widget prompts for it
+    const requestBody = {
       clientUserId: userId, // Link to your user ID
+    };
+
+    console.log('Creating connect token with request:', {
+      clientUserId: userId,
+      hasCpf: !!cpf,
+      endpoint: '/connect_token'
     });
 
-    return response.data.connectToken;
+    const response = await client.post('/connect_token', requestBody);
+
+    // Log full response for debugging
+    console.log('Pluggy connect_token full response:', {
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data,
+      dataType: typeof response.data,
+      dataKeys: response.data ? Object.keys(response.data) : null
+    });
+
+    // Check various possible response structures
+    if (!response.data) {
+      console.error('Empty response from Pluggy API');
+      throw new Error('Pluggy API returned empty response');
+    }
+
+    // The response should have connectToken or accessToken at the root level
+    // Pluggy API may return either field name depending on version
+    if (response.data.connectToken && typeof response.data.connectToken === 'string') {
+      return response.data.connectToken;
+    }
+
+    // Check for accessToken as fallback (some Pluggy API versions use this)
+    if (response.data.accessToken && typeof response.data.accessToken === 'string') {
+      console.log('Pluggy API returned accessToken instead of connectToken, using accessToken');
+      return response.data.accessToken;
+    }
+
+    // If neither field is present, log the full response and throw detailed error
+    console.error('Pluggy API response missing connectToken/accessToken:', {
+      fullResponse: JSON.stringify(response.data, null, 2),
+      responseType: typeof response.data,
+      responseKeys: Object.keys(response.data || {}),
+      responseValues: Object.values(response.data || {})
+    });
+
+    throw new Error(
+      `Pluggy API returned invalid response. Expected 'connectToken' or 'accessToken' field but got: ${JSON.stringify(response.data)}`
+    );
   } catch (error: any) {
-    console.error('Error creating Pluggy connect token:', error.response?.data || error.message);
-    throw new Error(`Failed to create connect token: ${error.message}`);
+    const errorDetails = error.response?.data || error.message;
+    console.error('Error creating Pluggy connect token:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      userId: userId,
+      cpf: cpf ? '***' : undefined
+    });
+    
+    // Provide more specific error messages
+    if (error.response?.status === 401) {
+      throw new Error('Pluggy authentication failed. Please check your credentials.');
+    } else if (error.response?.status === 400) {
+      throw new Error(`Pluggy API error: ${JSON.stringify(errorDetails)}`);
+    } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+      throw new Error('Cannot connect to Pluggy API. Please check your network connection.');
+    }
+    
+    throw new Error(`Failed to create connect token: ${error.message || 'Unknown error'}`);
   }
 }
 
@@ -171,17 +259,20 @@ export async function getTransactions(accountId: string, params?: {
 
 /**
  * Get all credit cards for an item
+ * Credit cards come as accounts with type CREDIT and subtype CREDIT_CARD
+ * This function filters accounts to return only credit cards
  */
 export async function getCreditCards(itemId: string): Promise<any[]> {
   try {
-    const client = await createPluggyClient();
-    const response = await client.get('/credit-cards', {
-      params: {
-        itemId,
-      },
-    });
+    // Credit cards are returned as accounts with type CREDIT
+    const accounts = await getAccounts(itemId);
+    
+    // Filter for credit card accounts
+    const creditCards = accounts.filter(
+      (acc: any) => acc.type === 'CREDIT' && acc.subtype === 'CREDIT_CARD'
+    );
 
-    return response.data.results || response.data || [];
+    return creditCards;
   } catch (error: any) {
     console.error('Error fetching Pluggy credit cards:', error.response?.data || error.message);
     // Credit cards might not be available for all connections, return empty array
