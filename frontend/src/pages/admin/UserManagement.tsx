@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users, Eye, Trash2, Edit, Save, X, Filter, Check, XCircle, RefreshCw } from "lucide-react";
+import { Search, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users, Eye, Trash2, Edit, Save, X, Filter, Check, XCircle, RefreshCw, UserCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,6 +102,43 @@ const UserManagement = () => {
     total: 0,
     totalPages: 0,
   });
+  const [registrationRequiresApproval, setRegistrationRequiresApproval] = useState<boolean>(true);
+  const [registrationSettingSaving, setRegistrationSettingSaving] = useState(false);
+
+  // Load registration approval setting on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await adminApi.getSettings();
+        setRegistrationRequiresApproval(settings.platformSettings?.registrationRequiresApproval ?? true);
+      } catch {
+        // Keep default true
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const handleRegistrationApprovalToggle = async (checked: boolean) => {
+    try {
+      setRegistrationSettingSaving(true);
+      await adminApi.updateRegistrationApprovalSetting(checked);
+      setRegistrationRequiresApproval(checked);
+      toast({
+        title: "Configuração atualizada",
+        description: checked
+          ? "Novos usuários precisarão de aprovação do administrador para acessar o sistema."
+          : "Novos usuários poderão acessar o sistema automaticamente após o registro.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error?.error || "Falha ao atualizar configuração",
+        variant: "destructive",
+      });
+    } finally {
+      setRegistrationSettingSaving(false);
+    }
+  };
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -500,6 +538,36 @@ const UserManagement = () => {
           Atualizar
         </Button>
       </div>
+
+      {/* Registration approval setting */}
+      <ChartCard>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <UserCheck className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Aprovação de novos registros</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {registrationRequiresApproval
+                  ? "Novos usuários precisam ser aprovados por um administrador antes de acessar o sistema."
+                  : "Novos usuários podem acessar o sistema automaticamente após o registro."}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Label htmlFor="registration-approval" className="text-sm font-medium cursor-pointer">
+              {registrationRequiresApproval ? "Requer aprovação" : "Aprovação automática"}
+            </Label>
+            <Switch
+              id="registration-approval"
+              checked={!registrationRequiresApproval}
+              onCheckedChange={(checked) => handleRegistrationApprovalToggle(!checked)}
+              disabled={registrationSettingSaving}
+            />
+          </div>
+        </div>
+      </ChartCard>
 
       {/* Filters */}
       <ChartCard>

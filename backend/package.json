@@ -17,6 +17,7 @@
     "db:seed-institutions": "tsx src/db/seed-institutions.ts",
     "db:migrate:pluggy": "tsx src/db/run-pluggy-migration.ts",
     "db:migrate:card-balance": "tsx src/db/run-card-balance-migration.ts",
+    "db:migrate:system-settings": "tsx src/db/run-system-settings-migration.ts",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"
   },

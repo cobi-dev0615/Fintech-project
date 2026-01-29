@@ -1929,7 +1929,19 @@ export async function adminRoutes(fastify: FastifyInstance) {
         // Plans table might not exist
       }
 
-      // For now, return default settings. In production, these would come from a settings table
+      // Read registration approval setting from system_settings
+      let registrationRequiresApproval = true;
+      try {
+        const settingsResult = await db.query(
+          `SELECT value FROM system_settings WHERE key = 'registration_requires_approval' LIMIT 1`
+        );
+        if (settingsResult.rows.length > 0 && settingsResult.rows[0].value === 'false') {
+          registrationRequiresApproval = false;
+        }
+      } catch {
+        // Table may not exist
+      }
+
       return {
         plans,
         emailSettings: {
@@ -1943,6 +1955,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
           maintenanceMode: false,
           allowRegistrations: true,
           requireEmailVerification: false,
+          registrationRequiresApproval,
         },
         customization: {
           logo: null,
@@ -1959,6 +1972,27 @@ export async function adminRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       fastify.log.error('Error fetching settings:', error);
       reply.code(500).send({ error: 'Failed to fetch settings', details: error.message });
+    }
+  });
+
+  // Update registration approval setting (require admin approval vs auto-approve new users)
+  fastify.put('/settings/registration-approval', {
+    preHandler: [requireAdmin],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { registrationRequiresApproval } = request.body as { registrationRequiresApproval: boolean };
+      if (typeof registrationRequiresApproval !== 'boolean') {
+        return reply.code(400).send({ error: 'registrationRequiresApproval must be a boolean' });
+      }
+      await db.query(
+        `INSERT INTO system_settings (key, value) VALUES ('registration_requires_approval', $1)
+         ON CONFLICT (key) DO UPDATE SET value = $1`,
+        [registrationRequiresApproval ? 'true' : 'false']
+      );
+      return reply.send({ message: 'Registration approval setting updated successfully' });
+    } catch (error: any) {
+      fastify.log.error('Error updating registration approval setting:', error);
+      return reply.code(500).send({ error: 'Failed to update setting', details: error.message });
     }
   });
 

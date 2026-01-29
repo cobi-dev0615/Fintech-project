@@ -174,12 +174,17 @@ export function useAuth() {
       password: string;
       role?: 'customer' | 'consultant' | 'admin';
     }) => authService.register(full_name, email, password, role),
-    onSuccess: (data) => {
-      // Reset the unauthorized flag on successful registration
+    onSuccess: (data: { user: any; token?: string; requiresApproval?: boolean }) => {
       hasUnauthorizedError.current = false;
-      setHasToken(true);
-      setUser(data.user);
-      queryClient.setQueryData(['auth', 'me'], data.user);
+      // Only set logged-in state when backend returned a token (auto-approved)
+      if (data.token) {
+        setHasToken(true);
+        setUser(data.user);
+        queryClient.setQueryData(['auth', 'me'], data.user);
+      } else {
+        setUser(null);
+        queryClient.setQueryData(['auth', 'me'], null);
+      }
     },
   });
 

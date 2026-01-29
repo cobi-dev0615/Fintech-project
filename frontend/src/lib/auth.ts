@@ -27,11 +27,15 @@ class AuthService {
     email: string,
     password: string,
     role: 'customer' | 'consultant' | 'admin' = 'customer'
-  ): Promise<AuthResponse> {
+  ): Promise<AuthResponse & { requiresApproval?: boolean }> {
     const response = await authApi.register({ full_name, email, password, role });
-    api.setToken(response.token);
-    this.currentUser = response.user;
-    return response;
+    if (response.token) {
+      api.setToken(response.token);
+      this.currentUser = response.user;
+    } else {
+      this.currentUser = null;
+    }
+    return response as AuthResponse & { requiresApproval?: boolean };
   }
 
   async getCurrentUser(): Promise<User | null> {

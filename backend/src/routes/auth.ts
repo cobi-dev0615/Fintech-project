@@ -69,13 +69,28 @@ export async function authRoutes(fastify: FastifyInstance) {
       
       // Hash password
       const passwordHash = await bcrypt.hash(body.password, 10);
-      
-      // Auto-approve specific test accounts
+
+      // Check system setting: require admin approval or auto-approve new registrations
+      let registrationRequiresApproval = true;
+      try {
+        const settingsResult = await db.query(
+          `SELECT value FROM system_settings WHERE key = 'registration_requires_approval' LIMIT 1`
+        );
+        if (settingsResult.rows.length > 0 && settingsResult.rows[0].value === 'false') {
+          registrationRequiresApproval = false;
+        }
+      } catch {
+        // Table may not exist; default to require approval
+      }
+
+      // Auto-approve specific test accounts (override setting)
       const autoApprovedEmails = ['admin@zurt.com', 'customer@zurt.com', 'consultant@zurt.com'];
-      const approvalStatus = autoApprovedEmails.includes(body.email.toLowerCase()) ? 'approved' : 'pending';
-      // New users should be inactive until approved (unless auto-approved)
-      const isActive = autoApprovedEmails.includes(body.email.toLowerCase());
-      
+      const forceAutoApprove = autoApprovedEmails.includes(body.email.toLowerCase());
+      const autoApprove = forceAutoApprove || !registrationRequiresApproval;
+
+      const approvalStatus = autoApprove ? 'approved' : 'pending';
+      const isActive = autoApprove;
+
       // Create user with appropriate approval status
       const result = await db.query(
         `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active)
@@ -83,16 +98,33 @@ export async function authRoutes(fastify: FastifyInstance) {
          RETURNING id, full_name, email, role, approval_status, created_at`,
         [body.full_name, body.email, passwordHash, body.role, approvalStatus, isActive]
       );
-      
+
       const user = result.rows[0];
-      
-      // Notify all admins about the new registration
+
+      if (autoApprove) {
+        // Auto-approved: generate JWT so user can log in immediately
+        const token = fastify.jwt.sign({ userId: user.id, role: user.role });
+        return reply.code(201).send({
+          message: 'Registration successful. You can log in now.',
+          requiresApproval: false,
+          user: {
+            id: user.id,
+            full_name: user.full_name,
+            email: user.email,
+            role: user.role,
+            approval_status: user.approval_status,
+          },
+          token,
+        });
+      }
+
+      // Require approval: notify admins
       try {
         const adminsResult = await db.query(
           'SELECT id FROM users WHERE role = $1 AND approval_status = $2',
           ['admin', 'approved']
         );
-        
+
         for (const admin of adminsResult.rows) {
           await createAlert({
             userId: admin.id,
@@ -110,7 +142,6 @@ export async function authRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Broadcast to connected admin WebSocket clients
         const websocket = (fastify as any).websocket;
         if (websocket && websocket.broadcastToAdmins) {
           websocket.broadcastToAdmins({
@@ -124,11 +155,9 @@ export async function authRoutes(fastify: FastifyInstance) {
           });
         }
       } catch (error) {
-        // Don't fail the request if notification fails
         fastify.log.error({ err: error }, 'Error sending notification for new registration');
       }
-      
-      // Return success but no token - user needs approval
+
       return reply.code(201).send({
         message: 'Registration successful. Your account is pending administrator approval.',
         requiresApproval: true,
@@ -418,12 +447,22 @@ export async function authRoutes(fastify: FastifyInstance) {
         // Log successful login
         await logLoginAttempt(user.id, request, true, email);
       } else {
-        // New user - create account
-        // Google OAuth users should be pending approval unless auto-approved
-        const approvalStatus = isAutoApproved ? 'approved' : 'pending';
-        // New users should be inactive until approved (unless auto-approved)
-        const isActive = isAutoApproved;
-        
+        // New user - create account; check system setting for auto-approve
+        let registrationRequiresApproval = true;
+        try {
+          const settingsResult = await db.query(
+            `SELECT value FROM system_settings WHERE key = 'registration_requires_approval' LIMIT 1`
+          );
+          if (settingsResult.rows.length > 0 && settingsResult.rows[0].value === 'false') {
+            registrationRequiresApproval = false;
+          }
+        } catch {
+          // Table may not exist; default to require approval
+        }
+        const autoApproveNewUser = isAutoApproved || !registrationRequiresApproval;
+        const approvalStatus = autoApproveNewUser ? 'approved' : 'pending';
+        const isActive = autoApproveNewUser;
+
         const result = await db.query(
           `INSERT INTO users (full_name, email, role, approval_status, is_active, password_hash)
            VALUES ($1, $2, 'customer', $3, $4, NULL)
@@ -433,7 +472,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
         user = result.rows[0];
 
-        if (!isAutoApproved && approvalStatus === 'pending') {
+        if (!autoApproveNewUser && approvalStatus === 'pending') {
           // Notify admins about new registration
           try {
             const adminsResult = await db.query(

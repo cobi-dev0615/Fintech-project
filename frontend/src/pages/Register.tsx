@@ -339,9 +339,9 @@ const Register = () => {
                 />
                 <Label htmlFor="terms" className="text-sm text-black font-normal leading-relaxed">
                   Eu concordo com os{" "}
-                  <Link to="/terms" className="text-blue-600 hover:underline">Termos de Serviço</Link>
+                  <a href="https://www.mundoinvest.com.br/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Termos de Serviço</a>
                   {" "}e a{" "}
-                  <Link to="/privacy" className="text-blue-600 hover:underline">Política de Privacidade</Link>
+                  <a href="https://www.mundoinvest.com.br/politica-de-privacidade" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Política de Privacidade</a>
                 </Label>
               </div>
               

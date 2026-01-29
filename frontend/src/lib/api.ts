@@ -208,7 +208,7 @@ export const api = new ApiClient(API_BASE_URL);
 // Auth endpoints
 export const authApi = {
   register: (data: { full_name: string; email: string; password: string; role?: string }) =>
-    api.post<{ user: any; token: string }>('/auth/register', data),
+    api.post<{ user: any; token?: string; requiresApproval?: boolean }>('/auth/register', data),
   
   login: (data: { email: string; password: string }) =>
     api.post<{ user: any; token: string }>('/auth/login', data),
@@ -958,6 +958,7 @@ export const adminApi = {
         maintenanceMode: boolean;
         allowRegistrations: boolean;
         requireEmailVerification: boolean;
+        registrationRequiresApproval?: boolean;
       };
       customization: {
         logo: string | null;
@@ -1001,6 +1002,9 @@ export const adminApi = {
     requireEmailVerification: boolean;
   }) =>
     api.put<{ message: string }>('/admin/settings/platform', settings),
+
+  updateRegistrationApprovalSetting: (registrationRequiresApproval: boolean) =>
+    api.put<{ message: string }>('/admin/settings/registration-approval', { registrationRequiresApproval }),
 
   updateCustomization: (customization: {
     primaryColor: string;
