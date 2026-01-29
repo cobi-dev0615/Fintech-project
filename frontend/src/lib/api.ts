@@ -3,7 +3,8 @@
  * Import from '@/lib/api' for backward compatibility, or from '@/lib/api-*' for domain-specific imports.
  */
 
-export { api, ApiError } from './api-client';
+export { api } from './api-client';
+export type { ApiError } from './api-client';
 export { authApi } from './api-auth';
 export { userApi } from './api-users';
 export { commentsApi } from './api-comments';
