@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import ChartCard from "./ChartCard";
-import { dashboardApi } from "@/lib/api";
+import { financeApi, dashboardApi } from "@/lib/api";
 
 const NetWorthChart = () => {
   const [timeRange, setTimeRange] = useState<"7M" | "1A" | "Tudo">("7M");
@@ -13,7 +13,10 @@ const NetWorthChart = () => {
       try {
         setLoading(true);
         const months = timeRange === "7M" ? 7 : timeRange === "1A" ? 12 : 24;
-        const response = await dashboardApi.getNetWorthEvolution(months);
+        // Use Open Finance endpoint first; fall back to legacy dashboard API
+        const response = await financeApi.getNetWorthEvolution(months).catch(() =>
+          dashboardApi.getNetWorthEvolution(months)
+        );
         setData(response.data || []);
       } catch (error) {
         console.error("Error fetching net worth evolution:", error);
@@ -28,8 +31,8 @@ const NetWorthChart = () => {
 
   return (
     <ChartCard
-      title="Evolução do Patrimônio Líquido"
-      subtitle="Últimos 7 meses"
+      title="Variação do Patrimônio (Net Asset Change)"
+      subtitle="Evolução com base em saldos e transações do Open Finance"
       actions={
         <div className="flex items-center gap-1">
           {(["7M", "1A", "Tudo"] as const).map((range) => (

@@ -3,7 +3,6 @@ import { Wallet, CreditCard, TrendingUp, PiggyBank, Clock, BarChart3, RefreshCw 
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import NetWorthChart from "@/components/dashboard/NetWorthChart";
 import ChartCard from "@/components/dashboard/ChartCard";
-import AlertList, { Alert } from "@/components/dashboard/AlertList";
 import { financeApi, dashboardApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +31,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
   const { toast } = useToast();
 
   const fetchOpenFinanceData = async () => {
@@ -91,18 +89,6 @@ const Dashboard = () => {
         
         if (summaryData) {
           setLegacySummary(summaryData);
-          // Convert transactions to alerts format if needed
-          const alertsList: Alert[] = [];
-          if (summaryData.unreadAlertsCount > 0) {
-            alertsList.push({
-              id: "alerts",
-              type: "info",
-              title: "Novos alertas",
-              message: `Você tem ${summaryData.unreadAlertsCount} alerta(s) não lido(s)`,
-              timestamp: "Recente",
-            });
-          }
-          setAlerts(alertsList);
         }
         setError(null);
       } catch (err: any) {
@@ -187,27 +173,20 @@ const Dashboard = () => {
           <div className="bg-card rounded-lg h-full">
             <ProfessionalKpiCard
               title="Transações"
-              value={summary.recentTransactionsCount.toString()}
-              change="últimos 30 dias"
+              value={openFinanceData.totalTransactions.toString()}
+              change="total"
               changeType="neutral"
-              icon={CreditCard}
-              subtitle=""
+              icon={BarChart3}
+              subtitle={`${openFinanceData.cards.length} cartão(ões)`}
             />
           </div>
         </div>
       </div>
       
-      {/* Charts and Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 relative overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 border-2 border-indigo-500/20 shadow-md hover:shadow-lg transition-all duration-300">
-          <div className="bg-card/50 backdrop-blur-sm rounded-lg p-4">
-            <NetWorthChart />
-          </div>
-        </div>
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-500/10 via-gray-500/10 to-zinc-500/10 border-2 border-slate-500/20 shadow-md hover:shadow-lg transition-all duration-300">
-          <div className="bg-card/50 backdrop-blur-sm rounded-lg p-4">
-            <AlertList alerts={alerts} />
-          </div>
+      {/* Charts */}
+      <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 border-2 border-indigo-500/20 shadow-md hover:shadow-lg transition-all duration-300">
+        <div className="bg-card/50 backdrop-blur-sm rounded-lg p-4">
+          <NetWorthChart />
         </div>
       </div>
       
@@ -233,42 +212,6 @@ const Dashboard = () => {
               </ChartCard>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Recent Transactions */}
-      {openFinanceData.transactions.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Transações Recentes</h2>
-          <ChartCard>
-            <div className="space-y-2">
-              {openFinanceData.transactions.slice(0, 10).map((tx: any) => (
-                <div key={tx.id || tx.pluggy_transaction_id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                  <div className="flex-1">
-                    <p className="font-medium">{tx.description || tx.merchant || "Transação"}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {tx.date ? new Date(tx.date).toLocaleDateString("pt-BR") : "N/A"} • {tx.account_name || tx.institution_name || "Conta"}
-                    </p>
-                    {tx.category && (
-                      <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                        {tx.category}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-semibold ${parseFloat(tx.amount || 0) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {parseFloat(tx.amount || 0) >= 0 ? "+" : ""}R$ {Math.abs(parseFloat(tx.amount || 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                    {tx.status && (
-                      <span className={`text-xs ${tx.status === "PENDING" ? "text-amber-600" : "text-green-600"}`}>
-                        {tx.status}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ChartCard>
         </div>
       )}
     </div>

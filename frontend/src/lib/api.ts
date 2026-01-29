@@ -345,7 +345,12 @@ export const financeApi = {
     api.get<{ cards: any[] }>(
       `/finance/cards${itemId ? `?itemId=${itemId}` : ''}`
     ),
-  
+
+  getNetWorthEvolution: (months?: number) =>
+    api.get<{ data: Array<{ month: string; value: number }> }>(
+      `/finance/net-worth-evolution${months ? `?months=${months}` : ''}`
+    ),
+
   sync: (itemId?: string) =>
     api.post<{ success: boolean; message: string }>('/finance/sync', { itemId }),
 };

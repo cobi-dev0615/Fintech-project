@@ -338,7 +338,76 @@ export async function financeRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // F) Manual sync trigger
+  // F) Net worth evolution (asset change over time) for dashboard chart
+  fastify.get('/net-worth-evolution', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const monthsParam = Math.min(24, Math.max(1, parseInt((request.query as any)?.months || '7', 10)));
+
+      // Current total balance from pluggy_accounts (reais)
+      let currentBalance = 0;
+      const balanceResult = await db.query(
+        `SELECT COALESCE(SUM(current_balance), 0)::float as total
+         FROM pluggy_accounts WHERE user_id = $1`,
+        [userId]
+      );
+      currentBalance = parseFloat(balanceResult.rows[0]?.total || '0') || 0;
+
+      // Current investments total from pluggy_investments (reais)
+      let currentInvestments = 0;
+      const invResult = await db.query(
+        `SELECT COALESCE(SUM(current_value), 0)::float as total
+         FROM pluggy_investments WHERE user_id = $1`,
+        [userId]
+      );
+      currentInvestments = parseFloat(invResult.rows[0]?.total || '0') || 0;
+
+      const currentNetWorth = currentBalance + currentInvestments;
+
+      // Monthly transaction changes (SUM(amount) by month). Amount: positive = credit, negative = debit.
+      const changesResult = await db.query(
+        `SELECT
+           DATE_TRUNC('month', pt.date)::date as month,
+           COALESCE(SUM(pt.amount), 0)::float as change
+         FROM pluggy_transactions pt
+         WHERE pt.user_id = $1
+           AND pt.date >= CURRENT_DATE - ($2::text || ' months')::interval
+         GROUP BY DATE_TRUNC('month', pt.date)
+         ORDER BY month ASC`,
+        [userId, monthsParam]
+      );
+
+      const monthlyChanges: Array<{ month: Date; change: number }> = (changesResult.rows || []).map((row: any) => ({
+        month: new Date(row.month),
+        change: parseFloat(row.change || '0') || 0,
+      }));
+
+      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      const data: Array<{ month: string; value: number }> = [];
+      const now = new Date();
+
+      for (let i = monthsParam - 1; i >= 0; i--) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const futureChange = monthlyChanges
+          .filter((mc) => mc.month > monthDate)
+          .reduce((sum, mc) => sum + mc.change, 0);
+        const netWorthAtMonth = currentNetWorth - futureChange;
+        data.push({
+          month: `${monthNames[monthDate.getMonth()]} ${monthDate.getFullYear()}`,
+          value: Math.round(netWorthAtMonth * 100) / 100,
+        });
+      }
+
+      return reply.send({ data });
+    } catch (error: any) {
+      fastify.log.error('Error fetching net worth evolution:', error);
+      return reply.send({ data: [] });
+    }
+  });
+
+  // G) Manual sync trigger
   fastify.post('/sync', {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
