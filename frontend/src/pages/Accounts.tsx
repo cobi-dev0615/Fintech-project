@@ -1,115 +1,79 @@
-import { useState, useEffect } from "react";
-import { Wallet, TrendingUp, TrendingDown, Filter, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect, useCallback } from "react";
+import { Wallet, RefreshCw, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
-import { accountsApi } from "@/lib/api";
-
-interface Transaction {
-  id: string;
-  description: string;
-  amount: number;
-  date: string;
-  category: string;
-  account: string;
-}
+import { financeApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Accounts = () => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
   const [accounts, setAccounts] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [totalBalance, setTotalBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({
-    total: 0,
-    limit: 20,
-    offset: 0,
-    totalPages: 0,
-  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const limit = 20;
-        const offset = (page - 1) * limit;
-        
-        const [accountsData, transactionsData] = await Promise.all([
-          accountsApi.getAll(),
-          accountsApi.getTransactions(undefined, limit, offset),
-        ]);
-        setAccounts(accountsData.accounts);
-        setTransactions(transactionsData.transactions);
-        if (transactionsData.pagination) {
-          setPagination(transactionsData.pagination);
-        }
-        setError(null);
-      } catch (err: any) {
-        setError(err?.error || "Erro ao carregar dados");
-        console.error("Error fetching accounts data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const accountsData = await financeApi
+        .getAccounts()
+        .catch(() => ({ accounts: [], grouped: [], total: 0 }));
 
-    fetchData();
-  }, [page]);
-
-  // Reset to page 1 when search query changes
-  useEffect(() => {
-    if (searchQuery) {
-      setPage(1);
+      setAccounts(accountsData.accounts || []);
+      setTotalBalance(typeof accountsData.total === "number" ? accountsData.total : 0);
+      setError(null);
+    } catch (err: any) {
+      setError(err?.error || "Erro ao carregar contas");
+      console.error("Error fetching accounts:", err);
+    } finally {
+      setLoading(false);
     }
-  }, [searchQuery]);
+  }, []);
 
-  const filteredTransactions = transactions
-    .map((t: any) => ({
-      id: t.id,
-      description: t.description || t.merchant || "Sem descrição",
-      amount: parseFloat(t.amount_cents) / 100,
-      date: t.occurred_at ? new Date(t.occurred_at).toLocaleDateString("pt-BR") : "N/A",
-      category: t.category || "Outros",
-      account: t.account_name || "Conta",
-    }))
-    .filter((t) =>
-    t.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const totalBalance = accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance_cents) / 100), 0);
-  
-  // Calculate income and expenses from transactions (last 30 days)
-  const monthlyIncome = transactions
-    .filter((t: any) => {
-      const date = t.occurred_at ? new Date(t.occurred_at) : null;
-      if (!date) return false;
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      return date >= thirtyDaysAgo && parseFloat(t.amount_cents) > 0;
-    })
-    .reduce((sum, t: any) => sum + (parseFloat(t.amount_cents) / 100), 0);
-
-  const monthlyExpenses = transactions
-    .filter((t: any) => {
-      const date = t.occurred_at ? new Date(t.occurred_at) : null;
-      if (!date) return false;
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      return date >= thirtyDaysAgo && parseFloat(t.amount_cents) < 0;
-    })
-    .reduce((sum, t: any) => sum + Math.abs(parseFloat(t.amount_cents) / 100), 0);
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      await financeApi.sync();
+      await fetchData();
+      toast({
+        title: "Sincronização concluída",
+        description: "Suas contas foram atualizadas.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro na sincronização",
+        description: err?.error || "Não foi possível sincronizar.",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Contas</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Visualize contas bancárias e histórico de transações
+            Contas bancárias conectadas via Open Finance
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSync}
+          disabled={syncing || loading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Sincronizando…" : "Atualizar"}
+        </Button>
       </div>
 
       {loading ? (
@@ -122,153 +86,47 @@ const Accounts = () => {
         </div>
       ) : (
         <>
-      {/* Account Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <ProfessionalKpiCard
-          title="Saldo Total"
-              value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-          change=""
-          changeType="neutral"
-          icon={Wallet}
-              subtitle={`${accounts.length} conta(s)`}
-        />
-        <ProfessionalKpiCard
-          title="Receitas do Mês"
-              value={`R$ ${monthlyIncome.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-              change=""
-          changeType="positive"
-          icon={TrendingUp}
-              subtitle="últimos 30 dias"
-        />
-        <ProfessionalKpiCard
-          title="Despesas do Mês"
-              value={`R$ ${monthlyExpenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-              change=""
-              changeType="neutral"
-          icon={TrendingDown}
-              subtitle="últimos 30 dias"
-        />
-      </div>
+          <ProfessionalKpiCard
+            title="Saldo total"
+            value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            change=""
+            changeType="neutral"
+            icon={Wallet}
+            subtitle={`${accounts.length} conta(s)`}
+          />
 
-      {/* Filters and Search */}
-      <ChartCard title="Transações">
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar transações..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtros
-          </Button>
-        </div>
-
-        {/* Transactions Table */}
-        <div className="space-y-1">
-          {filteredTransactions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">
-                Nenhuma transação encontrada
-              </p>
-            </div>
-          ) : (
-            filteredTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {transaction.description}
-                    </p>
-                    <span className="text-xs text-muted-foreground px-2 py-0.5 rounded bg-muted">
-                      {transaction.category}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{transaction.date}</span>
-                    <span>•</span>
-                    <span>{transaction.account}</span>
-                  </div>
-                </div>
-                <div className="ml-4 text-right">
-                  <p
-                    className={`text-sm font-semibold tabular-nums ${
-                      transaction.amount >= 0
-                        ? "text-success"
-                        : "text-foreground"
-                    }`}
+          <ChartCard title="Contas (Open Finance)">
+            {accounts.length === 0 ? (
+              <div className="text-center py-12">
+                <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                <p className="text-muted-foreground">
+                  Nenhuma conta conectada. Conecte suas contas em Conexões para ver os saldos aqui.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {accounts.map((acc: any) => (
+                  <div
+                    key={acc.id || acc.pluggy_account_id}
+                    className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20"
                   >
-                    {transaction.amount >= 0 ? "+" : ""}
-                    R$ {Math.abs(transaction.amount).toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </p>
-                </div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                        <Building2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{acc.institution_name || "Banco"}</p>
+                        <p className="text-xs text-muted-foreground">{acc.name || acc.type || "Conta"}</p>
+                      </div>
+                    </div>
+                    <p className="font-semibold tabular-nums">
+                      R$ {parseFloat(acc.current_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))
-          )}
-        </div>
-
-        {/* Pagination */}
-        {pagination.total > 0 && pagination.totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
-            <div className="text-sm text-muted-foreground">
-              Mostrando {((page - 1) * pagination.limit) + 1} - {Math.min(page * pagination.limit, pagination.total)} de {pagination.total}
-            </div>
-            <div className="flex gap-2 items-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1 || loading}
-              >
-                Anterior
-              </Button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (pagination.totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (page <= 3) {
-                    pageNum = i + 1;
-                  } else if (page >= pagination.totalPages - 2) {
-                    pageNum = pagination.totalPages - 4 + i;
-                  } else {
-                    pageNum = page - 2 + i;
-                  }
-                  return (
-                    <Button
-                      key={pageNum}
-                      variant={page === pageNum ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPage(pageNum)}
-                      disabled={loading}
-                    >
-                      {pageNum}
-                    </Button>
-                  );
-                })}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                disabled={page === pagination.totalPages || loading}
-              >
-                Próxima
-              </Button>
-            </div>
-          </div>
-        )}
-      </ChartCard>
+            )}
+          </ChartCard>
         </>
       )}
     </div>
