@@ -51,17 +51,20 @@ JWT_SECRET=your-secret-key-change-in-production
 
 ### 3. Configurar banco de dados
 
-Execute o schema:
+**Banco novo (vazio):** execute o schema base e depois as migrações:
+
+```bash
+npm run db:schema
+npm run db:migrate
+```
+
+**Banco existente:** execute apenas as migrações:
 
 ```bash
 npm run db:migrate
 ```
 
-Ou manualmente:
-
-```bash
-psql $DATABASE_URL -f schema.sql
-```
+Todas as migrações incrementais ficam em `src/db/migrations/` e são aplicadas em ordem. Veja [MIGRATIONS.md](./MIGRATIONS.md) para detalhes.
 
 ### 4. Executar em desenvolvimento
 

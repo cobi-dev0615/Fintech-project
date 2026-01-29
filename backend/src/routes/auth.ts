@@ -56,6 +56,11 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/register', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = registerSchema.parse(request.body);
+
+      // Do not allow self-registration as admin
+      if (body.role === 'admin') {
+        return reply.code(400).send({ error: 'Registration as administrator is not allowed' });
+      }
       
       // Check if user exists
       const existingUser = await db.query(

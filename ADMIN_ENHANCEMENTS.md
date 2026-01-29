@@ -96,7 +96,7 @@
 
 **Migration Runner:**
 - `backend/src/db/run-migration.ts`
-- Command: `npm run db:migrate:admin`
+- Command: `npm run db:migrate`
 
 **Files Created:**
 - `backend/src/db/migrations/001_create_admin_tables.sql`
@@ -163,7 +163,7 @@
 
 ```bash
 cd backend
-npm run db:migrate:admin
+npm run db:migrate
 ```
 
 ### Testing WebSocket Connection

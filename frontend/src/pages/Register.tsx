@@ -24,7 +24,7 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<'customer' | 'consultant' | 'admin'>('customer');
+  const [role, setRole] = useState<'customer' | 'consultant'>('customer');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,8 +60,6 @@ const Register = () => {
       
       if (userRole === 'consultant') {
         redirectPath = "/consultant/dashboard";
-      } else if (userRole === 'admin') {
-        redirectPath = "/admin/dashboard";
       }
       
       navigate(redirectPath);
@@ -318,14 +316,13 @@ const Register = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="role" className="text-black">Tipo de usuário</Label>
-                <Select value={role} onValueChange={(value: 'customer' | 'consultant' | 'admin') => setRole(value)}>
+                <Select value={role} onValueChange={(value: 'customer' | 'consultant') => setRole(value)}>
                   <SelectTrigger id="role" className="bg-white border-gray-300 rounded-lg text-black">
                     <SelectValue placeholder="Selecione o tipo de usuário" />
                   </SelectTrigger>
                   <SelectContent className="bg-white text-black">
                     <SelectItem value="customer">Cliente</SelectItem>
                     <SelectItem value="consultant">Consultor</SelectItem>
-                    <SelectItem value="admin">Administrador</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

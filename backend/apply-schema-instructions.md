@@ -20,7 +20,7 @@ npm run db:migrate:full
 
 Or using psql directly:
 ```bash
-npm run db:migrate
+npm run db:schema
 ```
 
 ## Option 3: Manual SQL Execution

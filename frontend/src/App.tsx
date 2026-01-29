@@ -10,10 +10,11 @@ import { WebSocketProvider } from "@/contexts/WebSocketContext";
 
 // Critical components - load immediately
 import AppLayout from "./components/layout/AppLayout";
+// Landing page loaded eagerly to avoid dynamic import fetch failures (e.g. behind proxy/HTTPS)
+import Index from "./pages/Index";
 
 // Lazy load all pages for code splitting
 // Public pages
-const Index = lazy(() => import("./pages/Index"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));

@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
-import { UserPlus, Mail, Copy, Send, CheckCircle2 } from "lucide-react";
+import { UserPlus, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,8 +22,6 @@ const SendInvitations = () => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
-  const [invitationMethod, setInvitationMethod] = useState<"email" | "link">("email");
-  const [copiedLink, setCopiedLink] = useState(false);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -46,8 +42,6 @@ const SendInvitations = () => {
 
     fetchInvitations();
   }, []);
-
-  const invitationLink = `${window.location.origin}/invite/consultant-abc123xyz`;
 
   const handleSendInvitation = async () => {
     if (!email.trim()) {
@@ -79,54 +73,6 @@ const SendInvitations = () => {
       console.error("Error sending invitation:", err);
     } finally {
       setSending(false);
-    }
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      // Check if clipboard API is available
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(invitationLink);
-        setCopiedLink(true);
-        setTimeout(() => setCopiedLink(false), 2000);
-        toast({
-          title: "Link copiado",
-          description: "O link de convite foi copiado para a área de transferência",
-        });
-      } else {
-        // Fallback for browsers without clipboard API
-        const textArea = document.createElement('textarea');
-        textArea.value = invitationLink;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-          document.execCommand('copy');
-          setCopiedLink(true);
-          setTimeout(() => setCopiedLink(false), 2000);
-          toast({
-            title: "Link copiado",
-            description: "O link de convite foi copiado para a área de transferência",
-          });
-        } catch (err) {
-          toast({
-            title: "Erro",
-            description: "Não foi possível copiar o link. Por favor, copie manualmente.",
-            variant: "destructive",
-          });
-        } finally {
-          document.body.removeChild(textArea);
-        }
-      }
-    } catch (err) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível copiar o link. Por favor, copie manualmente.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -167,102 +113,42 @@ const SendInvitations = () => {
         <ChartCard title="Enviar Novo Convite">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="method">Método de Convite</Label>
-              <Select
-                value={invitationMethod}
-                onValueChange={(v: any) => setInvitationMethod(v)}
-              >
-                <SelectTrigger id="method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="email">Por Email</SelectItem>
-                  <SelectItem value="link">Link de Convite</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="email">Email do Cliente *</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="cliente@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
 
-            {invitationMethod === "email" ? (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email do Cliente *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="cliente@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome do Cliente (opcional)</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Nome completo"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome do Cliente (opcional)</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Nome completo"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="message">Mensagem Personalizada (opcional)</Label>
+              <Textarea
+                id="message"
+                placeholder="Olá! Gostaria de convidá-lo para usar a plataforma zurT..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="message">Mensagem Personalizada (opcional)</Label>
-                  <Textarea
-                    id="message"
-                    placeholder="Olá! Gostaria de convidá-lo para usar a plataforma zurT..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    className="min-h-[100px]"
-                  />
-                </div>
-
-                <Button onClick={handleSendInvitation} className="w-full" size="lg" disabled={sending}>
-                  <Send className="h-4 w-4 mr-2" />
-                  {sending ? "Enviando..." : "Enviar Convite por Email"}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Alert>
-                  <Mail className="h-4 w-4" />
-                  <AlertDescription>
-                    Compartilhe este link de convite com seus clientes. Eles poderão se registrar
-                    e conectar-se automaticamente com você.
-                  </AlertDescription>
-                </Alert>
-
-                <div className="space-y-2">
-                  <Label>Link de Convite</Label>
-                  <div className="flex gap-2">
-                    <Input value={invitationLink} readOnly className="font-mono text-sm" />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleCopyLink}
-                      className="flex-shrink-0"
-                    >
-                      {copiedLink ? (
-                        <CheckCircle2 className="h-4 w-4 text-success" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    window.location.href = `mailto:?subject=Convite zurT&body=Olá! Gostaria de convidá-lo para usar a plataforma zurT. Clique no link para se registrar: ${invitationLink}`;
-                  }}
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Abrir Cliente de Email
-                </Button>
-              </>
-            )}
+            <Button onClick={handleSendInvitation} className="w-full" size="lg" disabled={sending}>
+              <Send className="h-4 w-4 mr-2" />
+              {sending ? "Enviando..." : "Enviar Convite por Email"}
+            </Button>
           </div>
         </ChartCard>
 
@@ -319,15 +205,6 @@ const SendInvitations = () => {
           <div className="flex items-start gap-3">
             <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
               <span className="text-xs font-bold text-primary">2</span>
-            </div>
-            <div>
-              <div className="font-semibold text-foreground mb-1">Link de convite</div>
-              <p>Você pode compartilhar o link de convite diretamente ou enviar por email.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-xs font-bold text-primary">3</span>
             </div>
             <div>
               <div className="font-semibold text-foreground mb-1">Acompanhe o status</div>

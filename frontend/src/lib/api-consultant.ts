@@ -1,0 +1,210 @@
+import { api } from './api-client';
+
+export const consultantApi = {
+  getDashboardMetrics: () =>
+    api.get<{
+      kpis: {
+        totalClients: number;
+        newClients: number;
+        totalNetWorth: number;
+        pendingTasks: number;
+        prospects: number;
+      };
+      pipeline: Array<{ stage: string; count: number }>;
+      recentTasks: Array<{
+        id: string;
+        task: string;
+        client: string;
+        dueDate: string;
+        priority: string;
+      }>;
+    }>('/consultant/dashboard/metrics'),
+
+  getClients: (params?: { search?: string; status?: string; page?: number; limit?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.page != null) queryParams.append('page', params.page.toString());
+    if (params?.limit != null) queryParams.append('limit', params.limit.toString());
+    return api.get<{
+      clients: Array<{
+        id: string;
+        name: string;
+        email: string;
+        netWorth: number;
+        status: string;
+        lastContact: string;
+      }>;
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/consultant/clients${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  },
+
+  getClient: (id: string) =>
+    api.get<{
+      client: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+        birthDate: string | null;
+        riskProfile: string | null;
+        createdAt: string;
+      };
+      financial: { netWorth: number; cash: number; investments: number; debt: number };
+      notes: Array<{ id: string; content: string; date: string }>;
+      reports: Array<{ id: string; type: string; generatedAt: string; downloadUrl: string | null }>;
+    }>(`/consultant/clients/${id}`),
+
+  addClientNote: (clientId: string, note: string) =>
+    api.post<{ note: { id: string; content: string; date: string } }>(
+      `/consultant/clients/${clientId}/notes`,
+      { note }
+    ),
+
+  getPipeline: () =>
+    api.get<{
+      prospects: Array<{
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+        stage: string;
+        notes: string;
+        createdAt: string;
+      }>;
+    }>('/consultant/pipeline'),
+
+  createProspect: (data: { name?: string; email: string; phone?: string; stage?: string; notes?: string }) =>
+    api.post<{ prospect: any }>('/consultant/pipeline/prospects', data),
+
+  updateProspect: (id: string, data: { name?: string; email?: string; phone?: string; stage?: string; notes?: string }) =>
+    api.post<{ prospect: any }>('/consultant/pipeline/prospects', { id, ...data }),
+
+  updateProspectStage: (id: string, stage: string) =>
+    api.patch<{ prospect: any }>(`/consultant/pipeline/prospects/${id}/stage`, { stage }),
+
+  deleteProspect: (id: string) =>
+    api.delete<{ message: string }>(`/consultant/pipeline/prospects/${id}`),
+
+  getInvitations: () =>
+    api.get<{
+      invitations: Array<{
+        id: string;
+        email: string;
+        name: string | null;
+        status: string;
+        sentAt: string;
+        expiresAt: string | null;
+      }>;
+    }>('/consultant/invitations'),
+
+  sendInvitation: (data: { email: string; name?: string; message?: string }) =>
+    api.post<{
+      invitation: {
+        id: string;
+        email: string;
+        name: string | null;
+        status: string;
+        sentAt: string;
+      };
+    }>('/consultant/invitations', data),
+
+  getConversations: () =>
+    api.get<{
+      conversations: Array<{
+        id: string;
+        clientId: string;
+        clientName: string;
+        lastMessage: string;
+        timestamp: string;
+        unread: number;
+      }>;
+    }>('/consultant/messages/conversations'),
+
+  createConversation: (customerId: string) =>
+    api.post<{
+      conversation: { id: string; clientId: string; clientName: string };
+    }>('/consultant/messages/conversations', { customerId }),
+
+  getConversation: (id: string) =>
+    api.get<{
+      conversation: { id: string; clientId: string; clientName: string };
+      messages: Array<{
+        id: string;
+        sender: 'consultant' | 'client';
+        content: string;
+        timestamp: string;
+      }>;
+    }>(`/consultant/messages/conversations/${id}`),
+
+  sendMessage: (conversationId: string, body: string) =>
+    api.post<{
+      message: { id: string; sender: 'consultant'; content: string; timestamp: string };
+    }>(`/consultant/messages/conversations/${conversationId}/messages`, { body }),
+
+  getReports: (clientId?: string) => {
+    const queryParams = new URLSearchParams();
+    if (clientId) queryParams.append('clientId', clientId);
+    return api.get<{
+      reports: Array<{
+        id: string;
+        clientName: string;
+        type: string;
+        generatedAt: string;
+        status: string;
+        hasWatermark: boolean;
+        downloadUrl: string | null;
+      }>;
+    }>(`/consultant/reports${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  },
+
+  generateReport: (data: { clientId?: string; type: string; includeWatermark?: boolean; customBranding?: boolean }) =>
+    api.post<{
+      report: { id: string; type: string; generatedAt: string; status: string };
+      message: string;
+    }>('/consultant/reports/generate', data),
+
+  getProfile: () =>
+    api.get<{
+      user: {
+        id: string;
+        full_name: string;
+        email: string;
+        role: string;
+        phone: string | null;
+        birth_date: string | null;
+        risk_profile: string | null;
+        created_at: string;
+        cref?: string | null;
+        specialty?: string | null;
+        bio?: string | null;
+        calendly_url?: string | null;
+      };
+    }>('/consultant/profile'),
+
+  updateProfile: (data: {
+    full_name?: string;
+    phone?: string;
+    birth_date?: string;
+    cref?: string;
+    specialty?: string;
+    bio?: string;
+    calendly_url?: string;
+  }) =>
+    api.patch<{
+      user: {
+        id: string;
+        full_name: string;
+        email: string;
+        role: string;
+        phone: string | null;
+        birth_date: string | null;
+        risk_profile: string | null;
+        created_at: string;
+        cref?: string | null;
+        specialty?: string | null;
+        bio?: string | null;
+        calendly_url?: string | null;
+      };
+    }>('/consultant/profile', data),
+};

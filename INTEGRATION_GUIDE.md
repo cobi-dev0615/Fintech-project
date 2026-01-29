@@ -35,7 +35,8 @@ cp .env.example .env
 
 3. **Configurar banco de dados:**
 ```bash
-npm run db:migrate
+npm run db:schema   # fresh DB only
+npm run db:migrate # incremental migrations
 ```
 
 4. **Iniciar servidor:**

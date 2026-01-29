@@ -56,6 +56,7 @@ export default defineConfig(({ mode }) => {
   const componentTagger = mode === "development" ? getLovableTagger() : null;
   
   return {
+  base: "/",
   server: {
     host: "::",
     port: 8080,
