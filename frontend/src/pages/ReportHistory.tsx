@@ -40,7 +40,6 @@ const ReportHistory = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [removeHistoryOpen, setRemoveHistoryOpen] = useState(false);
   const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
@@ -108,16 +107,6 @@ const ReportHistory = () => {
     }
   };
 
-  const handleRemoveHistory = () => {
-    setReports([]);
-    setCurrentPage(1);
-    setRemoveHistoryOpen(false);
-    toast({
-      title: "Histórico removido",
-      description: "A lista de relatórios foi limpa da visualização.",
-    });
-  };
-
   const handleDeleteReport = async () => {
     if (!deleteReportId) return;
     try {
@@ -148,30 +137,7 @@ const ReportHistory = () => {
         </div>
       </div>
 
-      <ChartCard
-        title="Relatórios Gerados"
-        actions={
-          reports.length > 0 ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setRemoveHistoryOpen(true)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Remover histórico da visualização</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : null
-        }
-      >
+      <ChartCard title="Relatórios Gerados">
         {loading ? (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground">Carregando...</p>
@@ -305,24 +271,6 @@ const ReportHistory = () => {
           </>
         )}
       </ChartCard>
-
-      <AlertDialog open={removeHistoryOpen} onOpenChange={setRemoveHistoryOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover histórico?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A lista de relatórios será limpa desta tela. Os relatórios continuam
-              no servidor e voltarão a aparecer ao atualizar a página.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRemoveHistory}>
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog open={!!deleteReportId} onOpenChange={(open) => !open && setDeleteReportId(null)}>
         <AlertDialogContent>

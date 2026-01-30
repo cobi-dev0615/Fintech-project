@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { FileText, Calendar, BarChart3, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,9 +37,9 @@ const Reports = () => {
         description: (
           <>
             {result.message}{" "}
-            <Link to="/app/reports/history" className="underline font-medium">
+            <a href="/app/reports/history" className="underline font-medium">
               Ver no histórico
-            </Link>
+            </a>
           </>
         ),
       });
