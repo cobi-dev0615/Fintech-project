@@ -97,6 +97,30 @@ const NotificationDropdown = () => {
           : 'Sua solicitação de registro foi rejeitada. Entre em contato com o suporte.',
         variant: 'destructive',
       });
+    } else if (message.type === 'consultant_invitation') {
+      // Refresh unread count when consultant invitation arrives
+      refetchUnreadCount();
+      if (open) {
+        fetchNotifications();
+      }
+      toast({
+        title: 'Novo Convite de Consultor',
+        description: message.consultantName 
+          ? `${message.consultantName} enviou um convite para você`
+          : 'Você recebeu um convite de um consultor',
+      });
+    } else if (message.type === 'invitation_accepted') {
+      // Refresh unread count when customer accepts invitation
+      refetchUnreadCount();
+      if (open) {
+        fetchNotifications();
+      }
+      toast({
+        title: 'Convite Aceito',
+        description: message.customerName 
+          ? `${message.customerName} aceitou seu convite`
+          : 'Um cliente aceitou seu convite',
+      });
     }
   });
 

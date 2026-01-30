@@ -91,9 +91,24 @@ This document describes the complete workflow for the consultant-customer invita
 
 **Result:**
 - Relationship status changes to 'active'
-- Consultant can now view customer's data
+- `can_view_all` is set to `true` (wallet sharing enabled by default)
+- Consultant can now view customer's wallet/data
+- Customer can later disable sharing via "Compartilhar carteira" toggle on `/app/invitations`
 - Invitation removed from pending list
 - Toast notification confirms acceptance
+
+---
+
+### **Step 4b: Customer Controls Wallet Sharing (Share State)**
+
+**Location:** `/app/invitations` page — section "Consultores conectados"
+
+**Process:**
+1. Customer sees each accepted consultant with a "Compartilhar carteira" switch
+2. When **enabled** (default after accept): consultant can access customer's wallet (accounts, investments, net worth)
+3. When **disabled**: consultant cannot see financial data; they can still message and add notes. Client profile shows "O cliente desativou o compartilhamento da carteira"
+
+**Backend:** `PATCH /api/customer/consultants/:id` with `{ can_view_all: boolean }` updates the share state.
 
 ---
 

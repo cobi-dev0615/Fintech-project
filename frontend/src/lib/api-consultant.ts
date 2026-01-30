@@ -34,6 +34,7 @@ export const consultantApi = {
         netWorth: number;
         status: string;
         lastContact: string;
+        walletShared: boolean;
       }>;
       pagination: { page: number; limit: number; total: number; totalPages: number };
     }>(`/consultant/clients${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
@@ -50,7 +51,8 @@ export const consultantApi = {
         riskProfile: string | null;
         createdAt: string;
       };
-      financial: { netWorth: number; cash: number; investments: number; debt: number };
+      walletShared: boolean;
+      financial: { netWorth: number; cash: number; investments: number; debt: number } | null;
       notes: Array<{ id: string; content: string; date: string }>;
       reports: Array<{ id: string; type: string; generatedAt: string; downloadUrl: string | null }>;
     }>(`/consultant/clients/${id}`),
@@ -108,6 +110,9 @@ export const consultantApi = {
         sentAt: string;
       };
     }>('/consultant/invitations', data),
+
+  deleteInvitation: (id: string) =>
+    api.delete<{ message: string }>(`/consultant/invitations/${id}`),
 
   getConversations: () =>
     api.get<{

@@ -197,41 +197,6 @@ const ConsultantDashboard = () => {
         </ChartCard>
         </div>
       </div>
-
-      {/* Quick Actions */}
-      <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border-2 border-violet-500/20 shadow-md hover:shadow-lg transition-all duration-300">
-        <ChartCard title="Ações Rápidas" className="bg-transparent">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link to="/consultant/clients">
-            <div className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-              <Users className="h-5 w-5 text-primary mb-2" />
-              <p className="text-sm font-medium text-foreground">Ver Clientes</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Gerencie sua base de clientes
-              </p>
-            </div>
-          </Link>
-          <Link to="/consultant/invitations">
-            <div className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-              <Users className="h-5 w-5 text-primary mb-2" />
-              <p className="text-sm font-medium text-foreground">Convidar Cliente</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Envie um convite para novo cliente
-              </p>
-            </div>
-          </Link>
-          <Link to="/consultant/pipeline">
-            <div className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-              <TrendingUp className="h-5 w-5 text-primary mb-2" />
-              <p className="text-sm font-medium text-foreground">Pipeline</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Gerencie seus prospectos
-              </p>
-            </div>
-          </Link>
-        </div>
-      </ChartCard>
-      </div>
     </div>
   );
 };

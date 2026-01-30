@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
 import { cache } from '../utils/cache.js';
+import { createAlert } from '../utils/notifications.js';
 
 export async function consultantRoutes(fastify: FastifyInstance) {
   // Middleware: Only consultants can access these routes
@@ -211,6 +212,22 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         hasCustomerConsultants = true;
       } catch {}
 
+      let hasPluggyAccounts = false;
+      let hasPluggyInvestments = false;
+      let hasPluggyCreditCards = false;
+      try {
+        await db.query('SELECT 1 FROM pluggy_accounts LIMIT 1');
+        hasPluggyAccounts = true;
+      } catch {}
+      try {
+        await db.query('SELECT 1 FROM pluggy_investments LIMIT 1');
+        hasPluggyInvestments = true;
+      } catch {}
+      try {
+        await db.query('SELECT 1 FROM pluggy_credit_cards LIMIT 1');
+        hasPluggyCreditCards = true;
+      } catch {}
+
       try {
         await db.query('SELECT 1 FROM bank_accounts LIMIT 1');
         hasBankAccounts = true;
@@ -258,35 +275,43 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         }
       }
 
-      // Calculate total net worth under management
+      // Calculate total net worth under management (Pluggy first, legacy fallback)
       let totalNetWorth = 0;
-      if (hasCustomerConsultants && (hasBankAccounts || hasHoldings)) {
+      const hasPluggyForDashboard = hasPluggyAccounts || hasPluggyInvestments || hasPluggyCreditCards;
+      if (hasCustomerConsultants && (hasPluggyForDashboard || hasBankAccounts || hasHoldings)) {
         try {
-          let netWorthQuery = '';
-          if (hasBankAccounts && hasHoldings) {
-            netWorthQuery = `SELECT COALESCE(SUM(
-              (SELECT COALESCE(SUM(balance_cents), 0) FROM bank_accounts WHERE user_id = cc.customer_id) +
-              (SELECT COALESCE(SUM(market_value_cents), 0) FROM holdings WHERE user_id = cc.customer_id)
-            ), 0) / 100.0 as total_net_worth
-             FROM customer_consultants cc
-             WHERE cc.consultant_id = $1 AND cc.status = 'active'`;
-          } else if (hasBankAccounts) {
-            netWorthQuery = `SELECT COALESCE(SUM(
-              (SELECT COALESCE(SUM(balance_cents), 0) FROM bank_accounts WHERE user_id = cc.customer_id)
-            ), 0) / 100.0 as total_net_worth
-             FROM customer_consultants cc
-             WHERE cc.consultant_id = $1 AND cc.status = 'active'`;
-          } else if (hasHoldings) {
-            netWorthQuery = `SELECT COALESCE(SUM(
-              (SELECT COALESCE(SUM(market_value_cents), 0) FROM holdings WHERE user_id = cc.customer_id)
-            ), 0) / 100.0 as total_net_worth
-             FROM customer_consultants cc
-             WHERE cc.consultant_id = $1 AND cc.status = 'active'`;
+          let innerExpr = '';
+          if (hasPluggyForDashboard) {
+            const parts: string[] = [];
+            if (hasPluggyAccounts) {
+              parts.push(`COALESCE((SELECT SUM(current_balance)::float FROM pluggy_accounts WHERE user_id = cc.customer_id), 0)`);
+            }
+            if (hasPluggyInvestments) {
+              parts.push(`COALESCE((SELECT SUM(current_value)::float FROM pluggy_investments WHERE user_id = cc.customer_id), 0)`);
+            }
+            if (hasPluggyCreditCards) {
+              parts.push(`- COALESCE((SELECT SUM(balance)::float FROM pluggy_credit_cards WHERE user_id = cc.customer_id), 0)`);
+            }
+            if (parts.length > 0) {
+              innerExpr = `(${parts.join(' + ')})`;
+            }
           }
-
-          if (netWorthQuery) {
+          if (!innerExpr && (hasBankAccounts || hasHoldings)) {
+            if (hasBankAccounts && hasHoldings) {
+              innerExpr = `(SELECT COALESCE(SUM(balance_cents), 0) FROM bank_accounts WHERE user_id = cc.customer_id) + (SELECT COALESCE(SUM(market_value_cents), 0) FROM holdings WHERE user_id = cc.customer_id)`;
+            } else if (hasBankAccounts) {
+              innerExpr = `(SELECT COALESCE(SUM(balance_cents), 0) FROM bank_accounts WHERE user_id = cc.customer_id)`;
+            } else {
+              innerExpr = `(SELECT COALESCE(SUM(market_value_cents), 0) FROM holdings WHERE user_id = cc.customer_id)`;
+            }
+            innerExpr = `COALESCE(${innerExpr}, 0) / 100.0`;
+          }
+          if (innerExpr) {
+            const netWorthQuery = `SELECT COALESCE(SUM(${innerExpr}), 0)::float as total_net_worth
+             FROM customer_consultants cc
+             WHERE cc.consultant_id = $1 AND cc.status = 'active' AND COALESCE(cc.can_view_all, true) = true`;
             const netWorthResult = await db.query(netWorthQuery, [consultantId]);
-            totalNetWorth = parseFloat(netWorthResult.rows[0].total_net_worth) || 0;
+            totalNetWorth = parseFloat(netWorthResult.rows[0]?.total_net_worth || '0') || 0;
           }
         } catch (error: any) {
           fastify.log.warn('Error calculating net worth:', error.message);
@@ -434,6 +459,22 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         hasCustomerConsultants = true;
       } catch {}
 
+      let hasPluggyAccounts = false;
+      let hasPluggyInvestments = false;
+      let hasPluggyCreditCards = false;
+      try {
+        await db.query('SELECT 1 FROM pluggy_accounts LIMIT 1');
+        hasPluggyAccounts = true;
+      } catch {}
+      try {
+        await db.query('SELECT 1 FROM pluggy_investments LIMIT 1');
+        hasPluggyInvestments = true;
+      } catch {}
+      try {
+        await db.query('SELECT 1 FROM pluggy_credit_cards LIMIT 1');
+        hasPluggyCreditCards = true;
+      } catch {}
+
       try {
         await db.query('SELECT 1 FROM bank_accounts LIMIT 1');
         hasBankAccounts = true;
@@ -463,24 +504,42 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       }
 
       // Build net worth calculation based on available tables
-      let netWorthQuery = '0';
-      if (hasBankAccounts && hasHoldings) {
-        netWorthQuery = `COALESCE(
-          (SELECT SUM(balance_cents) FROM bank_accounts WHERE user_id = u.id) +
-          (SELECT SUM(market_value_cents) FROM holdings WHERE user_id = u.id),
-          0
-        ) / 100.0`;
-      } else if (hasBankAccounts) {
-        netWorthQuery = `COALESCE(
-          (SELECT SUM(balance_cents) FROM bank_accounts WHERE user_id = u.id),
-          0
-        ) / 100.0`;
-      } else if (hasHoldings) {
-        netWorthQuery = `COALESCE(
-          (SELECT SUM(market_value_cents) FROM holdings WHERE user_id = u.id),
-          0
-        ) / 100.0`;
+      let netWorthBase = '0';
+      if (hasPluggyAccounts || hasPluggyInvestments || hasPluggyCreditCards) {
+        const parts: string[] = [];
+        if (hasPluggyAccounts) {
+          parts.push(`COALESCE((SELECT SUM(current_balance)::float FROM pluggy_accounts WHERE user_id = u.id), 0)`);
+        }
+        if (hasPluggyInvestments) {
+          parts.push(`COALESCE((SELECT SUM(current_value)::float FROM pluggy_investments WHERE user_id = u.id), 0)`);
+        }
+        if (hasPluggyCreditCards) {
+          parts.push(`- COALESCE((SELECT SUM(balance)::float FROM pluggy_credit_cards WHERE user_id = u.id), 0)`);
+        }
+        if (parts.length > 0) {
+          netWorthBase = `(${parts.join(' + ')})`;
+        }
       }
+      if (netWorthBase === '0' && (hasBankAccounts || hasHoldings)) {
+        if (hasBankAccounts && hasHoldings) {
+          netWorthBase = `COALESCE(
+            (SELECT SUM(balance_cents) FROM bank_accounts WHERE user_id = u.id) +
+            (SELECT SUM(market_value_cents) FROM holdings WHERE user_id = u.id),
+            0
+          ) / 100.0`;
+        } else if (hasBankAccounts) {
+          netWorthBase = `COALESCE(
+            (SELECT SUM(balance_cents) FROM bank_accounts WHERE user_id = u.id),
+            0
+          ) / 100.0`;
+        } else if (hasHoldings) {
+          netWorthBase = `COALESCE(
+            (SELECT SUM(market_value_cents) FROM holdings WHERE user_id = u.id),
+            0
+          ) / 100.0`;
+        }
+      }
+      const netWorthQuery = `CASE WHEN COALESCE(cc.can_view_all, true) THEN (${netWorthBase}) ELSE 0 END`;
 
       // Build last contact query based on available tables
       let lastContactQuery = 'NULL';
@@ -496,6 +555,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
           u.is_active,
           cc.status as relationship_status,
           cc.created_at as relationship_created_at,
+          COALESCE(cc.can_view_all, true) as wallet_shared,
           ${netWorthQuery} as net_worth,
           ${lastContactQuery} as last_contact
         FROM customer_consultants cc
@@ -541,12 +601,13 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         netWorth: number;
         status: string;
         lastContact: string;
+        walletShared: boolean;
       }> = [];
 
       try {
         const result = await db.query(query, params);
 
-        clients = result.rows.map(row => ({
+        clients = result.rows.map((row: any) => ({
           id: row.id,
           name: row.name,
           email: row.email,
@@ -556,6 +617,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
           lastContact: row.last_contact 
             ? new Date(row.last_contact).toLocaleDateString('pt-BR')
             : 'Nunca',
+          walletShared: !!row.wallet_shared,
         }));
       } catch (error: any) {
         fastify.log.warn('Error fetching clients:', error.message);
@@ -585,15 +647,21 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       const consultantId = getConsultantId(request);
       const { id } = request.params as any;
 
-      // Verify consultant has access to this client
+      // Verify consultant has active relationship and get wallet share preference
       const accessCheck = await db.query(
-        `SELECT 1 FROM customer_consultants 
+        `SELECT status, COALESCE(can_view_all, true) as can_view_all
+         FROM customer_consultants
          WHERE consultant_id = $1 AND customer_id = $2`,
         [consultantId, id]
       );
 
       if (accessCheck.rows.length === 0) {
         return reply.code(403).send({ error: 'Access denied to this client' });
+      }
+
+      const { status: relStatus, can_view_all: walletShared } = accessCheck.rows[0];
+      if (relStatus !== 'active') {
+        return reply.code(403).send({ error: 'No active relationship with this client. Invitation may be pending or revoked.' });
       }
 
       // Get client basic info
@@ -609,33 +677,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
 
       const client = clientResult.rows[0];
 
-      // Get financial summary
-      const cashResult = await db.query(
-        `SELECT COALESCE(SUM(balance_cents), 0) / 100.0 as cash
-         FROM bank_accounts WHERE user_id = $1`,
-        [id]
-      );
-      const cash = parseFloat(cashResult.rows[0].cash) || 0;
-
-      const investmentsResult = await db.query(
-        `SELECT COALESCE(SUM(market_value_cents), 0) / 100.0 as investments
-         FROM holdings WHERE user_id = $1`,
-        [id]
-      );
-      const investments = parseFloat(investmentsResult.rows[0].investments) || 0;
-
-      // Get debt (from credit card invoices)
-      const debtResult = await db.query(
-        `SELECT COALESCE(SUM(total_cents), 0) / 100.0 as debt
-         FROM card_invoices 
-         WHERE user_id = $1 AND status = 'open'`,
-        [id]
-      );
-      const debt = parseFloat(debtResult.rows[0].debt) || 0;
-
-      const netWorth = cash + investments - debt;
-
-      // Get client notes
+      // Get client notes (allowed even when wallet not shared)
       const notesResult = await db.query(
         `SELECT id, note, created_at
          FROM client_notes
@@ -644,7 +686,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         [consultantId, id]
       );
 
-      const notes = notesResult.rows.map(row => ({
+      const notes = notesResult.rows.map((row: any) => ({
         id: row.id,
         content: row.note,
         date: new Date(row.created_at).toLocaleDateString('pt-BR'),
@@ -659,14 +701,14 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         [consultantId, id]
       );
 
-      const reports = reportsResult.rows.map(row => ({
+      const reports = reportsResult.rows.map((row: any) => ({
         id: row.id,
         type: row.type,
         generatedAt: new Date(row.created_at).toLocaleDateString('pt-BR'),
         downloadUrl: row.file_url,
       }));
 
-      return {
+      const baseResponse = {
         client: {
           id: client.id,
           name: client.full_name,
@@ -676,14 +718,95 @@ export async function consultantRoutes(fastify: FastifyInstance) {
           riskProfile: client.risk_profile,
           createdAt: client.created_at,
         },
+        walletShared: !!walletShared,
+        notes,
+        reports,
+      };
+
+      // Only return financial data if customer has enabled wallet sharing
+      if (!walletShared) {
+        return {
+          ...baseResponse,
+          financial: null,
+        };
+      }
+
+      // Get financial summary from Open Finance (Pluggy) tables, fallback to legacy
+      let cash = 0;
+      let investments = 0;
+      let debt = 0;
+
+      // Cash: pluggy_accounts (Open Finance) or bank_accounts
+      try {
+        const pluggyCashResult = await db.query(
+          `SELECT COALESCE(SUM(current_balance), 0)::float as cash
+           FROM pluggy_accounts WHERE user_id = $1`,
+          [id]
+        );
+        cash = parseFloat(pluggyCashResult.rows[0]?.cash || '0') || 0;
+      } catch {}
+      if (cash === 0) {
+        try {
+          const legacyCashResult = await db.query(
+            `SELECT COALESCE(SUM(balance_cents), 0) / 100.0 as cash
+             FROM bank_accounts WHERE user_id = $1`,
+            [id]
+          );
+          cash = parseFloat(legacyCashResult.rows[0]?.cash || '0') || 0;
+        } catch {}
+      }
+
+      // Investments: pluggy_investments (Open Finance) or holdings
+      try {
+        const pluggyInvResult = await db.query(
+          `SELECT COALESCE(SUM(current_value), 0)::float as investments
+           FROM pluggy_investments WHERE user_id = $1`,
+          [id]
+        );
+        investments = parseFloat(pluggyInvResult.rows[0]?.investments || '0') || 0;
+      } catch {}
+      if (investments === 0) {
+        try {
+          const legacyInvResult = await db.query(
+            `SELECT COALESCE(SUM(market_value_cents), 0) / 100.0 as investments
+             FROM holdings WHERE user_id = $1`,
+            [id]
+          );
+          investments = parseFloat(legacyInvResult.rows[0]?.investments || '0') || 0;
+        } catch {}
+      }
+
+      // Debt: pluggy_credit_cards (Open Finance) or card_invoices
+      try {
+        const pluggyDebtResult = await db.query(
+          `SELECT COALESCE(SUM(balance), 0)::float as debt
+           FROM pluggy_credit_cards WHERE user_id = $1`,
+          [id]
+        );
+        debt = parseFloat(pluggyDebtResult.rows[0]?.debt || '0') || 0;
+      } catch {}
+      if (debt === 0) {
+        try {
+          const legacyDebtResult = await db.query(
+            `SELECT COALESCE(SUM(total_cents), 0) / 100.0 as debt
+             FROM card_invoices 
+             WHERE user_id = $1 AND status = 'open'`,
+            [id]
+          );
+          debt = parseFloat(legacyDebtResult.rows[0]?.debt || '0') || 0;
+        } catch {}
+      }
+
+      const netWorth = cash + investments - debt;
+
+      return {
+        ...baseResponse,
         financial: {
           netWorth,
           cash,
           investments,
           debt,
         },
-        notes,
-        reports,
       };
     } catch (error: any) {
       fastify.log.error(error);
@@ -704,10 +827,10 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         return reply.code(400).send({ error: 'Note is required' });
       }
 
-      // Verify access
+      // Verify access (active relationship required)
       const accessCheck = await db.query(
         `SELECT 1 FROM customer_consultants 
-         WHERE consultant_id = $1 AND customer_id = $2`,
+         WHERE consultant_id = $1 AND customer_id = $2 AND status = 'active'`,
         [consultantId, id]
       );
 
@@ -1061,6 +1184,46 @@ export async function consultantRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Delete Invitation (only pending invitations)
+  fastify.delete('/invitations/:id', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { id } = request.params as { id: string };
+
+      // Check if invitation exists, belongs to this consultant, and is pending
+      const checkResult = await db.query(
+        `SELECT status FROM customer_consultants
+         WHERE id = $1 AND consultant_id = $2`,
+        [id, consultantId]
+      );
+
+      if (checkResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Invitation not found' });
+      }
+
+      const invitation = checkResult.rows[0];
+      if (invitation.status !== 'pending') {
+        return reply.code(400).send({ error: 'Only pending invitations can be deleted' });
+      }
+
+      // Delete the invitation
+      await db.query(
+        `DELETE FROM customer_consultants WHERE id = $1 AND consultant_id = $2`,
+        [id, consultantId]
+      );
+
+      // Clear cache
+      cache.delete(`consultant:${consultantId}:dashboard:metrics`);
+
+      return reply.send({ message: 'Invitation deleted successfully' });
+    } catch (error: any) {
+      fastify.log.error('Error deleting invitation:', error);
+      reply.code(500).send({ error: 'Failed to delete invitation', details: error.message });
+    }
+  });
+
   // Send Invitation
   fastify.post('/invitations', {
     preHandler: [requireConsultant],
@@ -1111,6 +1274,40 @@ export async function consultantRoutes(fastify: FastifyInstance) {
          RETURNING id, created_at`,
         [consultantId, customerId]
       );
+
+      // Get consultant name for notification
+      const consultantResult = await db.query(
+        `SELECT full_name FROM users WHERE id = $1`,
+        [consultantId]
+      );
+      const consultantName = consultantResult.rows[0]?.full_name || 'Um consultor';
+
+      // Create notification for the customer
+      await createAlert({
+        userId: customerId,
+        severity: 'info',
+        title: 'Novo convite de consultor',
+        message: `${consultantName} enviou um convite para você. Aceite para compartilhar seus dados financeiros.`,
+        notificationType: 'consultant_invitation',
+        linkUrl: '/app/invitations',
+        metadata: {
+          consultantId,
+          consultantName,
+          invitationId: result.rows[0].id,
+        },
+      });
+
+      // Broadcast WebSocket notification to customer for real-time update
+      const websocket = (fastify as any).websocket;
+      if (websocket?.broadcastToUser) {
+        websocket.broadcastToUser(customerId, {
+          type: 'consultant_invitation',
+          consultantName,
+          consultantId,
+          invitationId: result.rows[0].id,
+          message: `${consultantName} enviou um convite para você`,
+        });
+      }
 
       // TODO: Send email invitation here
 

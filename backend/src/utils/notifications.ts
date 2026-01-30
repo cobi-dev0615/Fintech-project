@@ -7,6 +7,7 @@ export type NotificationType =
   | 'report_ready'
   | 'message_received'
   | 'consultant_assignment'
+  | 'consultant_invitation'
   | 'subscription_update'
   | 'system_announcement'
   | 'goal_milestone'
@@ -166,6 +167,7 @@ export async function getUserNotificationPreferences(userId: string): Promise<Re
         report_ready: { enabled: true, emailEnabled: true, pushEnabled: true },
         message_received: { enabled: true, emailEnabled: true, pushEnabled: true },
         consultant_assignment: { enabled: true, emailEnabled: true, pushEnabled: true },
+        consultant_invitation: { enabled: true, emailEnabled: true, pushEnabled: true },
         subscription_update: { enabled: true, emailEnabled: true, pushEnabled: true },
         system_announcement: { enabled: true, emailEnabled: true, pushEnabled: true },
         goal_milestone: { enabled: true, emailEnabled: true, pushEnabled: true },
@@ -190,6 +192,7 @@ export async function getUserNotificationPreferences(userId: string): Promise<Re
       'report_ready',
       'message_received',
       'consultant_assignment',
+      'consultant_invitation',
       'subscription_update',
       'system_announcement',
       'goal_milestone',
@@ -223,6 +226,7 @@ export async function getUserNotificationPreferences(userId: string): Promise<Re
       report_ready: { enabled: true, emailEnabled: true, pushEnabled: true },
       message_received: { enabled: true, emailEnabled: true, pushEnabled: true },
       consultant_assignment: { enabled: true, emailEnabled: true, pushEnabled: true },
+      consultant_invitation: { enabled: true, emailEnabled: true, pushEnabled: true },
       subscription_update: { enabled: true, emailEnabled: true, pushEnabled: true },
       system_announcement: { enabled: true, emailEnabled: true, pushEnabled: true },
       goal_milestone: { enabled: true, emailEnabled: true, pushEnabled: true },

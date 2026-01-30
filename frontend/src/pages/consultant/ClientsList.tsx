@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, UserPlus, MoreVertical } from "lucide-react";
+import { Search, UserPlus, MoreVertical, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -132,17 +132,25 @@ const ClientsList = () => {
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <p className="text-sm font-medium text-foreground truncate">
                         {client.name}
                       </p>
                       {getStatusBadge(client.status)}
+                      {client.status === "active" && !client.walletShared && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                          <EyeOff className="h-3 w-3" />
+                          Carteira oculta
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {client.email}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Patrimônio: R$ {client.netWorth.toLocaleString("pt-BR")} • 
+                      {client.walletShared
+                        ? `Patrimônio: R$ ${client.netWorth.toLocaleString("pt-BR")} • `
+                        : "Carteira não compartilhada • "}
                       Último contato: {client.lastContact}
                     </p>
                   </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { UserPlus, Mail, Send } from "lucide-react";
+import { UserPlus, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,21 +25,22 @@ const SendInvitations = () => {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchInvitations = async () => {
-      try {
-        setLoading(true);
-        const data = await consultantApi.getInvitations();
-        setInvitations(data.invitations);
-      } catch (err: any) {
-        console.error("Error fetching invitations:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchInvitations = async () => {
+    try {
+      setLoading(true);
+      const data = await consultantApi.getInvitations();
+      setInvitations(data.invitations);
+    } catch (err: any) {
+      console.error("Error fetching invitations:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchInvitations();
   }, []);
 
@@ -76,6 +77,31 @@ const SendInvitations = () => {
     }
   };
 
+  const handleDeleteInvitation = async (invitationId: string, email: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o convite para ${email}?`)) {
+      return;
+    }
+
+    try {
+      setDeleting(invitationId);
+      await consultantApi.deleteInvitation(invitationId);
+      setInvitations(invitations.filter((inv) => inv.id !== invitationId));
+      toast({
+        title: "Sucesso",
+        description: "Convite excluído com sucesso",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao excluir convite",
+        variant: "destructive",
+      });
+      console.error("Error deleting invitation:", err);
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const styles = {
       pending: "bg-yellow-500/10 text-yellow-500",
@@ -94,6 +120,16 @@ const SendInvitations = () => {
         {labels[status as keyof typeof labels]}
       </Badge>
     );
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("pt-BR");
+    } catch {
+      return dateString;
+    }
   };
 
   return (
@@ -177,11 +213,25 @@ const SendInvitations = () => {
                       </div>
                       <div className="text-sm text-muted-foreground">{invitation.email}</div>
                     </div>
-                    {getStatusBadge(invitation.status)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(invitation.status)}
+                      {invitation.status === "pending" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteInvitation(invitation.id, invitation.email)}
+                          disabled={deleting === invitation.id}
+                          title="Excluir convite"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                    <span>Enviado: {invitation.sentAt}</span>
-                    <span>Expira: {invitation.expiresAt || "N/A"}</span>
+                    <span>Enviado: {formatDate(invitation.sentAt)}</span>
+                    <span>Expira: {formatDate(invitation.expiresAt)}</span>
                   </div>
                 </div>
               ))

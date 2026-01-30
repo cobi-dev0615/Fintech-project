@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, FileText, MessageSquare, Calendar, Plus, TrendingUp, Wallet } from "lucide-react";
+import { ArrowLeft, FileText, MessageSquare, Calendar, Plus, TrendingUp, Wallet, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
@@ -73,7 +73,8 @@ const ClientProfile = () => {
     );
   }
 
-  const { client, financial, notes, reports } = clientData;
+  const { client, financial, notes, reports, walletShared } = clientData;
+  const canViewWallet = walletShared !== false && financial != null;
 
   return (
     <div className="space-y-6">
@@ -93,7 +94,7 @@ const ClientProfile = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
+          <Button variant="outline" disabled={!canViewWallet}>
             <FileText className="h-4 w-4 mr-2" />
             Gerar Relatório
           </Button>
@@ -104,7 +105,18 @@ const ClientProfile = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* Wallet sharing disabled notice */}
+      {!canViewWallet && (
+        <div className="flex items-center gap-3 p-4 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+          <EyeOff className="h-5 w-5 shrink-0" />
+          <p className="text-sm font-medium">
+            O cliente desativou o compartilhamento da carteira. Você pode enviar mensagens e adicionar anotações, mas os dados financeiros não estão disponíveis.
+          </p>
+        </div>
+      )}
+
+      {/* KPI Cards - only when wallet is shared */}
+      {canViewWallet && financial && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <ProfessionalKpiCard
           title="Patrimônio Líquido"
@@ -139,6 +151,7 @@ const ClientProfile = () => {
           subtitle=""
         />
       </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -151,19 +164,31 @@ const ClientProfile = () => {
 
         <TabsContent value="overview" className="space-y-4">
           <ChartCard title="Resumo Financeiro">
-            <p className="text-sm text-muted-foreground">
-              Visão consolidada das finanças do cliente. Os dados são atualizados automaticamente 
-              através das conexões com instituições financeiras.
-            </p>
+            {canViewWallet ? (
+              <p className="text-sm text-muted-foreground">
+                Visão consolidada das finanças do cliente. Os dados são atualizados automaticamente
+                através das conexões com instituições financeiras.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                O cliente desativou o compartilhamento da carteira. Os dados financeiros não estão disponíveis.
+              </p>
+            )}
           </ChartCard>
         </TabsContent>
 
         <TabsContent value="investments" className="space-y-4">
           <ChartCard title="Portfólio de Investimentos">
-            <p className="text-sm text-muted-foreground">
-              Detalhamento completo dos investimentos do cliente, incluindo ações, FIIs, 
-              fundos e renda fixa.
-            </p>
+            {canViewWallet ? (
+              <p className="text-sm text-muted-foreground">
+                Detalhamento completo dos investimentos do cliente, incluindo ações, FIIs,
+                fundos e renda fixa.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                O cliente desativou o compartilhamento da carteira. Os dados de investimentos não estão disponíveis.
+              </p>
+            )}
           </ChartCard>
         </TabsContent>
 

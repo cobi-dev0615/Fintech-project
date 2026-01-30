@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
 import { cache } from '../utils/cache.js';
+import { createAlert } from '../utils/notifications.js';
 
 export async function customerRoutes(fastify: FastifyInstance) {
   // Middleware: Only customers can access these routes
@@ -126,10 +127,10 @@ export async function customerRoutes(fastify: FastifyInstance) {
         return reply.code(400).send({ error: 'Invitation already accepted' });
       }
 
-      // Update status to active
+      // Update status to active and enable wallet sharing (customer can disable later)
       const result = await db.query(
         `UPDATE customer_consultants 
-         SET status = 'active', updated_at = NOW()
+         SET status = 'active', can_view_all = true, updated_at = NOW()
          WHERE id = $1 AND customer_id = $2
          RETURNING id, consultant_id, status`,
         [id, customerId]
@@ -137,6 +138,41 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
       // Clear consultant dashboard cache
       cache.delete(`consultant:${invitation.consultant_id}:dashboard:metrics`);
+
+      // Get customer name for notification
+      const customerResult = await db.query(
+        `SELECT full_name FROM users WHERE id = $1`,
+        [customerId]
+      );
+      const customerName = customerResult.rows[0]?.full_name || 'Um cliente';
+
+      // Create notification for the consultant
+      await createAlert({
+        userId: invitation.consultant_id,
+        severity: 'info',
+        title: 'Convite aceito',
+        message: `${customerName} aceitou seu convite e agora você pode acessar os dados financeiros dele.`,
+        notificationType: 'consultant_invitation',
+        linkUrl: `/consultant/clients/${customerId}`,
+        metadata: {
+          customerId,
+          customerName,
+          invitationId: id,
+          action: 'accepted',
+        },
+      });
+
+      // Broadcast WebSocket notification to consultant for real-time update
+      const websocket = (fastify as any).websocket;
+      if (websocket?.broadcastToUser) {
+        websocket.broadcastToUser(invitation.consultant_id, {
+          type: 'invitation_accepted',
+          customerName,
+          customerId,
+          invitationId: id,
+          message: `${customerName} aceitou seu convite`,
+        });
+      }
 
       return {
         invitation: {
