@@ -7,6 +7,8 @@ import {
   CreditCard,
   TrendingUp,
   FileText,
+  FilePlus,
+  History,
   Target,
   Calculator,
   Settings,
@@ -27,7 +29,10 @@ import {
   Building2,
   ChevronDown,
   ChevronUp,
+  Globe,
+  BarChart2,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +58,7 @@ interface NavSubItem {
   label: string;
   href: string;
   enabled?: boolean;
+  icon?: LucideIcon;
 }
 
 interface NavItem {
@@ -75,8 +81,8 @@ const customerNavItems: NavItem[] = [
     label: "Conexões", 
     enabled: true,
     subItems: [
-      { label: "Open Finance", href: "/app/connections/open-finance", enabled: true },
-      { label: "B3", href: "/app/connections/b3", enabled: true },
+      { label: "Open Finance", href: "/app/connections/open-finance", enabled: true, icon: Globe },
+      { label: "B3", href: "/app/connections/b3", enabled: true, icon: BarChart2 },
     ]
   },
   { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true },
@@ -87,8 +93,8 @@ const customerNavItems: NavItem[] = [
     label: "Relatórios",
     enabled: true,
     subItems: [
-      { label: "Gerar Relatório", href: "/app/reports", enabled: true },
-      { label: "Histórico", href: "/app/reports/history", enabled: true },
+      { label: "Gerar Relatório", href: "/app/reports", enabled: true, icon: FilePlus },
+      { label: "Histórico", href: "/app/reports/history", enabled: true, icon: History },
     ],
   },
   { icon: Target, label: "Metas", href: "/app/goals", enabled: true },
@@ -255,7 +261,61 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
             );
           }
 
-          // Render items with submenus
+          // Render items with submenus - collapsed: dropdown to the right (icon + chevron-down = "has submenu")
+          if (hasSubItems && !showLabels) {
+            return (
+              <DropdownMenu key={item.label}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      "w-full flex flex-col items-center justify-center gap-0.5 px-2 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-primary border border-sidebar-primary/30"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    )}
+                    title={`${item.label} — Clique para ver opções`}
+                    aria-label={`${item.label}, submenu`}
+                  >
+                    <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-sidebar-primary")} />
+                    <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 opacity-90" aria-hidden />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start" sideOffset={8} className="min-w-[11rem]">
+                  <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground normal-case">
+                    {item.label}
+                  </DropdownMenuLabel>
+                  {item.subItems!.map((subItem) => {
+                    const isSubActive = location.pathname === subItem.href;
+                    const isSubEnabled = subItem.enabled !== false;
+                    if (!isSubEnabled) {
+                      return (
+                        <DropdownMenuItem key={subItem.href} disabled className="opacity-50">
+                          {subItem.icon && <subItem.icon className="mr-2 h-4 w-4 shrink-0" />}
+                          {subItem.label}
+                        </DropdownMenuItem>
+                      );
+                    }
+                    const SubIcon = subItem.icon;
+                    return (
+                      <DropdownMenuItem
+                        key={subItem.href}
+                        onClick={() => {
+                          navigate(subItem.href);
+                          onLinkClick?.();
+                        }}
+                        className={cn("flex items-center gap-2", isSubActive && "bg-accent font-medium")}
+                      >
+                        {SubIcon && <SubIcon className="h-4 w-4 shrink-0" />}
+                        {subItem.label}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          }
+
+          // Render items with submenus - expanded: inline expandable list
           if (hasSubItems && showLabels) {
             return (
               <div key={item.label}>
@@ -285,16 +345,19 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
                       const isSubEnabled = subItem.enabled !== false;
                       
                       if (!isSubEnabled) {
+                        const DisabledSubIcon = subItem.icon;
                         return (
                           <div
                             key={subItem.href}
                             className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground opacity-50 cursor-not-allowed"
                           >
+                            {DisabledSubIcon && <DisabledSubIcon className="h-3.5 w-3.5 shrink-0" />}
                             <span>{subItem.label}</span>
                           </div>
                         );
                       }
 
+                      const SubIcon = subItem.icon;
                       return (
                         <Link
                           key={subItem.href}
@@ -307,6 +370,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
                               : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                           )}
                         >
+                          {SubIcon && <SubIcon className="h-3.5 w-3.5 shrink-0" />}
                           <span>{subItem.label}</span>
                         </Link>
                       );
