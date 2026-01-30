@@ -268,6 +268,22 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
         }
       }
 
+      // 20% discount on monthly for users who invited 10+ people
+      if (billingPeriod === 'monthly' && planPrice > 0) {
+        try {
+          const countResult = await db.query(
+            `SELECT COUNT(*)::int as count FROM users WHERE invited_by_id = $1`,
+            [userId]
+          );
+          const invitedCount = countResult.rows[0]?.count ?? 0;
+          if (invitedCount >= 10) {
+            planPrice = Math.round(planPrice * 0.8);
+          }
+        } catch {
+          // invited_by_id column might not exist
+        }
+      }
+
       // Determine initial subscription status
       // For paid plans: use 'past_due' (pending payment) - will be activated when payment is confirmed
       // For free plans: use 'active' immediately

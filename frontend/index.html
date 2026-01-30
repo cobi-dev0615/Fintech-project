@@ -15,13 +15,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://cdn.pluggy.ai" />
     
     <!-- Preload critical assets -->
     <link rel="preload" href="/logo.png" as="image" type="image/png" />
     <link rel="preload" href="/favicon.ico" as="image" type="image/x-icon" />
     
-    <!-- Pluggy Connect Widget -->
-    <script src="https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js"></script>
+    <!-- Pluggy Connect Widget: load async so CDN timeout does not block the app -->
+    <script src="https://cdn.pluggy.ai/pluggy-connect/v1/pluggy-connect.js" async></script>
     
     <!-- Resource hints for faster navigation -->
     <link rel="prefetch" href="/login" />

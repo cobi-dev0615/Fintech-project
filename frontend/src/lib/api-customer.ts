@@ -21,10 +21,10 @@ export const customerApi = {
         consultantId: string;
         status: string;
       };
-    }>(`/customer/invitations/${id}/accept`),
+    }>(`/customer/invitations/${id}/accept`, {}),
 
   declineInvitation: (id: string) =>
-    api.post<{ message: string }>(`/customer/invitations/${id}/decline`),
+    api.post<{ message: string }>(`/customer/invitations/${id}/decline`, {}),
 
   getConsultants: () =>
     api.get<{
@@ -35,6 +35,28 @@ export const customerApi = {
         email: string;
         isPrimary: boolean;
         status: string;
+        canViewAll?: boolean;
       }>;
     }>('/customer/consultants'),
+
+  disconnectConsultant: (linkId: string) =>
+    api.post<{ message: string }>(`/customer/consultants/${linkId}/disconnect`, {}),
+
+  updateConsultantWalletShare: (linkId: string, canViewAll: boolean) =>
+    api.patch<{ id: string; canViewAll: boolean; message: string }>(`/customer/consultants/${linkId}`, { can_view_all: canViewAll }),
+
+  getReferralLink: () =>
+    api.get<{ link: string; token: string }>('/customer/referral-link'),
+
+  getInvitedUsers: () =>
+    api.get<{
+      invitedUsers: Array<{
+        id: string;
+        name: string;
+        email: string;
+        status: string;
+        registeredAt: string;
+      }>;
+      invitedCount: number;
+    }>('/customer/invited-users'),
 };

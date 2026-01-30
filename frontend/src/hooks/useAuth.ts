@@ -168,12 +168,14 @@ export function useAuth() {
       email,
       password,
       role,
+      invitation_token,
     }: {
       full_name: string;
       email: string;
       password: string;
       role?: 'customer' | 'consultant' | 'admin';
-    }) => authService.register(full_name, email, password, role),
+      invitation_token?: string;
+    }) => authService.register(full_name, email, password, role, invitation_token),
     onSuccess: (data: { user: any; token?: string; requiresApproval?: boolean }) => {
       hasUnauthorizedError.current = false;
       // Only set logged-in state when backend returned a token (auto-approved)

@@ -106,8 +106,6 @@ async function syncCreditCard(userId: string, connectionId: string, card: any) {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (user_id, external_card_id)
       DO UPDATE SET
-        display_name = $4,
-        limit_cents = $8,
         updated_at = NOW()`,
       [
         userId,

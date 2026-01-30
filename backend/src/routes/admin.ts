@@ -935,6 +935,142 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Get all customers' wallets (admin-only, no customer approval required)
+  fastify.get('/wallets', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const { page = '1', limit = '50', search } = request.query as { page?: string; limit?: string; search?: string };
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+      const offset = (pageNum - 1) * limitNum;
+
+      let whereClause = "WHERE u.role = 'customer'";
+      const params: any[] = [];
+      let paramIndex = 1;
+      if (search && search.trim()) {
+        whereClause += ` AND (u.full_name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
+        params.push(`%${search.trim()}%`);
+        paramIndex++;
+      }
+
+      const countResult = await db.query(
+        `SELECT COUNT(*)::int as total FROM users u ${whereClause}`,
+        params
+      );
+      const total = countResult.rows[0]?.total ?? 0;
+
+      const usersResult = await db.query(
+        `SELECT u.id, u.full_name, u.email, u.created_at
+         FROM users u
+         ${whereClause}
+         ORDER BY u.full_name ASC
+         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+        [...params, limitNum, offset]
+      );
+
+      const customers = usersResult.rows;
+      const wallets: any[] = [];
+
+      for (const u of customers) {
+        let cash = 0;
+        let investments = 0;
+        let debt = 0;
+        const accounts: any[] = [];
+        const holdingsList: any[] = [];
+        const cardsList: any[] = [];
+
+        try {
+          const cashResult = await db.query(
+            `SELECT id, display_name, account_type, balance_cents, currency, last_refreshed_at
+             FROM bank_accounts WHERE user_id = $1`,
+            [u.id]
+          );
+          for (const row of cashResult.rows) {
+            const bal = (row.balance_cents ?? 0) / 100;
+            cash += bal;
+            accounts.push({
+              id: row.id,
+              displayName: row.display_name,
+              accountType: row.account_type,
+              balanceCents: row.balance_cents,
+              balance: bal,
+              currency: row.currency,
+              lastRefreshedAt: row.last_refreshed_at,
+            });
+          }
+        } catch {}
+
+        try {
+          const invResult = await db.query(
+            `SELECT id, asset_id, quantity, market_value_cents, currency
+             FROM holdings WHERE user_id = $1`,
+            [u.id]
+          );
+          for (const row of invResult.rows) {
+            const val = (row.market_value_cents ?? 0) / 100;
+            investments += val;
+            holdingsList.push({
+              id: row.id,
+              marketValueCents: row.market_value_cents,
+              marketValue: val,
+              currency: row.currency,
+              quantity: row.quantity,
+            });
+          }
+        } catch {}
+
+        try {
+          const debtResult = await db.query(
+            `SELECT cc.id, cc.display_name, cc.balance_cents, cc.currency,
+                    (SELECT COALESCE(SUM(ci.total_cents), 0) FROM card_invoices ci
+                     WHERE ci.card_id = cc.id AND ci.status = 'open') as open_invoice_cents
+             FROM credit_cards cc WHERE cc.user_id = $1`,
+            [u.id]
+          );
+          for (const row of debtResult.rows) {
+            const openCents = parseInt(row.open_invoice_cents, 10) || 0;
+            const cardDebt = openCents / 100;
+            debt += cardDebt;
+            cardsList.push({
+              id: row.id,
+              displayName: row.display_name,
+              balanceCents: row.balance_cents,
+              openInvoiceCents: openCents,
+              debt: cardDebt,
+              currency: row.currency,
+            });
+          }
+        } catch {}
+
+        const netWorth = cash + investments - debt;
+        wallets.push({
+          customerId: u.id,
+          name: u.full_name,
+          email: u.email,
+          createdAt: u.created_at,
+          summary: { cash, investments, debt, netWorth },
+          accounts,
+          holdings: holdingsList,
+          cards: cardsList,
+        });
+      }
+
+      return reply.send({
+        wallets,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum) || 0,
+        },
+      });
+    } catch (error: any) {
+      fastify.log.error(error, 'Failed to fetch customer wallets');
+      reply.code(500).send({ error: 'Failed to fetch customer wallets', details: error.message });
+    }
+  });
+
   // Delete user
   fastify.delete('/users/:id', {
     preHandler: [requireAdmin],

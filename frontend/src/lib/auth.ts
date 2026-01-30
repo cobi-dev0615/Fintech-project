@@ -26,9 +26,10 @@ class AuthService {
     full_name: string,
     email: string,
     password: string,
-    role: 'customer' | 'consultant' | 'admin' = 'customer'
+    role: 'customer' | 'consultant' | 'admin' = 'customer',
+    invitation_token?: string
   ): Promise<AuthResponse & { requiresApproval?: boolean }> {
-    const response = await authApi.register({ full_name, email, password, role });
+    const response = await authApi.register({ full_name, email, password, role, invitation_token });
     if (response.token) {
       api.setToken(response.token);
       this.currentUser = response.user;

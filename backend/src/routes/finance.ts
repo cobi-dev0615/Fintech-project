@@ -293,6 +293,9 @@ export async function financeRoutes(fastify: FastifyInstance) {
           pc.updated_at,
           i.name as institution_name,
           i.logo_url as institution_logo,
+          (CASE WHEN i.name IS NULL THEN 'bank'
+                WHEN i.name ILIKE ANY(ARRAY['%XP%','%BTG%','%Ágora%','%Rico%','%Clear%','%Easynvest%','%Genial%','%Modal%','%Nu invest%','%Warren%','%Órama%','%Guide%','%Toro%','%Ativa%','%Safra%','%Investimentos%','%Corretora%','%Securitizadora%']) THEN 'broker'
+                ELSE 'bank' END) as institution_type,
           (
             SELECT json_build_object(
               'id', pci.id,

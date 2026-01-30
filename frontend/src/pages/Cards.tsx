@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { CreditCard, RefreshCw, Building2, Calendar } from "lucide-react";
+import { CreditCard, RefreshCw, Building2, Calendar, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { financeApi } from "@/lib/api";
@@ -11,6 +18,7 @@ const Cards = () => {
   const [cards, setCards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncingCardItemId, setSyncingCardItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -31,7 +39,7 @@ const Cards = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleSync = async () => {
+  const handleSyncAll = async () => {
     try {
       setSyncing(true);
       await financeApi.sync();
@@ -51,6 +59,28 @@ const Cards = () => {
     }
   };
 
+  const handleSyncCard = async (card: any) => {
+    const itemId = card.item_id;
+    if (!itemId) return;
+    try {
+      setSyncingCardItemId(itemId);
+      await financeApi.sync(itemId);
+      await fetchData();
+      toast({
+        title: "Cartão atualizado",
+        description: `${card.institution_name || "Cartão"} sincronizado.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Erro ao sincronizar cartão",
+        description: err?.error || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncingCardItemId(null);
+    }
+  };
+
   const totalLimit = cards.reduce((s, c) => s + parseFloat(c.limit || 0), 0);
   const totalAvailable = cards.reduce((s, c) => s + parseFloat(c.available_limit || 0), 0);
   const totalBalance = cards.reduce((s, c) => s + parseFloat(c.balance || 0), 0);
@@ -64,15 +94,24 @@ const Cards = () => {
             Cartões conectados via Open Finance
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSync}
-          disabled={syncing || loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Sincronizando…" : "Atualizar"}
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSyncAll}
+                disabled={syncing || loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "Sincronizando…" : "Sincronizar todos"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Atualizar dados de todos os cartões conectados</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {loading ? (
@@ -123,34 +162,67 @@ const Cards = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {cards.map((card: any) => {
-                  const limit = parseFloat(card.limit || 0);
-                  const available = parseFloat(card.available_limit || 0);
-                  const balance = parseFloat(card.balance || 0);
-                  const usage = limit > 0 ? (balance / limit) * 100 : 0;
-                  const inv = card.latest_invoice;
-                  const dueDate = inv?.due_date
-                    ? new Date(inv.due_date + "Z").toLocaleDateString("pt-BR")
-                    : null;
-                  return (
-                    <div
-                      key={card.id || card.pluggy_card_id}
-                      className="p-4 rounded-xl border border-border bg-muted/20 space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                            <Building2 className="h-5 w-5" />
+              <TooltipProvider>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {cards.map((card: any) => {
+                    const limit = parseFloat(card.limit || 0);
+                    const available = parseFloat(card.available_limit || 0);
+                    const balance = parseFloat(card.balance || 0);
+                    const usage = limit > 0 ? (balance / limit) * 100 : 0;
+                    const inv = card.latest_invoice;
+                    const dueDate = inv?.due_date
+                      ? new Date(inv.due_date + "Z").toLocaleDateString("pt-BR")
+                      : null;
+                    const isBroker = card.institution_type === "broker";
+                    const isSyncingThis = syncingCardItemId === card.item_id;
+                    return (
+                      <div
+                        key={card.id || card.pluggy_card_id}
+                        className="p-4 rounded-xl border border-border bg-muted/20 space-y-3"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                              {isBroker ? (
+                                <TrendingUp className="h-5 w-5" />
+                              ) : (
+                                <Building2 className="h-5 w-5" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium truncate">{card.institution_name || "Cartão"}</p>
+                                <Badge
+                                  variant="outline"
+                                  className="shrink-0 text-[10px] px-1.5 py-0 font-normal"
+                                >
+                                  {isBroker ? "Corretora" : "Banco"}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {card.brand || ""} •••• {card.last4 || "****"}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{card.institution_name || "Cartão"}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {card.brand || ""} •••• {card.last4 || "****"}
-                            </p>
-                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0"
+                                onClick={() => handleSyncCard(card)}
+                                disabled={isSyncingThis || syncing || !card.item_id}
+                              >
+                                <RefreshCw
+                                  className={`h-4 w-4 ${isSyncingThis ? "animate-spin" : ""}`}
+                                />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{isSyncingThis ? "Sincronizando…" : "Sincronizar este cartão"}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
-                      </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                           <p className="text-muted-foreground">Limite</p>
@@ -199,7 +271,8 @@ const Cards = () => {
                     </div>
                   );
                 })}
-              </div>
+                </div>
+              </TooltipProvider>
             )}
           </ChartCard>
         </>

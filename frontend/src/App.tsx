@@ -12,6 +12,7 @@ import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import AppLayout from "./components/layout/AppLayout";
 // Landing page loaded eagerly to avoid dynamic import fetch failures (e.g. behind proxy/HTTPS)
 import Index from "./pages/Index";
+import Invitations from "./pages/Invitations";
 
 // Lazy load all pages for code splitting
 // Public pages
@@ -45,7 +46,6 @@ const ITCMDCalculator = lazy(() => import("./pages/calculators/ITCMDCalculator")
 const ProfitabilitySimulator = lazy(() => import("./pages/calculators/ProfitabilitySimulator"));
 const CustomerSettings = lazy(() => import("./pages/Settings"));
 const Notifications = lazy(() => import("./pages/Notifications"));
-const Invitations = lazy(() => import("./pages/Invitations"));
 const PlanPurchase = lazy(() => import("./pages/PlanPurchase"));
 const Payment = lazy(() => import("./pages/Payment"));
 
@@ -72,6 +72,7 @@ const Settings = lazy(() => import("./pages/admin/Settings"));
 const PaymentHistory = lazy(() => import("./pages/admin/PaymentHistory"));
 const LoginHistory = lazy(() => import("./pages/admin/LoginHistory"));
 const AdminComments = lazy(() => import("./pages/admin/AdminComments"));
+const CustomerWallets = lazy(() => import("./pages/admin/CustomerWallets"));
 const Assets = lazy(() => import("./pages/Assets"));
 
 // Loading fallback component
@@ -177,6 +178,7 @@ const App = () => (
             <Route path="/admin" element={<AppLayout />}>
               <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
               <Route path="users" element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
+              <Route path="wallets" element={<Suspense fallback={<PageLoader />}><CustomerWallets /></Suspense>} />
               <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanManagement /></Suspense>} />
               <Route path="payments" element={<Suspense fallback={<PageLoader />}><PaymentHistory /></Suspense>} />
               <Route path="login-history" element={<Suspense fallback={<PageLoader />}><LoginHistory /></Suspense>} />

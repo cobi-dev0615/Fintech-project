@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,9 +14,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
+import { authApi } from "@/lib/api";
 
 const Register = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refToken = searchParams.get("ref") || undefined;
   const { registerAsync, isRegistering } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -27,6 +30,12 @@ const Register = () => {
   const [role, setRole] = useState<'customer' | 'consultant'>('customer');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inviterName, setInviterName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!refToken) return;
+    authApi.getInvitationInfo(refToken).then((r) => setInviterName(r.inviterName)).catch(() => setInviterName(null));
+  }, [refToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +52,7 @@ const Register = () => {
     }
 
     try {
-      const response = await registerAsync({ full_name: name, email, password, role });
+      const response = await registerAsync({ full_name: name, email, password, role, invitation_token: refToken });
       
       // Check if approval is required
       if (response?.requiresApproval || response?.user?.approval_status === 'pending') {
@@ -186,6 +195,14 @@ const Register = () => {
           <div className="bg-white rounded-lg p-8 border border-gray-200 shadow-lg w-full">
             {/* Title */}
             <h2 className="text-2xl font-bold text-black mb-6 text-center">Cadastrar</h2>
+            {inviterName && (
+              <Alert className="mb-6 border-primary/30 bg-primary/5">
+                <UserCheck className="h-4 w-4" />
+                <AlertDescription>
+                  Você foi convidado por <strong>{inviterName}</strong> para usar a plataforma.
+                </AlertDescription>
+              </Alert>
+            )}
             
             {error && (
               <Alert variant="destructive" className="mb-5">

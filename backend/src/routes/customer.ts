@@ -16,9 +16,9 @@ export async function customerRoutes(fastify: FastifyInstance) {
     }
   };
 
-  // Helper to get customer ID from request
+  // Helper to get customer ID from request (JWT may use userId or id)
   const getCustomerId = (request: any): string => {
-    return (request.user as any).id;
+    return (request.user as any).userId ?? (request.user as any).id;
   };
 
   // Get Pending Invitations
@@ -207,6 +207,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
         email: string;
         isPrimary: boolean;
         status: string;
+        canViewAll?: boolean;
       }> = [];
 
       try {
@@ -217,7 +218,8 @@ export async function customerRoutes(fastify: FastifyInstance) {
              u.full_name as name,
              u.email,
              cc.is_primary,
-             cc.status
+             cc.status,
+             COALESCE(cc.can_view_all, true) as can_view_all
            FROM customer_consultants cc
            JOIN users u ON cc.consultant_id = u.id
            WHERE cc.customer_id = $1 AND cc.status = 'active'
@@ -232,6 +234,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
           email: row.email,
           isPrimary: row.is_primary,
           status: row.status,
+          canViewAll: row.can_view_all,
         }));
       } catch (error: any) {
         fastify.log.warn('Error fetching consultants:', error.message);
@@ -241,6 +244,150 @@ export async function customerRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       fastify.log.error('Error fetching consultants:', error);
       reply.code(500).send({ error: 'Failed to fetch consultants', details: error.message });
+    }
+  });
+
+  // Disconnect from a consultant (revoke connection)
+  fastify.post('/consultants/:id/disconnect', {
+    preHandler: [requireCustomer],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const customerId = getCustomerId(request);
+      const { id } = request.params as { id: string };
+
+      const result = await db.query(
+        `DELETE FROM customer_consultants
+         WHERE id = $1 AND customer_id = $2 AND status = 'active'
+         RETURNING consultant_id`,
+        [id, customerId]
+      );
+
+      if (result.rows.length === 0) {
+        return reply.code(404).send({ error: 'Consultant link not found or already disconnected' });
+      }
+
+      cache.delete(`consultant:${result.rows[0].consultant_id}:dashboard:metrics`);
+      return reply.send({ message: 'Desconectado do consultor com sucesso' });
+    } catch (error: any) {
+      fastify.log.error('Error disconnecting consultant:', error);
+      reply.code(500).send({ error: 'Failed to disconnect', details: error.message });
+    }
+  });
+
+  // Update consultant permissions (share / stop sharing wallet info)
+  fastify.patch('/consultants/:id', {
+    preHandler: [requireCustomer],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const customerId = getCustomerId(request);
+      const { id } = request.params as { id: string };
+      const body = request.body as { can_view_all?: boolean };
+
+      const result = await db.query(
+        `UPDATE customer_consultants
+         SET can_view_all = COALESCE($3, can_view_all), updated_at = NOW()
+         WHERE id = $1 AND customer_id = $2 AND status = 'active'
+         RETURNING id, can_view_all`,
+        [id, customerId, body.can_view_all]
+      );
+
+      if (result.rows.length === 0) {
+        return reply.code(404).send({ error: 'Consultant link not found' });
+      }
+
+      return reply.send({
+        id: result.rows[0].id,
+        canViewAll: result.rows[0].can_view_all,
+        message: result.rows[0].can_view_all ? 'Compartilhamento de carteira ativado' : 'Compartilhamento de carteira desativado',
+      });
+    } catch (error: any) {
+      fastify.log.error('Error updating consultant permissions:', error);
+      reply.code(500).send({ error: 'Failed to update permissions', details: error.message });
+    }
+  });
+
+  // --- Referral invitations (customer invites external users via link) ---
+
+  // Get or create invitation link for the current customer
+  fastify.get('/referral-link', {
+    preHandler: [requireCustomer],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const customerId = getCustomerId(request);
+      // Use first origin if FRONTEND_URL has multiple (e.g. "https://zurt.com.br,https://www.zurt.com.br")
+      const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = frontendUrlRaw.split(',')[0].trim().replace(/\/$/, '') || 'https://www.zurt.com.br';
+      let token: string;
+
+      try {
+        const existing = await db.query(
+          'SELECT token FROM user_invite_links WHERE inviter_id = $1',
+          [customerId]
+        );
+        if (existing.rows.length > 0) {
+          token = existing.rows[0].token;
+        } else {
+          const crypto = await import('crypto');
+          token = crypto.randomBytes(24).toString('base64url');
+          await db.query(
+            'INSERT INTO user_invite_links (inviter_id, token) VALUES ($1, $2)',
+            [customerId, token]
+          );
+        }
+      } catch (err: any) {
+        if (err.code === '42P01') {
+          return reply.code(503).send({ error: 'Invitation feature not available yet' });
+        }
+        throw err;
+      }
+
+      const link = `${frontendUrl}/register?ref=${encodeURIComponent(token)}`;
+      return reply.send({ link, token });
+    } catch (error: any) {
+      fastify.log.error('Error getting referral link:', error);
+      reply.code(500).send({ error: 'Failed to get referral link', details: error.message });
+    }
+  });
+
+  // List users invited by the current customer (who registered using their link)
+  fastify.get('/invited-users', {
+    preHandler: [requireCustomer],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const customerId = getCustomerId(request);
+
+      let hasInvitedBy = false;
+      try {
+        const col = await db.query(
+          `SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'invited_by_id'`
+        );
+        hasInvitedBy = col.rows.length > 0;
+      } catch {}
+
+      if (!hasInvitedBy) {
+        return reply.send({ invitedUsers: [], invitedCount: 0 });
+      }
+
+      const result = await db.query(
+        `SELECT u.id, u.full_name, u.email, u.approval_status, u.is_active, u.created_at
+         FROM users u
+         WHERE u.invited_by_id = $1
+         ORDER BY u.created_at DESC`,
+        [customerId]
+      );
+
+      const invitedUsers = result.rows.map((row: any) => ({
+        id: row.id,
+        name: row.full_name,
+        email: row.email,
+        status: row.is_active ? (row.approval_status === 'approved' ? 'registered' : 'pending_approval') : 'inactive',
+        registeredAt: row.created_at,
+      }));
+
+      return reply.send({ invitedUsers, invitedCount: invitedUsers.length });
+    } catch (error: any) {
+      fastify.log.error('Error fetching invited users:', error);
+      reply.code(500).send({ error: 'Failed to fetch invited users', details: error.message });
     }
   });
 }

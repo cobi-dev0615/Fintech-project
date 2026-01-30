@@ -44,6 +44,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   role: z.enum(['customer', 'consultant', 'admin']).default('customer'),
+  invitation_token: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -96,13 +97,55 @@ export async function authRoutes(fastify: FastifyInstance) {
       const approvalStatus = autoApprove ? 'approved' : 'pending';
       const isActive = autoApprove;
 
-      // Create user with appropriate approval status
-      const result = await db.query(
-        `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, full_name, email, role, approval_status, created_at`,
-        [body.full_name, body.email, passwordHash, body.role, approvalStatus, isActive]
-      );
+      // Resolve inviter from invitation token (for referral invitations)
+      let invitedById: string | null = null;
+      if (body.invitation_token && body.invitation_token.trim()) {
+        try {
+          const linkResult = await db.query(
+            `SELECT inviter_id FROM user_invite_links WHERE token = $1`,
+            [body.invitation_token.trim()]
+          );
+          if (linkResult.rows.length > 0) {
+            invitedById = linkResult.rows[0].inviter_id;
+          }
+        } catch {
+          // user_invite_links table might not exist yet
+        }
+      }
+
+      // Create user with appropriate approval status (and invited_by_id if referral)
+      let result;
+      try {
+        const hasInvitedBy = await db.query(
+          `SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'invited_by_id'`
+        );
+        if (hasInvitedBy.rows.length > 0 && invitedById) {
+          result = await db.query(
+            `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active, invited_by_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             RETURNING id, full_name, email, role, approval_status, created_at`,
+            [body.full_name, body.email, passwordHash, body.role, approvalStatus, isActive, invitedById]
+          );
+        } else {
+          result = await db.query(
+            `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, full_name, email, role, approval_status, created_at`,
+            [body.full_name, body.email, passwordHash, body.role, approvalStatus, isActive]
+          );
+        }
+      } catch (insertErr: any) {
+        if (insertErr.message && insertErr.message.includes('invited_by_id')) {
+          result = await db.query(
+            `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, full_name, email, role, approval_status, created_at`,
+            [body.full_name, body.email, passwordHash, body.role, approvalStatus, isActive]
+          );
+        } else {
+          throw insertErr;
+        }
+      }
 
       const user = result.rows[0];
 
@@ -180,6 +223,33 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
       fastify.log.error(error);
       return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Get invitation info by token (public; for "You were invited by X" on register page)
+  fastify.get('/invitation-info', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { token } = request.query as { token?: string };
+      if (!token || !token.trim()) {
+        return reply.code(400).send({ error: 'Token is required' });
+      }
+      const linkResult = await db.query(
+        `SELECT u.full_name as inviter_name, u.email as inviter_email
+         FROM user_invite_links l
+         JOIN users u ON u.id = l.inviter_id
+         WHERE l.token = $1`,
+        [token.trim()]
+      );
+      if (linkResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Invitation not found or expired' });
+      }
+      return reply.send({
+        inviterName: linkResult.rows[0].inviter_name,
+        inviterEmail: linkResult.rows[0].inviter_email,
+      });
+    } catch (err: any) {
+      fastify.log.error(err);
+      return reply.code(500).send({ error: 'Failed to load invitation info' });
     }
   });
   
@@ -289,16 +359,44 @@ export async function authRoutes(fastify: FastifyInstance) {
     try {
       const userId = (request.user as any).userId;
       
-      const result = await db.query(
-        'SELECT id, full_name, email, role, phone, country_code, birth_date, risk_profile, created_at FROM users WHERE id = $1',
-        [userId]
-      );
+      let result;
+      try {
+        result = await db.query(
+          `SELECT u.id, u.full_name, u.email, u.role, u.phone, u.country_code, u.birth_date, u.risk_profile, u.created_at, u.invited_by_id,
+                  inviter.full_name as inviter_name, inviter.email as inviter_email
+           FROM users u
+           LEFT JOIN users inviter ON inviter.id = u.invited_by_id
+           WHERE u.id = $1`,
+          [userId]
+        );
+      } catch {
+        result = await db.query(
+          'SELECT id, full_name, email, role, phone, country_code, birth_date, risk_profile, created_at FROM users WHERE id = $1',
+          [userId]
+        );
+      }
       
       if (result.rows.length === 0) {
         return reply.code(404).send({ error: 'User not found' });
       }
       
-      return reply.send({ user: result.rows[0] });
+      const row = result.rows[0];
+      const user: any = { ...row };
+      if (row.invited_by_id != null && row.inviter_name) {
+        user.invitedBy = { id: row.invited_by_id, name: row.inviter_name, email: row.inviter_email };
+      }
+      try {
+        const countResult = await db.query(
+          'SELECT COUNT(*)::int as count FROM users WHERE invited_by_id = $1',
+          [userId]
+        );
+        user.invitedCount = countResult.rows[0]?.count ?? 0;
+        user.referralDiscountEligible = user.invitedCount >= 10;
+      } catch {
+        user.invitedCount = 0;
+        user.referralDiscountEligible = false;
+      }
+      return reply.send({ user });
     } catch (error) {
       fastify.log.error(error);
       return reply.code(500).send({ error: 'Internal server error' });

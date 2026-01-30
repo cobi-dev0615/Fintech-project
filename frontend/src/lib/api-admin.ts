@@ -80,6 +80,26 @@ export const adminApi = {
   deleteUser: (id: string) =>
     api.delete<{ message: string; deletedUser: { id: string; full_name: string; email: string } }>(`/admin/users/${id}`),
 
+  getCustomerWallets: (params?: { page?: number; limit?: number; search?: string }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.page != null) queryParams.append('page', params.page.toString());
+    if (params?.limit != null) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    return api.get<{
+      wallets: Array<{
+        customerId: string;
+        name: string;
+        email: string;
+        createdAt: string;
+        summary: { cash: number; investments: number; debt: number; netWorth: number };
+        accounts: Array<{ id: string; displayName: string; accountType: string; balanceCents: number; balance: number; currency: string; lastRefreshedAt: string | null }>;
+        holdings: Array<{ id: string; marketValueCents: number; marketValue: number; currency: string; quantity: number }>;
+        cards: Array<{ id: string; displayName: string; balanceCents: number; openInvoiceCents: number; debt: number; currency: string }>;
+      }>;
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/admin/wallets${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
+  },
+
   getSubscriptions: (params?: { search?: string; status?: string; plan?: string; page?: number; limit?: number; startDate?: string; endDate?: string }) => {
     const queryParams = new URLSearchParams();
     if (params?.search) queryParams.append('search', params.search);
