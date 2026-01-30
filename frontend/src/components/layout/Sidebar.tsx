@@ -89,6 +89,7 @@ const customerNavItems: NavItem[] = [
     ]
   },
   { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true },
+  { icon: Receipt, label: "Transações", href: "/app/transactions", enabled: true },
   { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: true },
   { icon: TrendingUp, label: "Investimentos", href: "/app/investments", enabled: true },
   {

@@ -36,6 +36,7 @@ const Investments = lazy(() => import("./pages/Investments"));
 const B3Portfolio = lazy(() => import("./pages/B3Portfolio"));
 const Reports = lazy(() => import("./pages/Reports"));
 const ReportHistory = lazy(() => import("./pages/ReportHistory"));
+const TransactionHistory = lazy(() => import("./pages/TransactionHistory"));
 const Goals = lazy(() => import("./pages/Goals"));
 const FIRECalculator = lazy(() => import("./pages/calculators/FIRECalculator"));
 const CompoundInterest = lazy(() => import("./pages/calculators/CompoundInterest"));
@@ -127,6 +128,7 @@ const App = () => (
               <Route path="connections/open-finance" element={<Suspense fallback={<PageLoader />}><OpenFinance /></Suspense>} />
               <Route path="connections/b3" element={<Suspense fallback={<PageLoader />}><B3 /></Suspense>} />
               <Route path="accounts" element={<Suspense fallback={<PageLoader />}><Accounts /></Suspense>} />
+              <Route path="transactions" element={<Suspense fallback={<PageLoader />}><TransactionHistory /></Suspense>} />
               <Route path="cards" element={<Suspense fallback={<PageLoader />}><Cards /></Suspense>} />
               <Route path="assets" element={<Suspense fallback={<PageLoader />}><Assets /></Suspense>} />
               <Route path="investments" element={<Suspense fallback={<PageLoader />}><Investments /></Suspense>} />
