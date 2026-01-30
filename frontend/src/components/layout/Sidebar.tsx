@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
@@ -30,6 +30,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
@@ -75,7 +82,15 @@ const customerNavItems: NavItem[] = [
   { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true },
   { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: true },
   { icon: TrendingUp, label: "Investimentos", href: "/app/investments", enabled: true },
-  { icon: FileText, label: "Relatórios", href: "/app/reports", enabled: true },
+  {
+    icon: FileText,
+    label: "Relatórios",
+    enabled: true,
+    subItems: [
+      { label: "Gerar Relatório", href: "/app/reports", enabled: true },
+      { label: "Histórico", href: "/app/reports/history", enabled: true },
+    ],
+  },
   { icon: Target, label: "Metas", href: "/app/goals", enabled: true },
   { icon: Calculator, label: "Calculadoras", href: "/app/calculators", enabled: true },
 ];
@@ -112,6 +127,7 @@ const adminNavItems: NavItem[] = [
 
 const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOpenChange }: SidebarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isMobile = useIsMobile();
 

@@ -1,5 +1,5 @@
-// Determine API base URL dynamically based on current origin
-const getApiBaseUrl = () => {
+// Determine API base URL dynamically based on current origin (exported for report download URLs, etc.)
+export const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }

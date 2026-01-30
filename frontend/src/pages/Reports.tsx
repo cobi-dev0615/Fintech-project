@@ -1,24 +1,15 @@
-import { useState, useEffect } from "react";
-import { FileText, Download, Calendar, BarChart3, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { FileText, Calendar, BarChart3, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { reportsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-interface Report {
-  id: string;
-  type: string;
-  date: string;
-  status: "generated" | "pending";
-  downloadUrl?: string | null;
-}
-
 const Reports = () => {
   const [reportType, setReportType] = useState<string>("");
   const [dateRange, setDateRange] = useState<string>("");
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
 
@@ -28,35 +19,6 @@ const Reports = () => {
     { value: "portfolio_analysis", label: "Evolução de Investimentos", icon: TrendingUp, description: "Performance e evolução patrimonial" },
     { value: "monthly", label: "Relatório Mensal", icon: Calendar, description: "Resumo mensal de receitas e despesas" },
   ];
-
-  const reportTypeLabels: Record<string, string> = {
-    consolidated: "Relatório Consolidado",
-    transactions: "Extrato de Transações",
-    portfolio_analysis: "Evolução de Investimentos",
-    monthly: "Relatório Mensal",
-  };
-
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        setLoading(true);
-        const data = await reportsApi.getAll();
-        setReports(data.reports.map(r => ({
-          id: r.id,
-          type: reportTypeLabels[r.type] || r.type,
-          date: r.generatedAt,
-          status: r.status === "generated" ? "generated" : "pending",
-          downloadUrl: r.downloadUrl,
-        })));
-      } catch (err: any) {
-        console.error("Error fetching reports:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReports();
-  }, []);
 
   const handleGenerate = async () => {
     if (!reportType) {
@@ -71,15 +33,16 @@ const Reports = () => {
     try {
       setGenerating(true);
       const result = await reportsApi.generate({ type: reportType, dateRange: dateRange || undefined });
-      setReports([{
-        id: result.report.id,
-        type: reportTypeLabels[reportType] || reportType,
-        date: result.report.generatedAt,
-        status: "pending",
-      }, ...reports]);
       toast({
         title: "Sucesso",
-        description: result.message,
+        description: (
+          <>
+            {result.message}{" "}
+            <Link to="/app/reports/history" className="underline font-medium">
+              Ver no histórico
+            </Link>
+          </>
+        ),
       });
       setReportType("");
       setDateRange("");
@@ -178,57 +141,6 @@ const Reports = () => {
           </div>
         ))}
       </div>
-
-      {/* Generated Reports History */}
-      <ChartCard title="Relatórios Gerados">
-        <div className="space-y-3">
-          {loading ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">Carregando...</p>
-            </div>
-          ) : reports.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">
-                Nenhum relatório gerado ainda
-              </p>
-            </div>
-          ) : (
-            reports.map((report) => (
-              <div
-                key={report.id}
-                className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-muted">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {report.type}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Gerado em {report.date}
-                    </p>
-                  </div>
-                </div>
-                {report.downloadUrl ? (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={report.downloadUrl} download>
-                      <Download className="h-4 w-4 mr-2" />
-                      Baixar
-                    </a>
-                  </Button>
-                ) : (
-                  <Button variant="outline" size="sm" disabled>
-                    <Download className="h-4 w-4 mr-2" />
-                    Processando...
-                  </Button>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </ChartCard>
     </div>
   );
 };

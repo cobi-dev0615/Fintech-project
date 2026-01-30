@@ -35,6 +35,7 @@ const Cards = lazy(() => import("./pages/Cards"));
 const Investments = lazy(() => import("./pages/Investments"));
 const B3Portfolio = lazy(() => import("./pages/B3Portfolio"));
 const Reports = lazy(() => import("./pages/Reports"));
+const ReportHistory = lazy(() => import("./pages/ReportHistory"));
 const Goals = lazy(() => import("./pages/Goals"));
 const Calculators = lazy(() => import("./pages/Calculators"));
 const FIRECalculator = lazy(() => import("./pages/calculators/FIRECalculator"));
@@ -132,6 +133,7 @@ const App = () => (
               <Route path="investments" element={<Suspense fallback={<PageLoader />}><Investments /></Suspense>} />
               <Route path="investments/b3" element={<Suspense fallback={<PageLoader />}><B3Portfolio /></Suspense>} />
               <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
+              <Route path="reports/history" element={<Suspense fallback={<PageLoader />}><ReportHistory /></Suspense>} />
               <Route path="goals" element={<Suspense fallback={<PageLoader />}><Goals /></Suspense>} />
               <Route path="calculators" element={<Suspense fallback={<PageLoader />}><Calculators /></Suspense>} />
               <Route path="calculators/fire" element={<Suspense fallback={<PageLoader />}><FIRECalculator /></Suspense>} />

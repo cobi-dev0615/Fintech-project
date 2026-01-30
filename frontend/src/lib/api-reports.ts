@@ -22,4 +22,7 @@ export const reportsApi = {
       };
       message: string;
     }>('/reports/generate', data),
+
+  delete: (id: string) =>
+    api.delete<{ ok: boolean; message: string }>(`/reports/${id}`),
 };

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { TrendingUp, PieChart as PieChartIcon, RefreshCw, Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { financeApi } from "@/lib/api";
