@@ -226,7 +226,7 @@ const Settings = () => {
         risk_profile: profile.riskProfile || undefined,
       });
       localStorage.setItem("userCountryCode", profile.countryCode);
-      toast({ title: "Sucesso", description: "Perfil atualizado com sucesso" });
+      toast({ title: "Sucesso", description: "Perfil atualizado com sucesso", variant: "success" });
     } catch (error: any) {
       toast({ title: "Erro", description: error?.error || "Erro ao atualizar perfil", variant: "destructive" });
     } finally {
@@ -238,7 +238,7 @@ const Settings = () => {
     setSaving(true);
     try {
       localStorage.setItem("userNotifications", JSON.stringify(notifications));
-      toast({ title: "Sucesso", description: "Notificações atualizadas" });
+      toast({ title: "Sucesso", description: "Notificações atualizadas", variant: "success" });
     } catch (error: any) {
       toast({ title: "Erro", description: "Erro ao atualizar notificações", variant: "destructive" });
     } finally {
@@ -262,7 +262,7 @@ const Settings = () => {
         currentPassword: password.currentPassword,
         newPassword: password.newPassword,
       });
-      toast({ title: "Sucesso", description: "Senha alterada com sucesso" });
+      toast({ title: "Sucesso", description: "Senha alterada com sucesso", variant: "success" });
       setPassword({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error: any) {
       setPasswordError(error?.error || "Erro ao alterar senha");
@@ -276,7 +276,7 @@ const Settings = () => {
     setSaving(true);
     try {
       await commentsApi.create(newComment);
-      toast({ title: "Sucesso", description: "Comentário enviado ao administrador" });
+      toast({ title: "Sucesso", description: "Comentário enviado ao administrador", variant: "success" });
       setNewComment({ title: "", content: "" });
       setIsCreateModalOpen(false);
       fetchComments(1);
@@ -291,7 +291,7 @@ const Settings = () => {
     if (!confirm("Tem certeza que deseja excluir este comentário?")) return;
     try {
       await commentsApi.delete(id);
-      toast({ title: "Sucesso", description: "Comentário excluído" });
+      toast({ title: "Sucesso", description: "Comentário excluído", variant: "success" });
       fetchComments(commentsPagination.page);
     } catch (error: any) {
       toast({ title: "Erro", description: "Erro ao excluir comentário", variant: "destructive" });

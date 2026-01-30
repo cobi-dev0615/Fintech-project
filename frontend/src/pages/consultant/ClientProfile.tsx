@@ -1,8 +1,18 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, FileText, MessageSquare, Calendar, Plus, TrendingUp, Wallet, EyeOff } from "lucide-react";
+import { ArrowLeft, FileText, MessageSquare, Plus, TrendingUp, Wallet, EyeOff, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +26,9 @@ const ClientProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newNote, setNewNote] = useState("");
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!id) return;
@@ -47,6 +60,7 @@ const ClientProfile = () => {
         notes: [result.note, ...(prev?.notes || [])],
       }));
       setNewNote("");
+      toast({ title: "Sucesso", description: "Anotação adicionada", variant: "success" });
     } catch (err: any) {
       console.error("Error adding note:", err);
       toast({
@@ -54,6 +68,33 @@ const ClientProfile = () => {
         description: err?.error || "Erro ao adicionar anotação",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteNoteClick = (noteId: string) => {
+    setNoteToDelete(noteId);
+  };
+
+  const handleConfirmDeleteNote = async () => {
+    if (!id || !noteToDelete) return;
+
+    try {
+      setDeletingNoteId(noteToDelete);
+      await consultantApi.deleteClientNote(id, noteToDelete);
+      setClientData((prev: any) => ({
+        ...prev,
+        notes: (prev?.notes || []).filter((n: any) => n.id !== noteToDelete),
+      }));
+      toast({ title: "Sucesso", description: "Anotação excluída", variant: "success" });
+      setNoteToDelete(null);
+    } catch (err: any) {
+      toast({
+        title: "Erro",
+        description: err?.error || "Erro ao excluir anotação",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingNoteId(null);
     }
   };
 
@@ -245,10 +286,20 @@ const ClientProfile = () => {
               {notes.map((note) => (
                 <div
                   key={note.id}
-                  className="p-4 rounded-lg border border-border"
+                  className="p-4 rounded-lg border border-border group"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-muted-foreground">{note.date}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteNoteClick(note.id)}
+                      disabled={deletingNoteId === note.id}
+                      title="Excluir anotação"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                   <p className="text-sm text-foreground">{note.content}</p>
                 </div>
@@ -268,6 +319,31 @@ const ClientProfile = () => {
           </ChartCard>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Note Confirmation Dialog */}
+      <AlertDialog open={!!noteToDelete} onOpenChange={(open) => !open && setNoteToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir anotação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A anotação será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingNoteId}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmDeleteNote();
+              }}
+              disabled={!!deletingNoteId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingNoteId ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

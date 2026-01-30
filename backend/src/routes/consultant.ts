@@ -861,6 +861,46 @@ export async function consultantRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Delete Client Note
+  fastify.delete('/clients/:id/notes/:noteId', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { id, noteId } = request.params as any;
+
+      // Verify access (active relationship required)
+      const accessCheck = await db.query(
+        `SELECT 1 FROM customer_consultants 
+         WHERE consultant_id = $1 AND customer_id = $2 AND status = 'active'`,
+        [consultantId, id]
+      );
+
+      if (accessCheck.rows.length === 0) {
+        return reply.code(403).send({ error: 'Access denied' });
+      }
+
+      // Delete only if note belongs to this consultant and customer
+      const result = await db.query(
+        `DELETE FROM client_notes 
+         WHERE id = $1 AND consultant_id = $2 AND customer_id = $3
+         RETURNING id`,
+        [noteId, consultantId, id]
+      );
+
+      if (result.rows.length === 0) {
+        return reply.code(404).send({ error: 'Note not found' });
+      }
+
+      cache.delete(`consultant:${consultantId}:dashboard:metrics`);
+
+      return reply.send({ message: 'Anotação excluída com sucesso' });
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
   // Get Pipeline (CRM Leads)
   fastify.get('/pipeline', {
     preHandler: [requireConsultant],

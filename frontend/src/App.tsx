@@ -156,7 +156,6 @@ const App = () => (
               <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><ConsultantDashboard /></Suspense>} />
               <Route path="clients" element={<Suspense fallback={<PageLoader />}><ClientsList /></Suspense>} />
               <Route path="clients/:id" element={<Suspense fallback={<PageLoader />}><ClientProfile /></Suspense>} />
-              <Route path="assets" element={<Suspense fallback={<PageLoader />}><Assets /></Suspense>} />
               <Route path="pipeline" element={<Suspense fallback={<PageLoader />}><Pipeline /></Suspense>} />
               <Route path="invitations" element={<Suspense fallback={<PageLoader />}><SendInvitations /></Suspense>} />
               <Route path="messages" element={<Suspense fallback={<PageLoader />}><Messages /></Suspense>} />

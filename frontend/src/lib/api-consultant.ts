@@ -63,6 +63,9 @@ export const consultantApi = {
       { note }
     ),
 
+  deleteClientNote: (clientId: string, noteId: string) =>
+    api.delete<{ message: string }>(`/consultant/clients/${clientId}/notes/${noteId}`),
+
   getPipeline: () =>
     api.get<{
       prospects: Array<{

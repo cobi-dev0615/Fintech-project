@@ -210,7 +210,7 @@ const Settings = () => {
         bio: profile.bio || undefined,
       });
       localStorage.setItem("consultantCountryCode", profile.countryCode);
-      toast({ title: "Sucesso", description: "Perfil profissional atualizado" });
+      toast({ title: "Sucesso", description: "Perfil profissional atualizado", variant: "success" });
     } catch (error: any) {
       toast({ title: "Erro", description: error?.error || "Erro ao atualizar perfil", variant: "destructive" });
     } finally {
@@ -242,7 +242,7 @@ const Settings = () => {
         currentPassword: password.currentPassword,
         newPassword: password.newPassword,
       });
-      toast({ title: "Sucesso", description: "Senha alterada com sucesso" });
+      toast({ title: "Sucesso", description: "Senha alterada com sucesso", variant: "success" });
       setPassword({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error: any) {
       setPasswordError(error?.error || "Erro ao alterar senha");
@@ -271,7 +271,7 @@ const Settings = () => {
     if (!confirm("Tem certeza que deseja excluir este comentário?")) return;
     try {
       await commentsApi.delete(id);
-      toast({ title: "Sucesso", description: "Comentário excluído" });
+      toast({ title: "Sucesso", description: "Comentário excluído", variant: "success" });
       fetchComments(commentsPagination.page);
     } catch (error: any) {
       toast({ title: "Erro", description: "Erro ao excluir comentário", variant: "destructive" });

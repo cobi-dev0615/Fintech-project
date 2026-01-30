@@ -93,7 +93,7 @@ const OpenFinance = () => {
                 itemData?.id ?? itemData?.itemId ?? itemData?.item?.id ?? itemData?.item?.itemId ?? (typeof itemData === "string" ? itemData : null);
               if (!itemId) throw new Error("Item ID não recebido da Pluggy.");
               await connectionsApi.create({ itemId });
-              toast({ title: "Sucesso", description: "Conexão criada com sucesso. Dados sendo sincronizados..." });
+              toast({ title: "Sucesso", description: "Conexão criada com sucesso. Dados sendo sincronizados...", variant: "success" });
               await fetchConnections();
             } catch (err: any) {
               toast({ title: "Erro", description: err?.error || "Erro ao salvar conexão", variant: "destructive" });
@@ -122,7 +122,7 @@ const OpenFinance = () => {
     try {
       setCreating(true);
       await financeApi.sync();
-      toast({ title: "Sucesso", description: "Dados sincronizados com sucesso." });
+      toast({ title: "Sucesso", description: "Dados sincronizados com sucesso.", variant: "success" });
       await fetchConnections();
     } catch (err: any) {
       toast({ title: "Erro", description: err?.error || "Erro ao sincronizar.", variant: "destructive" });

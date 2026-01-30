@@ -120,7 +120,6 @@ const customerNavItems: NavItem[] = [
 const consultantNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/consultant/dashboard", enabled: true },
   { icon: Bell, label: "Notificações", href: "/consultant/notifications", enabled: true },
-  { icon: LayoutDashboard, label: "Ativos", href: "/consultant/assets", enabled: true },
   { icon: Package, label: "Planos", href: "/consultant/plans", enabled: true },
   { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: true },
   { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: true },
