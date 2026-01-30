@@ -28,7 +28,7 @@ class AuthService {
     password: string,
     role: 'customer' | 'consultant' | 'admin' = 'customer',
     invitation_token?: string
-  ): Promise<AuthResponse & { requiresApproval?: boolean }> {
+  ): Promise<AuthResponse & { requiresApproval?: boolean; requiresVerification?: boolean; email?: string }> {
     const response = await authApi.register({ full_name, email, password, role, invitation_token });
     if (response.token) {
       api.setToken(response.token);
@@ -36,7 +36,22 @@ class AuthService {
     } else {
       this.currentUser = null;
     }
+    return response as AuthResponse & { requiresApproval?: boolean; requiresVerification?: boolean; email?: string };
+  }
+
+  async registerVerify(email: string, code: string): Promise<AuthResponse & { requiresApproval?: boolean }> {
+    const response = await authApi.registerVerify({ email, code });
+    if (response.token) {
+      api.setToken(response.token);
+      this.currentUser = response.user;
+    } else {
+      this.currentUser = null;
+    }
     return response as AuthResponse & { requiresApproval?: boolean };
+  }
+
+  async registerResendCode(email: string): Promise<void> {
+    await authApi.registerResend({ email });
   }
 
   async getCurrentUser(): Promise<User | null> {

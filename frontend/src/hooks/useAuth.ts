@@ -176,9 +176,8 @@ export function useAuth() {
       role?: 'customer' | 'consultant' | 'admin';
       invitation_token?: string;
     }) => authService.register(full_name, email, password, role, invitation_token),
-    onSuccess: (data: { user: any; token?: string; requiresApproval?: boolean }) => {
+    onSuccess: (data: { user?: any; token?: string; requiresApproval?: boolean; requiresVerification?: boolean }) => {
       hasUnauthorizedError.current = false;
-      // Only set logged-in state when backend returned a token (auto-approved)
       if (data.token) {
         setHasToken(true);
         setUser(data.user);
@@ -188,6 +187,26 @@ export function useAuth() {
         queryClient.setQueryData(['auth', 'me'], null);
       }
     },
+  });
+
+  const verifyRegistrationMutation = useMutation({
+    mutationFn: ({ email, code }: { email: string; code: string }) =>
+      authService.registerVerify(email, code),
+    onSuccess: (data: { user: any; token?: string; requiresApproval?: boolean }) => {
+      hasUnauthorizedError.current = false;
+      if (data.token) {
+        setHasToken(true);
+        setUser(data.user);
+        queryClient.setQueryData(['auth', 'me'], data.user);
+      } else {
+        setUser(null);
+        queryClient.setQueryData(['auth', 'me'], null);
+      }
+    },
+  });
+
+  const resendCodeMutation = useMutation({
+    mutationFn: (email: string) => authService.registerResendCode(email),
   });
 
   const logout = () => {
@@ -206,8 +225,12 @@ export function useAuth() {
     loginAsync: loginMutation.mutateAsync,
     register: registerMutation.mutate,
     registerAsync: registerMutation.mutateAsync,
+    verifyRegistrationAsync: verifyRegistrationMutation.mutateAsync,
+    resendCodeAsync: resendCodeMutation.mutateAsync,
+    isResendingCode: resendCodeMutation.isPending,
     logout,
     isLoggingIn: loginMutation.isPending,
     isRegistering: registerMutation.isPending,
+    isVerifying: verifyRegistrationMutation.isPending,
   };
 }

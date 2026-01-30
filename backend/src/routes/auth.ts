@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '../db/connection.js';
 import { getClientIp } from '../utils/audit.js';
 import { createAlert } from '../utils/notifications.js';
+import { sendRegistrationOtp } from '../utils/email.js';
 
 // Helper function to log login attempts
 async function logLoginAttempt(userId: string | null, request: FastifyRequest, success: boolean, email?: string) {
@@ -52,31 +53,106 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+/** Create user in DB and optionally notify admins; returns { user, autoApprove }. */
+async function createUserAndNotify(
+  fastify: FastifyInstance,
+  payload: { full_name: string; email: string; password_hash: string; role: string; approval_status: string; is_active: boolean; invited_by_id: string | null }
+) {
+  const { full_name, email, password_hash, role, approval_status, is_active, invited_by_id } = payload;
+  let result;
+  try {
+    const hasInvitedBy = await db.query(
+      `SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'invited_by_id'`
+    );
+    if (hasInvitedBy.rows.length > 0 && invited_by_id) {
+      result = await db.query(
+        `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active, invited_by_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, full_name, email, role, approval_status, created_at`,
+        [full_name, email, password_hash, role, approval_status, is_active, invited_by_id]
+      );
+    } else {
+      result = await db.query(
+        `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, full_name, email, role, approval_status, created_at`,
+        [full_name, email, password_hash, role, approval_status, is_active]
+      );
+    }
+  } catch (insertErr: any) {
+    if (insertErr.message && insertErr.message.includes('invited_by_id')) {
+      result = await db.query(
+        `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, full_name, email, role, approval_status, created_at`,
+        [full_name, email, password_hash, role, approval_status, is_active]
+      );
+    } else {
+      throw insertErr;
+    }
+  }
+  const user = result.rows[0];
+  const autoApprove = approval_status === 'approved';
+
+  if (!autoApprove) {
+    try {
+      const adminsResult = await db.query(
+        'SELECT id FROM users WHERE role = $1 AND approval_status = $2',
+        ['admin', 'approved']
+      );
+      for (const admin of adminsResult.rows) {
+        await createAlert({
+          userId: admin.id,
+          severity: 'info',
+          title: 'Nova Solicitação de Registro',
+          message: `${user.full_name} (${user.email}) solicitou registro como ${user.role}`,
+          notificationType: 'account_activity',
+          linkUrl: `/admin/users`,
+          metadata: {
+            userId: user.id,
+            userName: user.full_name,
+            userEmail: user.email,
+            userRole: user.role,
+          },
+        });
+      }
+      const websocket = (fastify as any).websocket;
+      if (websocket && websocket.broadcastToAdmins) {
+        websocket.broadcastToAdmins({
+          type: 'new_registration',
+          message: 'Nova solicitação de registro',
+          userId: user.id,
+          userName: user.full_name,
+          userEmail: user.email,
+          userRole: user.role,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Error sending notification for new registration');
+    }
+  }
+
+  return { user, autoApprove };
+}
+
 export async function authRoutes(fastify: FastifyInstance) {
-  // Register
+  // Register – create user directly (no 2FA)
   fastify.post('/register', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = registerSchema.parse(request.body);
 
-      // Do not allow self-registration as admin
       if (body.role === 'admin') {
         return reply.code(400).send({ error: 'Registration as administrator is not allowed' });
       }
-      
-      // Check if user exists
-      const existingUser = await db.query(
-        'SELECT id FROM users WHERE email = $1',
-        [body.email]
-      );
-      
+
+      const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [body.email]);
       if (existingUser.rows.length > 0) {
         return reply.code(400).send({ error: 'Email already registered' });
       }
-      
-      // Hash password
+
       const passwordHash = await bcrypt.hash(body.password, 10);
 
-      // Check system setting: require admin approval or auto-approve new registrations
       let registrationRequiresApproval = true;
       try {
         const settingsResult = await db.query(
@@ -86,20 +162,17 @@ export async function authRoutes(fastify: FastifyInstance) {
           registrationRequiresApproval = false;
         }
       } catch {
-        // Table may not exist; default to require approval
+        // ignore
       }
 
-      // Auto-approve specific test accounts (override setting)
       const autoApprovedEmails = ['admin@zurt.com', 'customer@zurt.com', 'consultant@zurt.com'];
       const forceAutoApprove = autoApprovedEmails.includes(body.email.toLowerCase());
       const autoApprove = forceAutoApprove || !registrationRequiresApproval;
-
       const approvalStatus = autoApprove ? 'approved' : 'pending';
       const isActive = autoApprove;
 
-      // Resolve inviter from invitation token (for referral invitations)
       let invitedById: string | null = null;
-      if (body.invitation_token && body.invitation_token.trim()) {
+      if (body.invitation_token?.trim()) {
         try {
           const linkResult = await db.query(
             `SELECT inviter_id FROM user_invite_links WHERE token = $1`,
@@ -109,48 +182,21 @@ export async function authRoutes(fastify: FastifyInstance) {
             invitedById = linkResult.rows[0].inviter_id;
           }
         } catch {
-          // user_invite_links table might not exist yet
+          // table might not exist
         }
       }
 
-      // Create user with appropriate approval status (and invited_by_id if referral)
-      let result;
-      try {
-        const hasInvitedBy = await db.query(
-          `SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'invited_by_id'`
-        );
-        if (hasInvitedBy.rows.length > 0 && invitedById) {
-          result = await db.query(
-            `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active, invited_by_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             RETURNING id, full_name, email, role, approval_status, created_at`,
-            [body.full_name, body.email, passwordHash, body.role, approvalStatus, isActive, invitedById]
-          );
-        } else {
-          result = await db.query(
-            `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             RETURNING id, full_name, email, role, approval_status, created_at`,
-            [body.full_name, body.email, passwordHash, body.role, approvalStatus, isActive]
-          );
-        }
-      } catch (insertErr: any) {
-        if (insertErr.message && insertErr.message.includes('invited_by_id')) {
-          result = await db.query(
-            `INSERT INTO users (full_name, email, password_hash, role, approval_status, is_active)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             RETURNING id, full_name, email, role, approval_status, created_at`,
-            [body.full_name, body.email, passwordHash, body.role, approvalStatus, isActive]
-          );
-        } else {
-          throw insertErr;
-        }
-      }
+      const { user, autoApprove: approved } = await createUserAndNotify(fastify, {
+        full_name: body.full_name,
+        email: body.email,
+        password_hash: passwordHash,
+        role: body.role,
+        approval_status: approvalStatus,
+        is_active: isActive,
+        invited_by_id: invitedById,
+      });
 
-      const user = result.rows[0];
-
-      if (autoApprove) {
-        // Auto-approved: generate JWT so user can log in immediately
+      if (approved) {
         const token = fastify.jwt.sign({ userId: user.id, role: user.role });
         return reply.code(201).send({
           message: 'Registration successful. You can log in now.',
@@ -164,46 +210,6 @@ export async function authRoutes(fastify: FastifyInstance) {
           },
           token,
         });
-      }
-
-      // Require approval: notify admins
-      try {
-        const adminsResult = await db.query(
-          'SELECT id FROM users WHERE role = $1 AND approval_status = $2',
-          ['admin', 'approved']
-        );
-
-        for (const admin of adminsResult.rows) {
-          await createAlert({
-            userId: admin.id,
-            severity: 'info',
-            title: 'Nova Solicitação de Registro',
-            message: `${user.full_name} (${user.email}) solicitou registro como ${user.role}`,
-            notificationType: 'account_activity',
-            linkUrl: `/admin/users`,
-            metadata: {
-              userId: user.id,
-              userName: user.full_name,
-              userEmail: user.email,
-              userRole: user.role,
-            },
-          });
-        }
-
-        const websocket = (fastify as any).websocket;
-        if (websocket && websocket.broadcastToAdmins) {
-          websocket.broadcastToAdmins({
-            type: 'new_registration',
-            message: 'Nova solicitação de registro',
-            userId: user.id,
-            userName: user.full_name,
-            userEmail: user.email,
-            userRole: user.role,
-            timestamp: new Date().toISOString(),
-          });
-        }
-      } catch (error) {
-        fastify.log.error({ err: error }, 'Error sending notification for new registration');
       }
 
       return reply.code(201).send({

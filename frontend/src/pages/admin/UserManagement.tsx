@@ -283,21 +283,10 @@ const UserManagement = () => {
         await adminApi.updateUserStatus(selectedUser.id, editingStatus as 'active' | 'blocked');
       }
 
-      // Refresh user detail
+      // Refresh user detail and table
       const response = await adminApi.getUser(selectedUser.id);
       setUserDetail(response.user);
-      
-      // Update users list
-      setUsers(users.map(u => {
-        if (u.id === selectedUser.id) {
-          return {
-            ...u,
-            role: editingRole as any,
-            status: editingStatus as any,
-          };
-        }
-        return u;
-      }));
+      fetchUsers();
 
       setIsEditing(false);
       toast({
@@ -332,32 +321,7 @@ const UserManagement = () => {
       });
       setIsDeleteDialogOpen(false);
       setDeletingUserId(null);
-      
-      // Refresh users list
-      const fetchUsers = async () => {
-        setLoading(true);
-        try {
-          const params: any = {
-            page: page.toString(),
-            limit: pagination.limit.toString(),
-          };
-          if (searchQuery) params.search = searchQuery;
-          if (roleFilter) params.role = roleFilter;
-          if (statusFilter) params.status = statusFilter;
-
-          const response = await adminApi.getUsers(params);
-          setUsers(response.users);
-          setPagination(response.pagination);
-        } catch (error: any) {
-          toast({
-            title: "Erro",
-            description: error?.error || "Falha ao carregar usuários",
-            variant: "destructive",
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
+      // Refresh only the table
       fetchUsers();
     } catch (error: any) {
       console.error('Failed to delete user:', error);
@@ -424,33 +388,8 @@ const UserManagement = () => {
           variant: "default",
         });
         
-        // Refresh users list even if already approved
-        setLoading(true);
-        try {
-          const params: any = {
-            page: page.toString(),
-            limit: pagination.limit.toString(),
-          };
-          if (searchQuery) params.search = searchQuery;
-          if (roleFilter) params.role = roleFilter;
-          if (statusFilter) params.status = statusFilter;
-
-          const response = await adminApi.getUsers(params);
-          setUsers(response.users.map(user => ({
-            ...user,
-            role: user.role as "customer" | "consultant" | "admin",
-            status: user.status as "active" | "blocked" | "pending",
-          })));
-          setPagination(response.pagination);
-        } catch (refreshError: any) {
-          toast({
-            title: "Erro",
-            description: refreshError?.error || "Falha ao carregar usuários",
-            variant: "destructive",
-          });
-        } finally {
-          setLoading(false);
-        }
+        // Refresh only the table
+        fetchUsers();
       } else {
         toast({
           title: "Erro",

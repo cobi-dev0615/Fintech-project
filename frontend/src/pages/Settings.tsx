@@ -6,7 +6,6 @@ import {
   Lock, 
   ChevronRight,
   History,
-  LayoutDashboard,
   MessageSquare,
   Plus,
   Loader2,
@@ -138,7 +137,6 @@ const Settings = () => {
     { id: "notifications", label: "Notificações", icon: Bell },
     { id: "password", label: "Senha", icon: Lock },
     { id: "history", label: "Histórico de Planos", icon: History },
-    { id: "assets", label: "Ativos", icon: LayoutDashboard },
     { id: "comments", label: "Comentários", icon: MessageSquare },
   ];
 
@@ -461,15 +459,6 @@ const Settings = () => {
                   </Pagination>
                 </div>
               )}
-            </ChartCard>
-          )}
-
-          {activeStep === "assets" && (
-            <ChartCard title="Meus Ativos">
-              <div className="text-center py-12">
-                <LayoutDashboard className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-20" />
-                <p className="text-muted-foreground">Em breve: visualize todos os seus ativos consolidados aqui.</p>
-              </div>
             </ChartCard>
           )}
 

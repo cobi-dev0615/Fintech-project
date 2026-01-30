@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { authApi } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -53,24 +54,20 @@ const Register = () => {
 
     try {
       const response = await registerAsync({ full_name: name, email, password, role, invitation_token: refToken });
-      
-      // Check if approval is required
+
       if (response?.requiresApproval || response?.user?.approval_status === 'pending') {
         setError(null);
-        // Show success message and redirect to login
-        alert("Registro realizado com sucesso! Sua conta está aguardando aprovação do administrador. Você receberá uma notificação quando sua conta for aprovada.");
+        toast({
+          variant: "success",
+          title: "Registro realizado com sucesso!",
+          description: "Sua conta está aguardando aprovação do administrador. Você receberá uma notificação quando sua conta for aprovada.",
+        });
         navigate("/login");
         return;
       }
-      
-      // Redirect based on user role (if already approved)
+
       const userRole = response?.user?.role || role;
-      let redirectPath = "/app/dashboard"; // Default to customer dashboard
-      
-      if (userRole === 'consultant') {
-        redirectPath = "/consultant/dashboard";
-      }
-      
+      const redirectPath = userRole === 'consultant' ? "/consultant/dashboard" : "/app/dashboard";
       navigate(redirectPath);
     } catch (err: any) {
       setError(err?.error || "Erro ao criar conta. Tente novamente.");
@@ -196,9 +193,9 @@ const Register = () => {
             {/* Title */}
             <h2 className="text-2xl font-bold text-black mb-6 text-center">Cadastrar</h2>
             {inviterName && (
-              <Alert className="mb-6 border-primary/30 bg-primary/5">
+              <Alert className="mb-6 border-primary/30 bg-primary/5 text-black">
                 <UserCheck className="h-4 w-4" />
-                <AlertDescription>
+                <AlertDescription className="text-black">
                   Você foi convidado por <strong>{inviterName}</strong> para usar a plataforma.
                 </AlertDescription>
               </Alert>
