@@ -31,6 +31,9 @@ import {
   ChevronUp,
   Globe,
   BarChart2,
+  Home,
+  Coins,
+  Percent,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -98,7 +101,18 @@ const customerNavItems: NavItem[] = [
     ],
   },
   { icon: Target, label: "Metas", href: "/app/goals", enabled: true },
-  { icon: Calculator, label: "Calculadoras", href: "/app/calculators", enabled: true },
+  {
+    icon: Calculator,
+    label: "Calculadoras",
+    enabled: true,
+    subItems: [
+      { label: "FIRE", href: "/app/calculators/fire", enabled: true, icon: TrendingUp },
+      { label: "Juros Compostos", href: "/app/calculators/compound", enabled: true, icon: Calculator },
+      { label: "Usufruto", href: "/app/calculators/usufruct", enabled: true, icon: Home },
+      { label: "ITCMD", href: "/app/calculators/itcmd", enabled: true, icon: Coins },
+      { label: "Rentabilidade", href: "/app/calculators/profitability", enabled: true, icon: Percent },
+    ],
+  },
 ];
 
 // Consultant navigation items - all enabled
@@ -112,7 +126,18 @@ const consultantNavItems: NavItem[] = [
   { icon: UserPlus, label: "Enviar Convites", href: "/consultant/invitations", enabled: true },
   { icon: MessageSquare, label: "Mensagens", href: "/consultant/messages", enabled: true },
   { icon: FileText, label: "Relatórios", href: "/consultant/reports", enabled: true },
-  { icon: Calculator, label: "Calculadoras", href: "/consultant/calculators", enabled: true },
+  {
+    icon: Calculator,
+    label: "Calculadoras",
+    enabled: true,
+    subItems: [
+      { label: "FIRE", href: "/consultant/calculators/fire", enabled: true, icon: TrendingUp },
+      { label: "Juros Compostos", href: "/consultant/calculators/compound", enabled: true, icon: Calculator },
+      { label: "Usufruto", href: "/consultant/calculators/usufruct", enabled: true, icon: Home },
+      { label: "ITCMD", href: "/consultant/calculators/itcmd", enabled: true, icon: Coins },
+      { label: "Rentabilidade", href: "/consultant/calculators/profitability", enabled: true, icon: Percent },
+    ],
+  },
   { icon: TrendingUp, label: "Simulador", href: "/consultant/simulator", enabled: true },
 ];
 

@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ScrollToTop from "@/components/ui/ScrollToTop";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
@@ -37,7 +37,6 @@ const B3Portfolio = lazy(() => import("./pages/B3Portfolio"));
 const Reports = lazy(() => import("./pages/Reports"));
 const ReportHistory = lazy(() => import("./pages/ReportHistory"));
 const Goals = lazy(() => import("./pages/Goals"));
-const Calculators = lazy(() => import("./pages/Calculators"));
 const FIRECalculator = lazy(() => import("./pages/calculators/FIRECalculator"));
 const CompoundInterest = lazy(() => import("./pages/calculators/CompoundInterest"));
 const UsufructCalculator = lazy(() => import("./pages/calculators/UsufructCalculator"));
@@ -135,7 +134,7 @@ const App = () => (
               <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
               <Route path="reports/history" element={<Suspense fallback={<PageLoader />}><ReportHistory /></Suspense>} />
               <Route path="goals" element={<Suspense fallback={<PageLoader />}><Goals /></Suspense>} />
-              <Route path="calculators" element={<Suspense fallback={<PageLoader />}><Calculators /></Suspense>} />
+              <Route path="calculators" element={<Navigate to="calculators/fire" replace />} />
               <Route path="calculators/fire" element={<Suspense fallback={<PageLoader />}><FIRECalculator /></Suspense>} />
               <Route path="calculators/compound" element={<Suspense fallback={<PageLoader />}><CompoundInterest /></Suspense>} />
               <Route path="calculators/usufruct" element={<Suspense fallback={<PageLoader />}><UsufructCalculator /></Suspense>} />
@@ -159,7 +158,7 @@ const App = () => (
               <Route path="invitations" element={<Suspense fallback={<PageLoader />}><SendInvitations /></Suspense>} />
               <Route path="messages" element={<Suspense fallback={<PageLoader />}><Messages /></Suspense>} />
               <Route path="reports" element={<Suspense fallback={<PageLoader />}><ProfessionalReports /></Suspense>} />
-              <Route path="calculators" element={<Suspense fallback={<PageLoader />}><Calculators /></Suspense>} />
+              <Route path="calculators" element={<Navigate to="calculators/fire" replace />} />
               <Route path="calculators/fire" element={<Suspense fallback={<PageLoader />}><FIRECalculator /></Suspense>} />
               <Route path="calculators/compound" element={<Suspense fallback={<PageLoader />}><CompoundInterest /></Suspense>} />
               <Route path="calculators/usufruct" element={<Suspense fallback={<PageLoader />}><UsufructCalculator /></Suspense>} />
