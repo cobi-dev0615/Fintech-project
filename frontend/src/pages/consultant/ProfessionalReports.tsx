@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Download, Plus, Settings, User, Calendar } from "lucide-react";
+import { FileText, Download, Trash2, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -8,7 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { consultantApi } from "@/lib/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { consultantApi, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, formatDistanceToNow } from "date-fns";
@@ -29,6 +39,7 @@ const ProfessionalReports = () => {
   const [reportType, setReportType] = useState("");
   const [includeWatermark, setIncludeWatermark] = useState(true);
   const [customBranding, setCustomBranding] = useState(false);
+  const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -81,6 +92,7 @@ const ProfessionalReports = () => {
       toast({
         title: "Sucesso",
         description: result.message || "Relatório iniciado. Estará disponível em breve.",
+        variant: "success",
       });
       setSelectedClient("all");
       setReportType("");
@@ -93,6 +105,38 @@ const ProfessionalReports = () => {
         description: err?.error || "Erro ao gerar relatório",
         variant: "destructive",
       });
+    },
+  });
+
+  const reportDownloadUrl = (reportId: string) => `${getApiBaseUrl()}/consultant/reports/${reportId}/file`;
+
+  const handleDownload = async (reportId: string) => {
+    const url = reportDownloadUrl(reportId);
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+    try {
+      const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {}, credentials: "include" });
+      if (!res.ok) throw new Error("Falha ao baixar");
+      const blob = await res.blob();
+      const name = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ?? `relatorio-${reportId}.pdf`;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      toast({ title: "Erro", description: "Não foi possível baixar o relatório.", variant: "destructive" });
+    }
+  };
+
+  const deleteReportMutation = useMutation({
+    mutationFn: (id: string) => consultantApi.deleteReport(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consultant', 'reports'] });
+      setDeleteReportId(null);
+      toast({ title: "Relatório removido", description: "O relatório foi excluído.", variant: "success" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err?.error || "Erro ao excluir relatório", variant: "destructive" });
     },
   });
 
@@ -276,8 +320,8 @@ const ProfessionalReports = () => {
                       <h3 className="font-semibold text-foreground">
                         {reportTypeLabels[report.type] || report.type}
                       </h3>
-                      <Badge variant={report.status === "generated" ? "default" : "secondary"}>
-                        {report.status === "generated" ? "Gerado" : "Pendente"}
+                      <Badge variant="default">
+                        Gerado
                       </Badge>
                       {report.hasWatermark && (
                         <Badge variant="outline" className="text-xs">
@@ -299,24 +343,41 @@ const ProfessionalReports = () => {
                     </div>
                   </div>
                 </div>
-                {report.downloadUrl ? (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={report.downloadUrl} download target="_blank" rel="noopener noreferrer">
-                      <Download className="h-4 w-4 mr-2" />
-                      Baixar
-                    </a>
-                  </Button>
-                ) : (
-                  <Button variant="outline" size="sm" disabled>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleDownload(report.id)}>
                     <Download className="h-4 w-4 mr-2" />
-                    Processando...
+                    Baixar
                   </Button>
-                )}
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteReportId(report.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))
           )}
         </div>
       </ChartCard>
+
+      <AlertDialog open={!!deleteReportId} onOpenChange={(open) => !open && setDeleteReportId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir relatório?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O relatório será removido permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteReportMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteReportId && deleteReportMutation.mutate(deleteReportId)}
+              disabled={deleteReportMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteReportMutation.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -222,7 +222,7 @@ const Settings = () => {
     setSaving(true);
     try {
       localStorage.setItem("consultantNotifications", JSON.stringify(notifications));
-      toast({ title: "Sucesso", description: "Preferências de notificação atualizadas" });
+      toast({ title: "Sucesso", description: "Preferências de notificação atualizadas", variant: "success" });
     } catch (error: any) {
       toast({ title: "Erro", description: "Erro ao atualizar notificações", variant: "destructive" });
     } finally {
@@ -256,7 +256,7 @@ const Settings = () => {
     setSaving(true);
     try {
       await commentsApi.create(newComment);
-      toast({ title: "Sucesso", description: "Comentário enviado com sucesso" });
+      toast({ title: "Sucesso", description: "Comentário enviado com sucesso", variant: "success" });
       setNewComment({ title: "", content: "" });
       setIsCreateModalOpen(false);
       fetchComments(1);

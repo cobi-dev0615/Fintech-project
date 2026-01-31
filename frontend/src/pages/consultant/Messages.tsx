@@ -168,6 +168,7 @@ const Messages = () => {
       toast({
         title: "Conversa criada",
         description: `Conversa iniciada com ${data.conversation.clientName}`,
+        variant: "success",
       });
     },
     onError: (err: any) => {

@@ -178,6 +178,9 @@ export const consultantApi = {
       message: string;
     }>('/consultant/reports/generate', data),
 
+  deleteReport: (id: string) =>
+    api.delete<{ message: string }>(`/consultant/reports/${id}`),
+
   getProfile: () =>
     api.get<{
       user: {

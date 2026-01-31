@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
 import { cache } from '../utils/cache.js';
 import { createAlert } from '../utils/notifications.js';
+import { buildReportPdf, getFallbackPdfBuffer } from '../utils/pdf-report.js';
 
 export async function consultantRoutes(fastify: FastifyInstance) {
   // Middleware: Only consultants can access these routes
@@ -1837,6 +1838,150 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       fastify.log.error('Error fetching reports:', error);
       console.error('Full error:', error);
       reply.code(500).send({ error: 'Failed to fetch reports', details: error.message });
+    }
+  });
+
+  // Download report PDF (generated on-the-fly)
+  fastify.get<{ Params: { id: string } }>('/reports/:id/file', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { id } = request.params;
+
+      const result = await db.query(
+        `SELECT id, type, params_json, created_at, target_user_id FROM reports
+         WHERE id = $1 AND owner_user_id = $2`,
+        [id, consultantId]
+      );
+
+      if (!result.rows.length) {
+        return reply.code(404).send({ error: 'Report not found' });
+      }
+
+      const report = result.rows[0];
+      const reportType = report.type;
+      const createdAt = new Date(report.created_at).toLocaleDateString('pt-BR');
+      const params = report.params_json && typeof report.params_json === 'object'
+        ? report.params_json
+        : typeof report.params_json === 'string'
+          ? (() => { try { return JSON.parse(report.params_json); } catch { return {}; } })()
+          : {};
+      const dateRange = params?.dateRange as string | undefined;
+      const targetUserId = report.target_user_id || consultantId;
+
+      type TxRow = { occurred_at: Date; description: string | null; merchant: string | null; category: string | null; amount_cents: number; currency: string; account_name?: string | null };
+      let transactions: TxRow[] = [];
+      if (reportType === 'transactions') {
+        const range = dateRange || 'last-year';
+        const now = new Date();
+        let fromDate: Date;
+        if (range === 'last-month') {
+          fromDate = new Date(now);
+          fromDate.setMonth(fromDate.getMonth() - 1);
+        } else if (range === 'last-3-months') {
+          fromDate = new Date(now);
+          fromDate.setMonth(fromDate.getMonth() - 3);
+        } else {
+          fromDate = new Date(now);
+          fromDate.setFullYear(fromDate.getFullYear() - 1);
+        }
+        const fromStr = fromDate.toISOString().slice(0, 10);
+        try {
+          const hasTx = await db.query('SELECT 1 FROM transactions LIMIT 1').then(() => true).catch(() => false);
+          if (hasTx) {
+            const txResult = await db.query(
+              `SELECT t.occurred_at, t.description, t.merchant, t.category, t.amount_cents, t.currency,
+                      ba.display_name as account_name
+               FROM transactions t
+               LEFT JOIN bank_accounts ba ON t.account_id = ba.id
+               WHERE t.user_id = $1 AND t.occurred_at >= $2
+               ORDER BY t.occurred_at DESC LIMIT 500`,
+              [targetUserId, fromDate.toISOString()]
+            );
+            transactions = txResult.rows;
+          }
+        } catch (e) {
+          fastify.log.warn('Could not load transactions for report: %s', (e as Error).message);
+        }
+        if (transactions.length === 0) {
+          try {
+            const hasPluggy = await db.query('SELECT 1 FROM pluggy_transactions LIMIT 1').then(() => true).catch(() => false);
+            if (hasPluggy) {
+              const ptResult = await db.query(
+                `SELECT pt.date, pt.description, pt.merchant, pt.category, pt.amount, pa.name as account_name
+                 FROM pluggy_transactions pt
+                 LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
+                 WHERE pt.user_id = $1 AND pt.date >= $2
+                 ORDER BY pt.date DESC, pt.created_at DESC LIMIT 500`,
+                [targetUserId, fromStr]
+              );
+              transactions = ptResult.rows.map((r: { date: string; description: string | null; merchant: string | null; category: string | null; amount: string | number; account_name?: string | null }) => ({
+                occurred_at: new Date(r.date),
+                description: r.description,
+                merchant: r.merchant,
+                category: r.category,
+                amount_cents: Math.round(Number(r.amount) * 100),
+                currency: 'BRL',
+                account_name: r.account_name,
+              }));
+            }
+          } catch (e) {
+            fastify.log.warn('Could not load Pluggy transactions: %s', (e as Error).message);
+          }
+        }
+      }
+
+      let pdf: Buffer;
+      try {
+        pdf = await buildReportPdf({
+          reportType,
+          createdAt,
+          dateRange,
+          params,
+          transactions: transactions.length ? transactions : undefined,
+        });
+        if (!pdf || pdf.length === 0) {
+          pdf = getFallbackPdfBuffer(reportType, createdAt);
+        }
+      } catch (err: any) {
+        fastify.log.warn('PDFKit unavailable, using fallback: %s', err?.message);
+        pdf = getFallbackPdfBuffer(reportType, createdAt);
+      }
+
+      const filename = `relatorio-${reportType}-${createdAt.replace(/\//g, '-')}.pdf`;
+      return reply
+        .header('Content-Type', 'application/pdf')
+        .header('Content-Disposition', `attachment; filename="${filename}"`)
+        .send(pdf);
+    } catch (error: any) {
+      fastify.log.error('Error serving report file:', error);
+      reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Delete report
+  fastify.delete<{ Params: { id: string } }>('/reports/:id', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { id } = request.params;
+
+      const result = await db.query(
+        'DELETE FROM reports WHERE id = $1 AND owner_user_id = $2 RETURNING id',
+        [id, consultantId]
+      );
+
+      if (!result.rows.length) {
+        return reply.code(404).send({ error: 'Report not found' });
+      }
+
+      cache.delete(`consultant:${consultantId}:dashboard:metrics`);
+      return { message: 'Relatório removido.' };
+    } catch (error: any) {
+      fastify.log.error('Error deleting report:', error);
+      reply.code(500).send({ error: 'Internal server error' });
     }
   });
 

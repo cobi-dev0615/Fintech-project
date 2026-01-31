@@ -128,6 +128,7 @@ const UserManagement = () => {
         description: checked
           ? "Novos usuários precisarão de aprovação do administrador para acessar o sistema."
           : "Novos usuários poderão acessar o sistema automaticamente após o registro.",
+        variant: "success",
       });
     } catch (error: any) {
       toast({
@@ -292,6 +293,7 @@ const UserManagement = () => {
       toast({
         title: "Sucesso",
         description: "Alterações salvas com sucesso",
+        variant: "success",
       });
     } catch (error: any) {
       console.error('Failed to save changes:', error);
@@ -318,6 +320,7 @@ const UserManagement = () => {
       toast({
         title: "Sucesso",
         description: "Usuário excluído com sucesso",
+        variant: "success",
       });
       setIsDeleteDialogOpen(false);
       setDeletingUserId(null);
@@ -339,6 +342,7 @@ const UserManagement = () => {
       toast({
         title: "Sucesso",
         description: `Usuário ${user.name} aprovado com sucesso`,
+        variant: "success",
       });
       
       // Optimistically update the user in the list
@@ -407,6 +411,7 @@ const UserManagement = () => {
       toast({
         title: "Sucesso",
         description: `Usuário ${user.name} rejeitado com sucesso`,
+        variant: "success",
       });
       
       // Optimistically update the user in the list

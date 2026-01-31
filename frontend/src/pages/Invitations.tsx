@@ -86,7 +86,7 @@ const Invitations = () => {
   const copyReferralLink = () => {
     if (!referralLink) return;
     navigator.clipboard.writeText(referralLink);
-    toast({ title: "Link copiado!", description: "O link de convite foi copiado para a área de transferência." });
+    toast({ title: "Link copiado!", description: "O link de convite foi copiado para a área de transferência.", variant: "success" });
   };
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -120,6 +120,7 @@ const Invitations = () => {
       toast({
         title: "Convite aceito",
         description: `Você agora está conectado com ${invitation.consultantName}`,
+        variant: "success",
       });
     } catch (err: any) {
       toast({
@@ -173,7 +174,7 @@ const Invitations = () => {
       queryClient.invalidateQueries({ queryKey: ['customer', 'invitations'] });
       setDisconnectDialogOpen(false);
       setConsultantToDisconnect(null);
-      toast({ title: "Desconectado", description: "Você foi desconectado do consultor." });
+      toast({ title: "Desconectado", description: "Você foi desconectado do consultor.", variant: "success" });
     } catch (err: any) {
       toast({ title: "Erro", description: err?.error || "Erro ao desconectar", variant: "destructive" });
     } finally {
@@ -189,6 +190,7 @@ const Invitations = () => {
       toast({
         title: !currentValue ? "Carteira compartilhada" : "Compartilhamento desativado",
         description: !currentValue ? "O consultor pode ver suas informações de carteira." : "O consultor não pode mais ver suas informações de carteira.",
+        variant: "success",
       });
     } catch (err: any) {
       toast({ title: "Erro", description: err?.error || "Erro ao atualizar permissão", variant: "destructive" });

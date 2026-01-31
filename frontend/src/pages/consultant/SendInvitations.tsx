@@ -64,6 +64,7 @@ const SendInvitations = () => {
       toast({
         title: "Sucesso",
         description: `Convite enviado para ${email}`,
+        variant: "success",
       });
     } catch (err: any) {
       toast({
@@ -89,6 +90,7 @@ const SendInvitations = () => {
       toast({
         title: "Sucesso",
         description: "Convite excluído com sucesso",
+        variant: "success",
       });
     } catch (err: any) {
       toast({

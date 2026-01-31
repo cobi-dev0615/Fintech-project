@@ -187,6 +187,7 @@ const NotificationDropdown = () => {
       toast({
         title: "Notificação removida",
         description: "A notificação foi removida com sucesso.",
+        variant: "success",
       });
     } catch (error: any) {
       toast({

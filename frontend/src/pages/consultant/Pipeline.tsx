@@ -180,6 +180,7 @@ const Pipeline = () => {
       toast({
         title: "Sucesso",
         description: "Prospecto criado com sucesso",
+        variant: "success",
       });
     } catch (err: any) {
       toast({
@@ -217,6 +218,7 @@ const Pipeline = () => {
       toast({
         title: "Sucesso",
         description: "Prospecto atualizado com sucesso",
+        variant: "success",
       });
     } catch (err: any) {
       toast({
@@ -240,6 +242,7 @@ const Pipeline = () => {
       toast({
         title: "Sucesso",
         description: "Prospecto removido com sucesso",
+        variant: "success",
       });
     } catch (err: any) {
       setDeletingId(null);

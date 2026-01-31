@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import { Writable } from 'stream';
+import getStream from 'get-stream';
 
 const require = createRequire(import.meta.url);
 const PDFDocument = require('pdfkit');
@@ -7,13 +7,52 @@ const PDFDocument = require('pdfkit');
 const REPORT_TYPE_LABELS: Record<string, string> = {
   consolidated: 'Relatório Consolidado',
   transactions: 'Extrato de Transações',
-  portfolio_analysis: 'Evolução de Investimentos',
+  portfolio_analysis: 'Análise de Portfólio',
   monthly: 'Relatório Mensal',
   monthly_evolution: 'Relatório Mensal',
   advisor_custom: 'Relatório Personalizado',
   financial_planning: 'Planejamento Financeiro',
   custom: 'Relatório Customizado',
 };
+
+/** Minimal valid PDF with one line of text when pdfkit is not available. */
+export function getFallbackPdfBuffer(reportType: string, createdAt: string): Buffer {
+  const title = `Relatorio zurT - ${reportType} - ${createdAt}`;
+  const escapedTitle = title.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  const streamContent = `BT
+/F1 14 Tf
+50 700 Td
+(${escapedTitle}) Tj
+ET
+`;
+  const streamLen = Buffer.byteLength(streamContent, 'utf8');
+  const lines: string[] = [];
+  lines.push('%PDF-1.4\n');
+  const off1 = Buffer.byteLength(lines.join(''), 'utf8');
+  lines.push('1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n');
+  const off2 = Buffer.byteLength(lines.join(''), 'utf8');
+  lines.push('2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n');
+  const off3 = Buffer.byteLength(lines.join(''), 'utf8');
+  lines.push('3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj\n');
+  const off4 = Buffer.byteLength(lines.join(''), 'utf8');
+  lines.push(`4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n`);
+  const off5 = Buffer.byteLength(lines.join(''), 'utf8');
+  lines.push(`5 0 obj<</Length ${streamLen}>>stream
+${streamContent}
+endstream
+endobj
+`);
+  const xrefStart = Buffer.byteLength(lines.join(''), 'utf8');
+  const xref = [
+    'xref', '0 6', '0000000000 65535 f ',
+    `${String(off1).padStart(10, '0')} 00000 n `, `${String(off2).padStart(10, '0')} 00000 n `,
+    `${String(off3).padStart(10, '0')} 00000 n `, `${String(off4).padStart(10, '0')} 00000 n `,
+    `${String(off5).padStart(10, '0')} 00000 n `,
+    'trailer<</Size 6/Root 1 0 R>>', 'startxref', String(xrefStart), '%%EOF',
+  ].join('\n');
+  lines.push(xref);
+  return Buffer.from(lines.join(''), 'utf8');
+}
 
 export type TransactionRow = {
   occurred_at: Date | string;
@@ -42,9 +81,9 @@ function formatDate(d: Date | string): string {
 
 /**
  * Build a PDF buffer for a report with title, type, date and optional transaction data.
- * Uses pipe to a Writable to collect chunks so the buffer is never empty.
+ * Uses get-stream to collect PDF output into a buffer.
  */
-export function buildReportPdf(options: {
+export async function buildReportPdf(options: {
   reportType: string;
   createdAt: string;
   dateRange?: string;
@@ -54,19 +93,7 @@ export function buildReportPdf(options: {
   const { reportType, createdAt, dateRange, params, transactions = [] } = options;
   const typeLabel = REPORT_TYPE_LABELS[reportType] || reportType;
 
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    const collector = new Writable({
-      write(chunk: Buffer, _enc, cb) {
-        chunks.push(chunk);
-        cb();
-      },
-    });
-    collector.on('finish', () => resolve(Buffer.concat(chunks)));
-    collector.on('error', reject);
-    doc.on('error', reject);
-    doc.pipe(collector);
+  const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
     const pageW = 612 - 100;
     const colW = { date: 70, desc: pageW - 70 - 70 - 80, category: 70, amount: 80 };
@@ -150,6 +177,6 @@ export function buildReportPdf(options: {
       { align: 'center' }
     );
 
-    doc.end();
-  });
+  doc.end();
+  return getStream.buffer(doc);
 }

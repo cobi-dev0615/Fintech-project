@@ -1,53 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
-import { buildReportPdf } from '../utils/pdf-report.js';
-
-/** Minimal valid PDF with one line of text when pdfkit is not available. Builds xref with correct byte offsets. */
-function getFallbackPdfBuffer(reportType: string, createdAt: string): Buffer {
-  const title = `Relatorio zurT - ${reportType} - ${createdAt}`;
-  const escapedTitle = title.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-  const streamContent = `BT
-/F1 14 Tf
-50 700 Td
-(${escapedTitle}) Tj
-ET
-`;
-  const streamLen = Buffer.byteLength(streamContent, 'utf8');
-
-  const lines: string[] = [];
-  lines.push('%PDF-1.4\n');
-  const off1 = Buffer.byteLength(lines.join(''), 'utf8');
-  lines.push('1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n');
-  const off2 = Buffer.byteLength(lines.join(''), 'utf8');
-  lines.push('2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n');
-  const off3 = Buffer.byteLength(lines.join(''), 'utf8');
-  lines.push('3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj\n');
-  const off4 = Buffer.byteLength(lines.join(''), 'utf8');
-  lines.push(`4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n`);
-  const off5 = Buffer.byteLength(lines.join(''), 'utf8');
-  lines.push(`5 0 obj<</Length ${streamLen}>>stream
-${streamContent}
-endstream
-endobj
-`);
-  const xrefStart = Buffer.byteLength(lines.join(''), 'utf8');
-  const xref = [
-    'xref',
-    '0 6',
-    '0000000000 65535 f ',
-    `${String(off1).padStart(10, '0')} 00000 n `,
-    `${String(off2).padStart(10, '0')} 00000 n `,
-    `${String(off3).padStart(10, '0')} 00000 n `,
-    `${String(off4).padStart(10, '0')} 00000 n `,
-    `${String(off5).padStart(10, '0')} 00000 n `,
-    'trailer<</Size 6/Root 1 0 R>>',
-    'startxref',
-    String(xrefStart),
-    '%%EOF',
-  ].join('\n');
-  lines.push(xref);
-  return Buffer.from(lines.join(''), 'utf8');
-}
+import { buildReportPdf, getFallbackPdfBuffer } from '../utils/pdf-report.js';
 
 export async function reportsRoutes(fastify: FastifyInstance) {
   // Get user's reports
