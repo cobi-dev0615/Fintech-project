@@ -36,7 +36,7 @@ const NotificationDropdown = () => {
   // Check if current user is admin
   const isAdmin = user?.role === 'admin';
 
-  // Fetch unread count once on mount – cached, no polling
+  // Fetch unread count once on mount – cached, no polling (only when authenticated)
   const { data: unreadData, refetch: refetchUnreadCount } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: () => notificationsApi.getUnreadCount(),
@@ -45,6 +45,7 @@ const NotificationDropdown = () => {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
+    enabled: !!user,
   });
   const unreadCount = unreadData?.count ?? 0;
 
@@ -145,12 +146,12 @@ const NotificationDropdown = () => {
     }
   }, [isAdmin]);
 
-  // Fetch notifications only when opening the dropdown
+  // Fetch notifications only when opening the dropdown and user is authenticated
   useEffect(() => {
-    if (open) {
+    if (open && user) {
       fetchNotifications();
     }
-  }, [open, fetchNotifications, isAdmin]);
+  }, [open, user, fetchNotifications]);
 
   const setUnreadCount = useCallback((value: number | ((prev: number) => number)) => {
     queryClient.setQueryData(['notifications', 'unread-count'], (old: { count: number } | undefined) => ({

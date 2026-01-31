@@ -59,4 +59,38 @@ export const customerApi = {
       }>;
       invitedCount: number;
     }>('/customer/invited-users'),
+
+  getConversations: () =>
+    api.get<{
+      conversations: Array<{
+        id: string;
+        consultantId: string;
+        consultantName: string;
+        lastMessage: string;
+        timestamp: string;
+        unread: number;
+      }>;
+    }>('/customer/messages/conversations'),
+
+  getConversation: (id: string) =>
+    api.get<{
+      conversation: { id: string; consultantId: string; consultantName: string };
+      messages: Array<{
+        id: string;
+        sender: 'consultant' | 'client';
+        content: string;
+        timestamp: string;
+      }>;
+    }>(`/customer/messages/conversations/${id}`),
+
+  sendMessage: (conversationId: string, body: string) =>
+    api.post<{
+      message: { id: string; sender: string; content: string; timestamp: string };
+    }>(`/customer/messages/conversations/${conversationId}/messages`, { body }),
+
+  clearHistory: (conversationId: string) =>
+    api.delete<{ message: string }>(`/customer/messages/conversations/${conversationId}/messages`),
+
+  deleteConversation: (conversationId: string) =>
+    api.delete<{ message: string }>(`/customer/messages/conversations/${conversationId}`),
 };

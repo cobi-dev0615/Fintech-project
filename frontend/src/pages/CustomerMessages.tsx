@@ -1,21 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Send, Search, UserPlus, Calendar, Plus, MoreVertical, Trash2, History } from "lucide-react";
+import { MessageSquare, Send, Search, MoreVertical, Trash2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { customerApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { useWebSocket } from "@/contexts/WebSocketContext";
+import { useAuth } from "@/hooks/useAuth";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,24 +29,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { consultantApi } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
-import { useWebSocket } from "@/contexts/WebSocketContext";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface ConversationItem {
   id: string;
-  clientId: string;
-  clientName: string;
+  consultantId: string;
+  consultantName: string;
   lastMessage: string;
   timestamp: string;
   unread: number;
@@ -62,27 +48,12 @@ interface Message {
   timestamp: string;
 }
 
-interface Conversation {
-  id: string;
-  clientId: string;
-  clientName: string;
-  messages: Message[];
-}
-
-interface Client {
-  id: string;
-  name: string;
-  email: string;
-  status: string;
-}
-
-const Messages = () => {
+const CustomerMessages = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const [deleteChatDialogOpen, setDeleteChatDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -90,102 +61,68 @@ const Messages = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Fetch conversations
   const { data: conversationsData, isLoading: conversationsLoading } = useQuery({
-    queryKey: ['consultant', 'conversations'],
-    queryFn: () => consultantApi.getConversations(),
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
-  });
-
-  // Fetch clients for create conversation dialog
-  const { data: clientsData } = useQuery({
-    queryKey: ['consultant', 'clients', 'active'],
-    queryFn: () => consultantApi.getClients({ status: 'active', limit: 100 }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    queryKey: ['customer', 'conversations'],
+    queryFn: () => customerApi.getConversations(),
+    staleTime: 30 * 1000,
+    gcTime: 2 * 60 * 1000,
+    refetchInterval: 30000,
+    enabled: !!user,
   });
 
   const conversations = conversationsData?.conversations || [];
-  const clients = clientsData?.clients || [];
 
   // Real-time: subscribe to new messages and conversation updates
   useWebSocket((message) => {
     if (message.type === 'new_message') {
-      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'conversations'] });
       if (message.conversationId === selectedConversation) {
-        queryClient.invalidateQueries({ queryKey: ['consultant', 'conversation', selectedConversation] });
+        queryClient.invalidateQueries({ queryKey: ['customer', 'conversation', selectedConversation] });
       }
     } else if (message.type === 'conversation_cleared' && message.conversationId === selectedConversation) {
-      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversation', selectedConversation] });
-      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'conversation', selectedConversation] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'conversations'] });
     } else if (message.type === 'conversation_deleted') {
-      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'conversations'] });
       if (message.conversationId === selectedConversation) {
         setSelectedConversation(null);
       }
     }
   });
 
-  // Filter conversations by search query
   const filteredConversations = conversations.filter((conv) =>
-    conv.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.consultantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Fetch selected conversation messages
   const { data: conversationData, isLoading: conversationLoading } = useQuery({
-    queryKey: ['consultant', 'conversation', selectedConversation],
-    queryFn: () => consultantApi.getConversation(selectedConversation!),
-    enabled: !!selectedConversation,
-    staleTime: 10 * 1000, // 10 seconds
-    gcTime: 1 * 60 * 1000, // 1 minute
-    refetchInterval: 15000, // Refetch every 15 seconds when conversation is open
+    queryKey: ['customer', 'conversation', selectedConversation],
+    queryFn: () => customerApi.getConversation(selectedConversation!),
+    enabled: !!user && !!selectedConversation,
+    staleTime: 10 * 1000,
+    gcTime: 1 * 60 * 1000,
+    refetchInterval: 15000,
   });
 
   const currentConversation = conversationData ? {
     id: conversationData.conversation.id,
-    clientId: conversationData.conversation.clientId,
-    clientName: conversationData.conversation.clientName,
+    consultantId: conversationData.conversation.consultantId,
+    consultantName: conversationData.conversation.consultantName,
     messages: conversationData.messages || [],
   } : null;
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current && currentConversation?.messages) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [currentConversation?.messages]);
 
-  // Create conversation mutation
-  const createConversationMutation = useMutation({
-    mutationFn: (customerId: string) => consultantApi.createConversation(customerId),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
-      setSelectedConversation(data.conversation.id);
-      setIsCreateDialogOpen(false);
-      setSelectedClientId("");
-      toast({
-        title: "Conversa criada",
-        description: `Conversa iniciada com ${data.conversation.clientName}`,
-      });
-    },
-    onError: (err: any) => {
-      toast({
-        title: "Erro",
-        description: err?.error || "Erro ao criar conversa",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: ({ conversationId, content }: { conversationId: string; content: string }) =>
-      consultantApi.sendMessage(conversationId, content),
+      customerApi.sendMessage(conversationId, content),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversation', selectedConversation] });
-      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'conversation', selectedConversation] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'conversations'] });
       setNewMessage("");
     },
     onError: (err: any) => {
@@ -198,10 +135,10 @@ const Messages = () => {
   });
 
   const clearHistoryMutation = useMutation({
-    mutationFn: (conversationId: string) => consultantApi.clearHistory(conversationId),
+    mutationFn: (conversationId: string) => customerApi.clearHistory(conversationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversation', selectedConversation] });
-      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'conversation', selectedConversation] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'conversations'] });
       setClearHistoryDialogOpen(false);
       toast({ title: "Histórico limpo", description: "Todas as mensagens foram removidas.", variant: "success" });
     },
@@ -211,10 +148,10 @@ const Messages = () => {
   });
 
   const deleteConversationMutation = useMutation({
-    mutationFn: (conversationId: string) => consultantApi.deleteConversation(conversationId),
+    mutationFn: (conversationId: string) => customerApi.deleteConversation(conversationId),
     onSuccess: () => {
       setSelectedConversation(null);
-      queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'conversations'] });
       setDeleteChatDialogOpen(false);
       toast({ title: "Conversa excluída", description: "A conversa foi removida.", variant: "success" });
     },
@@ -229,18 +166,6 @@ const Messages = () => {
       conversationId: selectedConversation,
       content: newMessage,
     });
-  };
-
-  const handleCreateConversation = () => {
-    if (!selectedClientId) {
-      toast({
-        title: "Erro",
-        description: "Por favor, selecione um cliente",
-        variant: "destructive",
-      });
-      return;
-    }
-    createConversationMutation.mutate(selectedClientId);
   };
 
   const formatMessageTime = (timestamp: string) => {
@@ -282,28 +207,19 @@ const Messages = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Mensagens</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Comunique-se com seus clientes
+            Comunique-se com seus consultores
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/consultant/invitations')}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Enviar Convite
-          </Button>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Conversa
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => navigate('/app/invitations')}>
+          Ver Convites
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
-        {/* Conversations List */}
         <ChartCard className="p-0 flex flex-col">
           <div className="p-4 border-b border-border">
             <div className="relative">
@@ -328,7 +244,9 @@ const Messages = () => {
                 <div className="text-center py-8 text-sm text-muted-foreground">
                   {searchQuery ? "Nenhuma conversa encontrada" : "Nenhuma conversa encontrada"}
                   {!searchQuery && conversations.length === 0 && (
-                    <p className="text-xs mt-2">Comece uma nova conversa com um cliente</p>
+                    <p className="text-xs mt-2">
+                      Seus consultores podem iniciar conversas com você. Aceite um convite para começar.
+                    </p>
                   )}
                 </div>
               ) : (
@@ -347,12 +265,12 @@ const Messages = () => {
                         <div className="flex items-center gap-2 mb-1">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                             <span className="text-sm font-semibold text-primary">
-                              {conversation.clientName.charAt(0).toUpperCase()}
+                              {conversation.consultantName.charAt(0).toUpperCase()}
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-sm text-foreground truncate">
-                              {conversation.clientName}
+                              {conversation.consultantName}
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
                               {conversation.lastMessage}
@@ -378,7 +296,6 @@ const Messages = () => {
           </ScrollArea>
         </ChartCard>
 
-        {/* Chat Area */}
         <div className="lg:col-span-2">
           <ChartCard className="h-full flex flex-col p-0">
             {conversationLoading ? (
@@ -387,19 +304,18 @@ const Messages = () => {
               </div>
             ) : currentConversation ? (
               <>
-                {/* Chat Header */}
                 <div className="p-4 border-b border-border">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <span className="text-sm font-semibold text-primary">
-                        {currentConversation?.clientName?.charAt(0).toUpperCase()}
+                        {currentConversation?.consultantName?.charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div className="flex-1">
                       <div className="font-semibold text-foreground">
-                        {currentConversation?.clientName}
+                        {currentConversation?.consultantName}
                       </div>
-                      <div className="text-xs text-muted-foreground">Cliente</div>
+                      <div className="text-xs text-muted-foreground">Consultor</div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -424,7 +340,6 @@ const Messages = () => {
                   </div>
                 </div>
 
-                {/* Messages */}
                 <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
                   <div className="space-y-4">
                     {currentConversation?.messages?.length === 0 ? (
@@ -438,12 +353,12 @@ const Messages = () => {
                         <div
                           key={message.id}
                           className={`flex ${
-                            message.sender === "consultant" ? "justify-end" : "justify-start"
+                            message.sender === "client" ? "justify-end" : "justify-start"
                           }`}
                         >
                           <div
                             className={`max-w-[70%] rounded-lg p-3 ${
-                              message.sender === "consultant"
+                              message.sender === "client"
                                 ? "bg-primary text-primary-foreground"
                                 : "bg-muted text-foreground"
                             }`}
@@ -460,7 +375,6 @@ const Messages = () => {
                   </div>
                 </ScrollArea>
 
-                {/* Message Input */}
                 <div className="p-4 border-t border-border">
                   <div className="flex gap-2">
                     <Textarea
@@ -498,73 +412,22 @@ const Messages = () => {
                   <p className="text-muted-foreground mb-2">
                     Selecione uma conversa para começar a trocar mensagens
                   </p>
-                  <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" className="mt-4">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Iniciar Nova Conversa
-                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Seus consultores podem iniciar conversas com você. Aceite um convite em{" "}
+                    <button
+                      onClick={() => navigate('/app/invitations')}
+                      className="text-primary hover:underline"
+                    >
+                      Convites
+                    </button>{" "}
+                    para começar.
+                  </p>
                 </div>
               </div>
             )}
           </ChartCard>
         </div>
       </div>
-
-      {/* Create Conversation Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Conversa</DialogTitle>
-            <DialogDescription>
-              Selecione um cliente para iniciar uma conversa
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">
-                    Nenhum cliente ativo encontrado
-                  </div>
-                ) : (
-                  clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name} ({client.email})
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {clients.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Você precisa ter clientes ativos para iniciar conversas.{" "}
-                <button
-                  onClick={() => {
-                    setIsCreateDialogOpen(false);
-                    navigate('/consultant/invitations');
-                  }}
-                  className="text-primary hover:underline"
-                >
-                  Envie um convite
-                </button>
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleCreateConversation}
-              disabled={!selectedClientId || createConversationMutation.isLoading}
-            >
-              {createConversationMutation.isLoading ? "Criando..." : "Iniciar Conversa"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={clearHistoryDialogOpen} onOpenChange={setClearHistoryDialogOpen}>
         <AlertDialogContent>
@@ -611,4 +474,4 @@ const Messages = () => {
   );
 };
 
-export default Messages;
+export default CustomerMessages;

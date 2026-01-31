@@ -70,8 +70,10 @@ class ApiClient {
     if (!isFormData) {
       headers['Content-Type'] = 'application/json';
     }
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    // Sync token from localStorage in case it was set by login in another flow
+    const token = this.token ?? (typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null);
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const requestPromise = (async () => {

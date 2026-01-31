@@ -77,6 +77,7 @@ const customerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/app/dashboard", enabled: true },
   { icon: Bell, label: "Notificações", href: "/app/notifications", enabled: true },
   { icon: UserPlus, label: "Convites", href: "/app/invitations", enabled: true },
+  { icon: MessageSquare, label: "Mensagens", href: "/app/messages", enabled: true },
   { icon: Package, label: "Planos", href: "/app/plans", enabled: true },
   { icon: LayoutDashboard, label: "Ativos", href: "/app/assets", enabled: true },
   { 

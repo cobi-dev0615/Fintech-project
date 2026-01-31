@@ -63,7 +63,7 @@ export function setupWebSocket(fastify: FastifyInstance) {
       });
     }, 30000);
 
-    wss.on('connection', (ws: UserWebSocket, request) => {
+    wss.on('connection', async (ws: UserWebSocket, request) => {
       ws.isAlive = true;
       console.log('WebSocket connection attempt from:', request.socket.remoteAddress);
 
@@ -71,36 +71,49 @@ export function setupWebSocket(fastify: FastifyInstance) {
         ws.isAlive = true;
       });
 
-      // Authenticate WebSocket connection
-      try {
-        const url = new URL(request.url || '', 'http://localhost');
-        const token = url.searchParams.get('token');
+      // Authenticate WebSocket connection with JWT
+      const url = new URL(request.url || '', 'http://localhost');
+      const token = url.searchParams.get('token');
 
-        if (!token) {
-          console.log('WebSocket connection rejected: No token provided');
-          ws.close(1008, 'Authentication required');
-          return;
-        }
-        
-        console.log('WebSocket connection authenticated with token');
-      } catch (error) {
-        console.error('WebSocket connection error:', error);
-        ws.close(1011, 'Internal server error');
+      if (!token) {
+        console.log('WebSocket connection rejected: No token provided');
+        ws.close(1008, 'Authentication required');
         return;
       }
 
-      // Verify JWT token (simplified - in production, use proper JWT verification)
-      // For now, we'll let clients send their user info after connection
+      // Verify JWT and extract user info
+      let decodedUserId: string | null = null;
+      let decodedRole: string | null = null;
+      try {
+        const decoded = await (fastify as any).jwt.verify(token);
+        decodedUserId = (decoded as any).userId ?? (decoded as any).id;
+        decodedRole = (decoded as any).role;
+      } catch (err) {
+        console.log('WebSocket connection rejected: Invalid token');
+        ws.close(1008, 'Invalid token');
+        return;
+      }
+
+      // Set user identity from verified JWT
+      if (decodedUserId) {
+        ws.userId = decodedUserId;
+        ws.role = decodedRole || 'customer';
+        console.log('WebSocket authenticated for user', decodedUserId, 'role', ws.role);
+      }
+
       ws.on('message', async (message: string) => {
         try {
           const data = JSON.parse(message.toString());
-          
+
           if (data.type === 'authenticate' && data.userId && data.role) {
-            ws.userId = data.userId;
-            ws.role = data.role;
-            const roleMessage = data.role === 'admin' 
-              ? 'Connected to admin updates' 
-              : `Connected as ${data.role}`;
+            // Trust JWT over client-sent data; update only if JWT didn't have it
+            if (!ws.userId) {
+              ws.userId = data.userId;
+              ws.role = data.role;
+            }
+            const roleMessage = ws.role === 'admin'
+              ? 'Connected to admin updates'
+              : `Connected as ${ws.role}`;
             ws.send(JSON.stringify({ type: 'authenticated', message: roleMessage }));
           } else if (data.type === 'ping') {
             ws.send(JSON.stringify({ type: 'pong' }));

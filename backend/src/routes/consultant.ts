@@ -1644,9 +1644,9 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         return reply.code(400).send({ error: 'Message body is required' });
       }
 
-      // Verify access
+      // Verify access and get customer_id for WebSocket broadcast
       const accessCheck = await db.query(
-        `SELECT 1 FROM conversations 
+        `SELECT customer_id FROM conversations 
          WHERE id = $1 AND consultant_id = $2`,
         [id, consultantId]
       );
@@ -1654,6 +1654,8 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       if (accessCheck.rows.length === 0) {
         return reply.code(403).send({ error: 'Access denied' });
       }
+
+      const customerId = accessCheck.rows[0].customer_id;
 
       // Create message
       const result = await db.query(
@@ -1669,14 +1671,93 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         [id]
       );
 
-      return {
-        message: {
-          id: result.rows[0].id,
-          sender: 'consultant',
-          content: result.rows[0].body,
-          timestamp: new Date(result.rows[0].created_at).toISOString(),
-        },
+      const messagePayload = {
+        id: result.rows[0].id,
+        sender: 'consultant',
+        content: result.rows[0].body,
+        timestamp: new Date(result.rows[0].created_at).toISOString(),
       };
+
+      // Broadcast to customer for real-time update
+      const websocket = (fastify as any).websocket;
+      if (websocket?.broadcastToUser && customerId) {
+        websocket.broadcastToUser(customerId, {
+          type: 'new_message',
+          conversationId: id,
+          message: messagePayload,
+        });
+      }
+
+      return {
+        message: messagePayload,
+      };
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Clear message history (delete all messages in conversation, keep conversation)
+  fastify.delete('/messages/conversations/:id/messages', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { id } = request.params as any;
+
+      const accessCheck = await db.query(
+        `SELECT customer_id FROM conversations WHERE id = $1 AND consultant_id = $2`,
+        [id, consultantId]
+      );
+
+      if (accessCheck.rows.length === 0) {
+        return reply.code(403).send({ error: 'Access denied' });
+      }
+
+      const customerId = accessCheck.rows[0].customer_id;
+
+      await db.query(`DELETE FROM messages WHERE conversation_id = $1`, [id]);
+      await db.query(`UPDATE conversations SET updated_at = NOW() WHERE id = $1`, [id]);
+
+      const websocket = (fastify as any).websocket;
+      if (websocket?.broadcastToUser && customerId) {
+        websocket.broadcastToUser(customerId, { type: 'conversation_cleared', conversationId: id });
+      }
+
+      return { message: 'History cleared successfully' };
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Delete chat (delete entire conversation and messages)
+  fastify.delete('/messages/conversations/:id', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { id } = request.params as any;
+
+      const accessCheck = await db.query(
+        `SELECT customer_id FROM conversations WHERE id = $1 AND consultant_id = $2`,
+        [id, consultantId]
+      );
+
+      if (accessCheck.rows.length === 0) {
+        return reply.code(403).send({ error: 'Access denied' });
+      }
+
+      const customerId = accessCheck.rows[0].customer_id;
+
+      await db.query(`DELETE FROM conversations WHERE id = $1`, [id]);
+
+      const websocket = (fastify as any).websocket;
+      if (websocket?.broadcastToUser && customerId) {
+        websocket.broadcastToUser(customerId, { type: 'conversation_deleted', conversationId: id });
+      }
+
+      return { message: 'Chat deleted successfully' };
     } catch (error: any) {
       fastify.log.error(error);
       return reply.code(500).send({ error: 'Internal server error' });

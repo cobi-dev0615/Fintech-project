@@ -74,6 +74,7 @@ const LoginHistory = lazy(() => import("./pages/admin/LoginHistory"));
 const AdminComments = lazy(() => import("./pages/admin/AdminComments"));
 const CustomerWallets = lazy(() => import("./pages/admin/CustomerWallets"));
 const Assets = lazy(() => import("./pages/Assets"));
+const CustomerMessages = lazy(() => import("./pages/CustomerMessages"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -146,6 +147,7 @@ const App = () => (
               <Route path="settings" element={<Suspense fallback={<PageLoader />}><CustomerSettings /></Suspense>} />
               <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
               <Route path="invitations" element={<Suspense fallback={<PageLoader />}><Invitations /></Suspense>} />
+              <Route path="messages" element={<Suspense fallback={<PageLoader />}><CustomerMessages /></Suspense>} />
               <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanPurchase /></Suspense>} />
               <Route path="payment" element={<Suspense fallback={<PageLoader />}><Payment /></Suspense>} />
               <Route path="more" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />

@@ -342,6 +342,300 @@ export async function customerRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // --- Messages (conversations with consultants) ---
+
+  // Get conversations (customer sees their consultants)
+  fastify.get('/messages/conversations', {
+    preHandler: [requireCustomer],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const customerId = getCustomerId(request);
+
+      let hasConversations = false;
+      let hasMessages = false;
+      try {
+        await db.query('SELECT 1 FROM conversations LIMIT 1');
+        hasConversations = true;
+      } catch {}
+      try {
+        await db.query('SELECT 1 FROM messages LIMIT 1');
+        hasMessages = true;
+      } catch {}
+
+      if (!hasConversations) {
+        return { conversations: [] };
+      }
+
+      let conversations: Array<{
+        id: string;
+        consultantId: string;
+        consultantName: string;
+        lastMessage: string;
+        timestamp: string;
+        unread: number;
+      }> = [];
+
+      try {
+        let query = `
+          SELECT 
+            c.id,
+            c.consultant_id,
+            u.full_name as consultant_name,
+        `;
+        if (hasMessages) {
+          query += `
+            (SELECT body FROM messages 
+             WHERE conversation_id = c.id 
+             ORDER BY created_at DESC LIMIT 1) as last_message,
+            (SELECT created_at FROM messages 
+             WHERE conversation_id = c.id 
+             ORDER BY created_at DESC LIMIT 1) as last_message_time,
+            (SELECT COUNT(*) FROM messages 
+             WHERE conversation_id = c.id 
+             AND sender_id != $1 
+             AND is_read = FALSE) as unread_count,
+          `;
+        } else {
+          query += `
+            NULL as last_message,
+            NULL as last_message_time,
+            0 as unread_count,
+          `;
+        }
+        query += `
+            c.updated_at
+          FROM conversations c
+          JOIN users u ON c.consultant_id = u.id
+          WHERE c.customer_id = $1
+          ORDER BY c.updated_at DESC
+        `;
+
+        const result = await db.query(query, [customerId]);
+        conversations = result.rows.map((row: any) => ({
+          id: row.id,
+          consultantId: row.consultant_id,
+          consultantName: row.consultant_name || 'Consultor',
+          lastMessage: row.last_message || 'Nenhuma mensagem',
+          timestamp: row.last_message_time
+            ? new Date(row.last_message_time).toISOString()
+            : row.updated_at
+            ? new Date(row.updated_at).toISOString()
+            : new Date().toISOString(),
+          unread: parseInt(row.unread_count) || 0,
+        }));
+      } catch (error: any) {
+        fastify.log.warn('Error fetching conversations:', error.message);
+      }
+
+      return { conversations };
+    } catch (error: any) {
+      fastify.log.error('Error fetching conversations:', error);
+      reply.code(500).send({ error: 'Failed to fetch conversations', details: error.message });
+    }
+  });
+
+  // Get messages for a conversation
+  fastify.get('/messages/conversations/:id', {
+    preHandler: [requireCustomer],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const customerId = getCustomerId(request);
+      const { id } = request.params as any;
+
+      const accessCheck = await db.query(
+        `SELECT 1 FROM conversations 
+         WHERE id = $1 AND customer_id = $2`,
+        [id, customerId]
+      );
+
+      if (accessCheck.rows.length === 0) {
+        return reply.code(403).send({ error: 'Access denied' });
+      }
+
+      const convResult = await db.query(
+        `SELECT c.id, c.consultant_id, u.full_name as consultant_name
+         FROM conversations c
+         JOIN users u ON c.consultant_id = u.id
+         WHERE c.id = $1`,
+        [id]
+      );
+
+      if (convResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Conversation not found' });
+      }
+
+      const messagesResult = await db.query(
+        `SELECT 
+           m.id,
+           m.sender_id,
+           m.body,
+           m.created_at as timestamp,
+           u.role
+         FROM messages m
+         JOIN users u ON m.sender_id = u.id
+         WHERE m.conversation_id = $1
+         ORDER BY m.created_at ASC`,
+        [id]
+      );
+
+      await db.query(
+        `UPDATE messages 
+         SET is_read = TRUE 
+         WHERE conversation_id = $1 AND sender_id != $2 AND is_read = FALSE`,
+        [id, customerId]
+      );
+
+      const messages = messagesResult.rows.map((row: any) => ({
+        id: row.id,
+        sender: row.role === 'consultant' ? 'consultant' : 'client',
+        content: row.body,
+        timestamp: new Date(row.timestamp).toISOString(),
+      }));
+
+      return {
+        conversation: {
+          id: convResult.rows[0].id,
+          consultantId: convResult.rows[0].consultant_id,
+          consultantName: convResult.rows[0].consultant_name,
+        },
+        messages,
+      };
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Send message
+  fastify.post('/messages/conversations/:id/messages', {
+    preHandler: [requireCustomer],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const customerId = getCustomerId(request);
+      const { id } = request.params as any;
+      const { body } = request.body as any;
+
+      if (!body || !body.trim()) {
+        return reply.code(400).send({ error: 'Message body is required' });
+      }
+
+      const accessCheck = await db.query(
+        `SELECT consultant_id FROM conversations 
+         WHERE id = $1 AND customer_id = $2`,
+        [id, customerId]
+      );
+
+      if (accessCheck.rows.length === 0) {
+        return reply.code(403).send({ error: 'Access denied' });
+      }
+
+      const consultantId = accessCheck.rows[0].consultant_id;
+
+      const result = await db.query(
+        `INSERT INTO messages (conversation_id, sender_id, body)
+         VALUES ($1, $2, $3)
+         RETURNING id, body, created_at`,
+        [id, customerId, body.trim()]
+      );
+
+      await db.query(
+        `UPDATE conversations SET updated_at = NOW() WHERE id = $1`,
+        [id]
+      );
+
+      const messagePayload = {
+        id: result.rows[0].id,
+        sender: 'client',
+        content: result.rows[0].body,
+        timestamp: new Date(result.rows[0].created_at).toISOString(),
+      };
+
+      // Broadcast to consultant for real-time update
+      const websocket = (fastify as any).websocket;
+      if (websocket?.broadcastToUser && consultantId) {
+        websocket.broadcastToUser(consultantId, {
+          type: 'new_message',
+          conversationId: id,
+          message: messagePayload,
+        });
+      }
+
+      return {
+        message: messagePayload,
+      };
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Clear message history (delete all messages in conversation, keep conversation)
+  fastify.delete('/messages/conversations/:id/messages', {
+    preHandler: [requireCustomer],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const customerId = getCustomerId(request);
+      const { id } = request.params as any;
+
+      const accessCheck = await db.query(
+        `SELECT consultant_id FROM conversations WHERE id = $1 AND customer_id = $2`,
+        [id, customerId]
+      );
+
+      if (accessCheck.rows.length === 0) {
+        return reply.code(403).send({ error: 'Access denied' });
+      }
+
+      const consultantId = accessCheck.rows[0].consultant_id;
+
+      await db.query(`DELETE FROM messages WHERE conversation_id = $1`, [id]);
+      await db.query(`UPDATE conversations SET updated_at = NOW() WHERE id = $1`, [id]);
+
+      const websocket = (fastify as any).websocket;
+      if (websocket?.broadcastToUser && consultantId) {
+        websocket.broadcastToUser(consultantId, { type: 'conversation_cleared', conversationId: id });
+      }
+
+      return { message: 'History cleared successfully' };
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Delete chat (delete entire conversation and messages)
+  fastify.delete('/messages/conversations/:id', {
+    preHandler: [requireCustomer],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const customerId = getCustomerId(request);
+      const { id } = request.params as any;
+
+      const accessCheck = await db.query(
+        `SELECT consultant_id FROM conversations WHERE id = $1 AND customer_id = $2`,
+        [id, customerId]
+      );
+
+      if (accessCheck.rows.length === 0) {
+        return reply.code(403).send({ error: 'Access denied' });
+      }
+
+      const consultantId = accessCheck.rows[0].consultant_id;
+
+      await db.query(`DELETE FROM conversations WHERE id = $1`, [id]);
+
+      const websocket = (fastify as any).websocket;
+      if (websocket?.broadcastToUser && consultantId) {
+        websocket.broadcastToUser(consultantId, { type: 'conversation_deleted', conversationId: id });
+      }
+
+      return { message: 'Chat deleted successfully' };
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
   // --- Referral invitations (customer invites external users via link) ---
 
   // Get or create invitation link for the current customer

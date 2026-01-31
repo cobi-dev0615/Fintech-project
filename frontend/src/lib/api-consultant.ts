@@ -150,6 +150,12 @@ export const consultantApi = {
       message: { id: string; sender: 'consultant'; content: string; timestamp: string };
     }>(`/consultant/messages/conversations/${conversationId}/messages`, { body }),
 
+  clearHistory: (conversationId: string) =>
+    api.delete<{ message: string }>(`/consultant/messages/conversations/${conversationId}/messages`),
+
+  deleteConversation: (conversationId: string) =>
+    api.delete<{ message: string }>(`/consultant/messages/conversations/${conversationId}`),
+
   getReports: (clientId?: string) => {
     const queryParams = new URLSearchParams();
     if (clientId) queryParams.append('clientId', clientId);

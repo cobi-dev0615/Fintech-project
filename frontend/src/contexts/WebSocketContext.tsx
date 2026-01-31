@@ -61,8 +61,9 @@ class WebSocketManager {
   }
 
   connect(userId: string, userRole: string) {
-    // Only connect for admin users
-    if (userRole !== 'admin') {
+    // Connect for admin, consultant, and customer (for real-time messaging)
+    const allowedRoles = ['admin', 'consultant', 'customer'];
+    if (!allowedRoles.includes(userRole)) {
       return;
     }
 
