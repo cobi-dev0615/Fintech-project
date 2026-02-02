@@ -612,6 +612,219 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Get customer full finance info from Open Finance (admin view)
+  fastify.get('/users/:id/finance', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const { id } = request.params;
+
+      const userCheck = await db.query(
+        `SELECT id, full_name, email, role FROM users WHERE id = $1`,
+        [id]
+      );
+      if (userCheck.rows.length === 0) {
+        reply.code(404).send({ error: 'User not found' });
+        return;
+      }
+      const userRow = userCheck.rows[0];
+      if (userRow.role !== 'customer') {
+        reply.code(400).send({ error: 'Finance data is only available for customers' });
+        return;
+      }
+
+      const user = { id: userRow.id, name: userRow.full_name, email: userRow.email };
+
+      // Connections
+      let connections: any[] = [];
+      try {
+        const connResult = await db.query(
+          `SELECT c.id, c.external_consent_id as item_id, c.status, c.last_sync_at, c.last_sync_status,
+                  i.name as institution_name, i.logo_url as institution_logo
+           FROM connections c
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE c.user_id = $1 AND c.provider = 'open_finance'
+           ORDER BY c.created_at DESC`,
+          [id]
+        );
+        connections = connResult.rows;
+      } catch {}
+
+      // Accounts (pluggy_accounts)
+      let accounts: any[] = [];
+      let totalCash = 0;
+      try {
+        const accResult = await db.query(
+          `SELECT pa.*, i.name as institution_name, i.logo_url as institution_logo
+           FROM pluggy_accounts pa
+           LEFT JOIN connections c ON pa.item_id = c.external_consent_id AND c.user_id = pa.user_id
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE pa.user_id = $1
+           ORDER BY pa.updated_at DESC`,
+          [id]
+        );
+        accounts = accResult.rows;
+        for (const a of accResult.rows) {
+          totalCash += parseFloat(a.current_balance || 0);
+        }
+      } catch {}
+
+      // Investments (pluggy_investments)
+      let investments: any[] = [];
+      let totalInvestments = 0;
+      const breakdown: any[] = [];
+      const byType: any = {};
+      try {
+        const invResult = await db.query(
+          `SELECT pi.*, i.name as institution_name
+           FROM pluggy_investments pi
+           LEFT JOIN connections c ON pi.item_id = c.external_consent_id AND c.user_id = pi.user_id
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE pi.user_id = $1
+           ORDER BY pi.updated_at DESC`,
+          [id]
+        );
+        investments = invResult.rows;
+        for (const inv of invResult.rows) {
+          const val = parseFloat(inv.current_value || 0);
+          totalInvestments += val;
+          const type = inv.type || 'other';
+          if (!byType[type]) byType[type] = { type, count: 0, total: 0 };
+          byType[type].count++;
+          byType[type].total += val;
+        }
+        breakdown.push(...Object.values(byType));
+      } catch {}
+
+      // Cards (pluggy_credit_cards + invoices)
+      let cards: any[] = [];
+      let totalDebt = 0;
+      try {
+        const cardResult = await db.query(
+          `SELECT pc.*, i.name as institution_name
+           FROM pluggy_credit_cards pc
+           LEFT JOIN connections c ON pc.item_id = c.external_consent_id AND c.user_id = pc.user_id
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE pc.user_id = $1
+           ORDER BY pc.updated_at DESC`,
+          [id]
+        );
+        for (const card of cardResult.rows) {
+          const invResult = await db.query(
+            `SELECT due_date, amount, status FROM pluggy_card_invoices
+             WHERE pluggy_card_id = $1 AND user_id = $2 AND status = 'open'
+             ORDER BY due_date DESC LIMIT 1`,
+            [card.pluggy_card_id, id]
+          );
+          const inv = invResult.rows[0];
+          const debt = inv ? parseFloat(inv.amount || 0) : 0;
+          totalDebt += debt;
+          cards.push({
+            ...card,
+            latestInvoice: inv || null,
+            openDebt: debt,
+          });
+        }
+      } catch {}
+
+      // Recent transactions (last 100)
+      let transactions: any[] = [];
+      try {
+        const txResult = await db.query(
+          `SELECT pt.*, pa.name as account_name, i.name as institution_name
+           FROM pluggy_transactions pt
+           LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
+           LEFT JOIN connections c ON pt.item_id = c.external_consent_id AND c.user_id = pt.user_id
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE pt.user_id = $1
+           ORDER BY pt.date DESC, pt.created_at DESC
+           LIMIT 100`,
+          [id]
+        );
+        transactions = txResult.rows;
+      } catch {}
+
+      const netWorth = totalCash + totalInvestments - totalDebt;
+
+      return reply.send({
+        user,
+        summary: { cash: totalCash, investments: totalInvestments, debt: totalDebt, netWorth },
+        connections,
+        accounts,
+        investments,
+        breakdown,
+        cards,
+        transactions,
+      });
+    } catch (error: any) {
+      fastify.log.error('Error fetching customer finance:', error);
+      reply.code(500).send({ error: 'Failed to fetch finance data', details: error.message });
+    }
+  });
+
+  // Get user investments/portfolio (admin view)
+  fastify.get('/users/:id/investments', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const { id } = request.params;
+      const { itemId } = request.query as any;
+
+      // Verify user exists
+      const userCheck = await db.query('SELECT id, full_name FROM users WHERE id = $1', [id]);
+      if (userCheck.rows.length === 0) {
+        reply.code(404).send({ error: 'User not found' });
+        return;
+      }
+
+      let query = `
+        SELECT 
+          pi.*,
+          c.external_consent_id as item_id,
+          i.name as institution_name,
+          i.logo_url as institution_logo
+        FROM pluggy_investments pi
+        LEFT JOIN connections c ON pi.item_id = c.external_consent_id AND c.user_id = pi.user_id
+        LEFT JOIN institutions i ON c.institution_id = i.id
+        WHERE pi.user_id = $1
+      `;
+      const params: any[] = [id];
+
+      if (itemId) {
+        query += ' AND pi.item_id = $2';
+        params.push(itemId);
+      }
+
+      query += ' ORDER BY pi.updated_at DESC';
+
+      const result = await db.query(query, params);
+
+      let totalValue = 0;
+      const byType: any = {};
+
+      for (const inv of result.rows) {
+        const value = parseFloat(inv.current_value || 0);
+        totalValue += value;
+        const type = inv.type || 'other';
+        if (!byType[type]) {
+          byType[type] = { type, count: 0, total: 0 };
+        }
+        byType[type].count++;
+        byType[type].total += value;
+      }
+
+      return reply.send({
+        user: { id: userCheck.rows[0].id, name: userCheck.rows[0].full_name },
+        investments: result.rows,
+        total: totalValue,
+        breakdown: Object.values(byType),
+      });
+    } catch (error: any) {
+      fastify.log.error('Error fetching user investments:', error);
+      reply.code(500).send({ error: 'Failed to fetch investments', details: error.message });
+    }
+  });
+
   // Update user role
   fastify.patch('/users/:id/role', {
     preHandler: [requireAdmin],

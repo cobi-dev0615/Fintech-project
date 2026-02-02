@@ -43,6 +43,36 @@ export const adminApi = {
     }>(`/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
   },
 
+  getCustomerFinance: (userId: string) =>
+    api.get<{
+      user: { id: string; name: string; email: string };
+      summary: { cash: number; investments: number; debt: number; netWorth: number };
+      connections: Array<{ id: string; item_id: string; status: string; institution_name?: string; institution_logo?: string }>;
+      accounts: Array<{ id: string; name: string; type: string; current_balance: number | string; institution_name?: string }>;
+      investments: Array<{ id: string; type: string; name: string; current_value: number | string; quantity: number; institution_name?: string }>;
+      breakdown: Array<{ type: string; count: number; total: number }>;
+      cards: Array<{ id: string; brand?: string; last4?: string; institution_name?: string; openDebt: number; latestInvoice?: any }>;
+      transactions: Array<{ id: string; date: string; amount: number; description?: string; merchant?: string; account_name?: string; institution_name?: string }>;
+    }>(`/admin/users/${userId}/finance`),
+
+  getUserInvestments: (userId: string, itemId?: string) => {
+    const q = itemId ? `?itemId=${itemId}` : '';
+    return api.get<{
+      user: { id: string; name: string };
+      investments: Array<{
+        id: string;
+        type: string;
+        name: string;
+        current_value: number | string;
+        quantity: number;
+        institution_name?: string;
+        institution_logo?: string;
+      }>;
+      total: number;
+      breakdown: Array<{ type: string; count: number; total: number }>;
+    }>(`/admin/users/${userId}/investments${q}`);
+  },
+
   getUser: (id: string) =>
     api.get<{
       user: {

@@ -146,7 +146,6 @@ const adminNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard", enabled: true },
   { icon: Bell, label: "Notificações", href: "/admin/notifications", enabled: true },
   { icon: Shield, label: "Usuários", href: "/admin/users", enabled: true },
-  { icon: Wallet, label: "Carteiras dos Clientes", href: "/admin/wallets", enabled: true },
   { icon: Package, label: "Planos", href: "/admin/plans", enabled: true },
   { icon: DollarSign, label: "Financeiro", href: "/admin/financial", enabled: true },
   { icon: Activity, label: "Integrações", href: "/admin/integrations", enabled: true },

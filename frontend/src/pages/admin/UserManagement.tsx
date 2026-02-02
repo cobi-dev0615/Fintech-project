@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Search, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users, Eye, Trash2, Edit, Save, X, Filter, Check, XCircle, RefreshCw, UserCheck } from "lucide-react";
+import { Search, Shield, Mail, Phone, Calendar, TrendingUp, DollarSign, Target, Link2, Users, Eye, Trash2, Edit, Save, X, Filter, Check, XCircle, RefreshCw, UserCheck, PieChart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -104,6 +105,7 @@ const UserManagement = () => {
   });
   const [registrationRequiresApproval, setRegistrationRequiresApproval] = useState<boolean>(true);
   const [registrationSettingSaving, setRegistrationSettingSaving] = useState(false);
+  const navigate = useNavigate();
 
   // Load registration approval setting on mount
   useEffect(() => {
@@ -402,6 +404,10 @@ const UserManagement = () => {
         });
       }
     }
+  };
+
+  const handleShowPortfolio = (user: User) => {
+    navigate(`/admin/users/${user.id}/finance`);
   };
 
   const handleRejectUser = async (user: User) => {
@@ -743,6 +749,16 @@ const UserManagement = () => {
                             <XCircle className="h-4 w-4" />
                           </Button>
                         </>
+                      )}
+                      {user.role === "customer" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleShowPortfolio(user)}
+                          title="Ver dados financeiros"
+                        >
+                          <PieChart className="h-4 w-4" />
+                        </Button>
                       )}
                       <Button
                         variant="ghost"

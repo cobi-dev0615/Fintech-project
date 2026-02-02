@@ -71,7 +71,7 @@ const Settings = lazy(() => import("./pages/admin/Settings"));
 const PaymentHistory = lazy(() => import("./pages/admin/PaymentHistory"));
 const LoginHistory = lazy(() => import("./pages/admin/LoginHistory"));
 const AdminComments = lazy(() => import("./pages/admin/AdminComments"));
-const CustomerWallets = lazy(() => import("./pages/admin/CustomerWallets"));
+const CustomerFinanceDetail = lazy(() => import("./pages/admin/CustomerFinanceDetail"));
 const Assets = lazy(() => import("./pages/Assets"));
 const CustomerMessages = lazy(() => import("./pages/CustomerMessages"));
 
@@ -178,7 +178,7 @@ const App = () => (
             <Route path="/admin" element={<AppLayout />}>
               <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
               <Route path="users" element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
-              <Route path="wallets" element={<Suspense fallback={<PageLoader />}><CustomerWallets /></Suspense>} />
+              <Route path="users/:id/finance" element={<Suspense fallback={<PageLoader />}><CustomerFinanceDetail /></Suspense>} />
               <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanManagement /></Suspense>} />
               <Route path="payments" element={<Suspense fallback={<PageLoader />}><PaymentHistory /></Suspense>} />
               <Route path="login-history" element={<Suspense fallback={<PageLoader />}><LoginHistory /></Suspense>} />
