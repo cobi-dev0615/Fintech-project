@@ -2,10 +2,11 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
 
 export async function plansRoutes(fastify: FastifyInstance) {
-  // Get all active plans filtered by role (public endpoint - no authentication required)
+  // Get all active plans (public endpoint - no authentication required)
+  // Both customers and consultants see the same plans
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { role = 'customer', billingPeriod = 'monthly' } = request.query as any;
+      const { billingPeriod = 'monthly' } = request.query as any;
       
       type PlanItem = {
         id: string;
@@ -21,20 +22,14 @@ export async function plansRoutes(fastify: FastifyInstance) {
       };
       let plans: PlanItem[] = [];
       try {
-        // Check if plans table has role and billing_period columns
-        let hasRoleColumn = false;
+        // Check if plans table has billing_period columns
         let hasBillingColumns = false;
-        try {
-          await db.query('SELECT role FROM plans LIMIT 1');
-          hasRoleColumn = true;
-        } catch {}
-        
         try {
           await db.query('SELECT monthly_price_cents, annual_price_cents FROM plans LIMIT 1');
           hasBillingColumns = true;
         } catch {}
 
-        let query = `
+        const query = `
           SELECT 
             id, 
             code, 
@@ -44,25 +39,12 @@ export async function plansRoutes(fastify: FastifyInstance) {
             connection_limit, 
             features_json, 
             is_active
-            ${hasRoleColumn ? ', role' : ', NULL as role'}
           FROM plans
           WHERE is_active = true
+          ORDER BY price_cents ASC
         `;
 
-        const params: any[] = [];
-        
-        // Filter by role if role column exists
-        if (hasRoleColumn && role) {
-          query += ` AND (role = $1 OR role IS NULL)`;
-          params.push(role);
-        } else if (hasRoleColumn) {
-          // If no role specified, only show plans without role restriction
-          query += ` AND role IS NULL`;
-        }
-
-        query += ` ORDER BY price_cents ASC`;
-
-        const plansResult = await db.query(query, params);
+        const plansResult = await db.query(query);
         
         plans = plansResult.rows.map(row => {
           const monthlyPrice = hasBillingColumns ? (row.monthly_price_cents || row.price_cents) : row.price_cents;
@@ -79,7 +61,7 @@ export async function plansRoutes(fastify: FastifyInstance) {
             connectionLimit: row.connection_limit,
             features: row.features_json?.features || [],
             isActive: row.is_active,
-            role: row.role,
+            role: null, // Plans are available to all users
           };
         });
       } catch (e: any) {

@@ -130,13 +130,20 @@ export const adminApi = {
       plan: { id: string; name: string; code: string; price: number; connectionLimit: number | null; features: string[] };
     }>(`/admin/subscriptions/${id}`),
 
-  getFinancialReports: () =>
-    api.get<{
-      revenue: Array<{ month: string; revenue: number }>;
+  getFinancialReports: (params?: { period?: string; year?: number; dateFrom?: string; dateTo?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.period) q.append('period', params.period);
+    if (params?.year != null) q.append('year', String(params.year));
+    if (params?.dateFrom) q.append('dateFrom', params.dateFrom);
+    if (params?.dateTo) q.append('dateTo', params.dateTo);
+    const query = q.toString();
+    return api.get<{
+      revenue: Array<{ month: string; revenue: number; subscriptions: number }>;
       mrr: number;
       commissions: Array<{ consultant: string; clients: number; commission: number }>;
       transactions: Array<{ id: string; date: string; type: string; amount: number; client: string }>;
-    }>('/admin/financial/reports'),
+    }>(`/admin/financial/reports${query ? `?${query}` : ''}`);
+  },
 
   getIntegrations: () =>
     api.get<{

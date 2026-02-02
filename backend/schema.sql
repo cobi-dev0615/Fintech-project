@@ -649,12 +649,13 @@ END $$;
 
 -- =========================
 -- SEED PLANS (optional)
+-- Both customers and consultants use the same plans
 -- =========================
-INSERT INTO plans (code, name, price_cents, currency, connection_limit, features_json)
+INSERT INTO plans (code, name, price_cents, monthly_price_cents, annual_price_cents, currency, connection_limit, features_json, is_active, role)
 VALUES
- ('free','Gratuito',0,'BRL',1,'{"features":["1 conexão bancária","Dashboard básico","Cotações de mercado"]}'::jsonb),
- ('basic','Básico',2990,'BRL',3,'{"features":["3 conexões bancárias","Relatórios mensais","Câmbio e Crédito","Suporte por email"]}'::jsonb),
- ('pro','Profissional',7990,'BRL',10,'{"features":["10 conexões bancárias","IA Financeira","Relatórios ilimitados","Suporte prioritário","Alertas personalizados"]}'::jsonb),
- ('consultant','Consultant',29990,'BRL',NULL,'{"features":["Conexões ilimitadas","White label","Área do cliente"]}'::jsonb),
- ('enterprise','Enterprise',49990,'BRL',NULL,'{"features":["API access","White label","Suporte dedicado"]}'::jsonb)
+ ('free','Free',0,0,0,'BRL',1,'{"features":["1 conexão bancária","Dashboard básico","Cotações de mercado"]}'::jsonb, true, NULL),
+ ('basic','Basic',2990,2990,29900,'BRL',3,'{"features":["3 conexões bancárias","Relatórios mensais","Câmbio e Crédito","Suporte por email"]}'::jsonb, true, NULL),
+ ('pro','Pro',7990,7990,79900,'BRL',10,'{"features":["10 conexões bancárias","IA Financeira","Relatórios ilimitados","Suporte prioritário","Alertas personalizados"]}'::jsonb, true, NULL),
+ ('consultant','Consultant',29990,29990,299900,'BRL',NULL,'{"features":["Conexões ilimitadas","Área do cliente","Relatórios personalizados","Suporte prioritário","White label"]}'::jsonb, true, NULL),
+ ('enterprise','Enterprise',49990,49990,499900,'BRL',NULL,'{"features":["Conexões ilimitadas","Acesso à API","White label completo","Suporte dedicado","Integrações customizadas"]}'::jsonb, true, NULL)
 ON CONFLICT (code) DO NOTHING;

@@ -66,7 +66,6 @@ const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const PlanManagement = lazy(() => import("./pages/admin/PlanManagement"));
 const IntegrationsMonitor = lazy(() => import("./pages/admin/IntegrationsMonitor"));
 const DAMAProspecting = lazy(() => import("./pages/admin/DAMAProspecting"));
-const Institutions = lazy(() => import("./pages/admin/Institutions"));
 const FinancialReports = lazy(() => import("./pages/admin/FinancialReports"));
 const Settings = lazy(() => import("./pages/admin/Settings"));
 const PaymentHistory = lazy(() => import("./pages/admin/PaymentHistory"));
@@ -185,7 +184,6 @@ const App = () => (
               <Route path="login-history" element={<Suspense fallback={<PageLoader />}><LoginHistory /></Suspense>} />
                 <Route path="integrations" element={<Suspense fallback={<PageLoader />}><IntegrationsMonitor /></Suspense>} />
                 <Route path="prospecting" element={<Suspense fallback={<PageLoader />}><DAMAProspecting /></Suspense>} />
-                <Route path="institutions" element={<Suspense fallback={<PageLoader />}><Institutions /></Suspense>} />
               <Route path="financial" element={<Suspense fallback={<PageLoader />}><FinancialReports /></Suspense>} />
               <Route path="comments" element={<Suspense fallback={<PageLoader />}><AdminComments /></Suspense>} />
               <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />

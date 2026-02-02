@@ -1348,6 +1348,12 @@ export async function adminRoutes(fastify: FastifyInstance) {
     preHandler: [requireAdmin],
   }, async (request: any, reply) => {
     try {
+      const query = request.query as { period?: string; year?: string; dateFrom?: string; dateTo?: string };
+      const period = query.period || 'month';
+      const year = parseInt(query.year || String(new Date().getFullYear()), 10) || new Date().getFullYear();
+      const dateFrom = query.dateFrom; // ISO date string
+      const dateTo = query.dateTo;
+
       // Check which tables exist
       let hasPayments = false;
       let hasSubscriptions = false;
@@ -1382,21 +1388,51 @@ export async function adminRoutes(fastify: FastifyInstance) {
         hasCustomerConsultants = false;
       }
 
-      // Total revenue (last 6 months) - handle missing payments table
+      // Revenue by period (with subscription count per period) - chronological order for charts
       let revenueResult: any;
       if (hasPayments) {
         try {
-          revenueResult = await db.query(
-            `SELECT 
-               TO_CHAR(created_at, 'Mon') as month,
-               EXTRACT(MONTH FROM created_at) as month_num,
-               COALESCE(SUM(amount_cents), 0) / 100.0 as revenue
-             FROM payments
-             WHERE status = 'paid'
-             AND created_at >= NOW() - INTERVAL '6 months'
-             GROUP BY month, month_num
-             ORDER BY month_num DESC`
-          );
+          if (period === 'year') {
+            revenueResult = await db.query(
+              `SELECT 
+                 TO_CHAR(created_at, 'Mon') as month,
+                 EXTRACT(MONTH FROM created_at) as month_num,
+                 COALESCE(SUM(amount_cents), 0) / 100.0 as revenue,
+                 COUNT(*)::int as subscriptions
+               FROM payments
+               WHERE status = 'paid'
+               AND EXTRACT(YEAR FROM created_at) = $1
+               GROUP BY month, month_num
+               ORDER BY month_num ASC`,
+              [year]
+            );
+          } else if (period === 'quarter') {
+            revenueResult = await db.query(
+              `SELECT 
+                 'Q' || EXTRACT(QUARTER FROM created_at) as month,
+                 EXTRACT(QUARTER FROM created_at)::int as month_num,
+                 COALESCE(SUM(amount_cents), 0) / 100.0 as revenue,
+                 COUNT(*)::int as subscriptions
+               FROM payments
+               WHERE status = 'paid'
+               AND created_at >= DATE_TRUNC('quarter', NOW() - INTERVAL '4 quarters')
+               GROUP BY month, month_num
+               ORDER BY month_num ASC`
+            );
+          } else {
+            revenueResult = await db.query(
+              `SELECT 
+                 TO_CHAR(created_at, 'Mon') as month,
+                 EXTRACT(MONTH FROM created_at) as month_num,
+                 COALESCE(SUM(amount_cents), 0) / 100.0 as revenue,
+                 COUNT(*)::int as subscriptions
+               FROM payments
+               WHERE status = 'paid'
+               AND created_at >= NOW() - INTERVAL '6 months'
+               GROUP BY month, month_num
+               ORDER BY month_num ASC`
+            );
+          }
         } catch (e) {
           revenueResult = { rows: [] };
         }
@@ -1444,14 +1480,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
         commissionsResult = { rows: [] };
       }
 
-      // Recent transactions - handle missing payments/subscriptions tables
+      // Recent transactions - optional dateFrom/dateTo filter
       let transactionsResult: any;
       if (hasPayments && hasSubscriptions) {
         try {
-          transactionsResult = await db.query(
-            `SELECT 
+          let txQuery = `SELECT 
                p.id,
-               TO_CHAR(p.created_at, 'DD/MM') as date,
+               TO_CHAR(p.created_at, 'DD/MM/YYYY') as date,
+               p.created_at as sort_at,
                CASE 
                  WHEN p.amount_cents > 0 THEN 'Assinatura'
                  ELSE 'Comissão'
@@ -1461,10 +1497,21 @@ export async function adminRoutes(fastify: FastifyInstance) {
              FROM payments p
              LEFT JOIN subscriptions s ON p.subscription_id = s.id
              LEFT JOIN users u ON s.user_id = u.id
-             WHERE p.created_at >= NOW() - INTERVAL '30 days'
-             ORDER BY p.created_at DESC
-             LIMIT 50`
-          );
+             WHERE p.status = 'paid'`;
+          const txParams: any[] = [];
+          if (dateFrom) {
+            txParams.push(dateFrom);
+            txQuery += ` AND p.created_at >= $${txParams.length}::date`;
+          }
+          if (dateTo) {
+            txParams.push(dateTo);
+            txQuery += ` AND p.created_at <= $${txParams.length}::date + INTERVAL '1 day'`;
+          }
+          if (txParams.length === 0) {
+            txQuery += ` AND p.created_at >= NOW() - INTERVAL '30 days'`;
+          }
+          txQuery += ` ORDER BY p.created_at DESC LIMIT 100`;
+          transactionsResult = await db.query(txQuery, txParams);
         } catch (e) {
           transactionsResult = { rows: [] };
         }
@@ -1476,6 +1523,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         revenue: revenueResult.rows.map((row: any) => ({
           month: row.month,
           revenue: parseFloat(row.revenue) || 0,
+          subscriptions: parseInt(row.subscriptions, 10) || 0,
         })),
         mrr,
         commissions: commissionsResult.rows.map((row: any) => ({

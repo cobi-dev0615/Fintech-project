@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, CreditCard, Loader2, CheckCircle2, XCircle, Calendar } from "lucide-react";
+import { Check, CreditCard, Loader2, CheckCircle2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,11 +59,8 @@ const PlanPurchase = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Determine user role - default to customer if not available
-  const userRole = user?.role || (location.pathname.startsWith('/consultant') ? 'consultant' : 'customer');
 
-  // Initial data fetch (subscription + plans)
+  // Initial data fetch (subscription)
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -88,11 +85,11 @@ const PlanPurchase = () => {
     fetchInitialData();
   }, []);
 
-  // Fetch plans when billing period or role changes
+  // Fetch plans when billing period changes
   const fetchPlans = async () => {
     try {
       setPlansLoading(true);
-      const plansResponse = await publicApi.getPlans(userRole as 'customer' | 'consultant', billingPeriod);
+      const plansResponse = await publicApi.getPlans(billingPeriod);
       setPlans(plansResponse.plans);
     } catch (error: any) {
       console.error('Failed to fetch plans:', error);
@@ -106,10 +103,9 @@ const PlanPurchase = () => {
     }
   };
 
-  // Fetch plans on mount and when billing period changes
   useEffect(() => {
     fetchPlans();
-  }, [billingPeriod, userRole]);
+  }, [billingPeriod]);
 
   const handlePurchaseClick = (planId: string) => {
     // Don't allow purchasing the same plan
@@ -147,34 +143,68 @@ const PlanPurchase = () => {
     return `R$ ${reais.toFixed(2).replace('.', ',')}`;
   };
 
-  const getPlanCardColor = (plan: Plan) => {
-    // Different colors for customer vs consultant plans
-    if (userRole === 'consultant') {
-      // Consultant plans - use teal/cyan colors
-      return {
-        border: 'border-teal-500/30',
-        hover: 'hover:border-teal-500/50',
-        featured: 'border-teal-500 shadow-lg shadow-teal-500/10',
-        badge: 'bg-teal-500 text-teal-50',
-        ring: 'ring-teal-500',
-      };
-    } else {
-      // Customer plans - use blue colors (default)
-      return {
-        border: 'border-primary/30',
-        hover: 'hover:border-primary/50',
-        featured: 'border-primary shadow-lg shadow-primary/10',
-        badge: 'bg-primary text-primary-foreground',
-        ring: 'ring-primary',
-      };
+  const getPlanCardColor = (code: string) => {
+    switch (code.toLowerCase()) {
+      case 'free':
+        return {
+          border: 'border-gray-500/30',
+          hover: 'hover:border-gray-500/50',
+          featured: 'border-gray-500 shadow-lg shadow-gray-500/10',
+          badge: 'bg-gray-500 text-gray-50',
+          ring: 'ring-gray-500',
+        };
+      case 'basic':
+        return {
+          border: 'border-blue-500/30',
+          hover: 'hover:border-blue-500/50',
+          featured: 'border-blue-500 shadow-lg shadow-blue-500/10',
+          badge: 'bg-blue-500 text-blue-50',
+          ring: 'ring-blue-500',
+        };
+      case 'pro':
+        return {
+          border: 'border-green-500/30',
+          hover: 'hover:border-green-500/50',
+          featured: 'border-green-500 shadow-lg shadow-green-500/10',
+          badge: 'bg-green-500 text-green-50',
+          ring: 'ring-green-500',
+        };
+      case 'consultant':
+        return {
+          border: 'border-purple-500/30',
+          hover: 'hover:border-purple-500/50',
+          featured: 'border-purple-500 shadow-lg shadow-purple-500/10',
+          badge: 'bg-purple-500 text-purple-50',
+          ring: 'ring-purple-500',
+        };
+      case 'enterprise':
+        return {
+          border: 'border-yellow-500/30',
+          hover: 'hover:border-yellow-500/50',
+          featured: 'border-yellow-500 shadow-lg shadow-yellow-500/10',
+          badge: 'bg-yellow-500 text-yellow-50',
+          ring: 'ring-yellow-500',
+        };
+      default:
+        return {
+          border: 'border-primary/30',
+          hover: 'hover:border-primary/50',
+          featured: 'border-primary shadow-lg shadow-primary/10',
+          badge: 'bg-primary text-primary-foreground',
+          ring: 'ring-primary',
+        };
     }
   };
 
   const getSubtitle = (code: string) => {
-    if (code === 'free') return 'Ideal para começar';
-    if (code === 'basic') return 'Para quem quer mais';
-    if (code === 'pro' || code === 'professional') return 'Controle total';
-    return '';
+    switch (code.toLowerCase()) {
+      case 'free': return 'Ideal para começar';
+      case 'basic': return 'Para quem quer mais';
+      case 'pro': return 'Controle total';
+      case 'consultant': return 'Para profissionais';
+      case 'enterprise': return 'Solução completa';
+      default: return '';
+    }
   };
 
   const isCurrentPlan = (planId: string) => {
@@ -182,7 +212,7 @@ const PlanPurchase = () => {
   };
 
   const isFeatured = (code: string) => {
-    return code === 'pro' || code === 'professional';
+    return code === 'pro';
   };
 
   if (initialLoading) {
@@ -194,14 +224,13 @@ const PlanPurchase = () => {
   }
 
   return (
-    <div className="container-fluid  ">
+    <div className="container-fluid">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-2">Escolha seu Plano</h1>
         <p className="text-muted-foreground">
           Selecione o plano que melhor se adapta às suas necessidades. Você pode alterar a qualquer momento.
         </p>
       </div>
-
 
       {/* Billing Period Toggle */}
       <div className="mb-6 flex justify-center">
@@ -221,156 +250,146 @@ const PlanPurchase = () => {
           </div>
         )}
         <div className={cn(
-          "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6",
+          "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4",
           plansLoading && "opacity-50"
         )}>
           {plans.map((plan) => {
-          const isCurrent = isCurrentPlan(plan.id);
-          const featured = isFeatured(plan.code);
-          const isFree = plan.priceCents === 0;
-          const colors = getPlanCardColor(plan);
-          const currentPrice = billingPeriod === 'annual' ? plan.annualPriceCents : plan.monthlyPriceCents;
-          const monthlyEquivalent = billingPeriod === 'annual' ? Math.round(plan.annualPriceCents / 12) : plan.monthlyPriceCents;
-          const savings = billingPeriod === 'annual' && plan.annualPriceCents > 0 
-            ? Math.round(((plan.monthlyPriceCents * 12 - plan.annualPriceCents) / (plan.monthlyPriceCents * 12)) * 100)
-            : 0;
+            const isCurrent = isCurrentPlan(plan.id);
+            const featured = isFeatured(plan.code);
+            const isFree = plan.priceCents === 0;
+            const colors = getPlanCardColor(plan.code);
+            const currentPrice = billingPeriod === 'annual' ? plan.annualPriceCents : plan.monthlyPriceCents;
+            const monthlyEquivalent = billingPeriod === 'annual' ? Math.round(plan.annualPriceCents / 12) : plan.monthlyPriceCents;
+            const savings = billingPeriod === 'annual' && plan.annualPriceCents > 0 
+              ? Math.round(((plan.monthlyPriceCents * 12 - plan.annualPriceCents) / (plan.monthlyPriceCents * 12)) * 100)
+              : 0;
 
-          return (
-            <Card
-              key={plan.id}
-              className={cn(
-                "relative flex flex-col transition-all duration-300",
-                featured && colors.featured + " scale-105",
-                !featured && colors.hover,
-                isCurrent && `ring-2 ${colors.ring}`
-              )}
-            >
-              {featured && (
-                <div className={cn(
-                  "absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap",
-                  colors.badge
-                )}>
-                  Mais Popular
-                </div>
-              )}
-
-              {billingPeriod === 'annual' && savings > 0 && (
-                <div className="absolute top-2 right-2">
-                  <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
-                    Economize {savings}%
-                  </Badge>
-                </div>
-              )}
-
-              {isCurrent && (
-                <div className="absolute top-4 right-4">
-                  <Badge variant="default" className={cn(
-                    "bg-primary",
-                    userRole === 'consultant' && "bg-teal-500"
+            return (
+              <Card
+                key={plan.id}
+                className={cn(
+                  "relative flex flex-col transition-all duration-300",
+                  featured && colors.featured + " scale-[1.02]",
+                  !featured && colors.hover,
+                  isCurrent && `ring-2 ${colors.ring}`
+                )}
+              >
+                {featured && (
+                  <div className={cn(
+                    "absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap",
+                    colors.badge
                   )}>
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Plano Atual
-                  </Badge>
-                </div>
-              )}
-
-              <CardHeader>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  {isCurrent && (
-                    <CheckCircle2 className={cn(
-                      "h-5 w-5 text-primary",
-                      userRole === 'consultant' && "text-teal-500"
-                    )} />
-                  )}
-                  {plan.name}
-                </CardTitle>
-                <CardDescription>
-                  {isCurrent && currentSubscription?.currentPeriodEnd ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        Válido até:{" "}
-                        <strong className="text-foreground">
-                          {format(parseISO(currentSubscription.currentPeriodEnd), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                        </strong>
-                      </span>
-                    </div>
-                  ) : (
-                    getSubtitle(plan.code)
-                  )}
-                </CardDescription>
-                <div className="mt-4">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-foreground">
-                      {formatPrice(currentPrice)}
-                    </span>
-                    {!isFree && (
-                      <span className="text-sm text-muted-foreground">
-                        /{billingPeriod === 'annual' ? 'ano' : 'mês'}
-                      </span>
-                    )}
+                    Mais Popular
                   </div>
-                  {billingPeriod === 'annual' && !isFree && (
+                )}
+
+                {billingPeriod === 'annual' && savings > 0 && (
+                  <div className="absolute top-2 right-2">
+                    <Badge variant="secondary" className="bg-success/10 text-success border-success/20 text-xs">
+                      -{savings}%
+                    </Badge>
+                  </div>
+                )}
+
+                {isCurrent && (
+                  <div className="absolute top-2 right-2">
+                    <Badge variant="default" className={colors.badge}>
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Atual
+                    </Badge>
+                  </div>
+                )}
+
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    {isCurrent && (
+                      <CheckCircle2 className="h-4 w-4 text-success" />
+                    )}
+                    {plan.name}
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    {isCurrent && currentSubscription?.currentPeriodEnd ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>
+                          Até{" "}
+                          <strong className="text-foreground">
+                            {format(parseISO(currentSubscription.currentPeriodEnd), "dd/MM/yyyy", { locale: ptBR })}
+                          </strong>
+                        </span>
+                      </div>
+                    ) : (
+                      getSubtitle(plan.code)
+                    )}
+                  </CardDescription>
+                  <div className="mt-3">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-foreground">
+                        {formatPrice(currentPrice)}
+                      </span>
+                      {!isFree && (
+                        <span className="text-xs text-muted-foreground">
+                          /{billingPeriod === 'annual' ? 'ano' : 'mês'}
+                        </span>
+                      )}
+                    </div>
+                    {billingPeriod === 'annual' && !isFree && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formatPrice(monthlyEquivalent)}/mês
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatPrice(monthlyEquivalent)}/mês equivalente
+                      {plan.connectionLimit !== null 
+                        ? `${plan.connectionLimit} conexão${plan.connectionLimit > 1 ? 'ões' : ''}`
+                        : 'Conexões ilimitadas'
+                      }
                     </p>
-                  )}
-                  {plan.connectionLimit !== null && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Até {plan.connectionLimit} conexões
-                    </p>
-                  )}
-                  {plan.connectionLimit === null && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Conexões ilimitadas
-                    </p>
-                  )}
-                </div>
-              </CardHeader>
+                  </div>
+                </CardHeader>
 
-              <CardContent className="flex-1 flex flex-col">
-                <ul className="space-y-3 mb-6 flex-1">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <Check className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                <CardContent className="flex-1 flex flex-col pt-2">
+                  <ul className="space-y-2 mb-4 flex-1">
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <Check className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
+                        <span className="text-xs text-foreground">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-                <Button
-                  onClick={() => handlePurchaseClick(plan.id)}
-                  disabled={isCurrent || purchasing !== null}
-                  variant={featured ? "default" : "outline"}
-                  className={cn(
-                    "w-full",
-                    userRole === 'consultant' && featured && "bg-teal-500 hover:bg-teal-600"
-                  )}
-                  size="lg"
-                >
-                  {purchasing === plan.id ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Processando...
-                    </>
-                  ) : isCurrent ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Plano Ativo
-                    </>
-                  ) : isFree ? (
-                    "Começar Grátis"
-                  ) : (
-                    <>
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Assinar Agora
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
+                  <Button
+                    onClick={() => handlePurchaseClick(plan.id)}
+                    disabled={isCurrent || purchasing !== null}
+                    variant={featured ? "default" : "outline"}
+                    className={cn(
+                      "w-full",
+                      featured && "bg-green-500 hover:bg-green-600"
+                    )}
+                    size="sm"
+                  >
+                    {purchasing === plan.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processando...
+                      </>
+                    ) : isCurrent ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Plano Ativo
+                      </>
+                    ) : isFree ? (
+                      "Começar Grátis"
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Assinar
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
@@ -379,7 +398,7 @@ const PlanPurchase = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Assinatura</AlertDialogTitle>
             <AlertDialogDescription>
-                  {selectedPlanId && (
+              {selectedPlanId && (
                 <>
                   Você está prestes a assinar o plano{" "}
                   <strong>
@@ -391,13 +410,15 @@ const PlanPurchase = () => {
                       por{" "}
                       <strong>
                         {formatPrice(
-                          plans.find((p) => p.id === selectedPlanId)?.priceCents || 0
+                          billingPeriod === 'annual'
+                            ? plans.find((p) => p.id === selectedPlanId)?.annualPriceCents || 0
+                            : plans.find((p) => p.id === selectedPlanId)?.monthlyPriceCents || 0
                         )}
                         /{billingPeriod === 'annual' ? 'ano' : 'mês'}
                       </strong>
                     </>
                   )}
-                  . {currentSubscription && "Seu plano atual será cancelado e substituído."}
+                  . {currentSubscription && "Seu plano atual será substituído."}
                 </>
               )}
             </AlertDialogDescription>

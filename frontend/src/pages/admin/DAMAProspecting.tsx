@@ -595,7 +595,7 @@ const DAMAProspecting = () => {
                     <div>
                       <label className="text-sm text-muted-foreground">Preço</label>
                       <p className="text-sm font-medium">
-                        R$ {prospectDetail.subscription.planPrice.toFixed(2)}/mês
+                        R$ {(Number(prospectDetail.subscription?.planPrice) || 0).toFixed(2)}/mês
                       </p>
                     </div>
                     <div>
@@ -605,7 +605,9 @@ const DAMAProspecting = () => {
                     <div>
                       <label className="text-sm text-muted-foreground">Próxima Cobrança</label>
                       <p className="text-sm font-medium">
-                        {new Date(prospectDetail.subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}
+                        {prospectDetail.subscription?.currentPeriodEnd
+                          ? new Date(prospectDetail.subscription.currentPeriodEnd).toLocaleDateString('pt-BR')
+                          : '—'}
                       </p>
                     </div>
                   </div>
@@ -613,7 +615,7 @@ const DAMAProspecting = () => {
               )}
 
               {/* Financial Summary */}
-              {(prospectDetail.financialSummary.cash > 0 || prospectDetail.financialSummary.investments > 0 || prospectDetail.financialSummary.debt > 0) && (
+              {((prospectDetail.financialSummary?.cash ?? 0) > 0 || (prospectDetail.financialSummary?.investments ?? 0) > 0 || (prospectDetail.financialSummary?.debt ?? 0) > 0) && (
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Resumo Financeiro</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -623,7 +625,7 @@ const DAMAProspecting = () => {
                         <label className="text-xs text-muted-foreground">Dinheiro</label>
                       </div>
                       <p className="text-lg font-semibold">
-                        R$ {prospectDetail.financialSummary.cash.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {(prospectDetail.financialSummary?.cash ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg border border-border">
@@ -632,7 +634,7 @@ const DAMAProspecting = () => {
                         <label className="text-xs text-muted-foreground">Investimentos</label>
                       </div>
                       <p className="text-lg font-semibold">
-                        R$ {prospectDetail.financialSummary.investments.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {(prospectDetail.financialSummary?.investments ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg border border-border">
@@ -641,7 +643,7 @@ const DAMAProspecting = () => {
                         <label className="text-xs text-muted-foreground">Dívidas</label>
                       </div>
                       <p className="text-lg font-semibold text-destructive">
-                        R$ {prospectDetail.financialSummary.debt.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {(prospectDetail.financialSummary?.debt ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg border border-border bg-primary/5">
@@ -650,7 +652,7 @@ const DAMAProspecting = () => {
                         <label className="text-xs text-muted-foreground">Patrimônio Líquido</label>
                       </div>
                       <p className="text-lg font-semibold text-primary">
-                        R$ {prospectDetail.financialSummary.netWorth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {(prospectDetail.financialSummary?.netWorth ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>

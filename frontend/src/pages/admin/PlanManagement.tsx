@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -34,12 +33,10 @@ interface Plan {
   features: string[];
   connectionLimit?: number | null;
   isActive?: boolean;
-  role?: string | null;
 }
 
 const PlanManagement = () => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'customer' | 'consultant'>('customer');
   const [deleting, setDeleting] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
@@ -62,11 +59,10 @@ const PlanManagement = () => {
         features: p.features || [],
         connectionLimit: p.connectionLimit,
         isActive: p.isActive,
-        role: p.role || null,
       }));
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     retry: 1,
   });
 
@@ -87,6 +83,7 @@ const PlanManagement = () => {
       toast({
         title: "Sucesso",
         description: `Plano excluído com sucesso!`,
+        variant: "success",
       });
       setIsDeleteDialogOpen(false);
       setPlanToDelete(null);
@@ -100,7 +97,7 @@ const PlanManagement = () => {
     },
   });
 
-  // Save plan mutation (auto-save on dialog close)
+  // Save plan mutation
   const savePlanMutation = useMutation({
     mutationFn: async (plan: Plan) => {
       await adminApi.updatePlans([
@@ -111,7 +108,7 @@ const PlanManagement = () => {
           connectionLimit: plan.connectionLimit || null,
           features: plan.features,
           isActive: plan.isActive ?? true,
-          role: plan.role || null,
+          role: null, // All plans available to all users
         }
       ]);
     },
@@ -120,6 +117,7 @@ const PlanManagement = () => {
       toast({
         title: "Sucesso",
         description: "Plano salvo com sucesso!",
+        variant: "success",
       });
     },
     onError: (error: any) => {
@@ -144,7 +142,6 @@ const PlanManagement = () => {
       features: [],
       connectionLimit: null,
       isActive: true,
-      role: activeTab,
     });
     setIsPlanDialogOpen(true);
   };
@@ -205,20 +202,28 @@ const PlanManagement = () => {
     setDeleting(false);
   };
 
-  // Filter plans by role
-  const getFilteredPlans = () => {
-    return plans.filter(p => {
-      if (activeTab === 'customer') {
-        return p.role === 'customer' || p.role === null;
-      } else {
-        return p.role === 'consultant';
-      }
-    });
+  // Card color based on plan type
+  const getCardColor = (code: string) => {
+    switch (code.toLowerCase()) {
+      case 'free':
+        return 'border-gray-500/50 bg-gray-500/5 hover:border-gray-500';
+      case 'basic':
+        return 'border-blue-500/50 bg-blue-500/5 hover:border-blue-500';
+      case 'pro':
+        return 'border-green-500/50 bg-green-500/5 hover:border-green-500';
+      case 'consultant':
+        return 'border-purple-500/50 bg-purple-500/5 hover:border-purple-500';
+      case 'enterprise':
+        return 'border-yellow-500/50 bg-yellow-500/5 hover:border-yellow-500';
+      default:
+        return 'border-blue-500/50 bg-blue-500/5 hover:border-blue-500';
+    }
   };
 
-  const filteredPlans = getFilteredPlans();
+  // Sort plans by price
+  const sortedPlans = [...plans].sort((a, b) => a.price - b.price);
 
-  // Loading state with skeleton loaders
+  // Loading state
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -226,9 +231,8 @@ const PlanManagement = () => {
           <Skeleton className="h-8 w-48 mb-2" />
           <Skeleton className="h-4 w-64" />
         </div>
-        <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          {[1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} className="h-96" />
           ))}
         </div>
@@ -253,147 +257,126 @@ const PlanManagement = () => {
     );
   }
 
-  // Card colors based on role
-  const getCardColors = (role: string | null | undefined) => {
-    if (role === 'consultant') {
-      return 'border-purple-500/50 bg-purple-500/5 hover:border-purple-500';
-    }
-    return 'border-blue-500/50 bg-blue-500/5 hover:border-blue-500';
-  };
-
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Gerencie planos e preços de assinatura
+          Gerencie planos e preços de assinatura. Estes planos são utilizados por clientes e consultores.
         </p>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'customer' | 'consultant')}>
-        <div className="flex justify-center">
-          <TabsList>
-            <TabsTrigger value="customer">Cliente</TabsTrigger>
-            <TabsTrigger value="consultant">Consultor</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value={activeTab} className="mt-6">
-          {/* Plan Cards Grid */}
-          <div className="flex flex-wrap gap-6">
-            {/* Plan Cards */}
-            {filteredPlans.map((plan) => {
-              const isFree = plan.price === 0;
-              const cardColors = getCardColors(plan.role);
-              
-              return (
-                <div
-                  key={plan.id || plan.code}
-                  className={`relative rounded-lg border-2 p-6 transition-all w-[280px] ${cardColors}`}
-                >
-                  {/* Edit and Delete Icons */}
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleEditPlan(plan)}
-                      title="Editar plano"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDeleteClick(plan)}
-                      title="Excluir plano"
-                      disabled={plan.code.toLowerCase() === 'free'}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
-                      <p className="text-xs text-muted-foreground uppercase">{plan.code}</p>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-foreground">
-                          R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </span>
-                        {!isFree && (
-                          <span className="text-sm text-muted-foreground">/mês</span>
-                        )}
-                      </div>
-                      {isFree && (
-                        <span className="text-sm text-muted-foreground">para sempre</span>
-                      )}
-                    </div>
-                    
-                    {plan.connectionLimit !== null && (
-                      <p className="text-sm text-muted-foreground">
-                        {plan.connectionLimit} conexão{plan.connectionLimit > 1 ? 'ões' : ''}
-                      </p>
-                    )}
-                    {plan.connectionLimit === null && (
-                      <p className="text-sm text-muted-foreground">Conexões ilimitadas</p>
-                    )}
-                    
-                    <ul className="space-y-2 mt-4 max-h-48 overflow-y-auto">
-                      {plan.features.slice(0, 5).map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-foreground">{feature}</span>
-                        </li>
-                      ))}
-                      {plan.features.length > 5 && (
-                        <li className="text-xs text-muted-foreground">
-                          +{plan.features.length - 5} mais
-                        </li>
-                      )}
-                      {plan.features.length === 0 && (
-                        <li className="text-xs text-muted-foreground italic">
-                          Nenhuma feature definida
-                        </li>
-                      )}
-                    </ul>
-
-                    {!plan.isActive && (
-                      <div className="mt-2">
-                        <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
-                          Inativo
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Add Plan Card */}
+      {/* Plan Cards Grid */}
+      <div className="flex flex-wrap gap-6">
+        {sortedPlans.map((plan) => {
+          const isFree = plan.price === 0;
+          const cardColor = getCardColor(plan.code);
+          
+          return (
             <div
-              className={`relative rounded-lg border-2 border-dashed p-6 transition-all cursor-pointer hover:border-primary w-[280px] ${getCardColors(activeTab)}`}
-              onClick={handleAddPlan}
+              key={plan.id || plan.code}
+              className={`relative rounded-lg border-2 p-6 transition-all w-[280px] ${cardColor}`}
             >
-              <div className="flex flex-col items-center justify-center h-full min-h-[300px]">
-                <div className="rounded-full bg-primary/10 p-4 mb-4">
-                  <Plus className="h-8 w-8 text-primary" />
+              {/* Edit and Delete Icons */}
+              <div className="absolute top-4 right-4 flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleEditPlan(plan)}
+                  title="Editar plano"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={() => handleDeleteClick(plan)}
+                  title="Excluir plano"
+                  disabled={plan.code.toLowerCase() === 'free'}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
+                  <p className="text-xs text-muted-foreground uppercase">{plan.code}</p>
                 </div>
-                <p className="text-sm font-medium text-foreground">Adicionar Plano</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Clique para criar um novo plano
-                </p>
+                
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-foreground">
+                      R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                    {!isFree && (
+                      <span className="text-sm text-muted-foreground">/mês</span>
+                    )}
+                  </div>
+                  {isFree && (
+                    <span className="text-sm text-muted-foreground">para sempre</span>
+                  )}
+                </div>
+                
+                {plan.connectionLimit !== null && (
+                  <p className="text-sm text-muted-foreground">
+                    {plan.connectionLimit} conexão{plan.connectionLimit > 1 ? 'ões' : ''}
+                  </p>
+                )}
+                {plan.connectionLimit === null && (
+                  <p className="text-sm text-muted-foreground">Conexões ilimitadas</p>
+                )}
+                
+                <ul className="space-y-2 mt-4 max-h-48 overflow-y-auto">
+                  {plan.features.slice(0, 5).map((feature, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-foreground">{feature}</span>
+                    </li>
+                  ))}
+                  {plan.features.length > 5 && (
+                    <li className="text-xs text-muted-foreground">
+                      +{plan.features.length - 5} mais
+                    </li>
+                  )}
+                  {plan.features.length === 0 && (
+                    <li className="text-xs text-muted-foreground italic">
+                      Nenhuma feature definida
+                    </li>
+                  )}
+                </ul>
+
+                {!plan.isActive && (
+                  <div className="mt-2">
+                    <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
+                      Inativo
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
+          );
+        })}
+
+        {/* Add Plan Card */}
+        <div
+          className="relative rounded-lg border-2 border-dashed p-6 transition-all cursor-pointer hover:border-primary w-[280px] border-primary/30 bg-primary/5"
+          onClick={handleAddPlan}
+        >
+          <div className="flex flex-col items-center justify-center h-full min-h-[300px]">
+            <div className="rounded-full bg-primary/10 p-4 mb-4">
+              <Plus className="h-8 w-8 text-primary" />
+            </div>
+            <p className="text-sm font-medium text-foreground">Adicionar Plano</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Clique para criar um novo plano
+            </p>
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       {/* Plan Edit Dialog */}
       <Dialog open={isPlanDialogOpen} onOpenChange={setIsPlanDialogOpen}>
@@ -403,7 +386,7 @@ const PlanManagement = () => {
               {editingPlan?.id ? "Editar Plano" : "Adicionar Novo Plano"}
             </DialogTitle>
             <DialogDescription>
-              Configure os detalhes do plano
+              Configure os detalhes do plano. Este plano ficará disponível para clientes e consultores.
             </DialogDescription>
           </DialogHeader>
 
@@ -412,7 +395,7 @@ const PlanManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="planCode">
-                    Código * <span className="text-xs text-muted-foreground">(único, não pode ser alterado)</span>
+                    Código * <span className="text-xs text-muted-foreground">(único)</span>
                   </Label>
                   <Input
                     id="planCode"
@@ -432,7 +415,7 @@ const PlanManagement = () => {
                     onChange={(e) =>
                       setEditingPlan({ ...editingPlan, name: e.target.value })
                     }
-                    placeholder="ex: Gratuito, Básico"
+                    placeholder="ex: Free, Basic, Pro"
                   />
                 </div>
               </div>
@@ -472,21 +455,6 @@ const PlanManagement = () => {
                     placeholder="Deixe vazio para ilimitado"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <select
-                  value={editingPlan.role || ''}
-                  onChange={(e) =>
-                    setEditingPlan({ ...editingPlan, role: e.target.value || null })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                >
-                  <option value="">Todos</option>
-                  <option value="customer">Cliente</option>
-                  <option value="consultant">Consultor</option>
-                </select>
               </div>
 
               <div className="space-y-2">
