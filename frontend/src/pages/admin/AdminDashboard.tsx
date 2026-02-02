@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useEffect, useCallback, useState, memo } from "react";
-import { Users, TrendingUp, AlertCircle, Activity, RefreshCw } from "lucide-react";
+import { Users, TrendingUp, Activity, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -268,7 +268,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <ProfessionalKpiCard
           title="Usuários Ativos"
           value={kpiData.activeUsers.toLocaleString("pt-BR")}
@@ -293,57 +293,12 @@ const AdminDashboard = () => {
           icon={Activity}
           subtitle=""
         />
-        <ProfessionalKpiCard
-          title="Alertas Ativos"
-          value={formattedAlerts.length.toString()}
-          change="requerem atenção"
-          changeType="warning"
-          icon={AlertCircle}
-          subtitle=""
-        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <UserGrowthChart />
         <RevenueChart />
       </div>
-
-      <ChartCard title="Alertas do Sistema" subtitle="Requerem atenção">
-        <div className="space-y-3">
-          {formattedAlerts.length > 0 ? (
-            formattedAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className={`flex items-start gap-3 p-3 rounded-lg border ${
-                alert.type === "error"
-                  ? "bg-destructive/10 border-destructive/20"
-                  : alert.type === "warning"
-                  ? "bg-warning/10 border-warning/20"
-                  : "bg-muted border-border"
-              }`}
-            >
-              <AlertCircle
-                className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
-                  alert.type === "error"
-                    ? "text-destructive"
-                    : alert.type === "warning"
-                    ? "text-warning"
-                    : "text-muted-foreground"
-                }`}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{alert.message}</p>
-                <p className="text-xs text-muted-foreground mt-1">{alert.time}</p>
-              </div>
-            </div>
-            ))
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum alerta no momento
-            </div>
-          )}
-        </div>
-      </ChartCard>
     </div>
   );
 };

@@ -56,7 +56,7 @@ The system automatically syncs:
 The widget is loaded from Pluggy's CDN in `index.html`:
 
 ```html
-<script src="https://cdn.pluggy.ai/pluggy-connect/v1/pluggy-connect.js"></script>
+<script src="https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js"></script>
 ```
 
 ### 2. Connections Page (`frontend/src/pages/Connections.tsx`)

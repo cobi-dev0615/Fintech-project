@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import getStream from 'get-stream';
+import { buffer as streamToBuffer } from 'stream/consumers';
 
 const require = createRequire(import.meta.url);
 const PDFDocument = require('pdfkit');
@@ -178,5 +178,5 @@ export async function buildReportPdf(options: {
     );
 
   doc.end();
-  return getStream.buffer(doc);
+  return streamToBuffer(doc);
 }
