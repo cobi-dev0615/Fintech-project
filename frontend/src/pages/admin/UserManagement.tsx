@@ -712,22 +712,22 @@ const UserManagement = () => {
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 text-center">
                     {getRoleBadge(user.role)}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 text-center">
                     {getStatusBadge(user.status)}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 text-center">
                     <span className="text-sm text-foreground">{user.plan || "-"}</span>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 text-center">
                     <span className="text-sm text-muted-foreground">
                       {new Date(user.createdAt).toLocaleDateString("pt-BR")}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="py-3 px-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
                       {user.status === 'pending' && (
                         <>
                           <Button

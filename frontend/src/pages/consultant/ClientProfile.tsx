@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, MessageSquare, Plus, TrendingUp, Wallet, EyeOff, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const ClientProfile = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [clientData, setClientData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -40,15 +41,33 @@ const ClientProfile = () => {
         setClientData(data);
         setError(null);
       } catch (err: any) {
-        setError(err?.error || "Erro ao carregar dados do cliente");
+        const errorMessage = err?.error || "Erro ao carregar dados do cliente";
         console.error("Error fetching client:", err);
+        
+        // Check if it's a relationship/permission error - show notification and go back
+        if (
+          errorMessage.includes("No active relationship") ||
+          errorMessage.includes("pending or revoked") ||
+          errorMessage.includes("Invitation may be pending") ||
+          err?.statusCode === 403
+        ) {
+          toast({
+            title: "Acesso negado",
+            description: "Não há relacionamento ativo com este cliente. O convite pode estar pendente ou revogado.",
+            variant: "destructive",
+          });
+          navigate("/consultant/clients", { replace: true });
+          return;
+        }
+        
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     fetchClient();
-  }, [id]);
+  }, [id, navigate, toast]);
 
   const handleAddNote = async () => {
     if (!newNote.trim() || !id) return;

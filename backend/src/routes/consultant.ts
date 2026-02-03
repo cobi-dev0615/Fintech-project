@@ -1158,6 +1158,40 @@ export async function consultantRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Get registered customers not yet invited by this consultant (for invitation form)
+  fastify.get('/invitations/available-customers', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { search } = request.query as { search?: string };
+
+      const result = await db.query(
+        `SELECT u.id, u.email, u.full_name
+         FROM users u
+         WHERE u.role = 'customer'
+         AND u.id NOT IN (
+           SELECT customer_id FROM customer_consultants WHERE consultant_id = $1
+         )
+         AND ($2::text IS NULL OR $2 = '' OR u.email ILIKE $3 OR u.full_name ILIKE $3)
+         ORDER BY u.full_name ASC NULLS LAST, u.email ASC
+         LIMIT 50`,
+        [consultantId, search || null, search ? `%${search}%` : null]
+      );
+
+      const customers = result.rows.map((row: any) => ({
+        id: row.id,
+        email: row.email,
+        name: row.full_name || null,
+      }));
+
+      return reply.send({ customers });
+    } catch (error: any) {
+      fastify.log.error('Error fetching available customers:', error);
+      reply.code(500).send({ error: 'Failed to fetch customers', details: error.message });
+    }
+  });
+
   // Get Invitations
   fastify.get('/invitations', {
     preHandler: [requireConsultant],

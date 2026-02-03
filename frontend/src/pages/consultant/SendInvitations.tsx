@@ -1,13 +1,27 @@
-import { useState, useEffect } from "react";
-import { UserPlus, Send, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { UserPlus, Send, Trash2, ChevronsUpDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Invitation {
   id: string;
@@ -18,6 +32,12 @@ interface Invitation {
   expiresAt: string | null;
 }
 
+interface AvailableCustomer {
+  id: string;
+  email: string;
+  name: string | null;
+}
+
 const SendInvitations = () => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -26,7 +46,37 @@ const SendInvitations = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [availableCustomers, setAvailableCustomers] = useState<AvailableCustomer[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+
+  const fetchAvailableCustomers = useCallback(async (search?: string) => {
+    try {
+      setCustomersLoading(true);
+      const res = await consultantApi.getAvailableCustomers(search || undefined);
+      setAvailableCustomers(res.customers || []);
+    } catch (err) {
+      setAvailableCustomers([]);
+    } finally {
+      setCustomersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (emailOpen) {
+      const timer = setTimeout(() => {
+        fetchAvailableCustomers(searchQuery);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [emailOpen, searchQuery, fetchAvailableCustomers]);
+
+  const handleOpenChange = (open: boolean) => {
+    setEmailOpen(open);
+    if (!open) setSearchQuery("");
+  };
 
   const fetchInvitations = async () => {
     try {
@@ -151,14 +201,72 @@ const SendInvitations = () => {
         <ChartCard title="Enviar Novo Convite">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email do Cliente *</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="cliente@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <Label>Email do Cliente *</Label>
+              <p className="text-xs text-muted-foreground">
+                Clientes registrados que ainda não foram convidados aparecem na lista. Use as setas do teclado para navegar e Enter para selecionar.
+              </p>
+              <Popover open={emailOpen} onOpenChange={handleOpenChange}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={emailOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className={cn(!email && "text-muted-foreground")}>
+                      {email || "Buscar ou digitar email..."}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Buscar por nome ou email..."
+                      value={searchQuery}
+                      onValueChange={setSearchQuery}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {customersLoading ? (
+                          <div className="flex items-center justify-center py-6">
+                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : (
+                          "Nenhum cliente disponível. Digite o email manualmente no campo."
+                        )}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {availableCustomers.map((customer) => (
+                          <CommandItem
+                            key={customer.id}
+                            value={`${customer.email} ${customer.name || ""}`}
+                            onSelect={() => {
+                              setEmail(customer.email);
+                              setName(customer.name || "");
+                              setEmailOpen(false);
+                            }}
+                          >
+                            <div className="flex flex-1 items-center justify-between gap-2 min-w-0">
+                              <div className="min-w-0 truncate">
+                                <span className="font-medium">{customer.email}</span>
+                                {customer.name && (
+                                  <span className="block text-xs text-muted-foreground truncate">
+                                    {customer.name}
+                                  </span>
+                                )}
+                              </div>
+                              <Badge variant="secondary" className="shrink-0 text-xs">
+                                NEW
+                              </Badge>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
@@ -166,7 +274,7 @@ const SendInvitations = () => {
               <Input
                 id="name"
                 type="text"
-                placeholder="Nome completo"
+                placeholder="Preenchido ao selecionar um cliente da lista"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />

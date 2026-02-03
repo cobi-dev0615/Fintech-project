@@ -91,6 +91,13 @@ export const consultantApi = {
   deleteProspect: (id: string) =>
     api.delete<{ message: string }>(`/consultant/pipeline/prospects/${id}`),
 
+  getAvailableCustomers: (search?: string) => {
+    const q = search ? `?search=${encodeURIComponent(search)}` : '';
+    return api.get<{
+      customers: Array<{ id: string; email: string; name: string | null }>;
+    }>(`/consultant/invitations/available-customers${q}`);
+  },
+
   getInvitations: () =>
     api.get<{
       invitations: Array<{
