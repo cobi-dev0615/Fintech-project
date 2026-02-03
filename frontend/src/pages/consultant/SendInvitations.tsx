@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { UserPlus, Send, Trash2, ChevronsUpDown, Loader2 } from "lucide-react";
+import { UserPlus, Send, Trash2, ChevronsUpDown, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +51,8 @@ const SendInvitations = () => {
   const [availableCustomers, setAvailableCustomers] = useState<AvailableCustomer[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const invitationsPerPage = 3;
   const { toast } = useToast();
 
   const fetchAvailableCustomers = useCallback(async (search?: string) => {
@@ -84,6 +86,7 @@ const SendInvitations = () => {
       setLoading(true);
       const data = await consultantApi.getInvitations();
       setInvitations(data.invitations);
+      setCurrentPage(1);
     } catch (err: any) {
       console.error("Error fetching invitations:", err);
     } finally {
@@ -103,6 +106,13 @@ const SendInvitations = () => {
   useEffect(() => {
     fetchInvitations();
   }, [fetchInvitations]);
+
+  useEffect(() => {
+    const newTotalPages = Math.max(1, Math.ceil(invitations.length / invitationsPerPage) || 1);
+    if (currentPage > newTotalPages) {
+      setCurrentPage(newTotalPages);
+    }
+  }, [invitations.length, currentPage, invitationsPerPage]);
 
   const handleSendInvitation = async () => {
     if (!email.trim()) {
@@ -183,6 +193,14 @@ const SendInvitations = () => {
       </Badge>
     );
   };
+
+  const totalInvitations = invitations.length;
+  const totalPages = Math.max(1, Math.ceil(totalInvitations / invitationsPerPage) || 1);
+  const startIndex = (currentPage - 1) * invitationsPerPage;
+  const paginatedInvitations = invitations.slice(startIndex, startIndex + invitationsPerPage);
+  const showingFrom = totalInvitations === 0 ? 0 : Math.min(startIndex + 1, totalInvitations);
+  const showingTo =
+    totalInvitations === 0 ? 0 : Math.min(startIndex + paginatedInvitations.length, totalInvitations);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
@@ -321,7 +339,7 @@ const SendInvitations = () => {
                 <p>Nenhum convite enviado ainda</p>
               </div>
             ) : (
-              invitations.map((invitation) => (
+              paginatedInvitations.map((invitation) => (
                 <div
                   key={invitation.id}
                   className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
@@ -357,6 +375,34 @@ const SendInvitations = () => {
               ))
             )}
           </div>
+          {totalInvitations > 0 && (
+            <div className="flex flex-col gap-3 pt-4 border-t border-border text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+              <p>
+                Mostrando {showingFrom}-{showingTo} de {totalInvitations} convites
+              </p>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-foreground font-medium">{currentPage} / {Math.max(1, totalPages)}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentPage === totalPages || totalInvitations === 0}
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  aria-label="Próxima página"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </ChartCard>
       </div>
 
