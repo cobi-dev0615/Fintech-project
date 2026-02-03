@@ -11,6 +11,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { useAuth } from "@/hooks/useAuth";
+import { getToastVariantForApiError } from "@/lib/utils";
 
 interface Notification {
   id: string;
@@ -96,7 +97,7 @@ const NotificationDropdown = () => {
         description: message.reason 
           ? `Sua solicitação foi rejeitada. Motivo: ${message.reason}`
           : 'Sua solicitação de registro foi rejeitada. Entre em contato com o suporte.',
-        variant: 'destructive',
+        variant: 'warning',
       });
     } else if (message.type === 'consultant_invitation') {
       // Refresh unread count when consultant invitation arrives
@@ -121,6 +122,32 @@ const NotificationDropdown = () => {
         description: message.customerName 
           ? `${message.customerName} aceitou seu convite`
           : 'Um cliente aceitou seu convite',
+      });
+    } else if (message.type === 'invitation_declined') {
+      // Refresh unread count when customer declines invitation
+      refetchUnreadCount();
+      if (open) {
+        fetchNotifications();
+      }
+      toast({
+        title: 'Convite Recusado',
+        description: message.customerName 
+          ? `${message.customerName} recusou seu convite`
+          : message.message || 'Um cliente recusou seu convite',
+        variant: 'warning',
+      });
+    } else if (message.type === 'wallet_shared_updated') {
+      refetchUnreadCount();
+      if (open) {
+        fetchNotifications();
+      }
+      toast({
+        title: message.canViewAll ? 'Carteira compartilhada' : 'Compartilhamento desativado',
+        description: message.message || (message.customerName
+          ? (message.canViewAll
+            ? `${message.customerName} ativou o compartilhamento da carteira com você.`
+            : `${message.customerName} desativou o compartilhamento da carteira.`)
+          : (message.canViewAll ? 'O cliente ativou o compartilhamento da carteira.' : 'O cliente desativou o compartilhamento da carteira.')),
       });
     }
   });
@@ -170,7 +197,7 @@ const NotificationDropdown = () => {
       toast({
         title: "Erro",
         description: "Não foi possível marcar a notificação como lida.",
-        variant: "destructive",
+        variant: getToastVariantForApiError(error),
       });
     }
   };
@@ -193,7 +220,7 @@ const NotificationDropdown = () => {
       toast({
         title: "Erro",
         description: "Não foi possível remover a notificação.",
-        variant: "destructive",
+        variant: getToastVariantForApiError(error),
       });
     }
   };

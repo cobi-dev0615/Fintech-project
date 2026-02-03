@@ -4,12 +4,18 @@ import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 const TOAST_LIMIT = 5;
 const TOAST_REMOVE_DELAY = 1000000;
+/** Time (ms) the toast stays visible before auto-dismiss; timeline shows this. */
+export const TOAST_DURATION_MS = 6000;
 
 type ToasterToast = ToastProps & {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
+  /** Duration in ms until auto-dismiss; used for timeline. */
+  duration?: number;
+  /** Timestamp when toast was added; used for timeline. */
+  createdAt?: number;
 };
 
 const actionTypes = {
@@ -51,6 +57,7 @@ interface State {
 }
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+const toastDismissTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
 const addToRemoveQueue = (toastId: string) => {
   if (toastTimeouts.has(toastId)) {
@@ -68,13 +75,30 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout);
 };
 
+const scheduleAutoDismiss = (toastId: string, durationMs: number) => {
+  if (toastDismissTimeouts.has(toastId)) return;
+  const timeout = setTimeout(() => {
+    toastDismissTimeouts.delete(toastId);
+    dispatch({ type: "DISMISS_TOAST", toastId });
+  }, durationMs);
+  toastDismissTimeouts.set(toastId, timeout);
+};
+
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case "ADD_TOAST":
+    case "ADD_TOAST": {
+      const t = action.toast;
+      const duration = t.duration ?? TOAST_DURATION_MS;
+      const createdAt = t.createdAt ?? Date.now();
+      const toastWithMeta = { ...t, duration, createdAt };
+      if (duration > 0) {
+        scheduleAutoDismiss(t.id, duration);
+      }
       return {
         ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+        toasts: [toastWithMeta, ...state.toasts].slice(0, TOAST_LIMIT),
       };
+    }
 
     case "UPDATE_TOAST":
       return {
@@ -85,12 +109,20 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action;
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
+        const dismissTimeout = toastDismissTimeouts.get(toastId);
+        if (dismissTimeout) {
+          clearTimeout(dismissTimeout);
+          toastDismissTimeouts.delete(toastId);
+        }
         addToRemoveQueue(toastId);
       } else {
         state.toasts.forEach((toast) => {
+          const dismissTimeout = toastDismissTimeouts.get(toast.id);
+          if (dismissTimeout) {
+            clearTimeout(dismissTimeout);
+            toastDismissTimeouts.delete(toast.id);
+          }
           addToRemoveQueue(toast.id);
         });
       }

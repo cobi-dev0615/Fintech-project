@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useWebSocket } from "@/contexts/WebSocketContext";
+import { getToastVariantForApiError } from "@/lib/utils";
 import { UserPlus, CheckCircle2, XCircle, Mail, Clock, AlertCircle, Copy, Users, Percent, Wallet, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,6 +110,12 @@ const Invitations = () => {
   const acceptedConsultants = consultantsData?.consultants || [];
   const hasConsultantWhoInvitedMe = pendingInvitations.length > 0 || acceptedConsultants.length > 0;
   const hasExpiredInvitations = invitations.some(inv => {
+
+  useWebSocket((message) => {
+    if (message.type === "consultant_invitation") {
+      queryClient.invalidateQueries({ queryKey: ["customer", "invitations"] });
+    }
+  });
     if (!inv.expiresAt) return false;
     return new Date(inv.expiresAt) < new Date();
   });
@@ -126,7 +134,7 @@ const Invitations = () => {
       toast({
         title: "Erro",
         description: err?.error || "Erro ao aceitar convite",
-        variant: "destructive",
+        variant: getToastVariantForApiError(err),
       });
     }
   };
@@ -147,7 +155,7 @@ const Invitations = () => {
       toast({
         title: "Erro",
         description: err?.error || "Erro ao recusar convite",
-        variant: "destructive",
+        variant: getToastVariantForApiError(err),
       });
     }
   };
@@ -176,7 +184,7 @@ const Invitations = () => {
       setConsultantToDisconnect(null);
       toast({ title: "Desconectado", description: "Você foi desconectado do consultor.", variant: "success" });
     } catch (err: any) {
-      toast({ title: "Erro", description: err?.error || "Erro ao desconectar", variant: "destructive" });
+      toast({ title: "Erro", description: err?.error || "Erro ao desconectar", variant: getToastVariantForApiError(err) });
     } finally {
       setDisconnecting(false);
     }
@@ -193,7 +201,7 @@ const Invitations = () => {
         variant: "success",
       });
     } catch (err: any) {
-      toast({ title: "Erro", description: err?.error || "Erro ao atualizar permissão", variant: "destructive" });
+      toast({ title: "Erro", description: err?.error || "Erro ao atualizar permissão", variant: getToastVariantForApiError(err) });
     } finally {
       setTogglingShare(null);
     }

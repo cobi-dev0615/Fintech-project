@@ -54,7 +54,7 @@ const ClientProfile = () => {
           toast({
             title: "Acesso negado",
             description: "Não há relacionamento ativo com este cliente. O convite pode estar pendente ou revogado.",
-            variant: "destructive",
+            variant: "warning",
           });
           navigate("/consultant/clients", { replace: true });
           return;

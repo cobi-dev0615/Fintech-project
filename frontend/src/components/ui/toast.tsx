@@ -28,9 +28,9 @@ const toastVariants = cva(
     variants: {
       variant: {
         default: "border bg-background text-foreground",
-        destructive: "destructive group border-red-500/50 bg-red-500/10 text-red-700 dark:border-red-500/30 dark:bg-red-500/20 dark:text-red-300",
+        destructive: "destructive group border-red-600 bg-red-600 text-white dark:border-red-700 dark:bg-red-700 dark:text-white",
         success: "border-green-600 bg-green-600 text-white dark:border-green-500 dark:bg-green-600 dark:text-white",
-        warning: "border-amber-500/50 bg-amber-500/10 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-200",
+        warning: "border-amber-600 bg-amber-600 text-white dark:border-amber-600 dark:bg-amber-600 dark:text-white",
       },
     },
     defaultVariants: {
@@ -96,6 +96,25 @@ const ToastDescription = React.forwardRef<
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 
+/** Progress bar showing time until the toast auto-dismisses. */
+function ToastTimeline({ durationMs }: { durationMs: number }) {
+  if (durationMs <= 0) return null;
+  return (
+    <div
+      className="absolute bottom-0 left-0 right-0 h-1 bg-black/20 rounded-b-md overflow-hidden"
+      aria-hidden
+    >
+      <div
+        className="h-full bg-current opacity-40 rounded-b-md"
+        style={{
+          animation: "toast-timeline-shrink linear forwards",
+          animationDuration: `${durationMs}ms`,
+        }}
+      />
+    </div>
+  );
+}
+
 type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>;
@@ -110,4 +129,5 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+  ToastTimeline,
 };

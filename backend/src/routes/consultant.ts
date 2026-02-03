@@ -815,6 +815,33 @@ export async function consultantRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Unlink client (remove consultant–customer relationship)
+  fastify.delete('/clients/:id', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { id: customerId } = request.params as { id: string };
+
+      const result = await db.query(
+        `DELETE FROM customer_consultants
+         WHERE consultant_id = $1 AND customer_id = $2
+         RETURNING id`,
+        [consultantId, customerId]
+      );
+
+      if (result.rows.length === 0) {
+        return reply.code(404).send({ error: 'Client not found or already unlinked' });
+      }
+
+      cache.delete(`consultant:${consultantId}:dashboard:metrics`);
+      return reply.send({ message: 'Cliente desvinculado com sucesso' });
+    } catch (error: any) {
+      fastify.log.error('Error unlinking client:', error);
+      reply.code(500).send({ error: 'Failed to unlink client', details: error.message });
+    }
+  });
+
   // Add Client Note
   fastify.post('/clients/:id/notes', {
     preHandler: [requireConsultant],

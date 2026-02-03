@@ -57,6 +57,9 @@ export const consultantApi = {
       reports: Array<{ id: string; type: string; generatedAt: string; downloadUrl: string | null }>;
     }>(`/consultant/clients/${id}`),
 
+  unlinkClient: (clientId: string) =>
+    api.delete<{ message: string }>(`/consultant/clients/${clientId}`),
+
   addClientNote: (clientId: string, note: string) =>
     api.post<{ note: { id: string; content: string; date: string } }>(
       `/consultant/clients/${clientId}/notes`,

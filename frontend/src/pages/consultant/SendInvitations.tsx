@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { UserPlus, Send, Trash2, ChevronsUpDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/command";
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getToastVariantForApiError } from "@/lib/utils";
+import { useWebSocket } from "@/contexts/WebSocketContext";
 
 interface Invitation {
   id: string;
@@ -78,7 +79,7 @@ const SendInvitations = () => {
     if (!open) setSearchQuery("");
   };
 
-  const fetchInvitations = async () => {
+  const fetchInvitations = useCallback(async () => {
     try {
       setLoading(true);
       const data = await consultantApi.getInvitations();
@@ -88,11 +89,20 @@ const SendInvitations = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const fetchInvitationsRef = useRef(fetchInvitations);
+  fetchInvitationsRef.current = fetchInvitations;
+
+  useWebSocket((message) => {
+    if (message.type === "invitation_accepted" || message.type === "invitation_declined") {
+      fetchInvitationsRef.current();
+    }
+  });
 
   useEffect(() => {
     fetchInvitations();
-  }, []);
+  }, [fetchInvitations]);
 
   const handleSendInvitation = async () => {
     if (!email.trim()) {
@@ -120,7 +130,7 @@ const SendInvitations = () => {
       toast({
         title: "Erro",
         description: err?.error || "Erro ao enviar convite",
-        variant: "destructive",
+        variant: getToastVariantForApiError(err),
       });
       console.error("Error sending invitation:", err);
     } finally {
@@ -146,7 +156,7 @@ const SendInvitations = () => {
       toast({
         title: "Erro",
         description: err?.error || "Erro ao excluir convite",
-        variant: "destructive",
+        variant: getToastVariantForApiError(err),
       });
       console.error("Error deleting invitation:", err);
     } finally {

@@ -197,8 +197,10 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
       // Check if invitation exists and belongs to this customer
       const invitationResult = await db.query(
-        `SELECT consultant_id, status FROM customer_consultants
-         WHERE id = $1 AND customer_id = $2`,
+        `SELECT cc.consultant_id, cc.status, u.full_name as customer_name
+         FROM customer_consultants cc
+         JOIN users u ON u.id = cc.customer_id
+         WHERE cc.id = $1 AND cc.customer_id = $2`,
         [id, customerId]
       );
 
@@ -213,6 +215,9 @@ export async function customerRoutes(fastify: FastifyInstance) {
         return reply.code(400).send({ error: 'Cannot decline an accepted invitation' });
       }
 
+      const consultantId = invitation.consultant_id;
+      const customerName = invitation.customer_name || 'Um cliente';
+
       // Delete the invitation (or mark as declined)
       await db.query(
         `DELETE FROM customer_consultants WHERE id = $1 AND customer_id = $2`,
@@ -220,7 +225,18 @@ export async function customerRoutes(fastify: FastifyInstance) {
       );
 
       // Clear consultant dashboard cache
-      cache.delete(`consultant:${invitation.consultant_id}:dashboard:metrics`);
+      cache.delete(`consultant:${consultantId}:dashboard:metrics`);
+
+      // Notify consultant in real time
+      const websocket = (fastify as any).websocket;
+      if (websocket?.broadcastToUser) {
+        websocket.broadcastToUser(consultantId, {
+          type: 'invitation_declined',
+          invitationId: id,
+          customerName,
+          message: `${customerName} recusou seu convite`,
+        });
+      }
 
       return { message: 'Invitation declined' };
     } catch (error: any) {
@@ -323,7 +339,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
         `UPDATE customer_consultants
          SET can_view_all = COALESCE($3, can_view_all), updated_at = NOW()
          WHERE id = $1 AND customer_id = $2 AND status = 'active'
-         RETURNING id, can_view_all`,
+         RETURNING id, can_view_all, consultant_id`,
         [id, customerId, body.can_view_all]
       );
 
@@ -331,10 +347,45 @@ export async function customerRoutes(fastify: FastifyInstance) {
         return reply.code(404).send({ error: 'Consultant link not found' });
       }
 
+      const canViewAll = result.rows[0].can_view_all;
+      const consultantId = result.rows[0].consultant_id;
+
+      // Customer name for consultant notification
+      const customerResult = await db.query(
+        `SELECT full_name FROM users WHERE id = $1`,
+        [customerId]
+      );
+      const customerName = customerResult.rows[0]?.full_name || 'Cliente';
+
+      const title = canViewAll ? 'Carteira compartilhada' : 'Compartilhamento de carteira desativado';
+      const message = canViewAll
+        ? `${customerName} ativou o compartilhamento da carteira com você.`
+        : `${customerName} desativou o compartilhamento da carteira.`;
+
+      await createAlert({
+        userId: consultantId,
+        severity: 'info',
+        title,
+        message,
+        notificationType: 'consultant_assignment',
+        linkUrl: '/consultant/clients',
+        metadata: { customerId, customerName, canViewAll, linkId: id },
+      });
+
+      const websocket = (fastify as any).websocket;
+      if (websocket?.broadcastToUser) {
+        websocket.broadcastToUser(consultantId, {
+          type: 'wallet_shared_updated',
+          customerName,
+          canViewAll,
+          message,
+        });
+      }
+
       return reply.send({
         id: result.rows[0].id,
-        canViewAll: result.rows[0].can_view_all,
-        message: result.rows[0].can_view_all ? 'Compartilhamento de carteira ativado' : 'Compartilhamento de carteira desativado',
+        canViewAll,
+        message: canViewAll ? 'Compartilhamento de carteira ativado' : 'Compartilhamento de carteira desativado',
       });
     } catch (error: any) {
       fastify.log.error('Error updating consultant permissions:', error);

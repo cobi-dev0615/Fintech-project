@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Search, UserPlus, MoreVertical, EyeOff } from "lucide-react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { Search, UserPlus, MoreVertical, EyeOff, FileText, UserMinus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,9 +11,36 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { consultantApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { getToastVariantForApiError } from "@/lib/utils";
 
 interface Client {
   id: string;
@@ -25,10 +52,22 @@ interface Client {
   walletShared?: boolean;
 }
 
+const REPORT_TYPES = [
+  { value: "consolidated", label: "Relatório Consolidado" },
+  { value: "portfolio_analysis", label: "Análise de Portfólio" },
+  { value: "financial_planning", label: "Planejamento Financeiro" },
+  { value: "monthly", label: "Relatório Mensal" },
+  { value: "custom", label: "Relatório Personalizado" },
+] as const;
+
 const ClientsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [unlinkDialogClient, setUnlinkDialogClient] = useState<Client | null>(null);
+  const [reportDialogClient, setReportDialogClient] = useState<Client | null>(null);
+  const [reportType, setReportType] = useState<string>("consolidated");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   // Debounce search query
@@ -68,6 +107,81 @@ const ClientsList = () => {
         {labels[status as keyof typeof labels]}
       </span>
     );
+  };
+
+  const generateReportMutation = useMutation({
+    mutationFn: (payload: { clientId: string; type: string }) =>
+      consultantApi.generateReport({ clientId: payload.clientId, type: payload.type }),
+    onSuccess: (_, variables) => {
+      setReportDialogClient(null);
+      setReportType("consolidated");
+      queryClient.invalidateQueries({ queryKey: ["consultant", "reports"] });
+      toast({
+        title: "Relatório solicitado",
+        description: "O relatório está sendo gerado. Acesse Relatórios para baixar.",
+        variant: "success",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Erro",
+        description: err?.error || "Não foi possível gerar o relatório",
+        variant: getToastVariantForApiError(err),
+      });
+    },
+  });
+
+  const unlinkMutation = useMutation({
+    mutationFn: (clientId: string) => consultantApi.unlinkClient(clientId),
+    onSuccess: () => {
+      setUnlinkDialogClient(null);
+      queryClient.invalidateQueries({ queryKey: ["consultant", "clients"] });
+      toast({
+        title: "Cliente desvinculado",
+        description: "O vínculo com o cliente foi removido.",
+        variant: "success",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Erro",
+        description: err?.error || "Não foi possível desvincular o cliente",
+        variant: getToastVariantForApiError(err),
+      });
+    },
+  });
+
+  const handleViewDetails = (client: Client, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (client.status !== "active") {
+      toast({
+        title: "Acesso negado",
+        description: client.status === "pending"
+          ? "O convite para este cliente ainda está pendente de aceitação."
+          : "Não há relacionamento ativo com este cliente.",
+        variant: "warning",
+      });
+      return;
+    }
+    navigate(`/consultant/clients/${client.id}`);
+  };
+
+  const handleGenerateReport = (client: Client, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (client.status !== "active") {
+      toast({
+        title: "Atenção",
+        description: "É necessário um relacionamento ativo para gerar relatório.",
+        variant: "warning",
+      });
+      return;
+    }
+    setReportDialogClient(client);
+  };
+
+  const handleUnlink = (client: Client, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setUnlinkDialogClient(client);
   };
 
   return (
@@ -138,7 +252,7 @@ const ClientsList = () => {
                     description: client.status === "pending" 
                       ? "O convite para este cliente ainda está pendente de aceitação."
                       : "Não há relacionamento ativo com este cliente. O convite pode estar pendente ou revogado.",
-                    variant: "destructive",
+                    variant: "warning",
                   });
                   return;
                 }
@@ -190,10 +304,18 @@ const ClientsList = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleClientClick(e as any); }}>Ver detalhes</DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Editar</DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Gerar relatório</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem onClick={(e) => handleViewDetails(client, e)}>
+                        Ver detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => handleGenerateReport(client, e)}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Gerar relatório
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={(e) => handleUnlink(client, e)}
+                      >
+                        <UserMinus className="h-4 w-4 mr-2" />
                         Desvincular
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -204,6 +326,80 @@ const ClientsList = () => {
           )}
         </div>
       </ChartCard>
+
+      {/* Generate report dialog */}
+      <Dialog open={!!reportDialogClient} onOpenChange={(open) => !open && setReportDialogClient(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Gerar relatório</DialogTitle>
+            <DialogDescription>
+              {reportDialogClient
+                ? `Selecione o tipo de relatório para ${reportDialogClient.name}. O arquivo estará disponível em Relatórios.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Tipo de relatório</Label>
+              <Select value={reportType} onValueChange={setReportType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {REPORT_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReportDialogClient(null)}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={generateReportMutation.isPending}
+              onClick={() => {
+                if (reportDialogClient) {
+                  generateReportMutation.mutate({ clientId: reportDialogClient.id, type: reportType });
+                }
+              }}
+            >
+              {generateReportMutation.isPending ? "Gerando…" : "Gerar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unlink confirmation dialog */}
+      <AlertDialog open={!!unlinkDialogClient} onOpenChange={(open) => !open && setUnlinkDialogClient(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desvincular cliente</AlertDialogTitle>
+            <AlertDialogDescription>
+              {unlinkDialogClient
+                ? `Tem certeza que deseja desvincular ${unlinkDialogClient.name}? O cliente deixará de aparecer na sua lista e você perderá acesso aos dados compartilhados.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={unlinkMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (unlinkDialogClient) {
+                  unlinkMutation.mutate(unlinkDialogClient.id);
+                }
+              }}
+              disabled={unlinkMutation.isPending}
+            >
+              {unlinkMutation.isPending ? "Desvinculando…" : "Desvincular"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
