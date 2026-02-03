@@ -86,11 +86,16 @@ const PlanPurchase = () => {
   }, []);
 
   // Fetch plans when billing period changes
+  const DISPLAY_PLAN_CODES = ['basic', 'pro', 'consultant'];
+
   const fetchPlans = async () => {
     try {
       setPlansLoading(true);
       const plansResponse = await publicApi.getPlans(billingPeriod);
-      setPlans(plansResponse.plans);
+      const filtered = (plansResponse.plans || []).filter((p) =>
+        DISPLAY_PLAN_CODES.includes((p.code || '').toLowerCase())
+      );
+      setPlans(filtered);
     } catch (error: any) {
       console.error('Failed to fetch plans:', error);
       toast({
@@ -250,7 +255,7 @@ const PlanPurchase = () => {
           </div>
         )}
         <div className={cn(
-          "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4",
+          "grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto",
           plansLoading && "opacity-50"
         )}>
           {plans.map((plan) => {

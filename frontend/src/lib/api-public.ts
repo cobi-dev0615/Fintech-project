@@ -1,6 +1,15 @@
 import { api } from './api-client';
 
+export interface PlatformStats {
+  activeUsers: number;
+  consolidatedAssets: number;
+  synchronizedTransactions: number;
+}
+
 export const publicApi = {
+  getPlatformStats: () =>
+    api.get<PlatformStats>('/public/stats'),
+
   getPlans: (billingPeriod?: 'monthly' | 'annual') => {
     const params = new URLSearchParams();
     if (billingPeriod) params.append('billingPeriod', billingPeriod);

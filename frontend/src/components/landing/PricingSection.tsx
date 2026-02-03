@@ -32,9 +32,10 @@ const PricingSection = () => {
         setError(null);
         const response = await publicApi.getPlans();
         
-        // Map backend plans to frontend format
+        const displayCodes = ['basic', 'pro', 'consultant'];
+        // Map backend plans to frontend format (only Basic, Pro, Consultant)
         const mappedPlans: Plan[] = response.plans
-          .filter(plan => plan.isActive) // Only show active plans
+          .filter(plan => plan.isActive && displayCodes.includes((plan.code || '').toLowerCase()))
           .map((plan) => {
             // Determine subtitle and CTA based on plan code
             const getSubtitle = (code: string, name: string) => {

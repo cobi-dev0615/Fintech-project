@@ -1,32 +1,50 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { publicApi } from "@/lib/api-public";
+
+function formatStatValue(
+  value: number,
+  type: "users" | "currency" | "transactions"
+): { prefix: string; target: number; suffix: string } {
+  if (type === "currency") {
+    if (value >= 1e9) return { prefix: "+R$ ", target: Math.round(value / 1e9), suffix: "bi" };
+    if (value >= 1e6) return { prefix: "+R$ ", target: Math.round(value / 1e6), suffix: "mi" };
+    if (value >= 1e3) return { prefix: "+R$ ", target: Math.round(value / 1e3), suffix: "mil" };
+    return { prefix: "+R$ ", target: Math.round(value), suffix: "" };
+  }
+  if (value >= 1e6) return { prefix: "+", target: Math.round(value / 1e6), suffix: "mi" };
+  if (value >= 1e3) return { prefix: "+", target: Math.round(value / 1e3), suffix: "mil" };
+  return { prefix: "+", target: value, suffix: "" };
+}
 
 const StatsSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  const stats = [
-    {
-      prefix: "+",
-      target: 50,
-      suffix: "mil",
-      title: "Usuários ativos",
-      subtitle: "confiando no zurT para gerenciar suas finanças.",
-    },
-    {
-      prefix: "+R$ ",
-      target: 2,
-      suffix: "bi",
-      title: "Patrimônio consolidado",
-      subtitle: "total de patrimônio gerenciado na plataforma.",
-    },
-    {
-      prefix: "+",
-      target: 500,
-      suffix: "mil",
-      title: "Transações sincronizadas",
-      subtitle: "diariamente através do Open Finance.",
-    },
-  ];
+  const { data: platformStats, isLoading } = useQuery({
+    queryKey: ["public", "platformStats"],
+    queryFn: () => publicApi.getPlatformStats(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+
+  const stats = (() => {
+    const fallback = [
+      { prefix: "+", target: 50, suffix: "mil", title: "Usuários ativos", subtitle: "confiando no zurT para gerenciar suas finanças." },
+      { prefix: "+R$ ", target: 2, suffix: "bi", title: "Patrimônio consolidado", subtitle: "total de patrimônio gerenciado na plataforma." },
+      { prefix: "+", target: 500, suffix: "mil", title: "Transações sincronizadas", subtitle: "diariamente através do Open Finance." },
+    ] as const;
+    if (!platformStats) return fallback;
+    const u = formatStatValue(platformStats.activeUsers, "users");
+    const a = formatStatValue(platformStats.consolidatedAssets, "currency");
+    const t = formatStatValue(platformStats.synchronizedTransactions, "transactions");
+    return [
+      { ...u, title: "Usuários ativos", subtitle: "confiando no zurT para gerenciar suas finanças." },
+      { ...a, title: "Patrimônio consolidado", subtitle: "total de patrimônio gerenciado na plataforma." },
+      { ...t, title: "Transações sincronizadas", subtitle: "diariamente através do Open Finance." },
+    ];
+  })();
 
   // Intersection Observer to trigger animation when section is visible
   useEffect(() => {

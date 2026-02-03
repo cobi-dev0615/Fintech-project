@@ -25,6 +25,14 @@ const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentFailure = lazy(() => import("./pages/PaymentFailure"));
 const PaymentPending = lazy(() => import("./pages/PaymentPending"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Security = lazy(() => import("./pages/Security"));
+const About = lazy(() => import("./pages/About"));
+const Blog = lazy(() => import("./pages/Blog"));
+const Careers = lazy(() => import("./pages/Careers"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Cookies = lazy(() => import("./pages/Cookies"));
+const Features = lazy(() => import("./pages/Features"));
 
 // App pages (Customer) - lazy loaded
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -121,6 +129,14 @@ const App = () => (
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/auth/google" element={<GoogleAuthCallback />} />
             <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
+            <Route path="/security" element={<Suspense fallback={<PageLoader />}><Security /></Suspense>} />
+            <Route path="/about" element={<Suspense fallback={<PageLoader />}><About /></Suspense>} />
+            <Route path="/blog" element={<Suspense fallback={<PageLoader />}><Blog /></Suspense>} />
+            <Route path="/careers" element={<Suspense fallback={<PageLoader />}><Careers /></Suspense>} />
+            <Route path="/privacy" element={<Suspense fallback={<PageLoader />}><Privacy /></Suspense>} />
+            <Route path="/terms" element={<Suspense fallback={<PageLoader />}><Terms /></Suspense>} />
+            <Route path="/cookies" element={<Suspense fallback={<PageLoader />}><Cookies /></Suspense>} />
+            <Route path="/features" element={<Suspense fallback={<PageLoader />}><Features /></Suspense>} />
             
             {/* App Routes (Customer) */}
             <Route path="/app" element={<AppLayout />}>
