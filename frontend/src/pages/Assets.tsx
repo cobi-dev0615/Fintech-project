@@ -11,7 +11,8 @@ import {
   Cell, 
   ResponsiveContainer, 
   Tooltip, 
-  Legend 
+  Legend,
+  Label
 } from "recharts";
 
 const Assets = () => {
@@ -181,16 +182,34 @@ const Assets = () => {
                   outerRadius={100}
                   paddingAngle={5}
                   dataKey="value"
+                  label={false}
                 >
                   {allocationData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
+                  <Label
+                    content={({ viewBox }: { viewBox?: { cx?: number; cy?: number } }) => {
+                      const cx = viewBox?.cx ?? 0;
+                      const cy = viewBox?.cy ?? 0;
+                      return (
+                        <g>
+                          <text x={cx} y={cy - 8} textAnchor="middle" fill="white" className="text-sm font-medium">
+                            Patrimônio
+                          </text>
+                          <text x={cx} y={cy + 10} textAnchor="middle" fill="white" className="text-lg font-bold">
+                            R$ {netWorth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </text>
+                        </g>
+                      );
+                    }}
+                  />
                 </Pie>
                 <Tooltip 
                   formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`}
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--card-foreground))' }}
+                  labelStyle={{ color: 'hsl(var(--card-foreground))' }}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
               </RechartsPieChart>
             </ResponsiveContainer>
           </div>

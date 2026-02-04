@@ -85,12 +85,20 @@ const PlanPurchase = () => {
     fetchInitialData();
   }, []);
 
-  // Fetch plans when billing period changes
+  // Plan codes by audience: consultants see 299/499 only; customers see the rest
+  const CONSULTANT_PLAN_CODES = ['consultant', 'enterprise'];
+
   const fetchPlans = async () => {
     try {
       setPlansLoading(true);
       const plansResponse = await publicApi.getPlans(billingPeriod);
-      setPlans(plansResponse.plans || []);
+      const allPlans = plansResponse.plans || [];
+      const role = user?.role;
+      const filtered =
+        role === 'consultant'
+          ? allPlans.filter((p) => CONSULTANT_PLAN_CODES.includes((p.code || '').toLowerCase()))
+          : allPlans.filter((p) => !CONSULTANT_PLAN_CODES.includes((p.code || '').toLowerCase()));
+      setPlans(filtered);
     } catch (error: any) {
       console.error('Failed to fetch plans:', error);
       toast({
@@ -105,7 +113,7 @@ const PlanPurchase = () => {
 
   useEffect(() => {
     fetchPlans();
-  }, [billingPeriod]);
+  }, [billingPeriod, user?.role]);
 
   const handlePurchaseClick = (planId: string) => {
     // Don't allow purchasing the same plan

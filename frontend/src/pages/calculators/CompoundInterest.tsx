@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Calculator, TrendingUp, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -92,23 +93,21 @@ const CompoundInterest = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="initial">Valor Inicial (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="initial"
-                type="number"
-                placeholder="10000"
                 value={initialAmount}
-                onChange={(e) => setInitialAmount(e.target.value)}
+                onChange={setInitialAmount}
+                placeholder="10.000,00"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="monthly">Aporte Mensal (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="monthly"
-                type="number"
-                placeholder="500"
                 value={monthlyContribution}
-                onChange={(e) => setMonthlyContribution(e.target.value)}
+                onChange={setMonthlyContribution}
+                placeholder="500,00"
               />
             </div>
 

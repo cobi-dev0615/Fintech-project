@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Percent, Calculator, TrendingUp, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -9,7 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useToast } from "@/hooks/use-toast";
 
 const ProfitabilitySimulator = () => {
-  const [initialAmount, setInitialAmount] = useState("");
+  const [initialAmount, setInitialAmount] = useState<number | "">("");
   const [scenarios, setScenarios] = useState([
     { name: "Conservador", rate: "6", color: "#10b981" },
     { name: "Moderado", rate: "10", color: "#3b82f6" },
@@ -20,7 +21,7 @@ const ProfitabilitySimulator = () => {
   const { toast } = useToast();
 
   const calculate = () => {
-    const principal = parseFloat(initialAmount) || 0;
+    const principal = typeof initialAmount === "number" ? initialAmount : 0;
     const years = parseFloat(timePeriod) || 0;
 
     if (principal <= 0 || years <= 0) {
@@ -79,12 +80,11 @@ const ProfitabilitySimulator = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="amount">Valor Inicial (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="amount"
-                type="number"
-                placeholder="10000"
                 value={initialAmount}
-                onChange={(e) => setInitialAmount(e.target.value)}
+                onChange={setInitialAmount}
+                placeholder="10.000,00"
               />
             </div>
 

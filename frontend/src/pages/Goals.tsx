@@ -3,6 +3,7 @@ import { Target, Plus, TrendingUp, Calendar, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Progress } from "@/components/ui/progress";
@@ -38,12 +39,12 @@ const Goals = () => {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [deletingGoalId, setDeletingGoalId] = useState<string | null>(null);
   const [newGoalName, setNewGoalName] = useState("");
-  const [newGoalTarget, setNewGoalTarget] = useState("");
+  const [newGoalTarget, setNewGoalTarget] = useState<number | "">("");
   const [newGoalDeadline, setNewGoalDeadline] = useState("");
   const [newGoalCategory, setNewGoalCategory] = useState("");
   const [editGoalName, setEditGoalName] = useState("");
-  const [editGoalTarget, setEditGoalTarget] = useState("");
-  const [editGoalCurrent, setEditGoalCurrent] = useState("");
+  const [editGoalTarget, setEditGoalTarget] = useState<number | "">("");
+  const [editGoalCurrent, setEditGoalCurrent] = useState<number | "">("");
   const [editGoalDeadline, setEditGoalDeadline] = useState("");
   const [editGoalCategory, setEditGoalCategory] = useState("");
   const [creating, setCreating] = useState(false);
@@ -70,7 +71,7 @@ const Goals = () => {
   }, []);
 
   const handleCreateGoal = async () => {
-    if (!newGoalName || !newGoalTarget) {
+    if (!newGoalName || newGoalTarget === "" || newGoalTarget <= 0) {
       toast({
         title: "Erro",
         description: "Preencha o nome e o valor da meta",
@@ -83,7 +84,7 @@ const Goals = () => {
       setCreating(true);
       const result = await goalsApi.create({
         name: newGoalName,
-        target: parseFloat(newGoalTarget),
+        target: newGoalTarget,
         deadline: newGoalDeadline || undefined,
         category: newGoalCategory || undefined,
       });
@@ -112,8 +113,8 @@ const Goals = () => {
   const handleEditGoal = (goal: Goal) => {
     setEditingGoal(goal);
     setEditGoalName(goal.name);
-    setEditGoalTarget(goal.target.toString());
-    setEditGoalCurrent(goal.current.toString());
+    setEditGoalTarget(goal.target);
+    setEditGoalCurrent(goal.current);
     setEditGoalDeadline(goal.deadline ? new Date(goal.deadline.split("/").reverse().join("-")).toISOString().split('T')[0] : "");
     setEditGoalCategory(goal.category);
     setIsEditDialogOpen(true);
@@ -252,12 +253,11 @@ const Goals = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="target">Valor Objetivo (R$)</Label>
-                <Input 
-                  id="target" 
-                  type="number" 
-                  placeholder="50000"
+                <CurrencyInput
+                  id="target"
                   value={newGoalTarget}
-                  onChange={(e) => setNewGoalTarget(e.target.value)}
+                  onChange={setNewGoalTarget}
+                  placeholder="Ex: 50.000,00"
                 />
               </div>
               <div className="space-y-2">
@@ -430,22 +430,20 @@ const Goals = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-target">Valor Objetivo (R$)</Label>
-              <Input 
-                id="edit-target" 
-                type="number" 
-                placeholder="50000"
+              <CurrencyInput
+                id="edit-target"
                 value={editGoalTarget}
-                onChange={(e) => setEditGoalTarget(e.target.value)}
+                onChange={setEditGoalTarget}
+                placeholder="Ex: 50.000,00"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-current">Valor Atual (R$)</Label>
-              <Input 
-                id="edit-current" 
-                type="number" 
-                placeholder="0"
+              <CurrencyInput
+                id="edit-current"
                 value={editGoalCurrent}
-                onChange={(e) => setEditGoalCurrent(e.target.value)}
+                onChange={setEditGoalCurrent}
+                placeholder="0,00"
               />
             </div>
             <div className="space-y-2">

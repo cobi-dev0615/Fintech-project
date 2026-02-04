@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Home, Calculator, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -9,14 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 
 const UsufructCalculator = () => {
-  const [propertyValue, setPropertyValue] = useState("");
+  const [propertyValue, setPropertyValue] = useState<number | "">("");
   const [usufructAge, setUsufructAge] = useState("");
   const [usufructType, setUsufructType] = useState<"temporary" | "lifelong">("lifelong");
   const [results, setResults] = useState<any>(null);
   const { toast } = useToast();
 
   const calculate = () => {
-    const value = parseFloat(propertyValue) || 0;
+    const value = typeof propertyValue === "number" ? propertyValue : 0;
     const age = parseFloat(usufructAge) || 0;
 
     if (value <= 0 || age <= 0) {
@@ -97,12 +98,11 @@ const UsufructCalculator = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="value">Valor do Imóvel (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="value"
-                type="number"
-                placeholder="500000"
                 value={propertyValue}
-                onChange={(e) => setPropertyValue(e.target.value)}
+                onChange={setPropertyValue}
+                placeholder="500.000,00"
               />
             </div>
 

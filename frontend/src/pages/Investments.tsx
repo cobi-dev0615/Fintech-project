@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
   Tooltip,
   Legend,
+  Label,
 } from "recharts";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -166,11 +167,37 @@ const Investments = () => {
                       outerRadius={100}
                       paddingAngle={4}
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={false}
                     >
                       {allocationData.map((entry, index) => (
                         <Cell key={entry.name} fill={entry.color} />
                       ))}
+                      <Label
+                        content={({ viewBox }: { viewBox?: { cx?: number; cy?: number } }) => {
+                          const cx = viewBox?.cx ?? 0;
+                          const cy = viewBox?.cy ?? 0;
+                          const first = allocationData[0];
+                          if (allocationData.length === 1 && first) {
+                            return (
+                              <g>
+                                <text x={cx} y={cy} textAnchor="middle" fill="white" className="text-sm font-medium">
+                                  {first.name}: R$ {first.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </text>
+                              </g>
+                            );
+                          }
+                          return (
+                            <g>
+                              <text x={cx} y={cy - 6} textAnchor="middle" fill="white" className="text-sm font-medium">
+                                Total
+                              </text>
+                              <text x={cx} y={cy + 10} textAnchor="middle" fill="white" className="text-sm font-bold">
+                                R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </text>
+                            </g>
+                          );
+                        }}
+                      />
                     </Pie>
                     <Tooltip
                       formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`}
@@ -178,9 +205,10 @@ const Investments = () => {
                         backgroundColor: "hsl(var(--card))",
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "6px",
+                        color: "hsl(var(--card-foreground))",
                       }}
                     />
-                    <Legend />
+                    <Legend wrapperStyle={{ color: "hsl(var(--foreground))" }} />
                   </RechartsPieChart>
                 </ResponsiveContainer>
               </div>

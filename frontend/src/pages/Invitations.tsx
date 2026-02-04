@@ -110,14 +110,14 @@ const Invitations = () => {
   const acceptedConsultants = consultantsData?.consultants || [];
   const hasConsultantWhoInvitedMe = pendingInvitations.length > 0 || acceptedConsultants.length > 0;
   const hasExpiredInvitations = invitations.some(inv => {
+    if (!inv.expiresAt) return false;
+    return new Date(inv.expiresAt) < new Date();
+  });
 
   useWebSocket((message) => {
     if (message.type === "consultant_invitation") {
       queryClient.invalidateQueries({ queryKey: ["customer", "invitations"] });
     }
-  });
-    if (!inv.expiresAt) return false;
-    return new Date(inv.expiresAt) < new Date();
   });
 
   const handleAccept = async (invitation: Invitation) => {

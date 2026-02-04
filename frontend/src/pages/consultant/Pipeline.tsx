@@ -308,8 +308,25 @@ const Pipeline = () => {
   };
 
   return (
-    <div className="w-full min-w-0 overflow-x-hidden space-y-4 sm:space-y-6">
-      {/* Page Header - compact on mobile */}
+    <div className="w-full min-w-0 overflow-x-hidden space-y-4 sm:space-y-6 relative">
+      {/* Mobile-only: fixed icon buttons on the right at ~1/3 viewport height */}
+      <div
+        className="fixed right-3 top-[33vh] z-50 flex flex-col gap-2 md:hidden"
+        style={{ transform: "translateY(-50%)" }}
+        aria-label="Ações rápidas"
+      >
+        <Button
+          size="icon"
+          onClick={handleOpenCreateDialog}
+          className="h-11 w-11 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90"
+          title="Novo prospecto"
+          aria-label="Novo prospecto"
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Page Header - compact on mobile; hide main CTA on mobile (use fixed icon instead) */}
       <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between min-w-0">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-bold text-foreground">Pipeline de Prospecção</h1>
@@ -317,7 +334,7 @@ const Pipeline = () => {
             Gerencie seus prospectos por estágio
           </p>
         </div>
-        <Button onClick={handleOpenCreateDialog} size="sm" className="w-full sm:w-auto shrink-0">
+        <Button onClick={handleOpenCreateDialog} size="sm" className="hidden md:inline-flex shrink-0">
           <Plus className="h-4 w-4 mr-2" />
           Novo Prospecto
         </Button>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { TrendingUp, Calculator, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -9,18 +10,18 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useToast } from "@/hooks/use-toast";
 
 const FIRECalculator = () => {
-  const [monthlyExpenses, setMonthlyExpenses] = useState("");
-  const [currentSavings, setCurrentSavings] = useState("");
-  const [monthlySavings, setMonthlySavings] = useState("");
+  const [monthlyExpenses, setMonthlyExpenses] = useState<number | "">("");
+  const [currentSavings, setCurrentSavings] = useState<number | "">("");
+  const [monthlySavings, setMonthlySavings] = useState<number | "">("");
   const [annualReturn, setAnnualReturn] = useState("8");
   const [withdrawalRate, setWithdrawalRate] = useState("4");
   const [results, setResults] = useState<any>(null);
   const { toast } = useToast();
 
   const calculateFIRE = () => {
-    const expenses = parseFloat(monthlyExpenses) || 0;
-    const savings = parseFloat(currentSavings) || 0;
-    const monthly = parseFloat(monthlySavings) || 0;
+    const expenses = typeof monthlyExpenses === "number" ? monthlyExpenses : 0;
+    const savings = typeof currentSavings === "number" ? currentSavings : 0;
+    const monthly = typeof monthlySavings === "number" ? monthlySavings : 0;
     const returnRate = parseFloat(annualReturn) / 100 / 12; // Monthly return
     const withdrawal = parseFloat(withdrawalRate) / 100;
 
@@ -88,12 +89,11 @@ const FIRECalculator = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="expenses">Despesas Mensais (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="expenses"
-                type="number"
-                placeholder="5000"
                 value={monthlyExpenses}
-                onChange={(e) => setMonthlyExpenses(e.target.value)}
+                onChange={setMonthlyExpenses}
+                placeholder="5.000,00"
               />
               <p className="text-xs text-muted-foreground">
                 Quanto você gasta por mês atualmente
@@ -102,12 +102,11 @@ const FIRECalculator = () => {
 
             <div className="space-y-2">
               <Label htmlFor="savings">Economias Atuais (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="savings"
-                type="number"
-                placeholder="50000"
                 value={currentSavings}
-                onChange={(e) => setCurrentSavings(e.target.value)}
+                onChange={setCurrentSavings}
+                placeholder="50.000,00"
               />
               <p className="text-xs text-muted-foreground">
                 Valor total que você já tem investido
@@ -116,12 +115,11 @@ const FIRECalculator = () => {
 
             <div className="space-y-2">
               <Label htmlFor="monthly">Economia Mensal (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="monthly"
-                type="number"
-                placeholder="3000"
                 value={monthlySavings}
-                onChange={(e) => setMonthlySavings(e.target.value)}
+                onChange={setMonthlySavings}
+                placeholder="3.000,00"
               />
               <p className="text-xs text-muted-foreground">
                 Quanto você consegue economizar por mês

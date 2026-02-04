@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Coins, Calculator, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 
 const ITCMDCalculator = () => {
-  const [propertyValue, setPropertyValue] = useState("");
+  const [propertyValue, setPropertyValue] = useState<number | "">("");
   const [state, setState] = useState("SP");
   const [transactionType, setTransactionType] = useState<"inheritance" | "donation">("inheritance");
   const [results, setResults] = useState<any>(null);
@@ -30,7 +31,7 @@ const ITCMDCalculator = () => {
   };
 
   const calculate = () => {
-    const value = parseFloat(propertyValue) || 0;
+    const value = typeof propertyValue === "number" ? propertyValue : 0;
 
     if (value <= 0) {
       toast({
@@ -77,12 +78,11 @@ const ITCMDCalculator = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="value">Valor do Bem (R$)</Label>
-              <Input
+              <CurrencyInput
                 id="value"
-                type="number"
-                placeholder="500000"
                 value={propertyValue}
-                onChange={(e) => setPropertyValue(e.target.value)}
+                onChange={setPropertyValue}
+                placeholder="500.000,00"
               />
             </div>
 
