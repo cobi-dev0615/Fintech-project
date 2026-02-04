@@ -47,8 +47,8 @@ const RiskSection = () => {
   ];
 
   return (
-    <section className="py-20 bg-background">
-      <div className="container mx-auto px-4">
+    <section id="risk" className="py-20 pb-24 sm:pb-20 bg-background overflow-x-hidden scroll-mt-20">
+      <div className="container mx-auto px-6 sm:px-4 min-w-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Section - Visualização de Insights e Alertas */}
           <div className="relative" style={{ perspective: '1000px' }}>
@@ -126,9 +126,9 @@ const RiskSection = () => {
                         >
                           <Icon className="h-4 w-4" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-muted-foreground mb-1">{insight.title}</p>
-                          <p className="text-sm font-semibold text-foreground">{insight.value}</p>
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <p className="text-xs font-medium text-muted-foreground mb-1 break-words">{insight.title}</p>
+                          <p className="text-sm font-semibold text-foreground break-words line-clamp-2">{insight.value}</p>
                         </div>
                       </div>
                     </div>
@@ -203,14 +203,14 @@ const RiskSection = () => {
 
           {/* Right Section - Content */}
           <div 
-            className="space-y-6"
+            className="space-y-6 min-w-0"
             style={{ 
               perspective: '1200px',
               transformStyle: 'preserve-3d',
             }}
           >
             <h2 
-              className="text-3xl md:text-4xl font-bold text-foreground transition-all duration-500"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground transition-all duration-500 break-words"
               style={{
                 transform: 'perspective(1200px) rotateY(-2deg) translateZ(30px)',
                 transformStyle: 'preserve-3d',
@@ -232,7 +232,7 @@ const RiskSection = () => {
             </h2>
 
             <p 
-              className="text-lg text-foreground/80 transition-all duration-500"
+              className="text-base sm:text-lg text-foreground/80 transition-all duration-500 break-words"
               style={{
                 transform: 'perspective(1200px) rotateY(-1deg) translateZ(20px)',
                 transformStyle: 'preserve-3d',

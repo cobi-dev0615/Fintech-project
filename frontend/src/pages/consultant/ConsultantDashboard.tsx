@@ -23,7 +23,7 @@ const ConsultantDashboard = () => {
             <Skeleton className="h-4 w-64" />
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-32" />
           ))}
@@ -60,55 +60,51 @@ const ConsultantDashboard = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-[2px] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
-          <div className="bg-card rounded-lg h-full">
-            <ProfessionalKpiCard
-              title="Total de Clientes"
-              value={metrics?.kpis?.totalClients?.toString() || "0"}
-              change={metrics?.kpis?.newClients > 0 ? `+${metrics.kpis.newClients} este mês` : ""}
-              changeType={metrics?.kpis?.newClients > 0 ? "positive" : "neutral"}
-              icon={Users}
-              subtitle=""
-            />
-          </div>
+      {/* KPI Cards - 2×2 on mobile/tablet, 4 in a row on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="rounded-xl border-2 border-blue-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
+          <ProfessionalKpiCard
+            title="Total de Clientes"
+            value={metrics?.kpis?.totalClients?.toString() || "0"}
+            change={metrics?.kpis?.newClients > 0 ? `+${metrics.kpis.newClients} este mês` : ""}
+            changeType={metrics?.kpis?.newClients > 0 ? "positive" : "neutral"}
+            icon={Users}
+            iconClassName="text-blue-500"
+            subtitle=""
+          />
         </div>
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 p-[2px] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
-          <div className="bg-card rounded-lg h-full">
-            <ProfessionalKpiCard
-              title="Patrimônio Total"
-              value={`R$ ${(metrics?.kpis?.totalNetWorth / 1000000).toFixed(1)}M`}
-              change=""
-              changeType="neutral"
-              icon={TrendingUp}
-              subtitle="sob gestão"
-            />
-          </div>
+        <div className="rounded-xl border-2 border-emerald-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
+          <ProfessionalKpiCard
+            title="Patrimônio Total"
+            value={`R$ ${(metrics?.kpis?.totalNetWorth / 1000000).toFixed(1)}M`}
+            change=""
+            changeType="neutral"
+            icon={TrendingUp}
+            iconClassName="text-emerald-500"
+            subtitle="sob gestão"
+          />
         </div>
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 p-[2px] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
-          <div className="bg-card rounded-lg h-full">
-            <ProfessionalKpiCard
-              title="Tarefas Pendentes"
-              value={metrics?.kpis?.pendingTasks?.toString() || "0"}
-              change=""
-              changeType="neutral"
-              icon={Calendar}
-              subtitle="para hoje"
-            />
-          </div>
+        <div className="rounded-xl border-2 border-amber-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
+          <ProfessionalKpiCard
+            title="Tarefas Pendentes"
+            value={metrics?.kpis?.pendingTasks?.toString() || "0"}
+            change=""
+            changeType="neutral"
+            icon={Calendar}
+            iconClassName="text-amber-500"
+            subtitle="para hoje"
+          />
         </div>
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-pink-500 to-rose-600 p-[2px] shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
-          <div className="bg-card rounded-lg h-full">
-            <ProfessionalKpiCard
-              title="Prospectos"
-              value={metrics?.kpis?.prospects?.toString() || "0"}
-              change=""
-              changeType="neutral"
-              icon={AlertCircle}
-              subtitle="no pipeline"
-            />
-          </div>
+        <div className="rounded-xl border-2 border-pink-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
+          <ProfessionalKpiCard
+            title="Prospectos"
+            value={metrics?.kpis?.prospects?.toString() || "0"}
+            change=""
+            changeType="neutral"
+            icon={AlertCircle}
+            iconClassName="text-pink-500"
+            subtitle="no pipeline"
+          />
         </div>
       </div>
 

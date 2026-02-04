@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
+import { cn } from "@/lib/utils";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 
@@ -53,7 +54,10 @@ const AppLayout = () => {
         />
         
         <main className={`flex-1 py-4 px-4 ${isCustomerPage ? 'lg:py-4 lg:px-4 xl:py-6 xl:px-4' : 'lg:py-10 lg:px-10'}`}>
-          <div className={isCustomerPage ? 'max-w-[95%] xl:max-w-[90%] 2xl:max-w-8xl mx-auto' : 'max-w-8xl mx-auto'}>
+          <div className={cn(
+            'min-w-0 w-full mx-auto',
+            isCustomerPage ? 'max-w-[95%] xl:max-w-[90%] 2xl:max-w-8xl' : 'max-w-8xl'
+          )}>
             <Outlet />
           </div>
         </main>

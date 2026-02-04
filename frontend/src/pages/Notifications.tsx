@@ -314,12 +314,12 @@ const Notifications = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Notificações</h1>
-          <p className="text-muted-foreground mt-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-3xl font-bold text-foreground">Notificações</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {unreadCount > 0
               ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}`
               : 'Todas as notificações foram lidas'}
@@ -329,7 +329,7 @@ const Notifications = () => {
           <Button
             variant="outline"
             onClick={handleMarkAllAsRead}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 shrink-0"
           >
             <CheckCheck className="h-4 w-4" />
             Marcar todas como lidas
@@ -337,8 +337,8 @@ const Notifications = () => {
         )}
       </div>
 
-      {/* Notifications Table */}
-      <div className="bg-card/50 backdrop-blur-xl rounded-xl border border-border">
+      {/* Desktop: Table */}
+      <div className="hidden md:block bg-card/50 backdrop-blur-xl rounded-xl border border-border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -359,7 +359,7 @@ const Notifications = () => {
             ) : notifications.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="p-8 text-center text-muted-foreground">
-                  No notifications to display
+                  Nenhuma notificação
                 </TableCell>
               </TableRow>
             ) : (
@@ -435,14 +435,85 @@ const Notifications = () => {
         </Table>
       </div>
 
+      {/* Mobile: Card list - no horizontal scroll */}
+      <div className="md:hidden space-y-3 min-w-0">
+        {loading && notifications.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
+            Carregando notificações...
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
+            Nenhuma notificação
+          </div>
+        ) : (
+          notifications.map((notification, index) => (
+            <div
+              key={notification.id}
+              className={`rounded-xl border border-border bg-card p-4 space-y-3 ${!notification.isRead ? 'bg-muted/20' : ''}`}
+            >
+              <div className="flex items-start justify-between gap-2 min-w-0">
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border shrink-0 ${getNotificationTypeBadgeColor(notification.severity)}`}
+                >
+                  {getNotificationTypeLabel(notification.severity)}
+                </span>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  #{(currentPage - 1) * itemsPerPage + index + 1}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p
+                  className={`text-sm font-medium truncate ${
+                    !notification.isRead ? 'text-primary' : 'text-foreground'
+                  }`}
+                >
+                  {notification.title}
+                </p>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 break-words">
+                  {notification.message}
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {formatTimeAgo(notification.createdAt)}
+                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    onClick={(e) => handleViewDetail(notification, e)}
+                    aria-label="Ver detalhes"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletingId(notification.id);
+                    }}
+                    aria-label="Remover"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       {/* Pagination */}
-      <div className="flex items-center justify-between pt-4">
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 min-w-0">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 min-w-0">
+          <div className="text-sm text-muted-foreground min-w-0 break-words">
             Mostrando {notifications.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} a {Math.min(currentPage * itemsPerPage, total)} de {total} notificações
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Itens por página:</span>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Itens por página:</span>
             <Select
               value={itemsPerPage.toString()}
               onValueChange={(value) => {
@@ -462,8 +533,9 @@ const Notifications = () => {
           </div>
         </div>
         {totalPages > 1 && (
-          <Pagination>
-            <PaginationContent>
+          <div className="min-w-0 max-w-full overflow-x-hidden flex justify-end">
+            <Pagination>
+            <PaginationContent className="flex-wrap justify-center gap-2 sm:gap-1">
               <PaginationItem>
                 <PaginationPrevious
                   onClick={(e) => handlePageChange(currentPage - 1, e)}
@@ -496,6 +568,7 @@ const Notifications = () => {
               </PaginationItem>
             </PaginationContent>
           </Pagination>
+          </div>
         )}
       </div>
 

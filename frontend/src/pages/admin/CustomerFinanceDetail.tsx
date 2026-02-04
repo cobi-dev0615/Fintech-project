@@ -113,10 +113,26 @@ const CustomerFinanceDetail = () => {
         </div>
       </div>
 
-      {/* Summary KPIs - all from Open Finance */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Resumo Financeiro - wallet summary (same as consultant client profile) */}
+      <ChartCard title="Resumo Financeiro">
+        <p className="text-sm text-muted-foreground">
+          Visão consolidada das finanças do cliente. Os dados são atualizados automaticamente
+          através das conexões com instituições financeiras.
+        </p>
+      </ChartCard>
+
+      {/* Summary KPIs - wallet info, order aligned with consultant (Patrimônio, Caixa, Investimentos, Dívidas) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <ProfessionalKpiCard
-          title="Dinheiro"
+          title="Patrimônio Líquido"
+          value={formatCurrency(summary.netWorth)}
+          change=""
+          changeType="neutral"
+          icon={Wallet}
+          subtitle="Cash + Invest. - Dívidas"
+        />
+        <ProfessionalKpiCard
+          title="Caixa"
           value={formatCurrency(summary.cash)}
           change=""
           changeType="neutral"
@@ -138,14 +154,6 @@ const CustomerFinanceDetail = () => {
           changeType="neutral"
           icon={CreditCard}
           subtitle="Cartões (Open Finance)"
-        />
-        <ProfessionalKpiCard
-          title="Patrimônio Líquido"
-          value={formatCurrency(summary.netWorth)}
-          change=""
-          changeType="neutral"
-          icon={Wallet}
-          subtitle="Cash + Invest. - Dívidas"
         />
       </div>
 

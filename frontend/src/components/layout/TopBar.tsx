@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, Menu, UserCircle, LogOut, Users, Globe, ChevronDown, User } from "lucide-react";
+import { Search, Menu, UserCircle, LogOut, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,8 +13,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NotificationDropdown from "@/components/notifications/NotificationDropdown";
 import { useAuth } from "@/hooks/useAuth";
-import { userApi } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 interface TopBarProps {
   onMenuClick?: () => void;
@@ -26,19 +23,6 @@ interface TopBarProps {
 const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: TopBarProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  // Fetch user counts (with error handling to prevent uncaught promise rejections)
-  const { data: userCounts } = useQuery({
-    queryKey: ['user-counts'],
-    queryFn: () => userApi.getUserCounts(),
-    refetchInterval: 60000, // Refetch every minute
-    enabled: !!user,
-    retry: false, // Don't retry on failure to avoid spam
-    onError: (error) => {
-      // Silently handle errors - user counts are not critical for app functionality
-      console.debug('Failed to fetch user counts:', error);
-    },
-  });
 
   // Get abbreviated name (First name or First + Last Initial)
   const getAbbreviatedName = () => {
@@ -105,19 +89,6 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
       </div>
       
       <div className="flex items-center gap-3">
-        {userCounts && (
-          <div className="hidden sm:flex items-center gap-4 px-3 py-1 bg-muted/50 rounded-full border border-border/50 text-xs font-medium">
-            <div className="flex items-center gap-1.5 text-muted-foreground" title="Total de usuários">
-              <Users className="h-3.5 w-3.5" />
-              <span>{userCounts.totalUsers}</span>
-            </div>
-            <div className="w-px h-3 bg-border" />
-            <div className="flex items-center gap-1.5 text-success" title="Usuários online">
-              <Globe className="h-3.5 w-3.5 animate-pulse" />
-              <span>{userCounts.onlineUsers} online</span>
-            </div>
-          </div>
-        )}
         <NotificationDropdown />
         {user && (
           <DropdownMenu>

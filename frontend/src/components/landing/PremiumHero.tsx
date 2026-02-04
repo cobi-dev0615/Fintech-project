@@ -53,7 +53,7 @@ const PremiumHero = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 relative pt-20 pb-16" style={{ zIndex: 10 }}>
+      <div className="container mx-auto px-6 sm:px-4 relative pt-20 pb-16" style={{ zIndex: 10 }}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Section - Marketing Content */}
           <div className="space-y-8 relative" style={{ zIndex: 20 }}>
@@ -68,13 +68,10 @@ const PremiumHero = () => {
               Análise completa do seu patrimônio, objetivos e investimentos. Identificamos riscos e oportunidades em tempo real para você tomar as melhores decisões.
             </p>
 
-            {/* CTA Buttons */}
+            {/* CTA Button */}
             <div className="flex flex-col sm:flex-row gap-4">
               <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <Link to="/register">Começar agora</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="border-border hover:bg-muted">
-                <Link to="/#about">Conhecer a plataforma</Link>
               </Button>
             </div>
           </div>

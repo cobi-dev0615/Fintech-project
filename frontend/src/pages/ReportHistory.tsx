@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Download, Trash2 } from "lucide-react";
+import { FileText, Download, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -127,17 +127,17 @@ const ReportHistory = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 overflow-x-hidden">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Histórico de Relatórios</h1>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Histórico de Relatórios</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Relatórios gerados e disponíveis para download
           </p>
         </div>
       </div>
 
-      <ChartCard title="Relatórios Gerados">
+      <ChartCard title="Relatórios Gerados" className="min-w-0 overflow-hidden">
         {loading ? (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground">Carregando...</p>
@@ -150,7 +150,8 @@ const ReportHistory = () => {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Desktop: table */}
+            <div className="hidden md:block overflow-hidden rounded-lg border border-border">
               <table className="w-full">
                 <thead className="bg-muted/50">
                   <tr className="border-b border-border">
@@ -225,6 +226,47 @@ const ReportHistory = () => {
               </table>
             </div>
 
+            {/* Mobile: card list - no horizontal scroll */}
+            <div className="md:hidden space-y-3 min-w-0">
+              {paginatedReports.map((report) => (
+                <div
+                  key={report.id}
+                  className="rounded-xl border border-border bg-card p-4 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="text-sm font-medium text-foreground truncate">
+                        {report.type}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleDownload(report.id)}
+                        aria-label="Baixar PDF"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteReportId(report.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label="Remover relatório"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Gerado em {report.date}
+                  </p>
+                </div>
+              ))}
+            </div>
+
             {totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
                 <p className="text-sm text-muted-foreground">
@@ -235,11 +277,12 @@ const ReportHistory = () => {
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
+                    aria-label="Página anterior"
                   >
-                    Anterior
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <div className="flex items-center gap-1">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(
@@ -257,13 +300,14 @@ const ReportHistory = () => {
                   </div>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
                     onClick={() =>
                       setCurrentPage((p) => Math.min(totalPages, p + 1))
                     }
                     disabled={currentPage === totalPages}
+                    aria-label="Próxima página"
                   >
-                    Próxima
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>

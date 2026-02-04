@@ -28,8 +28,8 @@ const GoalsSection = () => {
   };
 
   return (
-    <section className="py-20 bg-background">
-      <div className="container mx-auto px-4">
+    <section id="goals" className="py-20 bg-background scroll-mt-20">
+      <div className="container mx-auto px-6 sm:px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Section - Content */}
           <div className="space-y-6">

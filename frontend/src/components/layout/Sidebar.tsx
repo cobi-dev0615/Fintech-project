@@ -431,7 +431,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
   if (isMobile) {
     return (
       <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
-        <SheetContent side="left" className="w-80 p-0 bg-sidebar text-sidebar-foreground">
+        <SheetContent side="left" className="w-80 p-0 bg-sidebar/70 backdrop-blur-xl text-sidebar-foreground border-sidebar-border/50">
           <VisuallyHidden.Root asChild>
             <SheetTitle>Navigation Menu</SheetTitle>
           </VisuallyHidden.Root>

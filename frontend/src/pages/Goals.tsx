@@ -233,7 +233,7 @@ const Goals = () => {
               Nova Meta
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto my-4 sm:my-0">
             <DialogHeader>
               <DialogTitle>Nova Meta Financeira</DialogTitle>
               <DialogDescription>

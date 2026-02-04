@@ -800,7 +800,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
 
       const netWorth = cash + investments - debt;
 
-      return {
+      return reply.send({
         ...baseResponse,
         financial: {
           netWorth,
@@ -808,7 +808,161 @@ export async function consultantRoutes(fastify: FastifyInstance) {
           investments,
           debt,
         },
-      };
+      });
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // Get client full finance (same structure as admin users/:id/finance), only when wallet shared
+  fastify.get('/clients/:id/finance', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { id } = request.params as any;
+
+      const accessCheck = await db.query(
+        `SELECT status, COALESCE(can_view_all, true) as can_view_all
+         FROM customer_consultants
+         WHERE consultant_id = $1 AND customer_id = $2`,
+        [consultantId, id]
+      );
+      if (accessCheck.rows.length === 0) {
+        return reply.code(403).send({ error: 'Access denied to this client' });
+      }
+      const { status: relStatus, can_view_all: walletShared } = accessCheck.rows[0];
+      if (relStatus !== 'active' || !walletShared) {
+        return reply.code(403).send({ error: 'Wallet data not available for this client' });
+      }
+
+      const userResult = await db.query(
+        `SELECT id, full_name, email FROM users WHERE id = $1`,
+        [id]
+      );
+      if (userResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Client not found' });
+      }
+      const userRow = userResult.rows[0];
+      const user = { id: userRow.id, name: userRow.full_name, email: userRow.email };
+
+      let connections: any[] = [];
+      try {
+        const connResult = await db.query(
+          `SELECT c.id, c.external_consent_id as item_id, c.status, c.last_sync_at, c.last_sync_status,
+                  i.name as institution_name, i.logo_url as institution_logo
+           FROM connections c
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE c.user_id = $1 AND c.provider = 'open_finance'
+           ORDER BY c.created_at DESC`,
+          [id]
+        );
+        connections = connResult.rows;
+      } catch {}
+
+      let accounts: any[] = [];
+      let totalCash = 0;
+      try {
+        const accResult = await db.query(
+          `SELECT pa.*, i.name as institution_name, i.logo_url as institution_logo
+           FROM pluggy_accounts pa
+           LEFT JOIN connections c ON pa.item_id = c.external_consent_id AND c.user_id = pa.user_id
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE pa.user_id = $1
+           ORDER BY pa.updated_at DESC`,
+          [id]
+        );
+        accounts = accResult.rows;
+        for (const a of accResult.rows) {
+          totalCash += parseFloat(a.current_balance || 0);
+        }
+      } catch {}
+
+      let investments: any[] = [];
+      let totalInvestments = 0;
+      const breakdown: any[] = [];
+      const byType: any = {};
+      try {
+        const invResult = await db.query(
+          `SELECT pi.*, i.name as institution_name
+           FROM pluggy_investments pi
+           LEFT JOIN connections c ON pi.item_id = c.external_consent_id AND c.user_id = pi.user_id
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE pi.user_id = $1
+           ORDER BY pi.updated_at DESC`,
+          [id]
+        );
+        investments = invResult.rows;
+        for (const inv of invResult.rows) {
+          const val = parseFloat(inv.current_value || 0);
+          totalInvestments += val;
+          const type = inv.type || 'other';
+          if (!byType[type]) byType[type] = { type, count: 0, total: 0 };
+          byType[type].count++;
+          byType[type].total += val;
+        }
+        breakdown.push(...Object.values(byType));
+      } catch {}
+
+      let cards: any[] = [];
+      let totalDebt = 0;
+      try {
+        const cardResult = await db.query(
+          `SELECT pc.*, i.name as institution_name
+           FROM pluggy_credit_cards pc
+           LEFT JOIN connections c ON pc.item_id = c.external_consent_id AND c.user_id = pc.user_id
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE pc.user_id = $1
+           ORDER BY pc.updated_at DESC`,
+          [id]
+        );
+        for (const card of cardResult.rows) {
+          const invResult = await db.query(
+            `SELECT due_date, amount, status FROM pluggy_card_invoices
+             WHERE pluggy_card_id = $1 AND user_id = $2 AND status = 'open'
+             ORDER BY due_date DESC LIMIT 1`,
+            [card.pluggy_card_id, id]
+          );
+          const inv = invResult.rows[0];
+          const debt = inv ? parseFloat(inv.amount || 0) : 0;
+          totalDebt += debt;
+          cards.push({
+            ...card,
+            latestInvoice: inv || null,
+            openDebt: debt,
+          });
+        }
+      } catch {}
+
+      let transactions: any[] = [];
+      try {
+        const txResult = await db.query(
+          `SELECT pt.*, pa.name as account_name, i.name as institution_name
+           FROM pluggy_transactions pt
+           LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
+           LEFT JOIN connections c ON pt.item_id = c.external_consent_id AND c.user_id = pt.user_id
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE pt.user_id = $1
+           ORDER BY pt.date DESC, pt.created_at DESC
+           LIMIT 100`,
+          [id]
+        );
+        transactions = txResult.rows;
+      } catch {}
+
+      const netWorth = totalCash + totalInvestments - totalDebt;
+
+      return reply.send({
+        user,
+        summary: { cash: totalCash, investments: totalInvestments, debt: totalDebt, netWorth },
+        connections,
+        accounts,
+        investments,
+        breakdown,
+        cards,
+        transactions,
+      });
     } catch (error: any) {
       fastify.log.error(error);
       return reply.code(500).send({ error: 'Internal server error' });

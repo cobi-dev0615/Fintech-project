@@ -426,8 +426,8 @@ const Messages = () => {
                 </div>
 
                 {/* Messages */}
-                <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-                  <div className="space-y-4">
+                <ScrollArea className="flex-1 p-4 pb-0" ref={scrollAreaRef}>
+                  <div className="space-y-4 pb-24">
                     {currentConversation?.messages?.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -450,7 +450,13 @@ const Messages = () => {
                             }`}
                           >
                             <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-                            <p className="text-xs opacity-70 mt-1">
+                            <p
+                              className={`text-xs mt-1 ${
+                                message.sender === "consultant"
+                                  ? "text-amber-200/95"
+                                  : "text-cyan-400 dark:text-cyan-400"
+                              }`}
+                            >
                               {formatMessageTime(message.timestamp)}
                             </p>
                           </div>
@@ -461,8 +467,8 @@ const Messages = () => {
                   </div>
                 </ScrollArea>
 
-                {/* Message Input */}
-                <div className="p-4 border-t border-border">
+                {/* Message Input - pinned to bottom so always visible */}
+                <div className="fixed lg:sticky bottom-0 left-0 right-0 lg:left-auto lg:right-auto z-10 bg-card border-t border-border p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.15)]">
                   <div className="flex gap-2">
                     <Textarea
                       placeholder="Digite sua mensagem..."

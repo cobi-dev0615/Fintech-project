@@ -86,16 +86,11 @@ const PlanPurchase = () => {
   }, []);
 
   // Fetch plans when billing period changes
-  const DISPLAY_PLAN_CODES = ['basic', 'pro', 'consultant'];
-
   const fetchPlans = async () => {
     try {
       setPlansLoading(true);
       const plansResponse = await publicApi.getPlans(billingPeriod);
-      const filtered = (plansResponse.plans || []).filter((p) =>
-        DISPLAY_PLAN_CODES.includes((p.code || '').toLowerCase())
-      );
-      setPlans(filtered);
+      setPlans(plansResponse.plans || []);
     } catch (error: any) {
       console.error('Failed to fetch plans:', error);
       toast({
@@ -255,7 +250,7 @@ const PlanPurchase = () => {
           </div>
         )}
         <div className={cn(
-          "grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto",
+          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-6xl mx-auto",
           plansLoading && "opacity-50"
         )}>
           {plans.map((plan) => {
@@ -399,10 +394,10 @@ const PlanPurchase = () => {
       </div>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
+        <AlertDialogContent className="gap-6 p-6 sm:p-7">
+          <AlertDialogHeader className="space-y-3">
             <AlertDialogTitle>Confirmar Assinatura</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="leading-relaxed">
               {selectedPlanId && (
                 <>
                   Você está prestes a assinar o plano{" "}
@@ -428,7 +423,7 @@ const PlanPurchase = () => {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="mt-1 gap-2 sm:gap-3">
             <AlertDialogCancel disabled={purchasing !== null}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmPurchase}

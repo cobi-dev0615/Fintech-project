@@ -57,6 +57,18 @@ export const consultantApi = {
       reports: Array<{ id: string; type: string; generatedAt: string; downloadUrl: string | null }>;
     }>(`/consultant/clients/${id}`),
 
+  getClientFinance: (clientId: string) =>
+    api.get<{
+      user: { id: string; name: string; email: string };
+      summary: { cash: number; investments: number; debt: number; netWorth: number };
+      connections: Array<{ id: string; item_id: string; status: string; institution_name?: string; institution_logo?: string }>;
+      accounts: Array<{ id: string; name: string; type: string; current_balance: number | string; institution_name?: string }>;
+      investments: Array<{ id: string; type: string; name: string; current_value: number | string; quantity: number; institution_name?: string }>;
+      breakdown: Array<{ type: string; count: number; total: number }>;
+      cards: Array<{ id: string; brand?: string; last4?: string; institution_name?: string; openDebt: number; latestInvoice?: any }>;
+      transactions: Array<{ id: string; date: string; amount: number; description?: string; merchant?: string; account_name?: string; institution_name?: string }>;
+    }>(`/consultant/clients/${clientId}/finance`),
+
   unlinkClient: (clientId: string) =>
     api.delete<{ message: string }>(`/consultant/clients/${clientId}`),
 

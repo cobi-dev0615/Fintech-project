@@ -308,73 +308,73 @@ const Pipeline = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Pipeline de Prospecção</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+    <div className="w-full min-w-0 overflow-x-hidden space-y-4 sm:space-y-6">
+      {/* Page Header - compact on mobile */}
+      <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Pipeline de Prospecção</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
             Gerencie seus prospectos por estágio
           </p>
         </div>
-        <Button onClick={handleOpenCreateDialog}>
+        <Button onClick={handleOpenCreateDialog} size="sm" className="w-full sm:w-auto shrink-0">
           <Plus className="h-4 w-4 mr-2" />
           Novo Prospecto
         </Button>
       </div>
 
       {loading && !prospects.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-96" />
+            <Skeleton key={i} className="h-[220px] sm:h-72 md:h-96" />
           ))}
         </div>
       ) : error ? (
-        <div className="text-center py-8">
-          <p className="text-destructive">{(error as any)?.error || "Erro ao carregar pipeline"}</p>
+        <div className="text-center py-6 sm:py-8">
+          <p className="text-sm text-destructive px-2">{(error as any)?.error || "Erro ao carregar pipeline"}</p>
         </div>
       ) : (
-        /* Pipeline Kanban */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+        /* Pipeline Kanban - height-optimized per step on mobile */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 min-w-0">
           {stageOrder.map((stage) => {
             const stageProspects = getProspectsByStage(stage);
             return (
               <div
                 key={stage}
-                className="flex flex-col min-h-[400px] max-h-[calc(100vh-200px)] w-full min-w-[280px]"
+                className="flex flex-col min-h-0 sm:min-h-[320px] md:min-h-[400px] max-h-[72vh] sm:max-h-[75vh] md:max-h-[calc(100vh-200px)] w-full min-w-0"
               >
                 <ChartCard
                   title={stageLabels[stage] || stage}
                   subtitle={`${stageProspects.length} prospecto${stageProspects.length !== 1 ? "s" : ""}`}
-                  className="flex flex-col h-full min-w-0 overflow-hidden"
+                  className="flex flex-col h-full min-w-0 overflow-hidden !mb-2 sm:!mb-3"
                 >
-                  <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 min-w-0">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 sm:space-y-3 min-w-0 min-h-0">
                     {stageProspects.length === 0 ? (
-                      <div className="text-center py-8 text-sm text-muted-foreground px-2">
+                      <div className="text-center py-4 sm:py-8 text-xs sm:text-sm text-muted-foreground px-2">
                         Nenhum prospecto neste estágio
                       </div>
                     ) : (
                       stageProspects.map((prospect) => (
                         <div
                           key={prospect.id}
-                          className="p-3 rounded-lg border border-border bg-card hover:shadow-md transition-shadow w-full min-w-0 max-w-full box-border"
+                          className="p-2 sm:p-3 rounded-lg border border-border bg-card hover:shadow-md transition-shadow w-full min-w-0 max-w-full box-border"
                         >
-                          <div className="flex items-start justify-between mb-2 gap-2 min-w-0">
+                          <div className="flex items-start justify-between gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 min-w-0">
                             <div className="flex-1 min-w-0 overflow-hidden">
-                              <h4 className="text-sm font-semibold text-foreground mb-1 truncate">
+                              <h4 className="text-xs sm:text-sm font-semibold text-foreground truncate">
                                 {prospect.name || 'Sem nome'}
                               </h4>
                               {prospect.notes && (
-                                <p className="text-xs text-muted-foreground line-clamp-2 break-words overflow-hidden">
+                                <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1 sm:line-clamp-2 break-words overflow-hidden mt-0.5">
                                   {prospect.notes}
                                 </p>
                               )}
                             </div>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 flex-shrink-0 ml-1">
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 flex-shrink-0">
                                   <span className="sr-only">Menu</span>
-                                  <span className="text-muted-foreground text-lg leading-none">⋯</span>
+                                  <span className="text-muted-foreground text-base leading-none">⋯</span>
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
@@ -405,27 +405,27 @@ const Pipeline = () => {
                             </DropdownMenu>
                           </div>
                           
-                          <div className="space-y-1.5 text-xs text-muted-foreground min-w-0">
+                          <div className="space-y-1 text-[11px] sm:text-xs text-muted-foreground min-w-0">
                             {prospect.email && (
                               <div className="flex items-center gap-1.5 min-w-0">
-                                <Mail className="h-3 w-3 shrink-0 flex-shrink-0" />
+                                <Mail className="h-3 w-3 shrink-0" />
                                 <span className="truncate min-w-0 overflow-hidden">{prospect.email}</span>
                               </div>
                             )}
                             {prospect.phone && (
                               <div className="flex items-center gap-1.5 min-w-0">
-                                <Phone className="h-3 w-3 shrink-0 flex-shrink-0" />
+                                <Phone className="h-3 w-3 shrink-0" />
                                 <span className="truncate min-w-0 overflow-hidden">{prospect.phone}</span>
                               </div>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border min-w-0">
+                          <div className="flex items-center gap-1 sm:gap-1.5 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border min-w-0">
                             {stageOrder.indexOf(stage) > 0 && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 text-xs h-7 min-w-0 px-1.5"
+                                className="flex-1 text-[11px] sm:text-xs h-6 sm:h-7 min-w-0 px-1 sm:px-1.5"
                                 onClick={() => moveProspect(prospect.id, "left")}
                               >
                                 <span className="truncate">← Anterior</span>
@@ -435,7 +435,7 @@ const Pipeline = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 text-xs h-7 min-w-0 px-1.5"
+                                className="flex-1 text-[11px] sm:text-xs h-6 sm:h-7 min-w-0 px-1 sm:px-1.5"
                                 onClick={() => moveProspect(prospect.id, "right")}
                               >
                                 <span className="truncate">Próximo →</span>
@@ -453,16 +453,16 @@ const Pipeline = () => {
         </div>
       )}
 
-      {/* Create Prospect Dialog */}
+      {/* Create Prospect Dialog - scrollable on mobile */}
       <Dialog open={isCreateDialogOpen} onOpenChange={handleCloseCreateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Novo Prospecto</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-lg sm:text-xl">Novo Prospecto</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Adicione um novo prospecto ao seu pipeline
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
             <div className="space-y-2">
               <Label htmlFor="create-name">Nome</Label>
               <Input
@@ -517,17 +517,18 @@ const Pipeline = () => {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-notes">Notas</Label>
+              <Label htmlFor="create-notes" className="text-xs sm:text-sm">Notas</Label>
               <Textarea
                 id="create-notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Anotações sobre o prospecto..."
-                rows={3}
+                rows={2}
+                className="min-h-0 text-sm resize-none"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="shrink-0 gap-2 pt-2 border-t border-border">
             <Button variant="outline" onClick={() => handleCloseCreateDialog(false)}>
               Cancelar
             </Button>
@@ -538,16 +539,16 @@ const Pipeline = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Prospect Dialog */}
+      {/* Edit Prospect Dialog - scrollable on mobile */}
       <Dialog open={isEditDialogOpen} onOpenChange={handleCloseEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Prospecto</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-lg sm:text-xl">Editar Prospecto</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Atualize as informações do prospecto
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Nome</Label>
               <Input
@@ -602,17 +603,18 @@ const Pipeline = () => {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-notes">Notas</Label>
+              <Label htmlFor="edit-notes" className="text-xs sm:text-sm">Notas</Label>
               <Textarea
                 id="edit-notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Anotações sobre o prospecto..."
-                rows={3}
+                rows={2}
+                className="min-h-0 text-sm resize-none"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="shrink-0 gap-2 pt-2 border-t border-border">
             <Button variant="outline" onClick={() => handleCloseEditDialog(false)}>
               Cancelar
             </Button>
