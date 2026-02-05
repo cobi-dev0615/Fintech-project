@@ -185,11 +185,11 @@ const ProfessionalReports = () => {
       });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-6 md:pb-0">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-1">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Relatórios Profissionais</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Relatórios Profissionais</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Crie e gerencie relatórios personalizados para seus clientes
           </p>
@@ -197,13 +197,13 @@ const ProfessionalReports = () => {
       </div>
 
       {/* Report Generator */}
-      <ChartCard title="Gerar Novo Relatório">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <ChartCard title="Gerar Novo Relatório" className="overflow-hidden">
+        <div className="space-y-5 md:space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="client">Cliente</Label>
+              <Label htmlFor="client" className="text-sm font-medium">Cliente</Label>
               <Select value={selectedClient} onValueChange={setSelectedClient}>
-                <SelectTrigger id="client">
+                <SelectTrigger id="client" className="h-11 min-h-11 touch-manipulation">
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -224,9 +224,9 @@ const ProfessionalReports = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type">Tipo de Relatório</Label>
+              <Label htmlFor="type" className="text-sm font-medium">Tipo de Relatório</Label>
               <Select value={reportType} onValueChange={setReportType}>
-                <SelectTrigger id="type">
+                <SelectTrigger id="type" className="h-11 min-h-11 touch-manipulation">
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -240,36 +240,38 @@ const ProfessionalReports = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 py-1 -my-1 rounded-md touch-manipulation">
               <Checkbox
                 id="watermark"
                 checked={includeWatermark}
                 onCheckedChange={(checked) => setIncludeWatermark(checked as boolean)}
+                className="h-5 w-5 rounded border-2 data-[state=checked]:bg-primary"
               />
-              <Label htmlFor="watermark" className="cursor-pointer">
+              <Label htmlFor="watermark" className="cursor-pointer text-sm flex-1 py-2">
                 Incluir marca d'água do consultor
               </Label>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-3 py-1 -my-1 rounded-md touch-manipulation">
               <Checkbox
                 id="branding"
                 checked={customBranding}
                 onCheckedChange={(checked) => setCustomBranding(checked as boolean)}
+                className="h-5 w-5 rounded border-2 data-[state=checked]:bg-primary"
               />
-              <Label htmlFor="branding" className="cursor-pointer">
+              <Label htmlFor="branding" className="cursor-pointer text-sm flex-1 py-2">
                 Incluir logotipo e identidade visual personalizada
               </Label>
             </div>
           </div>
 
           <Button 
-            className="w-full md:w-auto" 
+            className="w-full md:w-auto min-h-11 touch-manipulation text-base font-medium" 
             disabled={!reportType || generateMutation.isPending || clients.length === 0} 
             onClick={handleGenerateReport}
           >
-            <FileText className="h-4 w-4 mr-2" />
+            <FileText className="h-4 w-4 mr-2 shrink-0" />
             {generateMutation.isPending ? "Gerando..." : "Gerar Relatório PDF"}
           </Button>
           {clients.length === 0 && (
@@ -281,16 +283,16 @@ const ProfessionalReports = () => {
       </ChartCard>
 
       {/* Reports History */}
-      <ChartCard title="Relatórios Gerados">
-        <div className="space-y-3">
+      <ChartCard title="Relatórios Gerados" className="overflow-hidden">
+        <div className="space-y-4">
           {loading ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-24 w-full" />
+                <Skeleton key={i} className="h-28 md:h-24 w-full rounded-lg" />
               ))}
             </div>
           ) : reportsError ? (
-            <div className="text-center py-12 text-destructive">
+            <div className="text-center py-12 px-4 text-destructive">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Erro ao carregar relatórios</p>
               <p className="text-sm text-muted-foreground mt-2">
@@ -298,7 +300,7 @@ const ProfessionalReports = () => {
               </p>
             </div>
           ) : filteredReports.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 px-4 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhum relatório gerado ainda</p>
               <p className="text-sm mt-2">
@@ -309,48 +311,69 @@ const ProfessionalReports = () => {
             filteredReports.map((report: Report) => (
               <div
                 key={report.id}
-                className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
               >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <FileText className="h-6 w-6 text-primary" />
+                <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="font-semibold text-foreground">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <h3 className="font-semibold text-foreground text-sm sm:text-base">
                         {reportTypeLabels[report.type] || report.type}
                       </h3>
-                      <Badge variant="default">
+                      <Badge variant="default" className="text-xs shrink-0 hidden sm:inline-flex">
                         Gerado
                       </Badge>
                       {report.hasWatermark && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs shrink-0">
                           <User className="h-3 w-3 mr-1" />
                           Marca d'água
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
+                        <User className="h-3.5 w-3.5 shrink-0" />
                         {report.clientName}
                       </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
+                      <span className="hidden sm:inline">•</span>
+                      <span className="hidden sm:flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5 shrink-0" />
                         {formatReportDate(report.generatedAt)}
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleDownload(report.id)}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Baixar
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteReportId(report.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                {/* Mobile: status + time + buttons in one line. Desktop: buttons only */}
+                <div className="flex items-center gap-2 sm:gap-2 shrink-0 border-t border-border pt-3 sm:pt-0 sm:border-t-0 flex-wrap">
+                  <Badge variant="default" className="text-xs shrink-0 sm:hidden">
+                    Gerado
+                  </Badge>
+                  <span className="flex items-center gap-1 text-sm text-muted-foreground sm:hidden shrink-0">
+                    <Calendar className="h-3.5 w-3.5 shrink-0" />
+                    {formatReportDate(report.generatedAt)}
+                  </span>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(report.id)}
+                      className="min-h-10 min-w-10 touch-manipulation p-2"
+                      aria-label="Baixar"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive min-h-10 min-w-10 touch-manipulation p-2"
+                      onClick={() => setDeleteReportId(report.id)}
+                      aria-label="Excluir relatório"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))

@@ -42,6 +42,45 @@ export async function customerRoutes(fastify: FastifyInstance) {
         return { invitations: [] };
       }
 
+      // Expire pending invitations past deadline and create notifications (then they are hidden from list)
+      try {
+        const expiredResult = await db.query(
+          `UPDATE customer_consultants
+           SET status = 'expired', updated_at = NOW()
+           WHERE customer_id = $1 AND status = 'pending'
+             AND created_at + INTERVAL '15 days' < NOW()
+           RETURNING id, consultant_id`,
+          [customerId]
+        );
+        for (const row of expiredResult.rows) {
+          const consultantResult = await db.query(
+            `SELECT full_name FROM users WHERE id = $1`,
+            [row.consultant_id]
+          );
+          const consultantName = consultantResult.rows[0]?.full_name || 'Consultor';
+          await createAlert({
+            userId: row.consultant_id,
+            severity: 'warning',
+            title: 'Convite expirado',
+            message: `O convite enviado expirou (prazo de 15 dias).`,
+            notificationType: 'consultant_invitation',
+            linkUrl: '/consultant/invitations',
+            metadata: { invitationId: row.id, customerId, action: 'expired' },
+          });
+          await createAlert({
+            userId: customerId,
+            severity: 'info',
+            title: 'Convite expirado',
+            message: `O convite de ${consultantName} expirou e foi removido da sua lista.`,
+            notificationType: 'consultant_invitation',
+            linkUrl: '/app/invitations',
+            metadata: { invitationId: row.id, consultantId: row.consultant_id, action: 'expired' },
+          });
+        }
+      } catch (err: any) {
+        fastify.log.warn('Error expiring invitations:', err?.message);
+      }
+
       let invitations: Array<{
         id: string;
         consultantId: string;
@@ -62,7 +101,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
              u.email as consultant_email,
              cc.status,
              cc.created_at as sent_at,
-             cc.created_at + INTERVAL '30 days' as expires_at
+             cc.created_at + INTERVAL '15 days' as expires_at
            FROM customer_consultants cc
            JOIN users u ON cc.consultant_id = u.id
            WHERE cc.customer_id = $1 AND cc.status = 'pending'
@@ -100,7 +139,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
       // Check if invitation exists and belongs to this customer
       const invitationResult = await db.query(
-        `SELECT consultant_id, status, created_at + INTERVAL '30 days' as expires_at
+        `SELECT consultant_id, status, created_at + INTERVAL '15 days' as expires_at
          FROM customer_consultants
          WHERE id = $1 AND customer_id = $2`,
         [id, customerId]

@@ -470,9 +470,9 @@ const Pipeline = () => {
         </div>
       )}
 
-      {/* Create Prospect Dialog - scrollable on mobile */}
+      {/* Create Prospect Dialog - scrollable on mobile, side spacing */}
       <Dialog open={isCreateDialogOpen} onOpenChange={handleCloseCreateDialog}>
-        <DialogContent className="max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6">
+        <DialogContent className="max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6 w-[calc(100%-2rem)] sm:w-[calc(100%-3rem)] max-w-lg mx-auto my-4 sm:my-0">
           <DialogHeader className="shrink-0">
             <DialogTitle className="text-lg sm:text-xl">Novo Prospecto</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
@@ -556,9 +556,9 @@ const Pipeline = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Prospect Dialog - scrollable on mobile */}
+      {/* Edit Prospect Dialog - scrollable on mobile, side spacing */}
       <Dialog open={isEditDialogOpen} onOpenChange={handleCloseEditDialog}>
-        <DialogContent className="max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6">
+        <DialogContent className="max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6 w-[calc(100%-2rem)] sm:w-[calc(100%-3rem)] max-w-lg mx-auto my-4 sm:my-0">
           <DialogHeader className="shrink-0">
             <DialogTitle className="text-lg sm:text-xl">Editar Prospecto</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">

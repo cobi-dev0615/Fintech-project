@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { UserPlus, Send, Trash2, ChevronsUpDown, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { UserPlus, Send, Trash2, ChevronsUpDown, Loader2, ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -174,23 +174,25 @@ const SendInvitations = () => {
     }
   };
 
+  const getStatusConfig = (status: string) => {
+    const config = {
+      pending: { icon: Clock, label: "Pendente", className: "bg-yellow-500/10 text-yellow-500" },
+      sent: { icon: Mail, label: "Enviado", className: "bg-blue-500/10 text-blue-500" },
+      accepted: { icon: CheckCircle2, label: "Aceito", className: "bg-success/10 text-success" },
+      expired: { icon: XCircle, label: "Expirado", className: "bg-destructive/10 text-destructive" },
+    };
+    return config[status as keyof typeof config] ?? config.pending;
+  };
+
   const getStatusBadge = (status: string) => {
-    const styles = {
-      pending: "bg-yellow-500/10 text-yellow-500",
-      sent: "bg-blue-500/10 text-blue-500",
-      accepted: "bg-success/10 text-success",
-      expired: "bg-destructive/10 text-destructive",
-    };
-    const labels = {
-      pending: "Pendente",
-      sent: "Enviado",
-      accepted: "Aceito",
-      expired: "Expirado",
-    };
+    const { icon: Icon, label, className } = getStatusConfig(status);
     return (
-      <Badge className={styles[status as keyof typeof styles]}>
-        {labels[status as keyof typeof labels]}
-      </Badge>
+      <span className={cn("inline-flex items-center gap-1.5", className)} title={label}>
+        <Icon className="h-4 w-4 shrink-0" aria-hidden />
+        <Badge className={cn("hidden md:inline-flex", className)}>
+          {label}
+        </Badge>
+      </span>
     );
   };
 

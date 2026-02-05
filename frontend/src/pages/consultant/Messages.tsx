@@ -108,6 +108,9 @@ const Messages = () => {
 
   const conversations = conversationsData?.conversations || [];
   const clients = clientsData?.clients || [];
+  // Clients not yet in a conversation (hide already-connected from "Nova Conversa" dropdown)
+  const connectedClientIds = new Set(conversations.map((c) => c.clientId));
+  const availableClients = clients.filter((c) => !connectedClientIds.has(c.id));
 
   // Real-time: subscribe to new messages and conversation updates
   useWebSocket((message) => {
@@ -518,25 +521,27 @@ const Messages = () => {
 
       {/* Create Conversation Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="gap-6 sm:max-w-md">
+          <DialogHeader className="space-y-2">
             <DialogTitle>Nova Conversa</DialogTitle>
             <DialogDescription>
               Selecione um cliente para iniciar uma conversa
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="space-y-5 py-2">
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-              <SelectTrigger>
+              <SelectTrigger className="h-11">
                 <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
-                {clients.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">
-                    Nenhum cliente ativo encontrado
+                {availableClients.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-muted-foreground">
+                    {clients.length === 0
+                      ? "Nenhum cliente ativo encontrado"
+                      : "Todos os seus clientes já possuem conversa ativa"}
                   </div>
                 ) : (
-                  clients.map((client) => (
+                  availableClients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name} ({client.email})
                     </SelectItem>
@@ -544,22 +549,28 @@ const Messages = () => {
                 )}
               </SelectContent>
             </Select>
-            {clients.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Você precisa ter clientes ativos para iniciar conversas.{" "}
-                <button
-                  onClick={() => {
-                    setIsCreateDialogOpen(false);
-                    navigate('/consultant/invitations');
-                  }}
-                  className="text-primary hover:underline"
-                >
-                  Envie um convite
-                </button>
+            {availableClients.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                {clients.length === 0 ? (
+                  <>
+                    Você precisa ter clientes ativos para iniciar conversas.{" "}
+                    <button
+                      onClick={() => {
+                        setIsCreateDialogOpen(false);
+                        navigate('/consultant/invitations');
+                      }}
+                      className="text-primary hover:underline"
+                    >
+                      Envie um convite
+                    </button>
+                  </>
+                ) : (
+                  "Abra uma conversa existente na lista ao lado ou aguarde novos clientes."
+                )}
               </p>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancelar
             </Button>

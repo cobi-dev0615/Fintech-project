@@ -1,8 +1,14 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import fs from 'fs';
+import path from 'path';
 import { db } from '../db/connection.js';
 import { cache } from '../utils/cache.js';
 import { createAlert } from '../utils/notifications.js';
 import { buildReportPdf, getFallbackPdfBuffer } from '../utils/pdf-report.js';
+
+const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'messages');
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_EXT = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'csv']);
 
 export async function consultantRoutes(fastify: FastifyInstance) {
   // Middleware: Only consultants can access these routes
@@ -1339,7 +1345,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Get registered customers not yet invited by this consultant (for invitation form)
+  // Get registered customers not yet invited (or only with expired invitation) by this consultant
   fastify.get('/invitations/available-customers', {
     preHandler: [requireConsultant],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -1351,8 +1357,9 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         `SELECT u.id, u.email, u.full_name
          FROM users u
          WHERE u.role = 'customer'
-         AND u.id NOT IN (
-           SELECT customer_id FROM customer_consultants WHERE consultant_id = $1
+         AND NOT EXISTS (
+           SELECT 1 FROM customer_consultants cc
+           WHERE cc.consultant_id = $1 AND cc.customer_id = u.id AND cc.status IN ('pending', 'active')
          )
          AND ($2::text IS NULL OR $2 = '' OR u.email ILIKE $3 OR u.full_name ILIKE $3)
          ORDER BY u.full_name ASC NULLS LAST, u.email ASC
@@ -1392,6 +1399,52 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         return { invitations: [] };
       }
 
+      // Expire pending invitations past deadline and create notifications
+      try {
+        const expiredResult = await db.query(
+          `UPDATE customer_consultants
+           SET status = 'expired', updated_at = NOW()
+           WHERE consultant_id = $1 AND status = 'pending'
+             AND created_at + INTERVAL '15 days' < NOW()
+           RETURNING id, customer_id`,
+          [consultantId]
+        );
+        const consultantResult = await db.query(
+          `SELECT full_name FROM users WHERE id = $1`,
+          [consultantId]
+        );
+        const consultantName = consultantResult.rows[0]?.full_name || 'Consultor';
+        for (const row of expiredResult.rows) {
+          const customerResult = await db.query(
+            `SELECT email, full_name FROM users WHERE id = $1`,
+            [row.customer_id]
+          );
+          const customerEmail = customerResult.rows[0]?.email || '';
+          const customerName = customerResult.rows[0]?.full_name || customerEmail;
+          await createAlert({
+            userId: consultantId,
+            severity: 'warning',
+            title: 'Convite expirado',
+            message: `O convite enviado para ${customerEmail} expirou.`,
+            notificationType: 'consultant_invitation',
+            linkUrl: '/consultant/invitations',
+            metadata: { invitationId: row.id, customerId: row.customer_id, action: 'expired' },
+          });
+          await createAlert({
+            userId: row.customer_id,
+            severity: 'info',
+            title: 'Convite expirado',
+            message: `O convite de ${consultantName} expirou e foi removido da sua lista.`,
+            notificationType: 'consultant_invitation',
+            linkUrl: '/app/invitations',
+            metadata: { invitationId: row.id, consultantId, action: 'expired' },
+          });
+        }
+        cache.delete(`consultant:${consultantId}:dashboard:metrics`);
+      } catch (err: any) {
+        fastify.log.warn('Error expiring invitations:', err?.message);
+      }
+
       // For MVP, we can use customer_consultants with status='pending' as invitations
       let invitations: Array<{
         id: string;
@@ -1411,7 +1464,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
              u.full_name as name,
              cc.status,
              cc.created_at as sent_at,
-             cc.created_at + INTERVAL '30 days' as expires_at
+             cc.created_at + INTERVAL '15 days' as expires_at
            FROM customer_consultants cc
            LEFT JOIN users u ON cc.customer_id = u.id
            WHERE cc.consultant_id = $1
@@ -1507,15 +1560,24 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         }
         customerId = user.id;
 
-        // Check if relationship already exists
+        // Check if relationship already exists (allow re-invite if previous is expired)
         const existingResult = await db.query(
-          `SELECT id FROM customer_consultants 
+          `SELECT id, status FROM customer_consultants 
            WHERE consultant_id = $1 AND customer_id = $2`,
           [consultantId, customerId]
         );
 
         if (existingResult.rows.length > 0) {
-          return reply.code(400).send({ error: 'Invitation already sent or relationship exists' });
+          const existing = existingResult.rows[0];
+          if (existing.status === 'expired') {
+            await db.query(
+              `DELETE FROM customer_consultants WHERE id = $1 AND consultant_id = $2`,
+              [existing.id, consultantId]
+            );
+            cache.delete(`consultant:${consultantId}:dashboard:metrics`);
+          } else {
+            return reply.code(400).send({ error: 'Invitation already sent or relationship exists' });
+          }
         }
       } else {
         // Create a placeholder user or just store the invitation
@@ -1567,15 +1629,20 @@ export async function consultantRoutes(fastify: FastifyInstance) {
 
       // TODO: Send email invitation here
 
-      return {
+      const created = result.rows[0].created_at;
+      const expiresAt = new Date(created);
+      expiresAt.setDate(expiresAt.getDate() + 15);
+
+      return reply.send({
         invitation: {
           id: result.rows[0].id,
           email,
           name,
           status: 'pending',
-          sentAt: new Date(result.rows[0].created_at).toISOString().split('T')[0],
+          sentAt: new Date(created).toISOString().split('T')[0],
+          expiresAt: expiresAt.toISOString().split('T')[0],
         },
-      };
+      });
     } catch (error: any) {
       fastify.log.error(error);
       return reply.code(500).send({ error: 'Internal server error' });
@@ -1803,14 +1870,16 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         return reply.code(404).send({ error: 'Conversation not found' });
       }
 
-      // Get messages
+      // Get messages (include attachment fields if columns exist)
       const messagesResult = await db.query(
         `SELECT 
            m.id,
            m.sender_id,
            m.body,
            m.created_at as timestamp,
-           u.role
+           u.role,
+           m.attachment_url,
+           m.attachment_name
          FROM messages m
          JOIN users u ON m.sender_id = u.id
          WHERE m.conversation_id = $1
@@ -1826,11 +1895,13 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         [id, consultantId]
       );
 
-      const messages = messagesResult.rows.map(row => ({
+      const messages = messagesResult.rows.map((row: any) => ({
         id: row.id,
         sender: row.role === 'consultant' ? 'consultant' : 'client',
         content: row.body,
         timestamp: new Date(row.timestamp).toISOString(),
+        attachmentUrl: row.attachment_url || undefined,
+        attachmentName: row.attachment_name || undefined,
       }));
 
       return {
@@ -1847,6 +1918,57 @@ export async function consultantRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Upload file for message attachment (consultant)
+  fastify.post('/messages/upload', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { file, filename } = request.body as { file?: string; filename?: string };
+      if (!file || !filename || typeof file !== 'string' || typeof filename !== 'string') {
+        return reply.code(400).send({ error: 'file (base64) and filename are required' });
+      }
+      const ext = path.extname(filename).toLowerCase().slice(1) || 'bin';
+      if (!ALLOWED_EXT.has(ext)) {
+        return reply.code(400).send({ error: 'File type not allowed. Allowed: ' + [...ALLOWED_EXT].join(', ') });
+      }
+      const buf = Buffer.from(file, 'base64');
+      if (buf.length > MAX_FILE_SIZE) {
+        return reply.code(400).send({ error: 'File too large (max 10MB)' });
+      }
+      if (!fs.existsSync(UPLOAD_DIR)) {
+        fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+      }
+      const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}-${path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const filePath = path.join(UPLOAD_DIR, safeName);
+      fs.writeFileSync(filePath, buf);
+      const url = `/api/consultant/messages/files/${encodeURIComponent(safeName)}`;
+      return { url, filename: path.basename(filename) };
+    } catch (e: any) {
+      fastify.log.error(e);
+      return reply.code(500).send({ error: 'Upload failed' });
+    }
+  });
+
+  // Serve uploaded message file (consultant)
+  fastify.get('/messages/files/:filename', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { filename } = request.params as { filename: string };
+      const decoded = decodeURIComponent(filename);
+      if (decoded.includes('..') || path.isAbsolute(decoded)) {
+        return reply.code(400).send({ error: 'Invalid filename' });
+      }
+      const filePath = path.join(UPLOAD_DIR, path.basename(decoded));
+      if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+        return reply.code(404).send({ error: 'File not found' });
+      }
+      return reply.send(fs.createReadStream(filePath));
+    } catch (e: any) {
+      return reply.code(500).send({ error: 'File error' });
+    }
+  });
+
   // Send Message
   fastify.post('/messages/conversations/:id/messages', {
     preHandler: [requireConsultant],
@@ -1854,10 +1976,12 @@ export async function consultantRoutes(fastify: FastifyInstance) {
     try {
       const consultantId = getConsultantId(request);
       const { id } = request.params as any;
-      const { body } = request.body as any;
+      const { body, attachmentUrl, attachmentName } = request.body as { body?: string; attachmentUrl?: string; attachmentName?: string };
+      const hasBody = body != null && String(body).trim().length > 0;
+      const hasAttachment = attachmentUrl && attachmentName;
 
-      if (!body || !body.trim()) {
-        return reply.code(400).send({ error: 'Message body is required' });
+      if (!hasBody && !hasAttachment) {
+        return reply.code(400).send({ error: 'Message body or attachment is required' });
       }
 
       // Verify access and get customer_id for WebSocket broadcast
@@ -1873,14 +1997,15 @@ export async function consultantRoutes(fastify: FastifyInstance) {
 
       const customerId = accessCheck.rows[0].customer_id;
 
-      // Create message
+      // Create message (with optional attachment columns)
       const result = await db.query(
-        `INSERT INTO messages (conversation_id, sender_id, body)
-         VALUES ($1, $2, $3)
-         RETURNING id, body, created_at`,
-        [id, consultantId, body.trim()]
+        `INSERT INTO messages (conversation_id, sender_id, body, attachment_url, attachment_name)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, body, created_at, attachment_url, attachment_name`,
+        [id, consultantId, hasBody ? body!.trim() : (hasAttachment ? '(arquivo)' : ''), hasAttachment ? attachmentUrl : null, hasAttachment ? attachmentName : null]
       );
 
+      const row = result.rows[0];
       // Update conversation updated_at
       await db.query(
         `UPDATE conversations SET updated_at = NOW() WHERE id = $1`,
@@ -1888,10 +2013,12 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       );
 
       const messagePayload = {
-        id: result.rows[0].id,
+        id: row.id,
         sender: 'consultant',
-        content: result.rows[0].body,
-        timestamp: new Date(result.rows[0].created_at).toISOString(),
+        content: row.body,
+        timestamp: new Date(row.created_at).toISOString(),
+        attachmentUrl: row.attachment_url || undefined,
+        attachmentName: row.attachment_name || undefined,
       };
 
       // Broadcast to customer for real-time update

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, MessageSquare, Plus, TrendingUp, Wallet, EyeOff, Trash2, DollarSign, CreditCard, Building2, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, MessageSquare, Plus, TrendingUp, Wallet, EyeOff, Trash2, DollarSign, CreditCard, Building2, Loader2, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -35,7 +36,7 @@ const TYPE_LABELS: Record<string, string> = {
 const ClientProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("account");
   const [clientData, setClientData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -177,27 +178,16 @@ const ClientProfile = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Carregando...</p>
-      </div>
-    );
-  }
-
-  if (error || !clientData) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">{error || "Cliente não encontrado"}</p>
-      </div>
-    );
-  }
-
-  const { client, financial, notes, reports, walletShared } = clientData;
+  const showContent = !loading && !error && clientData;
+  const client = clientData?.client;
+  const financial = clientData?.financial;
+  const notes = clientData?.notes ?? [];
+  const reports = clientData?.reports ?? [];
+  const walletShared = clientData?.walletShared;
   const canViewWallet = walletShared !== false && financial != null;
 
   return (
-    <div className="w-full min-w-0 overflow-x-hidden space-y-6">
+    <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-6">
       {/* Page Header */}
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-3 min-w-0">
@@ -207,12 +197,21 @@ const ClientProfile = () => {
             </Button>
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">{client.name}</h1>
-            <p className="text-sm text-muted-foreground mt-1 truncate sm:break-all" title={client.email}>
-              {client.email}
-            </p>
+            {showContent ? (
+              <>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">{client!.name}</h1>
+                <p className="text-sm text-muted-foreground mt-1 truncate sm:break-all" title={client!.email}>
+                  {client!.email}
+                </p>
+              </>
+            ) : (
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+                {loading ? "Carregando..." : (error || "Cliente não encontrado")}
+              </h1>
+            )}
           </div>
         </div>
+        {showContent && (
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="flex-1 sm:flex-none" disabled={!canViewWallet}>
             <FileText className="h-4 w-4 mr-2 shrink-0" />
@@ -223,10 +222,11 @@ const ClientProfile = () => {
             <span className="truncate">Mensagem</span>
           </Button>
         </div>
+        )}
       </div>
 
       {/* Wallet sharing disabled notice */}
-      {!canViewWallet && (
+      {showContent && !canViewWallet && (
         <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 min-w-0">
           <EyeOff className="h-5 w-5 shrink-0 mt-0.5" />
           <p className="text-sm font-medium break-words min-w-0">
@@ -236,7 +236,7 @@ const ClientProfile = () => {
       )}
 
       {/* KPI Cards - only when wallet is shared */}
-      {canViewWallet && financial && (
+      {showContent && canViewWallet && financial && (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
         <ProfessionalKpiCard
           title="Patrimônio Líquido"
@@ -273,16 +273,18 @@ const ClientProfile = () => {
       </div>
       )}
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 min-w-0">
-        <TabsList className="flex flex-wrap h-auto gap-1 p-1.5 w-full sm:w-auto sm:inline-flex">
-          <TabsTrigger value="overview" className="flex-1 min-w-0 sm:flex-none text-xs sm:text-sm px-2.5 py-1.5 sm:px-3">Visão Geral</TabsTrigger>
-          <TabsTrigger value="investments" className="flex-1 min-w-0 sm:flex-none text-xs sm:text-sm px-2.5 py-1.5 sm:px-3">Investimentos</TabsTrigger>
-          <TabsTrigger value="reports" className="flex-1 min-w-0 sm:flex-none text-xs sm:text-sm px-2.5 py-1.5 sm:px-3">Relatórios</TabsTrigger>
-          <TabsTrigger value="notes" className="flex-1 min-w-0 sm:flex-none text-xs sm:text-sm px-2.5 py-1.5 sm:px-3">Anotações</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4 min-w-0 mt-2">
+      {/* Tabs: on mobile, content left + vertical icon tabs fixed on right */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
+        <div className="flex flex-row gap-3 md:flex-col md:gap-4">
+          {/* Content area (left on mobile with right padding for fixed strip; below tabs on desktop) */}
+          <div className="flex-1 min-w-0 overflow-x-hidden order-1 md:order-2">
+            <TabsContent value="account" className="space-y-4 min-w-0 mt-0 md:mt-2">
+          {!showContent ? (
+            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+              {loading ? "Carregando..." : (error || "Cliente não encontrado")}
+            </div>
+          ) : (
+          <>
           <ChartCard title="Resumo Financeiro">
             {canViewWallet ? (
               <p className="text-sm text-muted-foreground">
@@ -309,18 +311,18 @@ const ClientProfile = () => {
                     {financeDetail.connections.length === 0 ? (
                       <p className="text-sm text-muted-foreground py-4">Nenhuma conexão Open Finance. Os dados abaixo são obtidos quando o cliente conecta instituições via Open Finance.</p>
                     ) : (
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-wrap gap-3 min-w-0">
                         {financeDetail.connections.map((c) => (
                           <div
                             key={c.id}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 min-w-0 max-w-full overflow-hidden"
                           >
                             {c.institution_logo ? (
                               <img src={c.institution_logo} alt="" className="h-6 w-6 object-contain" />
                             ) : (
                               <Building2 className="h-5 w-5 text-muted-foreground" />
                             )}
-                            <span className="text-sm font-medium">{c.institution_name || "Instituição"}</span>
+                            <span className="text-sm font-medium truncate">{c.institution_name || "Instituição"}</span>
                             <span className="text-xs text-muted-foreground">({c.status})</span>
                           </div>
                         ))}
@@ -332,174 +334,249 @@ const ClientProfile = () => {
                     {financeDetail.accounts.length === 0 ? (
                       <p className="text-sm text-muted-foreground py-4">Nenhuma conta do Open Finance encontrada.</p>
                     ) : (
-                      <div className="overflow-x-auto min-w-0">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-border">
-                              <th className="text-left py-2 px-3">Nome</th>
-                              <th className="text-left py-2 px-3">Tipo</th>
-                              <th className="text-left py-2 px-3">Instituição</th>
-                              <th className="text-right py-2 px-3">Saldo</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {financeDetail.accounts.map((a) => (
-                              <tr key={a.id} className="border-b border-border/50">
-                                <td className="py-2 px-3">{a.name}</td>
-                                <td className="py-2 px-3">{a.type || "-"}</td>
-                                <td className="py-2 px-3">{a.institution_name || "-"}</td>
-                                <td className="py-2 px-3 text-right font-medium">{formatCurrency(a.current_balance)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </ChartCard>
-
-                  <ChartCard title="Investimentos (Open Finance)" subtitle={`${financeDetail.investments.length} posição(ões)`}>
-                    {financeDetail.investments.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">Nenhum investimento do Open Finance encontrado.</p>
-                    ) : (
-                      <div className="space-y-4 min-w-0">
-                        {financeDetail.breakdown.length > 0 && (
-                          <div className="space-y-2">
-                            <h4 className="text-sm font-semibold">Alocação por tipo</h4>
-                            {financeDetail.breakdown.map((b) => {
-                              const pct = financeDetail.summary.investments > 0 ? (b.total / financeDetail.summary.investments) * 100 : 0;
-                              return (
-                                <div key={b.type} className="flex items-center gap-3 min-w-0">
-                                  <span className="text-sm w-20 shrink-0">{TYPE_LABELS[b.type] || b.type}</span>
-                                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden min-w-0">
-                                    <div
-                                      className="h-full bg-primary rounded-full"
-                                      style={{ width: `${Math.min(pct, 100)}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-sm font-medium w-28 text-right shrink-0">{formatCurrency(b.total)}</span>
-                                  <span className="text-xs text-muted-foreground w-12 shrink-0">{pct.toFixed(1)}%</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                        <div className="overflow-x-auto min-w-0">
+                      <>
+                        <div className="space-y-3 md:hidden">
+                          {financeDetail.accounts.map((a) => (
+                            <div key={a.id} className="rounded-lg border border-border p-3 space-y-1.5 min-w-0">
+                              <p className="text-sm font-medium break-words">{a.name}</p>
+                              <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Tipo:</span> {a.type || "-"}</p>
+                              <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Instituição:</span> {a.institution_name || "-"}</p>
+                              <p className="text-sm font-medium text-right">{formatCurrency(a.current_balance)}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="hidden md:block overflow-x-auto min-w-0">
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-border">
-                                <th className="text-left py-2 px-3">Tipo</th>
                                 <th className="text-left py-2 px-3">Nome</th>
+                                <th className="text-left py-2 px-3">Tipo</th>
                                 <th className="text-left py-2 px-3">Instituição</th>
-                                <th className="text-right py-2 px-3">Quantidade</th>
-                                <th className="text-right py-2 px-3">Valor</th>
+                                <th className="text-right py-2 px-3">Saldo</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {financeDetail.investments.map((inv) => (
-                                <tr key={inv.id} className="border-b border-border/50">
-                                  <td className="py-2 px-3">{inv.type || "-"}</td>
-                                  <td className="py-2 px-3">{inv.name || "-"}</td>
-                                  <td className="py-2 px-3">{inv.institution_name || "-"}</td>
-                                  <td className="py-2 px-3 text-right">{Number(inv.quantity || 0).toLocaleString("pt-BR")}</td>
-                                  <td className="py-2 px-3 text-right font-medium">{formatCurrency(inv.current_value)}</td>
+                              {financeDetail.accounts.map((a) => (
+                                <tr key={a.id} className="border-b border-border/50">
+                                  <td className="py-2 px-3">{a.name}</td>
+                                  <td className="py-2 px-3">{a.type || "-"}</td>
+                                  <td className="py-2 px-3">{a.institution_name || "-"}</td>
+                                  <td className="py-2 px-3 text-right font-medium">{formatCurrency(a.current_balance)}</td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
                         </div>
-                      </div>
-                    )}
-                  </ChartCard>
-
-                  <ChartCard title="Cartões de Crédito (Open Finance)" subtitle={`${financeDetail.cards.length} cartão(ões)`}>
-                    {financeDetail.cards.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">Nenhum cartão do Open Finance encontrado.</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {financeDetail.cards.map((card) => (
-                          <div
-                            key={card.id}
-                            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-lg border border-border min-w-0"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <CreditCard className="h-5 w-5 text-muted-foreground shrink-0" />
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium">
-                                  {card.brand || "Cartão"} ****{card.last4 || "****"}
-                                </p>
-                                <p className="text-xs text-muted-foreground">{card.institution_name || "-"}</p>
-                              </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-sm font-medium text-destructive">{formatCurrency(card.openDebt)}</p>
-                              <p className="text-xs text-muted-foreground">Fatura em aberto</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </ChartCard>
-
-                  <ChartCard title="Transações Recentes (Open Finance)" subtitle={`Últimas ${financeDetail.transactions.length} transações`}>
-                    {financeDetail.transactions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">Nenhuma transação do Open Finance encontrada.</p>
-                    ) : (
-                      <div className="overflow-x-auto max-h-[400px] overflow-y-auto min-w-0">
-                        <table className="w-full text-sm">
-                          <thead className="sticky top-0 bg-background">
-                            <tr className="border-b border-border">
-                              <th className="text-left py-2 px-3">Data</th>
-                              <th className="text-left py-2 px-3">Descrição</th>
-                              <th className="text-left py-2 px-3">Conta</th>
-                              <th className="text-left py-2 px-3">Instituição</th>
-                              <th className="text-right py-2 px-3">Valor</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {financeDetail.transactions.map((tx) => {
-                              const amount = Number(tx.amount || 0);
-                              const isIncome = amount > 0;
-                              return (
-                                <tr key={tx.id} className="border-b border-border/50">
-                                  <td className="py-2 px-3">{format(new Date(tx.date), "dd/MM/yyyy", { locale: ptBR })}</td>
-                                  <td className="py-2 px-3">{tx.description || tx.merchant || "-"}</td>
-                                  <td className="py-2 px-3">{tx.account_name || "-"}</td>
-                                  <td className="py-2 px-3">{tx.institution_name || "-"}</td>
-                                  <td
-                                    className={`py-2 px-3 text-right font-medium ${isIncome ? "text-success" : "text-destructive"}`}
-                                  >
-                                    {isIncome ? "+" : ""}{formatCurrency(amount)}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                      </>
                     )}
                   </ChartCard>
                 </>
               )}
             </>
           )}
+          </>
+          )}
         </TabsContent>
 
-        <TabsContent value="investments" className="space-y-4">
-          <ChartCard title="Portfólio de Investimentos">
-            {canViewWallet ? (
-              <p className="text-sm text-muted-foreground">
-                Detalhamento completo dos investimentos do cliente, incluindo ações, FIIs,
-                fundos e renda fixa.
-              </p>
-            ) : (
+        <TabsContent value="transaction" className="space-y-4 min-w-0 mt-0 md:mt-2">
+          {!showContent ? (
+            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+              {loading ? "Carregando..." : (error || "Cliente não encontrado")}
+            </div>
+          ) : canViewWallet && financeDetail ? (
+            <ChartCard title="Transações Recentes (Open Finance)" subtitle={`Últimas ${financeDetail.transactions.length} transações`}>
+              {financeDetail.transactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">Nenhuma transação do Open Finance encontrada.</p>
+              ) : (
+                <>
+                  <div className="space-y-3 max-h-[50vh] overflow-y-auto md:hidden min-w-0">
+                    {financeDetail.transactions.map((tx) => {
+                      const amount = Number(tx.amount || 0);
+                      const isIncome = amount > 0;
+                      return (
+                        <div key={tx.id} className="rounded-lg border border-border p-3 space-y-1.5 min-w-0">
+                          <div className="flex justify-between items-start gap-2">
+                            <p className="text-xs text-muted-foreground shrink-0">{format(new Date(tx.date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                            <span className={`text-sm font-medium shrink-0 ${isIncome ? "text-success" : "text-destructive"}`}>
+                              {isIncome ? "+" : ""}{formatCurrency(amount)}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium break-words">{tx.description || tx.merchant || "-"}</p>
+                          <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Conta:</span> {tx.account_name || "-"}</p>
+                          <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Instituição:</span> {tx.institution_name || "-"}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="hidden md:block overflow-x-auto max-h-[400px] overflow-y-auto min-w-0">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-background">
+                        <tr className="border-b border-border">
+                          <th className="text-left py-2 px-3">Data</th>
+                          <th className="text-left py-2 px-3">Descrição</th>
+                          <th className="text-left py-2 px-3">Conta</th>
+                          <th className="text-left py-2 px-3">Instituição</th>
+                          <th className="text-right py-2 px-3">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {financeDetail.transactions.map((tx) => {
+                          const amount = Number(tx.amount || 0);
+                          const isIncome = amount > 0;
+                          return (
+                            <tr key={tx.id} className="border-b border-border/50">
+                              <td className="py-2 px-3">{format(new Date(tx.date), "dd/MM/yyyy", { locale: ptBR })}</td>
+                              <td className="py-2 px-3">{tx.description || tx.merchant || "-"}</td>
+                              <td className="py-2 px-3">{tx.account_name || "-"}</td>
+                              <td className="py-2 px-3">{tx.institution_name || "-"}</td>
+                              <td
+                                className={`py-2 px-3 text-right font-medium ${isIncome ? "text-success" : "text-destructive"}`}
+                              >
+                                {isIncome ? "+" : ""}{formatCurrency(amount)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </ChartCard>
+          ) : (
+            <p className="text-sm text-muted-foreground py-4">O cliente desativou o compartilhamento da carteira. Os dados não estão disponíveis.</p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="credit_card" className="space-y-4 min-w-0 mt-0 md:mt-2">
+          {!showContent ? (
+            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+              {loading ? "Carregando..." : (error || "Cliente não encontrado")}
+            </div>
+          ) : canViewWallet && financeDetail ? (
+            <ChartCard title="Cartões de Crédito (Open Finance)" subtitle={`${financeDetail.cards.length} cartão(ões)`}>
+              {financeDetail.cards.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">Nenhum cartão do Open Finance encontrado.</p>
+              ) : (
+                <div className="space-y-3">
+                  {financeDetail.cards.map((card) => (
+                    <div
+                      key={card.id}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-lg border border-border min-w-0 overflow-hidden"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+                        <CreditCard className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0 overflow-hidden">
+                          <p className="text-sm font-medium break-words">
+                            {card.brand || "Cartão"} ****{card.last4 || "****"}
+                          </p>
+                          <p className="text-xs text-muted-foreground break-words">{card.institution_name || "-"}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-medium text-destructive">{formatCurrency(card.openDebt)}</p>
+                        <p className="text-xs text-muted-foreground">Fatura em aberto</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ChartCard>
+          ) : (
+            <p className="text-sm text-muted-foreground py-4">O cliente desativou o compartilhamento da carteira. Os dados não estão disponíveis.</p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="investments" className="space-y-4 mt-0 md:mt-2">
+          {!showContent ? (
+            <div className="flex items-center justify-center min-h-[200px] text-muted-foreground">
+              {loading ? "Carregando..." : (error || "Cliente não encontrado")}
+            </div>
+          ) : canViewWallet && financeDetail ? (
+            <>
+              <ChartCard title="Investimentos (Open Finance)" subtitle={`${financeDetail.investments.length} posição(ões)`}>
+                {financeDetail.investments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">Nenhum investimento do Open Finance encontrado.</p>
+                ) : (
+                  <div className="space-y-4 min-w-0">
+                    {financeDetail.breakdown.length > 0 && (
+                      <div className="space-y-2 min-w-0">
+                        <h4 className="text-sm font-semibold">Alocação por tipo</h4>
+                        {financeDetail.breakdown.map((b) => {
+                          const pct = financeDetail.summary.investments > 0 ? (b.total / financeDetail.summary.investments) * 100 : 0;
+                          return (
+                            <div key={b.type} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 min-w-0">
+                              <span className="text-sm sm:w-20 shrink-0">{TYPE_LABELS[b.type] || b.type}</span>
+                              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden min-w-0">
+                                <div
+                                  className="h-full bg-primary rounded-full"
+                                  style={{ width: `${Math.min(pct, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium sm:w-28 text-right shrink-0">{formatCurrency(b.total)}</span>
+                              <span className="text-xs text-muted-foreground sm:w-12 shrink-0">{pct.toFixed(1)}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="space-y-3 md:hidden">
+                      {financeDetail.investments.map((inv) => (
+                        <div key={inv.id} className="rounded-lg border border-border p-3 space-y-1.5 min-w-0">
+                          <p className="text-sm font-medium break-words">{inv.name || "-"}</p>
+                          <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Tipo:</span> {TYPE_LABELS[inv.type] || inv.type || "-"}</p>
+                          <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Instituição:</span> {inv.institution_name || "-"}</p>
+                          <div className="flex justify-between text-sm pt-1">
+                            <span className="text-muted-foreground">Qtd: {Number(inv.quantity || 0).toLocaleString("pt-BR")}</span>
+                            <span className="font-medium">{formatCurrency(inv.current_value)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="hidden md:block overflow-x-auto min-w-0">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 px-3">Tipo</th>
+                            <th className="text-left py-2 px-3">Nome</th>
+                            <th className="text-left py-2 px-3">Instituição</th>
+                            <th className="text-right py-2 px-3">Quantidade</th>
+                            <th className="text-right py-2 px-3">Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {financeDetail.investments.map((inv) => (
+                            <tr key={inv.id} className="border-b border-border/50">
+                              <td className="py-2 px-3">{inv.type || "-"}</td>
+                              <td className="py-2 px-3">{inv.name || "-"}</td>
+                              <td className="py-2 px-3">{inv.institution_name || "-"}</td>
+                              <td className="py-2 px-3 text-right">{Number(inv.quantity || 0).toLocaleString("pt-BR")}</td>
+                              <td className="py-2 px-3 text-right font-medium">{formatCurrency(inv.current_value)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </ChartCard>
+              <ChartCard title="Portfólio de Investimentos">
+                <p className="text-sm text-muted-foreground">
+                  Detalhamento completo dos investimentos do cliente, incluindo ações, FIIs,
+                  fundos e renda fixa.
+                </p>
+              </ChartCard>
+            </>
+          ) : (
+            <ChartCard title="Portfólio de Investimentos">
               <p className="text-sm text-muted-foreground">
                 O cliente desativou o compartilhamento da carteira. Os dados de investimentos não estão disponíveis.
               </p>
-            )}
-          </ChartCard>
+            </ChartCard>
+          )}
         </TabsContent>
 
-        <TabsContent value="reports" className="space-y-4 min-w-0 mt-2">
+        <TabsContent value="reports" className="space-y-4 min-w-0 mt-0 md:mt-2">
           <ChartCard title="Relatórios Gerados">
             <div className="space-y-3">
               {reports.length === 0 ? (
@@ -540,7 +617,7 @@ const ClientProfile = () => {
           </ChartCard>
         </TabsContent>
 
-        <TabsContent value="notes" className="space-y-4 min-w-0 mt-2">
+        <TabsContent value="notes" className="space-y-4 min-w-0 mt-0 md:mt-2">
           <ChartCard 
             title="Anotações" 
             actions={
@@ -586,6 +663,62 @@ const ClientProfile = () => {
             </div>
           </ChartCard>
         </TabsContent>
+          </div>
+
+          {/* Tab strip: portaled to body; height fits four icons only, vertically centered in viewport */}
+          {typeof document !== "undefined" &&
+            createPortal(
+              <div
+                className="w-14 flex flex-col items-center gap-3 py-4 bg-transparent lg:hidden"
+                style={{
+                  position: "fixed",
+                  right: 0,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  zIndex: 2147483647,
+                  isolation: "isolate",
+                  boxShadow: "-4px 0 12px rgba(0,0,0,0.25)",
+                }}
+              >
+                <TabsList className="flex flex-col h-auto w-full shrink-0 gap-3 p-2 rounded-xl bg-muted">
+                  <TabsTrigger value="account" className="flex items-center justify-center h-12 w-12 rounded-lg bg-transparent shadow-none data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Account">
+                    <Wallet className="h-5 w-5 shrink-0" />
+                  </TabsTrigger>
+                  <TabsTrigger value="transaction" className="flex items-center justify-center h-12 w-12 rounded-lg bg-transparent shadow-none data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Transaction">
+                    <Receipt className="h-5 w-5 shrink-0" />
+                  </TabsTrigger>
+                  <TabsTrigger value="credit_card" className="flex items-center justify-center h-12 w-12 rounded-lg bg-transparent shadow-none data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Credit card">
+                    <CreditCard className="h-5 w-5 shrink-0" />
+                  </TabsTrigger>
+                  <TabsTrigger value="investments" className="flex items-center justify-center h-12 w-12 rounded-lg bg-transparent shadow-none data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Investments">
+                    <TrendingUp className="h-5 w-5 shrink-0" />
+                  </TabsTrigger>
+                </TabsList>
+              </div>,
+              document.body
+            )}
+          {/* Desktop: inline tab strip above content */}
+          <div className="hidden lg:flex flex-row w-auto shrink-0 gap-1 p-0 order-2 md:order-1">
+            <TabsList className="flex flex-row h-10 w-auto inline-flex gap-1 p-1.5 rounded-md bg-card">
+              <TabsTrigger value="account" className="flex-none px-3 py-1.5 text-sm" title="Account">
+                <Wallet className="h-4 w-4 mr-2 shrink-0" />
+                Account
+              </TabsTrigger>
+              <TabsTrigger value="transaction" className="flex-none px-3 py-1.5 text-sm" title="Transaction">
+                <Receipt className="h-4 w-4 mr-2 shrink-0" />
+                Transaction
+              </TabsTrigger>
+              <TabsTrigger value="credit_card" className="flex-none px-3 py-1.5 text-sm" title="Credit card">
+                <CreditCard className="h-4 w-4 mr-2 shrink-0" />
+                Credit card
+              </TabsTrigger>
+              <TabsTrigger value="investments" className="flex-none px-3 py-1.5 text-sm" title="Investments">
+                <TrendingUp className="h-4 w-4 mr-2 shrink-0" />
+                Investments
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
       </Tabs>
 
       {/* Delete Note Confirmation Dialog */}
