@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Send, Search, UserPlus, Calendar, Plus, MoreVertical, Trash2, History } from "lucide-react";
+import { MessageSquare, Send, Search, UserPlus, Calendar, Plus, MoreVertical, Trash2, History, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { consultantApi } from "@/lib/api";
+import { consultantApi, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -60,6 +60,8 @@ interface Message {
   sender: "client" | "consultant";
   content: string;
   timestamp: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 interface Conversation {
@@ -85,6 +87,9 @@ const Messages = () => {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const [deleteChatDialogOpen, setDeleteChatDialogOpen] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{ url: string; filename: string } | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -185,12 +190,20 @@ const Messages = () => {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: ({ conversationId, content }: { conversationId: string; content: string }) =>
-      consultantApi.sendMessage(conversationId, content),
+    mutationFn: ({
+      conversationId,
+      content,
+      attachment,
+    }: {
+      conversationId: string;
+      content: string;
+      attachment?: { url: string; filename: string };
+    }) => consultantApi.sendMessage(conversationId, content, attachment),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consultant', 'conversation', selectedConversation] });
       queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
       setNewMessage("");
+      setPendingAttachment(null);
     },
     onError: (err: any) => {
       toast({
@@ -228,11 +241,47 @@ const Messages = () => {
   });
 
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedConversation) return;
+    if (!selectedConversation) return;
+    if (!newMessage.trim() && !pendingAttachment) return;
     sendMessageMutation.mutate({
       conversationId: selectedConversation,
-      content: newMessage,
+      content: newMessage.trim(),
+      attachment: pendingAttachment || undefined,
     });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'csv'];
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!ext || !allowed.includes(ext)) {
+      toast({ title: "Tipo não permitido", description: "Use: pdf, doc, docx, xls, xlsx, jpg, png, gif, txt, csv", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Arquivo grande", description: "Máximo 10MB", variant: "destructive" });
+      return;
+    }
+    setUploadingFile(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => {
+          const data = (r.result as string).split(',')[1];
+          resolve(data || '');
+        };
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const res = await consultantApi.uploadMessageFile(base64, file.name);
+      setPendingAttachment({ url: res.url, filename: res.filename });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err?.error || "Falha ao enviar arquivo", variant: "destructive" });
+    } finally {
+      setUploadingFile(false);
+      e.target.value = '';
+    }
   };
 
   const handleCreateConversation = () => {
@@ -285,9 +334,9 @@ const Messages = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex-shrink-0 flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Mensagens</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -306,10 +355,10 @@ const Messages = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         {/* Conversations List */}
-        <ChartCard className="p-0 flex flex-col">
-          <div className="p-4 border-b border-border">
+        <ChartCard className="p-0 flex flex-col min-h-0">
+          <div className="p-3 border-b border-border">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -320,7 +369,7 @@ const Messages = () => {
               />
             </div>
           </div>
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-1 p-2">
               {conversationsLoading ? (
                 <div className="space-y-3 p-4">
@@ -382,9 +431,9 @@ const Messages = () => {
           </ScrollArea>
         </ChartCard>
 
-        {/* Chat Area */}
-        <div className="lg:col-span-2">
-          <ChartCard className="h-full flex flex-col p-0">
+        {/* Chat dialog: fixed height; scrollbar only in conversation history */}
+        <div className="lg:col-span-2 min-h-0 flex flex-col ">
+          <ChartCard className="h-full min-h-0 flex flex-col p-0 ">
             {conversationLoading ? (
               <div className="flex-1 flex items-center justify-center">
                 <Skeleton className="h-32 w-full" />
@@ -428,8 +477,12 @@ const Messages = () => {
                   </div>
                 </div>
 
-                {/* Messages */}
-                <ScrollArea className="flex-1 p-4 pb-0" ref={scrollAreaRef}>
+                {/* Chat area: only this part scrolls (not header, not input block) */}
+                <div
+                  className="flex-1 min-h-0 max-h-[min(70vh,calc(100vh-14rem))] overflow-y-auto overflow-x-hidden overscroll-contain p-4 pb-0"
+                  ref={scrollAreaRef}
+                  style={{ overscrollBehavior: 'contain' }}
+                >
                   <div className="space-y-4 pb-24">
                     {currentConversation?.messages?.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
@@ -452,7 +505,13 @@ const Messages = () => {
                                 : "bg-muted text-foreground"
                             }`}
                           >
-                            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                            {message.content ? <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p> : null}
+                            {message.attachmentUrl && message.attachmentName && (
+                              <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline flex items-center gap-1 mt-1">
+                                <Paperclip className="h-3 w-3 flex-shrink-0" />
+                                {message.attachmentName}
+                              </a>
+                            )}
                             <p
                               className={`text-xs mt-1 ${
                                 message.sender === "consultant"
@@ -468,11 +527,41 @@ const Messages = () => {
                     )}
                     <div ref={messagesEndRef} />
                   </div>
-                </ScrollArea>
+                </div>
 
-                {/* Message Input - pinned to bottom so always visible */}
-                <div className="fixed lg:sticky bottom-0 left-0 right-0 lg:left-auto lg:right-auto z-10 bg-card border-t border-border p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.15)]">
+                {/* Message input block - no scroll, fixed at bottom */}
+                <div className="flex-shrink-0 bg-card border-t border-border p-4">
+                  {pendingAttachment && (
+                    <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                      <span className="truncate flex-1">{pendingAttachment.filename}</span>
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPendingAttachment(null)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt,.csv"
+                      onChange={handleFileSelect}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="flex-shrink-0"
+                      disabled={uploadingFile || sendMessageMutation.isPending}
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label="Anexar arquivo"
+                    >
+                      {uploadingFile ? (
+                        <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Paperclip className="h-4 w-4" />
+                      )}
+                    </Button>
                     <Textarea
                       placeholder="Digite sua mensagem..."
                       value={newMessage}
@@ -484,15 +573,15 @@ const Messages = () => {
                           handleSendMessage();
                         }
                       }}
-                      disabled={sendMessageMutation.isLoading}
+                      disabled={sendMessageMutation.isPending}
                     />
                     <Button 
                       onClick={handleSendMessage} 
                       size="icon" 
                       className="flex-shrink-0" 
-                      disabled={sendMessageMutation.isLoading || !newMessage.trim()}
+                      disabled={sendMessageMutation.isPending || (!newMessage.trim() && !pendingAttachment)}
                     >
-                      {sendMessageMutation.isLoading ? (
+                      {sendMessageMutation.isPending ? (
                         <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <Send className="h-4 w-4" />
@@ -576,9 +665,9 @@ const Messages = () => {
             </Button>
             <Button 
               onClick={handleCreateConversation}
-              disabled={!selectedClientId || createConversationMutation.isLoading}
+              disabled={!selectedClientId || createConversationMutation.isPending}
             >
-              {createConversationMutation.isLoading ? "Criando..." : "Iniciar Conversa"}
+              {createConversationMutation.isPending ? "Criando..." : "Iniciar Conversa"}
             </Button>
           </DialogFooter>
         </DialogContent>

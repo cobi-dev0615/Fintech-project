@@ -122,7 +122,7 @@ const IntegrationsMonitor = () => {
           title="Status Degradado"
           value={degradedCount.toString()}
           change="requer atenção"
-          changeType="warning"
+          changeType="negative"
           icon={Clock}
           subtitle=""
         />
@@ -137,7 +137,7 @@ const IntegrationsMonitor = () => {
         <ProfessionalKpiCard
           title="Uptime Médio"
           value={stats.avgUptime}
-          change="últimos 30 dias"
+          change="últimos 15 dias"
           changeType="positive"
           icon={Activity}
           subtitle=""

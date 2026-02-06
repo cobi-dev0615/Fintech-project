@@ -113,7 +113,7 @@ const DAMAProspecting = () => {
         page,
         limit: 20,
       });
-      setProspects(data.prospects);
+      setProspects(data.prospects as Prospect[]);
       setKpis(data.kpis);
       setFunnelData(data.funnel);
       setPagination(data.pagination);

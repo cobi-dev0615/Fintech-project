@@ -25,7 +25,7 @@ const ChartCard = ({ title, subtitle, children, className, actions }: ChartCardP
         {actions && <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">{actions}</div>}
       </div>
       )}
-      <div className="w-full min-w-0 overflow-hidden">{children}</div>
+      <div className="w-full h-full min-w-0 overflow-hidden">{children}</div>
     </div>
   );
 };

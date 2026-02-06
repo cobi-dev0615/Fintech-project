@@ -164,13 +164,26 @@ export const consultantApi = {
         sender: 'consultant' | 'client';
         content: string;
         timestamp: string;
+        attachmentUrl?: string;
+        attachmentName?: string;
       }>;
     }>(`/consultant/messages/conversations/${id}`),
 
-  sendMessage: (conversationId: string, body: string) =>
+  uploadMessageFile: (file: string, filename: string) =>
+    api.post<{ url: string; filename: string }>('/consultant/messages/upload', { file, filename }),
+
+  sendMessage: (
+    conversationId: string,
+    body: string,
+    attachment?: { url: string; filename: string }
+  ) =>
     api.post<{
-      message: { id: string; sender: 'consultant'; content: string; timestamp: string };
-    }>(`/consultant/messages/conversations/${conversationId}/messages`, { body }),
+      message: { id: string; sender: 'consultant'; content: string; timestamp: string; attachmentUrl?: string; attachmentName?: string };
+    }>(`/consultant/messages/conversations/${conversationId}/messages`, {
+      body: body || undefined,
+      attachmentUrl: attachment?.url,
+      attachmentName: attachment?.filename,
+    }),
 
   clearHistory: (conversationId: string) =>
     api.delete<{ message: string }>(`/consultant/messages/conversations/${conversationId}/messages`),

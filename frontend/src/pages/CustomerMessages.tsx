@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Send, Search, MoreVertical, Trash2, History } from "lucide-react";
+import { MessageSquare, Send, Search, MoreVertical, Trash2, History, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { customerApi } from "@/lib/api";
+import { customerApi, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { useAuth } from "@/hooks/useAuth";
@@ -46,6 +46,8 @@ interface Message {
   sender: "client" | "consultant";
   content: string;
   timestamp: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 const CustomerMessages = () => {
@@ -56,6 +58,9 @@ const CustomerMessages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const [deleteChatDialogOpen, setDeleteChatDialogOpen] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{ url: string; filename: string } | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -118,12 +123,13 @@ const CustomerMessages = () => {
   }, [currentConversation?.messages]);
 
   const sendMessageMutation = useMutation({
-    mutationFn: ({ conversationId, content }: { conversationId: string; content: string }) =>
-      customerApi.sendMessage(conversationId, content),
+    mutationFn: ({ conversationId, content, attachment }: { conversationId: string; content: string; attachment?: { url: string; filename: string } }) =>
+      customerApi.sendMessage(conversationId, content, attachment),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer', 'conversation', selectedConversation] });
       queryClient.invalidateQueries({ queryKey: ['customer', 'conversations'] });
       setNewMessage("");
+      setPendingAttachment(null);
     },
     onError: (err: any) => {
       toast({
@@ -161,11 +167,44 @@ const CustomerMessages = () => {
   });
 
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedConversation) return;
+    if (!selectedConversation) return;
+    if (!newMessage.trim() && !pendingAttachment) return;
     sendMessageMutation.mutate({
       conversationId: selectedConversation,
-      content: newMessage,
+      content: newMessage.trim(),
+      attachment: pendingAttachment || undefined,
     });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'csv'];
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!ext || !allowed.includes(ext)) {
+      toast({ title: "Tipo não permitido", description: "Use: pdf, doc, docx, xls, xlsx, jpg, png, gif, txt, csv", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Arquivo grande", description: "Máximo 10MB", variant: "destructive" });
+      return;
+    }
+    setUploadingFile(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => { const data = (r.result as string).split(',')[1]; resolve(data || ''); };
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const res = await customerApi.uploadMessageFile(base64, file.name);
+      setPendingAttachment({ url: res.url, filename: res.filename });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err?.error || "Falha ao enviar arquivo", variant: "destructive" });
+    } finally {
+      setUploadingFile(false);
+      e.target.value = '';
+    }
   };
 
   const formatMessageTime = (timestamp: string) => {
@@ -206,11 +245,11 @@ const CustomerMessages = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className="flex-shrink-0 flex flex-col md:flex-row md:items-center md:justify-between gap-2 py-2 pb-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Mensagens</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl font-bold text-foreground">Mensagens</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Comunique-se com seus consultores
           </p>
         </div>
@@ -219,9 +258,9 @@ const CustomerMessages = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
-        <ChartCard className="p-0 flex flex-col">
-          <div className="p-4 border-b border-border">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 overflow-hidden">
+        <ChartCard className="p-0 flex flex-col min-h-0 overflow-hidden">
+          <div className="p-3 border-b border-border">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -232,7 +271,7 @@ const CustomerMessages = () => {
               />
             </div>
           </div>
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-1 p-2">
               {conversationsLoading ? (
                 <div className="space-y-3 p-4">
@@ -254,11 +293,10 @@ const CustomerMessages = () => {
                   <button
                     key={conversation.id}
                     onClick={() => setSelectedConversation(conversation.id)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors ${
-                      selectedConversation === conversation.id
+                    className={`w-full text-left p-3 rounded-lg transition-colors ${selectedConversation === conversation.id
                         ? "bg-primary/10 border border-primary/20"
                         : "hover:bg-muted"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -296,8 +334,9 @@ const CustomerMessages = () => {
           </ScrollArea>
         </ChartCard>
 
-        <div className="lg:col-span-2">
-          <ChartCard className="h-full flex flex-col p-0">
+        {/* Chat dialog: fixed height; scrollbar only in conversation history */}
+        <div className="lg:col-span-2 min-h-0 flex flex-col">
+          <ChartCard className="h-full min-h-0 flex flex-col p-0">
             {conversationLoading ? (
               <div className="flex-1 flex items-center justify-center">
                 <Skeleton className="h-32 w-full" />
@@ -340,7 +379,12 @@ const CustomerMessages = () => {
                   </div>
                 </div>
 
-                <ScrollArea className="flex-1 p-4 pb-0" ref={scrollAreaRef}>
+                {/* Chat area: only this part scrolls (not header, not input block) */}
+                <div
+                  className="flex-1 min-h-0 max-h-[min(70vh,67vh)] overflow-y-auto overflow-x-hidden overscroll-contain p-4 pb-0"
+                  ref={scrollAreaRef}
+                  style={{ overscrollBehavior: 'contain' }}
+                >
                   <div className="space-y-4 pb-24">
                     {currentConversation?.messages?.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
@@ -352,24 +396,27 @@ const CustomerMessages = () => {
                       currentConversation?.messages?.map((message: Message) => (
                         <div
                           key={message.id}
-                          className={`flex ${
-                            message.sender === "client" ? "justify-end" : "justify-start"
-                          }`}
+                          className={`flex ${message.sender === "client" ? "justify-end" : "justify-start"
+                            }`}
                         >
                           <div
-                            className={`max-w-[70%] rounded-lg p-3 ${
-                              message.sender === "client"
+                            className={`max-w-[70%] rounded-lg p-3 ${message.sender === "client"
                                 ? "bg-primary text-primary-foreground"
                                 : "bg-muted text-foreground"
-                            }`}
+                              }`}
                           >
-                            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                            {message.content ? <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p> : null}
+                            {message.attachmentUrl && message.attachmentName && (
+                              <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline flex items-center gap-1 mt-1">
+                                <Paperclip className="h-3 w-3 flex-shrink-0" />
+                                {message.attachmentName}
+                              </a>
+                            )}
                             <p
-                              className={`text-xs mt-1 ${
-                                message.sender === "client"
+                              className={`text-xs mt-1 ${message.sender === "client"
                                   ? "text-amber-200/95"
                                   : "text-cyan-400 dark:text-cyan-400"
-                              }`}
+                                }`}
                             >
                               {formatMessageTime(message.timestamp)}
                             </p>
@@ -379,10 +426,23 @@ const CustomerMessages = () => {
                     )}
                     <div ref={messagesEndRef} />
                   </div>
-                </ScrollArea>
+                </div>
 
-                <div className="fixed lg:sticky bottom-0 left-0 right-0 lg:left-auto lg:right-auto z-10 bg-card border-t border-border p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.15)]">
+                {/* Message input block - no scroll, fixed at bottom */}
+                <div className="flex-shrink-0 bg-card border-t border-border p-4">
+                  {pendingAttachment && (
+                    <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+                      <span className="truncate flex-1">{pendingAttachment.filename}</span>
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPendingAttachment(null)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex gap-2">
+                    <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt,.csv" onChange={handleFileSelect} />
+                    <Button type="button" variant="outline" size="icon" className="flex-shrink-0" disabled={uploadingFile || sendMessageMutation.isPending} onClick={() => fileInputRef.current?.click()} aria-label="Anexar arquivo">
+                      {uploadingFile ? <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                    </Button>
                     <Textarea
                       placeholder="Digite sua mensagem..."
                       value={newMessage}
@@ -394,15 +454,15 @@ const CustomerMessages = () => {
                           handleSendMessage();
                         }
                       }}
-                      disabled={sendMessageMutation.isLoading}
+                      disabled={sendMessageMutation.isPending}
                     />
-                    <Button 
-                      onClick={handleSendMessage} 
-                      size="icon" 
-                      className="flex-shrink-0" 
-                      disabled={sendMessageMutation.isLoading || !newMessage.trim()}
+                    <Button
+                      onClick={handleSendMessage}
+                      size="icon"
+                      className="flex-shrink-0"
+                      disabled={sendMessageMutation.isPending || (!newMessage.trim() && !pendingAttachment)}
                     >
-                      {sendMessageMutation.isLoading ? (
+                      {sendMessageMutation.isPending ? (
                         <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <Send className="h-4 w-4" />

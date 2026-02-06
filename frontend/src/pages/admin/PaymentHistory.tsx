@@ -371,7 +371,7 @@ const PaymentHistory = () => {
           title="Pagamentos Pendentes"
           value={pendingCount.toString()}
           change=""
-          changeType="warning"
+          changeType="neutral"
           icon={CreditCard}
           subtitle="aguardando"
         />

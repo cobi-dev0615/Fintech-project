@@ -1,7 +1,13 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import fs from 'fs';
+import path from 'path';
 import { db } from '../db/connection.js';
 import { cache } from '../utils/cache.js';
 import { createAlert } from '../utils/notifications.js';
+
+const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'messages');
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_EXT = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'csv']);
 
 export async function customerRoutes(fastify: FastifyInstance) {
   // Middleware: Only customers can access these routes
@@ -554,8 +560,20 @@ export async function customerRoutes(fastify: FastifyInstance) {
         return reply.code(404).send({ error: 'Conversation not found' });
       }
 
-      const messagesResult = await db.query(
-        `SELECT 
+      let messagesResult: { rows: any[] };
+      const queryWithAttachments = `SELECT 
+           m.id,
+           m.sender_id,
+           m.body,
+           m.created_at as timestamp,
+           m.attachment_url,
+           m.attachment_name,
+           u.role
+         FROM messages m
+         JOIN users u ON m.sender_id = u.id
+         WHERE m.conversation_id = $1
+         ORDER BY m.created_at ASC`;
+      const queryWithoutAttachments = `SELECT 
            m.id,
            m.sender_id,
            m.body,
@@ -564,9 +582,16 @@ export async function customerRoutes(fastify: FastifyInstance) {
          FROM messages m
          JOIN users u ON m.sender_id = u.id
          WHERE m.conversation_id = $1
-         ORDER BY m.created_at ASC`,
-        [id]
-      );
+         ORDER BY m.created_at ASC`;
+      try {
+        messagesResult = await db.query(queryWithAttachments, [id]);
+      } catch (colError: any) {
+        if (colError.code === '42703' || colError.message?.includes('attachment_url') || colError.message?.includes('attachment_name')) {
+          messagesResult = await db.query(queryWithoutAttachments, [id]);
+        } else {
+          throw colError;
+        }
+      }
 
       await db.query(
         `UPDATE messages 
@@ -580,6 +605,8 @@ export async function customerRoutes(fastify: FastifyInstance) {
         sender: row.role === 'consultant' ? 'consultant' : 'client',
         content: row.body,
         timestamp: new Date(row.timestamp).toISOString(),
+        attachmentUrl: row.attachment_url ?? undefined,
+        attachmentName: row.attachment_name ?? undefined,
       }));
 
       return {
@@ -596,6 +623,37 @@ export async function customerRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Upload file for message attachment (customer)
+  fastify.post('/messages/upload', {
+    preHandler: [requireCustomer],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { file, filename } = request.body as { file?: string; filename?: string };
+      if (!file || !filename || typeof file !== 'string' || typeof filename !== 'string') {
+        return reply.code(400).send({ error: 'file (base64) and filename are required' });
+      }
+      const ext = path.extname(filename).toLowerCase().slice(1) || 'bin';
+      if (!ALLOWED_EXT.has(ext)) {
+        return reply.code(400).send({ error: 'File type not allowed. Allowed: ' + [...ALLOWED_EXT].join(', ') });
+      }
+      const buf = Buffer.from(file, 'base64');
+      if (buf.length > MAX_FILE_SIZE) {
+        return reply.code(400).send({ error: 'File too large (max 10MB)' });
+      }
+      if (!fs.existsSync(UPLOAD_DIR)) {
+        fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+      }
+      const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}-${path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const filePath = path.join(UPLOAD_DIR, safeName);
+      fs.writeFileSync(filePath, buf);
+      const url = `/api/messages/files/${encodeURIComponent(safeName)}`;
+      return { url, filename: path.basename(filename) };
+    } catch (e: any) {
+      fastify.log.error(e);
+      return reply.code(500).send({ error: 'Upload failed' });
+    }
+  });
+
   // Send message
   fastify.post('/messages/conversations/:id/messages', {
     preHandler: [requireCustomer],
@@ -603,10 +661,12 @@ export async function customerRoutes(fastify: FastifyInstance) {
     try {
       const customerId = getCustomerId(request);
       const { id } = request.params as any;
-      const { body } = request.body as any;
+      const { body, attachmentUrl, attachmentName } = request.body as { body?: string; attachmentUrl?: string; attachmentName?: string };
+      const hasBody = body != null && String(body).trim().length > 0;
+      const hasAttachment = attachmentUrl && attachmentName;
 
-      if (!body || !body.trim()) {
-        return reply.code(400).send({ error: 'Message body is required' });
+      if (!hasBody && !hasAttachment) {
+        return reply.code(400).send({ error: 'Message body or attachment is required' });
       }
 
       const accessCheck = await db.query(
@@ -622,22 +682,25 @@ export async function customerRoutes(fastify: FastifyInstance) {
       const consultantId = accessCheck.rows[0].consultant_id;
 
       const result = await db.query(
-        `INSERT INTO messages (conversation_id, sender_id, body)
-         VALUES ($1, $2, $3)
-         RETURNING id, body, created_at`,
-        [id, customerId, body.trim()]
+        `INSERT INTO messages (conversation_id, sender_id, body, attachment_url, attachment_name)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, body, created_at, attachment_url, attachment_name`,
+        [id, customerId, hasBody ? body!.trim() : (hasAttachment ? '(arquivo)' : ''), hasAttachment ? attachmentUrl : null, hasAttachment ? attachmentName : null]
       );
 
+      const row = result.rows[0];
       await db.query(
         `UPDATE conversations SET updated_at = NOW() WHERE id = $1`,
         [id]
       );
 
       const messagePayload = {
-        id: result.rows[0].id,
+        id: row.id,
         sender: 'client',
-        content: result.rows[0].body,
-        timestamp: new Date(result.rows[0].created_at).toISOString(),
+        content: row.body,
+        timestamp: new Date(row.created_at).toISOString(),
+        attachmentUrl: row.attachment_url || undefined,
+        attachmentName: row.attachment_name || undefined,
       };
 
       // Broadcast to consultant for real-time update

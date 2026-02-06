@@ -83,7 +83,7 @@ const ClientsList = () => {
     queryFn: () => consultantApi.getClients({ search: debouncedSearch || undefined }),
     staleTime: 1 * 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
-    keepPreviousData: true, // Show previous data while fetching
+    placeholderData: (prev) => prev, // Show previous data while fetching
   });
 
   const clients = data?.clients || [];
@@ -304,16 +304,16 @@ const ClientsList = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => handleViewDetails(client, e)}>
+                      <DropdownMenuItem onClick={(e) => handleViewDetails(client as Client, e)}>
                         Ver detalhes
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => handleGenerateReport(client, e)}>
+                      <DropdownMenuItem onClick={(e) => handleGenerateReport(client as Client, e)}>
                         <FileText className="h-4 w-4 mr-2" />
                         Gerar relatório
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
-                        onClick={(e) => handleUnlink(client, e)}
+                        onClick={(e) => handleUnlink(client as Client, e)}
                       >
                         <UserMinus className="h-4 w-4 mr-2" />
                         Desvincular

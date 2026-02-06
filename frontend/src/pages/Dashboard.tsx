@@ -50,7 +50,7 @@ const Dashboard = () => {
         cards: cardsData.cards || [],
         totalBalance: accountsData.total || 0,
         totalInvestments: investmentsData.total || 0,
-        totalTransactions: transactionsData.pagination?.total || transactionsData.total || 0,
+        totalTransactions: transactionsData.pagination?.total ?? 0,
       });
     } catch (err: any) {
       console.error("Error fetching open finance data:", err);
@@ -148,7 +148,7 @@ const Dashboard = () => {
         <div className="rounded-xl border-2 border-emerald-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
           <ProfessionalKpiCard
             title="Patrimônio Líquido"
-            value={`R$ ${parseFloat(netWorth).toLocaleString("pt-BR")}`}
+            value={`R$ ${netWorth.toLocaleString("pt-BR")}`}
             change=""
             changeType="neutral"
             icon={PiggyBank}
@@ -159,7 +159,7 @@ const Dashboard = () => {
         <div className="rounded-xl border-2 border-blue-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
           <ProfessionalKpiCard
             title="Caixa Total"
-            value={`R$ ${parseFloat(cashBalance).toLocaleString("pt-BR")}`}
+            value={`R$ ${cashBalance.toLocaleString("pt-BR")}`}
             change=""
             changeType="neutral"
             icon={Wallet}
@@ -170,7 +170,7 @@ const Dashboard = () => {
         <div className="rounded-xl border-2 border-purple-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
           <ProfessionalKpiCard
             title="Investimentos"
-            value={`R$ ${parseFloat(investmentValue).toLocaleString("pt-BR")}`}
+            value={`R$ ${investmentValue.toLocaleString("pt-BR")}`}
             change=""
             changeType="neutral"
             icon={TrendingUp}

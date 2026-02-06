@@ -80,13 +80,26 @@ export const customerApi = {
         sender: 'consultant' | 'client';
         content: string;
         timestamp: string;
+        attachmentUrl?: string;
+        attachmentName?: string;
       }>;
     }>(`/customer/messages/conversations/${id}`),
 
-  sendMessage: (conversationId: string, body: string) =>
+  uploadMessageFile: (file: string, filename: string) =>
+    api.post<{ url: string; filename: string }>('/customer/messages/upload', { file, filename }),
+
+  sendMessage: (
+    conversationId: string,
+    body: string,
+    attachment?: { url: string; filename: string }
+  ) =>
     api.post<{
-      message: { id: string; sender: string; content: string; timestamp: string };
-    }>(`/customer/messages/conversations/${conversationId}/messages`, { body }),
+      message: { id: string; sender: string; content: string; timestamp: string; attachmentUrl?: string; attachmentName?: string };
+    }>(`/customer/messages/conversations/${conversationId}/messages`, {
+      body: body || undefined,
+      attachmentUrl: attachment?.url,
+      attachmentName: attachment?.filename,
+    }),
 
   clearHistory: (conversationId: string) =>
     api.delete<{ message: string }>(`/customer/messages/conversations/${conversationId}/messages`),

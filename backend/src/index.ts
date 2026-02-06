@@ -22,6 +22,7 @@ import { publicRoutes } from './routes/public.js';
 import { subscriptionsRoutes } from './routes/subscriptions.js';
 import { commentsRoutes } from './routes/comments.js';
 import { mercadopagoRoutes } from './routes/mercadopago.js';
+import { messageFileRoutes } from './routes/message-files.js';
 import { setupWebSocket } from './websocket/websocket.js';
 
 dotenv.config();
@@ -136,6 +137,7 @@ await fastify.register(publicRoutes, { prefix: '/api/public' });
 await fastify.register(subscriptionsRoutes, { prefix: '/api/subscriptions' });
 await fastify.register(commentsRoutes, { prefix: '/api/comments' });
 await fastify.register(mercadopagoRoutes, { prefix: '/api/mercadopago' });
+await fastify.register(messageFileRoutes, { prefix: '/api/messages' });
 
 // Start server
 const start = async () => {

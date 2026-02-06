@@ -10,16 +10,16 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useToast } from "@/hooks/use-toast";
 
 const CompoundInterest = () => {
-  const [initialAmount, setInitialAmount] = useState("");
-  const [monthlyContribution, setMonthlyContribution] = useState("");
+  const [initialAmount, setInitialAmount] = useState<number | "">("");
+  const [monthlyContribution, setMonthlyContribution] = useState<number | "">("");
   const [interestRate, setInterestRate] = useState("8");
   const [timePeriod, setTimePeriod] = useState("");
   const [results, setResults] = useState<any>(null);
   const { toast } = useToast();
 
   const calculate = () => {
-    const principal = parseFloat(initialAmount) || 0;
-    const monthly = parseFloat(monthlyContribution) || 0;
+    const principal = initialAmount === "" ? 0 : initialAmount;
+    const monthly = monthlyContribution === "" ? 0 : monthlyContribution;
     const rate = parseFloat(interestRate) / 100 / 12; // Monthly rate
     const months = parseFloat(timePeriod) || 0;
 

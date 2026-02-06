@@ -208,7 +208,7 @@ const FIRECalculator = () => {
                   <div className="p-3 rounded-lg bg-muted">
                     <div className="text-xs text-muted-foreground">Economias Atuais</div>
                     <div className="text-lg font-semibold">
-                      R$ {parseFloat(currentSavings || "0").toLocaleString("pt-BR")}
+                      R$ {(currentSavings === "" ? 0 : currentSavings).toLocaleString("pt-BR")}
                     </div>
                   </div>
                 </div>

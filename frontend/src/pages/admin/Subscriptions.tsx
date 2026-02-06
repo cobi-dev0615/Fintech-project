@@ -196,7 +196,7 @@ const Subscriptions = () => {
           title="Pagamentos Atrasados"
           value={pastDueSubscriptions.toString()}
           change="requerem atenção"
-          changeType="warning"
+          changeType="neutral"
           icon={AlertCircle}
           subtitle=""
         />

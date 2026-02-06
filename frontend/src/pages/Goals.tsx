@@ -134,8 +134,8 @@ const Goals = () => {
       setUpdating(true);
       const result = await goalsApi.update(editingGoal.id, {
         name: editGoalName,
-        target: parseFloat(editGoalTarget),
-        current: parseFloat(editGoalCurrent) || undefined,
+        target: editGoalTarget,
+        current: editGoalCurrent === "" ? undefined : editGoalCurrent,
         deadline: editGoalDeadline || undefined,
         category: editGoalCategory || undefined,
       });

@@ -1870,9 +1870,9 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         return reply.code(404).send({ error: 'Conversation not found' });
       }
 
-      // Get messages (include attachment fields if columns exist)
-      const messagesResult = await db.query(
-        `SELECT 
+      // Get messages (attachment columns may not exist if migration 022 not run)
+      let messagesResult: { rows: any[] };
+      const queryWithAttachments = `SELECT 
            m.id,
            m.sender_id,
            m.body,
@@ -1883,9 +1883,26 @@ export async function consultantRoutes(fastify: FastifyInstance) {
          FROM messages m
          JOIN users u ON m.sender_id = u.id
          WHERE m.conversation_id = $1
-         ORDER BY m.created_at ASC`,
-        [id]
-      );
+         ORDER BY m.created_at ASC`;
+      const queryWithoutAttachments = `SELECT 
+           m.id,
+           m.sender_id,
+           m.body,
+           m.created_at as timestamp,
+           u.role
+         FROM messages m
+         JOIN users u ON m.sender_id = u.id
+         WHERE m.conversation_id = $1
+         ORDER BY m.created_at ASC`;
+      try {
+        messagesResult = await db.query(queryWithAttachments, [id]);
+      } catch (colError: any) {
+        if (colError.code === '42703' || colError.message?.includes('attachment_url') || colError.message?.includes('attachment_name')) {
+          messagesResult = await db.query(queryWithoutAttachments, [id]);
+        } else {
+          throw colError;
+        }
+      }
 
       // Mark messages as read
       await db.query(
@@ -1900,8 +1917,8 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         sender: row.role === 'consultant' ? 'consultant' : 'client',
         content: row.body,
         timestamp: new Date(row.timestamp).toISOString(),
-        attachmentUrl: row.attachment_url || undefined,
-        attachmentName: row.attachment_name || undefined,
+        attachmentUrl: row.attachment_url ?? undefined,
+        attachmentName: row.attachment_name ?? undefined,
       }));
 
       return {
@@ -1941,31 +1958,11 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}-${path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, '_')}`;
       const filePath = path.join(UPLOAD_DIR, safeName);
       fs.writeFileSync(filePath, buf);
-      const url = `/api/consultant/messages/files/${encodeURIComponent(safeName)}`;
+      const url = `/api/messages/files/${encodeURIComponent(safeName)}`;
       return { url, filename: path.basename(filename) };
     } catch (e: any) {
       fastify.log.error(e);
       return reply.code(500).send({ error: 'Upload failed' });
-    }
-  });
-
-  // Serve uploaded message file (consultant)
-  fastify.get('/messages/files/:filename', {
-    preHandler: [requireConsultant],
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const { filename } = request.params as { filename: string };
-      const decoded = decodeURIComponent(filename);
-      if (decoded.includes('..') || path.isAbsolute(decoded)) {
-        return reply.code(400).send({ error: 'Invalid filename' });
-      }
-      const filePath = path.join(UPLOAD_DIR, path.basename(decoded));
-      if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
-        return reply.code(404).send({ error: 'File not found' });
-      }
-      return reply.send(fs.createReadStream(filePath));
-    } catch (e: any) {
-      return reply.code(500).send({ error: 'File error' });
     }
   });
 
