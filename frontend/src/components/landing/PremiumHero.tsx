@@ -53,7 +53,7 @@ const PremiumHero = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 sm:px-4 relative pt-20 pb-16" style={{ zIndex: 10 }}>
+      <div className="container mx-auto px-6 sm:px-4 relative pt-28 sm:pt-36 md:pt-40 lg:pt-20 pb-16" style={{ zIndex: 10 }}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Section - Marketing Content */}
           <div className="space-y-8 relative" style={{ zIndex: 20 }}>

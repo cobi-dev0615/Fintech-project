@@ -469,7 +469,7 @@ const Invitations = () => {
             <div>
               <div className="font-semibold text-foreground mb-1">Validade</div>
               <p>
-                Os convites expiram após 30 dias. Certifique-se de responder antes do prazo.
+                Os convites expiram após 15 dias. Certifique-se de responder antes do prazo.
               </p>
             </div>
           </div>

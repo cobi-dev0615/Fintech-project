@@ -93,6 +93,7 @@ const getNotificationContent = (notification: Notification): string | null => {
 const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -105,15 +106,22 @@ const Notifications = () => {
   const fetchNotifications = async (pageNum: number = 1) => {
     try {
       setLoading(true);
+      setLoadError(null);
       const response = await notificationsApi.getAll(pageNum, itemsPerPage);
       setNotifications(response.notifications);
       setCurrentPage(response.pagination.page);
       setTotalPages(response.pagination.totalPages);
       setTotal(response.pagination.total);
     } catch (error: any) {
+      const status = error?.response?.status ?? error?.status;
+      const isTimeout = status === 504 || status === 408 || /timeout|timed out/i.test(String(error?.message ?? ""));
+      const message = isTimeout
+        ? "O servidor demorou para responder. Tente novamente em instantes."
+        : "Não foi possível carregar as notificações.";
+      setLoadError(message);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar as notificações.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -337,6 +345,21 @@ const Notifications = () => {
         )}
       </div>
 
+      {/* Error state with retry (e.g. 504 Gateway Timeout) */}
+      {loadError && !loading && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+          <p className="text-sm font-medium text-foreground mb-1">Falha ao carregar</p>
+          <p className="text-sm text-muted-foreground mb-4">{loadError}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchNotifications(currentPage)}
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      )}
+
       {/* Desktop: Table */}
       <div className="hidden md:block bg-card/50 backdrop-blur-xl rounded-xl border border-border overflow-hidden">
         <Table>
@@ -350,7 +373,7 @@ const Notifications = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading && notifications.length === 0 ? (
+            {loading && notifications.length === 0 && !loadError ? (
               <TableRow>
                 <TableCell colSpan={5} className="p-8 text-center text-muted-foreground">
                   Carregando notificações...
@@ -437,7 +460,7 @@ const Notifications = () => {
 
       {/* Mobile: Card list - no horizontal scroll */}
       <div className="md:hidden space-y-3 min-w-0">
-        {loading && notifications.length === 0 ? (
+        {loading && notifications.length === 0 && !loadError ? (
           <div className="rounded-xl border border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
             Carregando notificações...
           </div>
