@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Send, Search, UserPlus, Calendar, Plus, MoreVertical, Trash2, History, Paperclip, X } from "lucide-react";
+import { MessageSquare, Send, Search, UserPlus, Calendar, Plus, MoreVertical, Trash2, History, Paperclip, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -532,10 +532,15 @@ const Messages = () => {
                           >
                             {message.content ? <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p> : null}
                             {message.attachmentUrl && message.attachmentName && (
-                              <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline flex items-center gap-1.5 mt-1.5 opacity-90 hover:opacity-100">
-                                <Paperclip className="h-3.5 w-3.5 flex-shrink-0" />
-                                {message.attachmentName}
-                              </a>
+                              <div className="flex items-center gap-2 mt-1.5 p-2 rounded-lg bg-black/10 dark:bg-white/10">
+                                <Paperclip className="h-3.5 w-3.5 flex-shrink-0 opacity-90" />
+                                <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline truncate flex-1 min-w-0">
+                                  {message.attachmentName}
+                                </a>
+                                <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} download={message.attachmentName} rel="noopener noreferrer" className="flex-shrink-0 p-1.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10" title="Baixar arquivo" aria-label="Baixar arquivo">
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </div>
                             )}
                             <p
                               className={cn(
