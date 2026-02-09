@@ -45,7 +45,7 @@ Edite `.env` com suas configurações:
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/zurt_db
 PORT=3000
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:8080
 JWT_SECRET=your-secret-key-change-in-production
 ```
 

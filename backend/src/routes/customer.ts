@@ -798,7 +798,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
     try {
       const customerId = getCustomerId(request);
       // Use first origin if FRONTEND_URL has multiple (e.g. "https://zurt.com.br,https://www.zurt.com.br")
-      const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:8080';
       const frontendUrl = frontendUrlRaw.split(',')[0].trim().replace(/\/$/, '') || 'https://www.zurt.com.br';
       let token: string;
 
