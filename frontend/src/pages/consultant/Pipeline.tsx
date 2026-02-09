@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Phone, Mail, Edit, Trash2, X } from "lucide-react";
+import { Plus, Phone, Mail, Edit, Trash2, ChevronLeft, ChevronRight, UserPlus, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ChartCard from "@/components/dashboard/ChartCard";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +39,7 @@ import {
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface Prospect {
   id: string;
@@ -50,16 +50,42 @@ interface Prospect {
   notes?: string;
 }
 
+const stageOrder = ['lead', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
+const stageLabels: Record<string, string> = {
+  'lead': 'Contato Inicial',
+  'contacted': 'Contatado',
+  'meeting': 'Reunião',
+  'proposal': 'Proposta',
+  'won': 'Fechamento',
+  'lost': 'Perdido',
+};
+
+const stageStyles: Record<string, { border: string; icon: string }> = {
+  lead: { border: 'border-blue-500/70', icon: 'text-blue-500' },
+  contacted: { border: 'border-violet-500/70', icon: 'text-violet-500' },
+  meeting: { border: 'border-emerald-500/70', icon: 'text-emerald-500' },
+  proposal: { border: 'border-amber-500/70', icon: 'text-amber-500' },
+  won: { border: 'border-green-500/70', icon: 'text-green-500' },
+  lost: { border: 'border-muted-foreground/60', icon: 'text-muted-foreground' },
+};
+
+/** Brazilian phone: 10 digits (landline) or 11 digits (mobile 9xxxxxxxx). Optional leading 55. */
+function validatePhone(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 0) return true;
+  const normalized = digits.startsWith("55") && digits.length > 2 ? digits.slice(2) : digits;
+  return (normalized.length === 10 || normalized.length === 11) && /^\d+$/.test(normalized);
+}
+
+/** Format input to digits only, max 13 (55 + DDD + 9 digits). Optionally format as (XX) XXXXX-XXXX. */
+function formatPhoneInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 13);
+  if (digits.length <= 2) return digits ? `(${digits}` : "";
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 const Pipeline = () => {
-  const stageOrder = ['lead', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
-  const stageLabels: Record<string, string> = {
-    'lead': 'Contato Inicial',
-    'contacted': 'Contatado',
-    'meeting': 'Reunião',
-    'proposal': 'Proposta',
-    'won': 'Fechamento',
-    'lost': 'Perdido',
-  };
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -72,6 +98,7 @@ const Pipeline = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [createSelectOpen, setCreateSelectOpen] = useState(false);
   const [editSelectOpen, setEditSelectOpen] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -101,6 +128,7 @@ const Pipeline = () => {
       notes: '',
     });
     setSelectedProspect(null);
+    setPhoneError(null);
   };
 
   const handleOpenCreateDialog = () => {
@@ -164,12 +192,24 @@ const Pipeline = () => {
       });
       return;
     }
+    const phoneTrimmed = formData.phone.trim();
+    if (phoneTrimmed && !validatePhone(phoneTrimmed)) {
+      setPhoneError("Use 10 ou 11 dígitos. Ex: (11) 99999-9999 ou (11) 3333-4444");
+      toast({
+        title: "Telefone inválido",
+        description: "Use o formato (DDD) número, ex: (11) 99999-9999",
+        variant: "destructive",
+      });
+      return;
+    }
+    setPhoneError(null);
 
     try {
+      const phoneDigits = phoneTrimmed ? phoneTrimmed.replace(/\D/g, "") : "";
       await consultantApi.createProspect({
         name: formData.name.trim() || undefined,
         email: formData.email.trim(),
-        phone: formData.phone.trim() || undefined,
+        phone: phoneDigits || undefined,
         stage: formData.stage,
         notes: formData.notes.trim() || undefined,
       });
@@ -202,12 +242,24 @@ const Pipeline = () => {
       });
       return;
     }
+    const phoneTrimmed = formData.phone.trim();
+    if (phoneTrimmed && !validatePhone(phoneTrimmed)) {
+      setPhoneError("Use 10 ou 11 dígitos. Ex: (11) 99999-9999 ou (11) 3333-4444");
+      toast({
+        title: "Telefone inválido",
+        description: "Use o formato (DDD) número, ex: (11) 99999-9999",
+        variant: "destructive",
+      });
+      return;
+    }
+    setPhoneError(null);
 
     try {
+      const phoneDigits = phoneTrimmed ? phoneTrimmed.replace(/\D/g, "") : "";
       await consultantApi.updateProspect(selectedProspect.id, {
         name: formData.name.trim() || undefined,
         email: formData.email.trim(),
-        phone: formData.phone.trim() || undefined,
+        phone: phoneDigits || undefined,
         stage: formData.stage,
         notes: formData.notes.trim() || undefined,
       });
@@ -229,26 +281,34 @@ const Pipeline = () => {
     }
   };
 
-  const handleDeleteProspect = async () => {
+  const handleMoveToLost = async () => {
     if (!selectedProspect) return;
 
     setDeletingId(selectedProspect.id);
+    // Optimistic update: move to Perdido
+    queryClient.setQueryData(['consultant', 'pipeline'], (old: any) => ({
+      ...old,
+      prospects: old.prospects.map((p: Prospect) =>
+        p.id === selectedProspect.id ? { ...p, stage: 'lost' } : p
+      ),
+    }));
     try {
-      await consultantApi.deleteProspect(selectedProspect.id);
+      await consultantApi.updateProspectStage(selectedProspect.id, 'lost');
       queryClient.invalidateQueries({ queryKey: ['consultant', 'pipeline'] });
       setIsDeleteDialogOpen(false);
       setSelectedProspect(null);
       setDeletingId(null);
       toast({
         title: "Sucesso",
-        description: "Prospecto removido com sucesso",
+        description: "Prospecto movido para Perdido",
         variant: "success",
       });
     } catch (err: any) {
+      queryClient.invalidateQueries({ queryKey: ['consultant', 'pipeline'] });
       setDeletingId(null);
       toast({
         title: "Erro",
-        description: err?.error || "Erro ao remover prospecto",
+        description: err?.error || "Erro ao mover prospecto",
         variant: "destructive",
       });
     }
@@ -329,9 +389,9 @@ const Pipeline = () => {
       {/* Page Header - compact on mobile; hide main CTA on mobile (use fixed icon instead) */}
       <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between min-w-0">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Pipeline de Prospecção</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Pipeline de Prospecção</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-            Gerencie seus prospectos por estágio
+            Gerencie seus prospectos por estágio e avance oportunidades
           </p>
         </div>
         <Button onClick={handleOpenCreateDialog} size="sm" className="hidden md:inline-flex shrink-0">
@@ -347,66 +407,64 @@ const Pipeline = () => {
           ))}
         </div>
       ) : error ? (
-        <div className="text-center py-6 sm:py-8">
-          <p className="text-sm text-destructive px-2">{(error as any)?.error || "Erro ao carregar pipeline"}</p>
+        <div className="rounded-xl border border-destructive/50 bg-destructive/5 p-6 text-center">
+          <GitBranch className="h-12 w-12 text-destructive/70 mx-auto mb-3" />
+          <p className="text-sm font-medium text-foreground">Erro ao carregar pipeline</p>
+          <p className="text-xs text-muted-foreground mt-1 px-2">{(error as any)?.error || "Tente novamente mais tarde."}</p>
         </div>
       ) : (
-        /* Pipeline Kanban - height-optimized per step on mobile */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 min-w-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4 min-w-0">
           {stageOrder.map((stage) => {
             const stageProspects = getProspectsByStage(stage);
+            const style = stageStyles[stage] || stageStyles.lead;
             return (
               <div
                 key={stage}
-                className="flex flex-col min-h-0 sm:min-h-[320px] md:min-h-[400px] max-h-[72vh] sm:max-h-[75vh] md:max-h-[calc(100vh-200px)] w-full min-w-0"
+                className={cn(
+                  "flex flex-col rounded-xl border-2 bg-card shadow-sm min-w-0 overflow-hidden transition-shadow hover:shadow-md min-h-[280px] sm:min-h-[320px] max-h-[72vh] sm:max-h-[75vh] md:max-h-[calc(100vh-200px)]",
+                  style.border
+                )}
               >
-                <ChartCard
-                  title={stageLabels[stage] || stage}
-                  subtitle={`${stageProspects.length} prospecto${stageProspects.length !== 1 ? "s" : ""}`}
-                  className="flex flex-col h-full min-w-0 overflow-hidden !mb-2 sm:!mb-3"
-                >
-                  <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 sm:space-y-3 min-w-0 min-h-0">
-                    {stageProspects.length === 0 ? (
-                      <div className="text-center py-4 sm:py-8 text-xs sm:text-sm text-muted-foreground px-2">
-                        Nenhum prospecto neste estágio
-                      </div>
-                    ) : (
+                <div className="flex items-center justify-between gap-2 p-3 sm:p-4 border-b border-border shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <GitBranch className={cn("h-4 w-4 shrink-0", style.icon)} />
+                    <h3 className="text-sm font-semibold text-foreground truncate">{stageLabels[stage] || stage}</h3>
+                  </div>
+                  <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+                    {stageProspects.length}
+                  </span>
+                </div>
+                <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 sm:space-y-3 p-3 min-w-0 min-h-0 transactions-scrollbar">
+                  {stageProspects.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6 sm:py-8 text-center px-3 rounded-lg border border-dashed border-border bg-muted/20 min-h-[120px]">
+                      <UserPlus className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                      <p className="text-xs sm:text-sm font-medium text-foreground">Nenhum prospecto</p>
+                      <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Adicione ou mova um prospecto para este estágio</p>
+                    </div>
+                  ) : (
                       stageProspects.map((prospect) => (
                         <div
                           key={prospect.id}
-                          className="p-2 sm:p-3 rounded-lg border border-border bg-card hover:shadow-md transition-shadow w-full min-w-0 max-w-full box-border"
+                          className="p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 transition-colors w-full min-w-0 max-w-full box-border"
                         >
-                          <div className="flex items-start justify-between gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2 min-w-0">
                             <div className="flex-1 min-w-0 overflow-hidden">
-                              <h4 className="text-xs sm:text-sm font-semibold text-foreground truncate">
+                              <h4 className="text-sm font-semibold text-foreground truncate">
                                 {prospect.name || 'Sem nome'}
                               </h4>
                               {prospect.notes && (
-                                <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1 sm:line-clamp-2 break-words overflow-hidden mt-0.5">
+                                <p className="text-xs text-muted-foreground line-clamp-2 break-words overflow-hidden mt-0.5">
                                   {prospect.notes}
                                 </p>
                               )}
                             </div>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 flex-shrink-0">
-                                  <span className="sr-only">Menu</span>
-                                  <span className="text-muted-foreground text-base leading-none">⋯</span>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Abrir menu">
+                                  <span className="text-muted-foreground text-lg leading-none">⋯</span>
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {prospect.phone && (
-                                  <DropdownMenuItem onClick={() => handlePhoneCall(prospect.phone)}>
-                                    <Phone className="h-4 w-4 mr-2" />
-                                    Ligar
-                                  </DropdownMenuItem>
-                                )}
-                                {prospect.email && (
-                                  <DropdownMenuItem onClick={() => handleSendEmail(prospect.email)}>
-                                    <Mail className="h-4 w-4 mr-2" />
-                                    Enviar Email
-                                  </DropdownMenuItem>
-                                )}
                                 <DropdownMenuItem onClick={() => handleOpenEditDialog(prospect)}>
                                   <Edit className="h-4 w-4 mr-2" />
                                   Editar
@@ -416,46 +474,53 @@ const Pipeline = () => {
                                   onClick={() => handleOpenDeleteDialog(prospect)}
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
-                                  Remover
+                                  Mover para Perdido
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                          
-                          <div className="space-y-1 text-[11px] sm:text-xs text-muted-foreground min-w-0">
+                          <div className="space-y-1.5 text-xs min-w-0">
                             {prospect.email && (
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <Mail className="h-3 w-3 shrink-0" />
-                                <span className="truncate min-w-0 overflow-hidden">{prospect.email}</span>
-                              </div>
+                              <a
+                                href={`mailto:${prospect.email}`}
+                                onClick={(e) => { e.preventDefault(); handleSendEmail(prospect.email); }}
+                                className="flex items-center gap-2 min-w-0 text-muted-foreground hover:text-primary truncate"
+                              >
+                                <Mail className="h-3.5 w-3 shrink-0" />
+                                <span className="truncate">{prospect.email}</span>
+                              </a>
                             )}
                             {prospect.phone && (
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <Phone className="h-3 w-3 shrink-0" />
-                                <span className="truncate min-w-0 overflow-hidden">{prospect.phone}</span>
-                              </div>
+                              <a
+                                href={`tel:${prospect.phone}`}
+                                onClick={(e) => { e.preventDefault(); handlePhoneCall(prospect.phone); }}
+                                className="flex items-center gap-2 min-w-0 text-muted-foreground hover:text-primary truncate"
+                              >
+                                <Phone className="h-3.5 w-3 shrink-0" />
+                                <span className="truncate">{prospect.phone}</span>
+                              </a>
                             )}
                           </div>
-
-                          <div className="flex items-center gap-1 sm:gap-1.5 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-border min-w-0">
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
                             {stageOrder.indexOf(stage) > 0 && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 text-[11px] sm:text-xs h-6 sm:h-7 min-w-0 px-1 sm:px-1.5"
+                                className="flex-1 text-xs h-8 min-w-0 gap-1"
                                 onClick={() => moveProspect(prospect.id, "left")}
                               >
-                                <span className="truncate">← Anterior</span>
+                                <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
+                                Anterior
                               </Button>
                             )}
                             {stageOrder.indexOf(stage) < stageOrder.length - 1 && stage !== 'won' && stage !== 'lost' && (
                               <Button
-                                variant="outline"
                                 size="sm"
-                                className="flex-1 text-[11px] sm:text-xs h-6 sm:h-7 min-w-0 px-1 sm:px-1.5"
+                                className="flex-1 text-xs h-8 min-w-0 gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
                                 onClick={() => moveProspect(prospect.id, "right")}
                               >
-                                <span className="truncate">Próximo →</span>
+                                Próximo
+                                <ChevronRight className="h-3.5 w-3.5 shrink-0" />
                               </Button>
                             )}
                           </div>
@@ -463,8 +528,7 @@ const Pipeline = () => {
                       ))
                     )}
                   </div>
-                </ChartCard>
-              </div>
+                </div>
             );
           })}
         </div>
@@ -506,9 +570,13 @@ const Pipeline = () => {
                 id="create-phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(00) 00000-0000"
+                onChange={(e) => { setFormData({ ...formData, phone: e.target.value }); if (phoneError) setPhoneError(null); }}
+                placeholder="(11) 99999-9999"
+                className={cn(phoneError && "border-destructive focus-visible:ring-destructive")}
+                aria-invalid={!!phoneError}
+                aria-describedby={phoneError ? "create-phone-error" : undefined}
               />
+              {phoneError && <p id="create-phone-error" className="text-xs text-destructive">{phoneError}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="create-stage">Estágio</Label>
@@ -562,7 +630,7 @@ const Pipeline = () => {
           <DialogHeader className="shrink-0">
             <DialogTitle className="text-lg sm:text-xl">Editar Prospecto</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
-              Atualize as informações do prospecto
+              Atualize as informações do prospecto.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 sm:space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
@@ -642,25 +710,25 @@ const Pipeline = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Move to Perdido Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
+            <AlertDialogTitle>Mover para Perdido</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover o prospecto{" "}
-              <strong>{selectedProspect?.name || selectedProspect?.email}</strong>?
-              Esta ação não pode ser desfeita.
+              Mover o prospecto{" "}
+              <strong>{selectedProspect?.name || selectedProspect?.email}</strong>{" "}
+              para o estágio Perdido? Ele continuará visível na coluna Perdido e você pode editá-lo depois para alterar o estágio.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={!!deletingId}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteProspect}
+              onClick={handleMoveToLost}
               disabled={!!deletingId}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deletingId ? "Removendo..." : "Remover"}
+              {deletingId ? "Movendo..." : "Mover para Perdido"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
