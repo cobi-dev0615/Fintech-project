@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { FileText, Download, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { FileText, Download, Trash2, ChevronLeft, ChevronRight, FilePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -17,13 +18,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { reportsApi, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Report {
   id: string;
   type: string;
+  typeKey: string;
   date: string;
   status: "generated" | "pending";
   downloadUrl?: string | null;
@@ -34,19 +39,36 @@ function reportDownloadUrl(reportId: string): string {
   return `${base}/reports/${reportId}/file`;
 }
 
-const REPORTS_PER_PAGE = 5;
+const PAGE_SIZE_OPTIONS = [5, 10, 20] as const;
+
+const FILTER_ALL = "all";
 
 const ReportHistory = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(5);
+  const [typeFilter, setTypeFilter] = useState<string>(FILTER_ALL);
   const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  const totalPages = Math.max(1, Math.ceil(reports.length / REPORTS_PER_PAGE));
-  const startIndex = (currentPage - 1) * REPORTS_PER_PAGE;
-  const paginatedReports = reports.slice(startIndex, startIndex + REPORTS_PER_PAGE);
+  const filteredReports = useMemo(() => {
+    let list = reports;
+    if (typeFilter !== FILTER_ALL) {
+      list = reports.filter((r) => r.typeKey === typeFilter);
+    }
+    return [...list].sort((a, b) => (b.date.localeCompare ? b.date.localeCompare(a.date) : 0));
+  }, [reports, typeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedReports = filteredReports.slice(startIndex, startIndex + pageSize);
+
+  // Reset to page 1 when filter or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [typeFilter, pageSize]);
 
   const reportTypeLabels: Record<string, string> = {
     consolidated: "Relatório Consolidado",
@@ -63,6 +85,7 @@ const ReportHistory = () => {
         data.reports.map((r) => ({
           id: r.id,
           type: reportTypeLabels[r.type] || r.type,
+          typeKey: r.type,
           date: r.generatedAt,
           status: r.status === "generated" ? "generated" : "pending",
           downloadUrl: r.downloadUrl || reportDownloadUrl(r.id),
@@ -98,6 +121,7 @@ const ReportHistory = () => {
       a.download = name;
       a.click();
       URL.revokeObjectURL(a.href);
+      toast({ title: "Download iniciado", description: "O PDF está sendo baixado." });
     } catch (e) {
       toast({
         title: "Erro",
@@ -128,49 +152,97 @@ const ReportHistory = () => {
 
   return (
     <div className="space-y-6 min-w-0 overflow-x-hidden">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Histórico de Relatórios</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Histórico de Relatórios</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Relatórios gerados e disponíveis para download
           </p>
         </div>
+        <Link to="/app/reports">
+          <Button variant="outline" size="sm" className="shrink-0">
+            <FilePlus className="h-4 w-4 mr-2" />
+            Gerar novo relatório
+          </Button>
+        </Link>
       </div>
 
-      <ChartCard title="Relatórios Gerados" className="min-w-0 overflow-hidden">
+      <ChartCard
+        title="Relatórios Gerados"
+        subtitle={!loading && filteredReports.length > 0 ? `${filteredReports.length} relatório(s)` : undefined}
+        className="min-w-0 overflow-hidden"
+        actions={
+          !loading && reports.length > 0 ? (
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Filtrar por tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={FILTER_ALL}>Todos os tipos</SelectItem>
+                {Object.entries(reportTypeLabels).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : undefined
+        }
+      >
         {loading ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">Carregando...</p>
-          </div>
+          <>
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+              ))}
+            </div>
+          </>
         ) : reports.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">
-              Nenhum relatório gerado ainda
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <div className="rounded-full bg-muted/50 p-4 mb-4">
+              <FileText className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground mb-1">Nenhum relatório gerado ainda</p>
+            <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+              Gere seu primeiro relatório na página Relatórios e ele aparecerá aqui.
             </p>
+            <Link to="/app/reports">
+              <Button className="gap-2">
+                <FilePlus className="h-4 w-4" />
+                Ir para Relatórios
+              </Button>
+            </Link>
+          </div>
+        ) : filteredReports.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">Nenhum relatório encontrado para o filtro selecionado.</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => setTypeFilter(FILTER_ALL)}>
+              Limpar filtro
+            </Button>
           </div>
         ) : (
           <>
             {/* Desktop: table */}
             <div className="hidden md:block overflow-hidden rounded-lg border border-border">
-              <table className="w-full">
-                <thead className="bg-muted/50">
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <table className="w-full min-w-[400px]">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Tipo
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Data
                     </th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Ações
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-card">
+                <tbody>
                   {paginatedReports.map((report) => (
                     <tr
                       key={report.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
+                      className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors"
                     >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
@@ -184,13 +256,14 @@ const ReportHistory = () => {
                         Gerado em {report.date}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <TooltipProvider>
+                        <TooltipProvider>
+                          <div className="flex items-center justify-end gap-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="outline"
                                   size="icon"
+                                  className="h-8 w-8"
                                   onClick={() => handleDownload(report.id)}
                                 >
                                   <Download className="h-4 w-4" />
@@ -200,15 +273,13 @@ const ReportHistory = () => {
                                 <p>Baixar PDF</p>
                               </TooltipContent>
                             </Tooltip>
-                          </TooltipProvider>
-                          <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                   onClick={() => setDeleteReportId(report.id)}
-                                  className="text-muted-foreground hover:text-destructive"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -217,8 +288,8 @@ const ReportHistory = () => {
                                 <p>Remover relatório</p>
                               </TooltipContent>
                             </Tooltip>
-                          </TooltipProvider>
-                        </div>
+                          </div>
+                        </TooltipProvider>
                       </td>
                     </tr>
                   ))}
@@ -226,12 +297,12 @@ const ReportHistory = () => {
               </table>
             </div>
 
-            {/* Mobile: card list - no horizontal scroll */}
+            {/* Mobile: card list */}
             <div className="md:hidden space-y-3 min-w-0">
               {paginatedReports.map((report) => (
                 <div
                   key={report.id}
-                  className="rounded-xl border border-border bg-card p-4 space-y-3"
+                  className="rounded-xl border-2 border-primary/30 bg-card p-4 space-y-3 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-2 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
@@ -267,13 +338,35 @@ const ReportHistory = () => {
               ))}
             </div>
 
-            {totalPages > 1 && (
+            {filteredReports.length > 0 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
-                <p className="text-sm text-muted-foreground">
-                  Mostrando {startIndex + 1}–
-                  {Math.min(startIndex + REPORTS_PER_PAGE, reports.length)} de{" "}
-                  {reports.length}
-                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    Mostrando {startIndex + 1}–
+                    {Math.min(startIndex + pageSize, filteredReports.length)} de{" "}
+                    {filteredReports.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="reports-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
+                      Por página
+                    </label>
+                    <Select
+                      value={String(pageSize)}
+                      onValueChange={(v) => setPageSize(Number(v))}
+                    >
+                      <SelectTrigger id="reports-per-page" className="w-[4.5rem] h-9" aria-label="Relatórios por página">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"

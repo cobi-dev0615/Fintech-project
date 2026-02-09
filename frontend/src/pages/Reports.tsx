@@ -1,15 +1,25 @@
-import { useState } from "react";
-import { FileText, Calendar, BarChart3, TrendingUp } from "lucide-react";
+import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
+import { FileText, Calendar, BarChart3, TrendingUp, History, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { reportsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+const CARD_ACCENTS = [
+  { border: "border-blue-500/70", shadow: "hover:shadow-blue-500/5", icon: "text-blue-600 dark:text-blue-400" },
+  { border: "border-emerald-500/70", shadow: "hover:shadow-emerald-500/5", icon: "text-emerald-600 dark:text-emerald-400" },
+  { border: "border-violet-500/70", shadow: "hover:shadow-violet-500/5", icon: "text-violet-600 dark:text-violet-400" },
+  { border: "border-amber-500/70", shadow: "hover:shadow-amber-500/5", icon: "text-amber-600 dark:text-amber-400" },
+] as const;
 
 const Reports = () => {
   const [reportType, setReportType] = useState<string>("");
   const [dateRange, setDateRange] = useState<string>("");
   const [generating, setGenerating] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const reportTypes = [
@@ -57,26 +67,83 @@ const Reports = () => {
     }
   };
 
+  const scrollToForm = () => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Relatórios</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Gere e baixe relatórios financeiros detalhados
           </p>
         </div>
+        <Link to="/app/reports/history">
+          <Button variant="outline" size="sm" className="shrink-0">
+            <History className="h-4 w-4 mr-2" />
+            Ver histórico
+          </Button>
+        </Link>
       </div>
 
-      {/* Report Type Selection */}
-      <ChartCard title="Gerar Novo Relatório">
-        <div className="space-y-4">
+      {/* Report Types Grid - click to select and scroll to form */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-5">
+        {reportTypes.map((type, index) => {
+          const accent = CARD_ACCENTS[index];
+          const isSelected = reportType === type.value;
+          const Icon = type.icon;
+          return (
+            <button
+              key={type.value}
+              type="button"
+              onClick={() => {
+                setReportType(type.value);
+                scrollToForm();
+              }}
+              className={cn(
+                "rounded-xl border-2 bg-card p-4 min-w-0 shadow-sm transition-all text-left",
+                "hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                accent.border,
+                accent.shadow,
+                isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div className={cn("p-2.5 rounded-lg shrink-0", isSelected ? "bg-primary/15" : "bg-muted/60")}>
+                  <Icon className={cn("h-5 w-5", accent.icon)} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {type.label}
+                    </h3>
+                    {isSelected && (
+                      <span className="shrink-0 rounded-full bg-primary/20 p-0.5" aria-hidden>
+                        <Check className="h-3.5 w-3.5 text-primary" />
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {type.description}
+                  </p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Generate form */}
+      <ChartCard title="Gerar Novo Relatório" subtitle="Escolha o tipo acima e o período, depois gere o PDF">
+        <div ref={formRef} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Tipo de Relatório</label>
               <Select value={reportType} onValueChange={setReportType}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -91,8 +158,8 @@ const Reports = () => {
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Período</label>
               <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o período" />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione o período (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="current-month">Mês Atual</SelectItem>
@@ -105,41 +172,16 @@ const Reports = () => {
               </Select>
             </div>
           </div>
-          <Button 
-            onClick={handleGenerate} 
+          <Button
+            onClick={handleGenerate}
             disabled={!reportType || generating}
-            className="w-full md:w-auto"
+            className="w-full sm:w-auto min-w-[200px]"
           >
-            <FileText className="h-4 w-4 mr-2" />
-            {generating ? "Gerando..." : "Gerar Relatório PDF"}
+            <FileText className={cn("h-4 w-4 mr-2", generating && "animate-pulse")} />
+            {generating ? "Gerando PDF…" : "Gerar Relatório PDF"}
           </Button>
         </div>
       </ChartCard>
-
-      {/* Report Types Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {reportTypes.map((type) => (
-          <div
-            key={type.value}
-            className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
-            onClick={() => setReportType(type.value)}
-          >
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <type.icon className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold text-foreground mb-1">
-                  {type.label}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {type.description}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 };
