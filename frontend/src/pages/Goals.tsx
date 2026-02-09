@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Target, Plus, Pencil, Trash2 } from "lucide-react";
+import { Target, Plus, Pencil, Trash2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { goalsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 type Goal = {
   id: string;
@@ -31,6 +34,14 @@ type Goal = {
   deadline: string | null;
   category: string;
 };
+
+const CARD_ACCENTS = [
+  { border: "border-blue-500/70", shadow: "hover:shadow-blue-500/5" },
+  { border: "border-emerald-500/70", shadow: "hover:shadow-emerald-500/5" },
+  { border: "border-violet-500/70", shadow: "hover:shadow-violet-500/5" },
+] as const;
+
+const CATEGORY_OPTIONS = ["Geral", "Emergência", "Carro", "Viagem", "Casa", "Educação", "Outros"];
 
 const Goals = () => {
   const { toast } = useToast();
@@ -169,7 +180,7 @@ const Goals = () => {
     <div className="space-y-6 min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Metas</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Metas</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Defina e acompanhe suas metas financeiras
           </p>
@@ -181,8 +192,10 @@ const Goals = () => {
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
-          Carregando metas...
+        <div className="grid gap-3 sm:gap-4 lg:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-40 rounded-xl" />
+          ))}
         </div>
       ) : error ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive">
@@ -190,29 +203,50 @@ const Goals = () => {
         </div>
       ) : goals.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 flex flex-col items-center justify-center text-center">
-          <div className="rounded-full bg-muted/50 p-4 mb-3">
-            <Target className="h-10 w-10 text-muted-foreground" />
+          <div className="rounded-full bg-primary/10 p-4 mb-4">
+            <Target className="h-10 w-10 text-primary" />
           </div>
           <p className="font-medium text-foreground">Nenhuma meta</p>
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">
             Crie uma meta para acompanhar seus objetivos financeiros.
           </p>
-          <Button onClick={openCreate} className="mt-4">
+          <Button onClick={openCreate} className="mt-6">
             <Plus className="h-4 w-4 mr-2" />
             Criar primeira meta
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {goals.map((g) => {
+        <div className="grid gap-3 sm:gap-4 lg:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {goals.map((g, index) => {
             const progress = g.target > 0 ? Math.min(100, (g.current / g.target) * 100) : 0;
+            const accent = CARD_ACCENTS[index % CARD_ACCENTS.length];
+            const progressColor =
+              progress >= 100
+                ? "bg-emerald-500"
+                : progress >= 66
+                  ? "bg-emerald-500"
+                  : progress >= 33
+                    ? "bg-amber-500"
+                    : "bg-primary";
             return (
               <div
                 key={g.id}
-                className="rounded-xl border border-border bg-card p-4 space-y-3"
+                className={cn(
+                  "rounded-xl border-2 bg-card p-4 min-w-0 shadow-sm transition-shadow",
+                  accent.border,
+                  accent.shadow,
+                  "hover:shadow-md"
+                )}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-medium text-foreground truncate">{g.name}</h3>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-foreground truncate">{g.name}</h3>
+                    {g.category && (
+                      <span className="inline-block mt-1 text-xs text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+                        {g.category}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Button
                       variant="ghost"
@@ -234,19 +268,34 @@ const Goals = () => {
                     </Button>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    {formatCurrency(g.current)} / {formatCurrency(g.target)}
-                  </p>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">{formatCurrency(g.current)}</span>
+                      {" / "}
+                      {formatCurrency(g.target)}
+                    </p>
+                    <span
+                      className={cn(
+                        "text-xs font-semibold tabular-nums shrink-0",
+                        progress >= 100 && "text-emerald-600 dark:text-emerald-400",
+                        progress >= 33 && progress < 100 && "text-amber-600 dark:text-amber-400",
+                        progress < 33 && "text-muted-foreground"
+                      )}
+                    >
+                      {progress.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-muted overflow-hidden">
                     <div
-                      className="h-full bg-primary rounded-full transition-all"
+                      className={cn("h-full rounded-full transition-all duration-500", progressColor)}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
                 </div>
                 {g.deadline && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
+                    <Calendar className="h-3.5 w-3.5 shrink-0" />
                     Prazo: {new Date(g.deadline).toLocaleDateString("pt-BR")}
                   </p>
                 )}
@@ -283,8 +332,9 @@ const Goals = () => {
                   const v = e.target.value === "" ? "" : Number(e.target.value);
                   if (isEdit) setEditTarget(v); else setNewTarget(v);
                 }}
-                placeholder="0,00"
+                placeholder="0"
               />
+              <p className="text-xs text-muted-foreground">Valor que você quer atingir</p>
             </div>
             {isEdit && (
               <div className="grid gap-2">
@@ -298,8 +348,9 @@ const Goals = () => {
                   onChange={(e) =>
                     setEditCurrent(e.target.value === "" ? "" : Number(e.target.value))
                   }
-                  placeholder="0,00"
+                  placeholder="0"
                 />
+                <p className="text-xs text-muted-foreground">Quanto você já tem guardado</p>
               </div>
             )}
             <div className="grid gap-2">
@@ -312,13 +363,29 @@ const Goals = () => {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="category">Categoria (opcional)</Label>
-              <Input
-                id="category"
-                value={isEdit ? editCategory : newCategory}
-                onChange={(e) => (isEdit ? setEditCategory(e.target.value) : setNewCategory(e.target.value))}
-                placeholder="Ex: Emergência"
-              />
+              <Label>Categoria (opcional)</Label>
+              <Select
+                value={(isEdit ? editCategory : newCategory) || "none"}
+                onValueChange={(v) => (isEdit ? setEditCategory(v === "none" ? "" : v) : setNewCategory(v === "none" ? "" : v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione ou deixe em branco" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {opt}
+                    </SelectItem>
+                  ))}
+                  {(isEdit ? editCategory : newCategory) &&
+                    !CATEGORY_OPTIONS.includes(isEdit ? editCategory : newCategory) && (
+                      <SelectItem value={isEdit ? editCategory : newCategory}>
+                        {(isEdit ? editCategory : newCategory)}
+                      </SelectItem>
+                    )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
