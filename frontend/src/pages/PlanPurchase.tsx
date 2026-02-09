@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Check, CreditCard, Loader2, CheckCircle2, Calendar } from "lucide-react";
+import { Check, CreditCard, Loader2, CheckCircle2, Calendar, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { publicApi, subscriptionsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -155,49 +156,49 @@ const PlanPurchase = () => {
     switch (code.toLowerCase()) {
       case 'free':
         return {
-          border: 'border-gray-500/30',
-          hover: 'hover:border-gray-500/50',
-          featured: 'border-gray-500 shadow-lg shadow-gray-500/10',
+          border: 'border-2 border-gray-500/50',
+          hover: 'hover:border-gray-500/70 hover:shadow-md hover:shadow-gray-500/10',
+          featured: 'border-2 border-gray-500 shadow-md shadow-gray-500/10',
           badge: 'bg-gray-500 text-gray-50',
           ring: 'ring-gray-500',
         };
       case 'basic':
         return {
-          border: 'border-blue-500/30',
-          hover: 'hover:border-blue-500/50',
-          featured: 'border-blue-500 shadow-lg shadow-blue-500/10',
+          border: 'border-2 border-blue-500/70',
+          hover: 'hover:border-blue-500/80 hover:shadow-md hover:shadow-blue-500/10',
+          featured: 'border-2 border-blue-500 shadow-md shadow-blue-500/10',
           badge: 'bg-blue-500 text-blue-50',
           ring: 'ring-blue-500',
         };
       case 'pro':
         return {
-          border: 'border-green-500/30',
-          hover: 'hover:border-green-500/50',
-          featured: 'border-green-500 shadow-lg shadow-green-500/10',
-          badge: 'bg-green-500 text-green-50',
-          ring: 'ring-green-500',
+          border: 'border-2 border-emerald-500/70',
+          hover: 'hover:border-emerald-500/80 hover:shadow-md hover:shadow-emerald-500/10',
+          featured: 'border-2 border-emerald-500 shadow-md shadow-emerald-500/10',
+          badge: 'bg-emerald-500 text-emerald-50',
+          ring: 'ring-emerald-500',
         };
       case 'consultant':
         return {
-          border: 'border-purple-500/30',
-          hover: 'hover:border-purple-500/50',
-          featured: 'border-purple-500 shadow-lg shadow-purple-500/10',
-          badge: 'bg-purple-500 text-purple-50',
-          ring: 'ring-purple-500',
+          border: 'border-2 border-violet-500/70',
+          hover: 'hover:border-violet-500/80 hover:shadow-md hover:shadow-violet-500/10',
+          featured: 'border-2 border-violet-500/70 shadow-md shadow-violet-500/10',
+          badge: 'bg-violet-500 text-violet-50',
+          ring: 'ring-violet-500',
         };
       case 'enterprise':
         return {
-          border: 'border-yellow-500/30',
-          hover: 'hover:border-yellow-500/50',
-          featured: 'border-yellow-500 shadow-lg shadow-yellow-500/10',
-          badge: 'bg-yellow-500 text-yellow-50',
-          ring: 'ring-yellow-500',
+          border: 'border-2 border-amber-500/70',
+          hover: 'hover:border-amber-500/80 hover:shadow-md hover:shadow-amber-500/10',
+          featured: 'border-2 border-amber-500 shadow-md shadow-amber-500/10',
+          badge: 'bg-amber-500 text-amber-50',
+          ring: 'ring-amber-500',
         };
       default:
         return {
-          border: 'border-primary/30',
-          hover: 'hover:border-primary/50',
-          featured: 'border-primary shadow-lg shadow-primary/10',
+          border: 'border-2 border-primary/70',
+          hover: 'hover:border-primary/80 hover:shadow-md hover:shadow-primary/10',
+          featured: 'border-2 border-primary shadow-md shadow-primary/10',
           badge: 'bg-primary text-primary-foreground',
           ring: 'ring-primary',
         };
@@ -220,13 +221,40 @@ const PlanPurchase = () => {
   };
 
   const isFeatured = (code: string) => {
+    if (user?.role === 'consultant') return code.toLowerCase() === 'consultant';
     return code === 'pro';
   };
 
+  const isConsultantPlans = user?.role === 'consultant';
+
   if (initialLoading) {
+    const skeletonCount = isConsultantPlans ? 2 : 3;
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-6 min-w-0">
+        <div>
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-96 max-w-full" />
+        </div>
+        <div className="flex justify-center">
+          <Skeleton className="h-10 w-[200px] rounded-lg" />
+        </div>
+        <div className={cn("grid gap-5", isConsultantPlans ? "grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3")}>
+          {Array.from({ length: skeletonCount }).map((_, i) => (
+            <Card key={i} className="border-2 border-border overflow-hidden">
+              <CardHeader className="space-y-3">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-20" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[1, 2, 3, 4].map((j) => (
+                  <Skeleton key={j} className="h-4 w-full" />
+                ))}
+                <Skeleton className="h-10 w-full mt-4" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -234,20 +262,21 @@ const PlanPurchase = () => {
   return (
     <div className="space-y-6 min-w-0">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Escolha seu Plano</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Escolha seu Plano</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Selecione o plano que melhor se adapta às suas necessidades. Você pode alterar a qualquer momento.
         </p>
       </div>
 
       {/* Billing Period Toggle */}
-      <div className="flex justify-center">
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <span className="text-sm text-muted-foreground">Faturamento:</span>
         <Tabs value={billingPeriod} onValueChange={(value) => setBillingPeriod(value as 'monthly' | 'annual')} className="w-full sm:w-auto">
-          <TabsList className="grid w-full grid-cols-2 sm:inline-grid sm:w-auto sm:min-w-[200px] h-10 p-1 rounded-lg bg-muted">
-            <TabsTrigger value="monthly" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsList className="grid w-full grid-cols-2 sm:inline-grid sm:w-auto sm:min-w-[220px] h-10 p-1 rounded-xl bg-muted/80 border border-border">
+            <TabsTrigger value="monthly" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
               Mensal
             </TabsTrigger>
-            <TabsTrigger value="annual" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger value="annual" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
               Anual
             </TabsTrigger>
           </TabsList>
@@ -262,16 +291,17 @@ const PlanPurchase = () => {
           </div>
         )}
         {!plansLoading && plans.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card p-12 flex flex-col items-center justify-center text-center">
-            <CreditCard className="h-12 w-12 text-muted-foreground mb-3 opacity-70" />
-            <p className="font-medium text-foreground">Nenhum plano disponível</p>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+          <div className="rounded-xl border-2 border-blue-500/70 bg-card p-12 flex flex-col items-center justify-center text-center shadow-sm">
+            <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <p className="text-sm font-medium text-foreground">Nenhum plano disponível</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm">
               Os planos não estão disponíveis no momento. Tente novamente mais tarde.
             </p>
           </div>
         ) : (
         <div className={cn(
-          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5",
+          "grid gap-5",
+          plans.length <= 2 ? "grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
           plansLoading && "opacity-50 pointer-events-none"
         )}>
           {plans.map((plan) => {
