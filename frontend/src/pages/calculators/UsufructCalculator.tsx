@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
-import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const UsufructCalculator = () => {
   const [propertyValue, setPropertyValue] = useState<number | "">("");
@@ -75,37 +75,30 @@ const UsufructCalculator = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Calculadora de Usufruto</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Calcule o valor do usufruto e da nua propriedade em doações e heranças
-          </p>
-        </div>
+    <div className="space-y-6 min-w-0">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Calculadora de Usufruto</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Calcule o valor do usufruto e da nua propriedade em doações e heranças
+        </p>
       </div>
 
-      <Alert>
+      <Alert className="border-primary/30 bg-primary/5">
         <Info className="h-4 w-4" />
-        <AlertDescription>
+        <AlertDescription className="text-sm">
           O usufruto é o direito de usar e gozar de um bem pertencente a outra pessoa. A nua propriedade
           é o direito de propriedade sem o direito de uso. Este cálculo segue a tabela do IBGE para usufruto vitalício.
         </AlertDescription>
       </Alert>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Parâmetros">
+        <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow")}>
+          <h2 className="text-sm font-semibold text-foreground mb-4">Parâmetros</h2>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="value">Valor do Imóvel (R$)</Label>
-              <CurrencyInput
-                id="value"
-                value={propertyValue}
-                onChange={setPropertyValue}
-                placeholder="500.000,00"
-              />
+              <CurrencyInput id="value" value={propertyValue} onChange={setPropertyValue} placeholder="500.000,00" />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="type">Tipo de Usufruto</Label>
               <Select value={usufructType} onValueChange={(v: any) => setUsufructType(v)}>
@@ -118,7 +111,6 @@ const UsufructCalculator = () => {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="age">
                 {usufructType === "lifelong" ? "Idade do Usufrutuário" : "Anos de Duração"}
@@ -130,16 +122,19 @@ const UsufructCalculator = () => {
                 value={usufructAge}
                 onChange={(e) => setUsufructAge(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                {usufructType === "lifelong" ? "Idade na data do cálculo" : "Duração em anos (máx. 30%)"}
+              </p>
             </div>
-
             <Button onClick={calculate} className="w-full" size="lg">
               <Calculator className="h-4 w-4 mr-2" />
               Calcular
             </Button>
           </div>
-        </ChartCard>
+        </div>
 
-        <ChartCard title="Resultados">
+        <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[280px] flex flex-col")}>
+          <h2 className="text-sm font-semibold text-foreground mb-4">Resultados</h2>
           {results ? (
             <div className="space-y-6">
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
@@ -170,12 +165,12 @@ const UsufructCalculator = () => {
               </div>
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <Home className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Preencha os campos e clique em "Calcular" para ver os resultados</p>
+            <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
+              <Home className="h-12 w-12 text-muted-foreground/50 mb-3" />
+              <p className="text-sm text-muted-foreground">Preencha os campos e clique em &quot;Calcular&quot; para ver os resultados.</p>
             </div>
           )}
-        </ChartCard>
+        </div>
       </div>
     </div>
   );

@@ -4,19 +4,18 @@ import {
   Bell, 
   Save, 
   Lock, 
-  ChevronRight,
   History,
   MessageSquare,
   Plus,
   Loader2,
   Trash2,
   Eye,
-  RefreshCw
+  RefreshCw,
+  ShoppingBag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import ChartCard from "@/components/dashboard/ChartCard";
 import { Switch } from "@/components/ui/switch";
 import { userApi, authApi, subscriptionsApi, commentsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +50,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ProfileState {
   name: string;
@@ -306,169 +306,230 @@ const Settings = () => {
     );
   }
 
+  const notificationLabels: Record<string, string> = {
+    emailNotifications: "Notificações por e-mail",
+    transactionAlerts: "Alertas de transações",
+    goalReminders: "Lembretes de metas",
+    weeklySummary: "Resumo semanal",
+    marketingEmails: "E-mails de marketing",
+  };
+
+  const riskProfileOptions = [
+    { value: "", label: "Não informado" },
+    { value: "conservador", label: "Conservador" },
+    { value: "moderado", label: "Moderado" },
+    { value: "arrojado", label: "Arrojado" },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Meu Perfil</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gerencie suas preferências e informações pessoais</p>
-        </div>
+    <div className="space-y-6 min-w-0 max-w-full overflow-x-hidden">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Meu Perfil</h1>
+        <p className="text-sm text-muted-foreground mt-1">Gerencie suas preferências e informações pessoais</p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Vertical Step Bar (Skewer Style) */}
-        <div className="w-full lg:w-64 relative h-fit">
-          {/* Vertical Skewer Line */}
-          <div className="absolute left-6 top-6 bottom-6 w-px bg-border hidden lg:block z-0" />
-          
-          <div className="flex flex-col gap-6 relative z-10">
+      <div className="flex flex-col lg:flex-row gap-8 min-w-0">
+        {/* Tab navigation */}
+        <div className="w-full lg:w-56 shrink-0">
+          <nav className="flex flex-row lg:flex-col gap-2 lg:gap-1 relative overflow-x-auto pb-2 lg:pb-0" aria-label="Seções do perfil">
+            {/* Vertical line: inside nav so length = first to last step only; centered on icons; top/bottom = center of first/last (py-2.5 + half h-9 = 1.1875rem) */}
+            <div className="absolute left-[1.875rem] top-[1.1875rem] bottom-[1.1875rem] w-px bg-border hidden lg:block z-0 pointer-events-none" />
             {steps.map((step, index) => {
               const isActive = activeStep === step.id;
               return (
                 <button
                   key={step.id}
                   onClick={() => setActiveStep(step.id)}
-                  className="flex items-center group relative w-full text-left"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors shrink-0 lg:shrink",
+                    isActive
+                      ? "bg-primary/10 border border-primary/30 text-primary"
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent"
+                  )}
                 >
-                  {/* Step Circle */}
                   <div className={cn(
-                    "flex items-center justify-center h-12 w-12 rounded-full border-2 transition-all duration-200 shrink-0 bg-[#020817] z-20",
-                    isActive 
-                      ? "border-success text-success shadow-[0_0_15px_rgba(34,197,94,0.2)]" 
-                      : "border-border text-muted-foreground group-hover:border-success/50"
+                    "flex items-center justify-center h-9 w-9 rounded-full shrink-0",
+                    isActive ? "bg-primary/20 text-primary" : "bg-muted/60"
                   )}>
-                    <step.icon className="h-5 w-5" />
+                    <step.icon className="h-4 w-4" />
                   </div>
-
-                  {/* Step Info */}
-                  <div className="ml-4 flex flex-col">
-                    <span className={cn(
-                      "font-semibold text-sm transition-colors duration-200 uppercase tracking-tight",
-                      isActive ? "text-success" : "text-muted-foreground group-hover:text-foreground"
-                    )}>
-                      {step.label}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">
-                      Passo {index + 1}
-                    </span>
-                  </div>
+                  <span className="font-medium text-sm">{step.label}</span>
                 </button>
               );
             })}
-          </div>
+          </nav>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1">
+        {/* Content Area: min-w-0 so table horizontal scroll stays inside content, not page */}
+        <div className="flex-1 min-w-0">
           {activeStep === "profile" && (
-            <ChartCard 
-              title="Informações Pessoais"
-              actions={<Button onClick={handleSaveProfile} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? "Salvando..." : "Salvar Perfil"}</Button>}
-            >
+            <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
+              <h2 className="text-sm font-semibold text-foreground mb-4">Informações Pessoais</h2>
               <div className="space-y-4">
-                <div className="space-y-2"><Label htmlFor="name">Nome Completo</Label><Input id="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></div>
-                <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" value={profile.email} disabled className="bg-muted" /></div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome Completo</Label>
+                  <Input id="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} placeholder="Seu nome" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input id="email" value={profile.email} disabled className="bg-muted" />
+                  <p className="text-xs text-muted-foreground">Alterações de e-mail podem ser feitas pelo suporte.</p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone</Label>
-                  <Input 
-                    id="phone" 
-                    value={profile.phone} 
-                    onChange={(e) => setProfile({ ...profile, phone: formatPhone(e.target.value) })} 
+                  <Input
+                    id="phone"
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: formatPhone(e.target.value) })}
                     placeholder="+55 (XX) XXXXX-XXXX"
-                    className="flex-1" 
                   />
                 </div>
-                <div className="space-y-2"><Label htmlFor="birthDate">Data de Nascimento</Label><Input id="birthDate" type="date" value={profile.birthDate} onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })} /></div>
-                <div className="space-y-2"><Label htmlFor="riskProfile">Perfil de Risco</Label><Input id="riskProfile" value={profile.riskProfile} onChange={(e) => setProfile({ ...profile, riskProfile: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label htmlFor="birthDate">Data de Nascimento</Label>
+                  <Input id="birthDate" type="date" value={profile.birthDate} onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Perfil de Risco</Label>
+                  <Select value={profile.riskProfile || "none"} onValueChange={(v) => setProfile({ ...profile, riskProfile: v === "none" ? "" : v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione seu perfil" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {riskProfileOptions.map((opt) => (
+                        <SelectItem key={opt.value || "none"} value={opt.value || "none"}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Usado para sugestões de investimento.</p>
+                </div>
+                <div className="pt-2">
+                  <Button onClick={handleSaveProfile} disabled={saving} className="w-full sm:w-auto">
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? "Salvando..." : "Salvar Perfil"}
+                  </Button>
+                </div>
               </div>
-            </ChartCard>
+            </div>
           )}
 
           {activeStep === "notifications" && (
-            <ChartCard 
-              title="Preferências de Notificação"
-              actions={<Button onClick={handleSaveNotifications} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? "Salvando..." : "Salvar Notificações"}</Button>}
-            >
-              <div className="space-y-8 py-4">
+            <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
+              <h2 className="text-sm font-semibold text-foreground mb-4">Preferências de Notificação</h2>
+              <div className="space-y-5 py-2">
                 {Object.entries(notifications).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <Label htmlFor={key} className="text-sm font-medium text-foreground/80">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</Label>
-                    <Switch 
-                      id={key} 
-                      checked={value} 
+                  <div key={key} className="flex items-center justify-between gap-4">
+                    <Label htmlFor={key} className="text-sm font-medium text-foreground flex-1">
+                      {notificationLabels[key] || key}
+                    </Label>
+                    <Switch
+                      id={key}
+                      checked={value}
                       onCheckedChange={(checked) => setNotifications({ ...notifications, [key]: checked })}
-                      className="data-[state=checked]:bg-success"
+                      className="data-[state=checked]:bg-primary shrink-0"
                     />
                   </div>
                 ))}
               </div>
-            </ChartCard>
+              <div className="pt-4">
+                <Button onClick={handleSaveNotifications} disabled={saving} className="w-full sm:w-auto">
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? "Salvando..." : "Salvar Notificações"}
+                </Button>
+              </div>
+            </div>
           )}
 
           {activeStep === "password" && (
-            <ChartCard 
-              title="Alterar Senha"
-              actions={<Button onClick={handleChangePassword} disabled={saving} size="sm"><Lock className="h-4 w-4 mr-2" />{saving ? "Alterando..." : "Alterar Senha"}</Button>}
-            >
-              <div className="space-y-4">
+            <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
+              <h2 className="text-sm font-semibold text-foreground mb-4">Alterar Senha</h2>
+              <div className="space-y-4 max-w-md">
                 {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
-                <div className="space-y-2"><Label htmlFor="currentPassword">Senha Atual</Label><Input id="currentPassword" type="password" value={password.currentPassword} onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })} /></div>
-                <div className="space-y-2"><Label htmlFor="newPassword">Nova Senha</Label><Input id="newPassword" type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} /></div>
-                <div className="space-y-2"><Label htmlFor="confirmPassword">Confirmar Nova Senha</Label><Input id="confirmPassword" type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Senha Atual</Label>
+                  <Input id="currentPassword" type="password" value={password.currentPassword} onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })} placeholder="••••••••" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">Nova Senha</Label>
+                  <Input id="newPassword" type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} placeholder="••••••••" />
+                  <p className="text-xs text-muted-foreground">Mínimo 8 caracteres.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                  <Input id="confirmPassword" type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} placeholder="••••••••" />
+                </div>
+                <div className="pt-2">
+                  <Button onClick={handleChangePassword} disabled={saving} className="w-full sm:w-auto">
+                    <Lock className="h-4 w-4 mr-2" />
+                    {saving ? "Alterando..." : "Alterar Senha"}
+                  </Button>
+                </div>
               </div>
-            </ChartCard>
+            </div>
           )}
 
           {activeStep === "history" && (
-            <ChartCard title="Histórico de Compras">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Plano</TableHead>
-                      <TableHead>Preço</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {historyLoading ? (
-                      <TableRow><TableCell colSpan={4} className="text-center py-8">Carregando...</TableCell></TableRow>
-                    ) : history.length === 0 ? (
-                      <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</TableCell></TableRow>
-                    ) : (
-                      history.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.planName}</TableCell>
-                          <TableCell>R$ {(item.priceCents / 100).toFixed(2)}</TableCell>
-                          <TableCell>{format(new Date(item.createdAt), "dd/MM/yyyy")}</TableCell>
-                          <TableCell><span className={cn("px-2 py-1 rounded-full text-xs font-medium", item.status === 'active' ? "bg-success/10 text-success" : "bg-muted text-muted-foreground")}>{item.status}</span></TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              {historyPagination.totalPages > 1 && (
-                <div className="mt-4 flex justify-end">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem><PaginationPrevious onClick={() => historyPagination.page > 1 && fetchHistory(historyPagination.page - 1)} /></PaginationItem>
-                      <PaginationItem><PaginationNext onClick={() => historyPagination.page < historyPagination.totalPages && fetchHistory(historyPagination.page + 1)} /></PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+            <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow">
+              <h2 className="text-sm font-semibold text-foreground mb-4">Histórico de Compras</h2>
+              {historyLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
+              ) : history.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <ShoppingBag className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <p className="text-sm font-medium text-foreground">Nenhuma compra encontrada</p>
+                  <p className="text-xs text-muted-foreground mt-1">Suas assinaturas de planos aparecerão aqui.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto rounded-lg border border-border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead>Plano</TableHead>
+                          <TableHead>Preço</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {history.map((item) => (
+                          <TableRow key={item.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                            <TableCell className="font-medium">{item.planName}</TableCell>
+                            <TableCell>R$ {(item.priceCents / 100).toFixed(2)}</TableCell>
+                            <TableCell>{format(new Date(item.createdAt), "dd/MM/yyyy")}</TableCell>
+                            <TableCell>
+                              <Badge variant={item.status === "active" ? "default" : "secondary"} className={cn(item.status === "active" && "bg-success/10 text-success border-0")}>
+                                {item.status === "active" ? "Ativo" : item.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {historyPagination.totalPages > 1 && (
+                    <div className="mt-4 flex justify-end">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem><PaginationPrevious onClick={() => historyPagination.page > 1 && fetchHistory(historyPagination.page - 1)} /></PaginationItem>
+                          <PaginationItem><PaginationNext onClick={() => historyPagination.page < historyPagination.totalPages && fetchHistory(historyPagination.page + 1)} /></PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
+                </>
               )}
-            </ChartCard>
+            </div>
           )}
 
           {activeStep === "comments" && (
-            <ChartCard 
-              title="Comentários e Feedback"
-              actions={
+            <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-w-0 overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                <h2 className="text-sm font-semibold text-foreground">Comentários e Feedback</h2>
                 <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => fetchComments(commentsPagination.page)}
                     disabled={commentsLoading}
@@ -520,12 +581,24 @@ const Settings = () => {
                   </DialogContent>
                 </Dialog>
                 </div>
-              }
-            >
-              <div className="space-y-6">
-                <Table>
+              </div>
+              <div className="space-y-4">
+                {commentsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : comments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                    <p className="text-sm font-medium text-foreground">Nenhum comentário enviado</p>
+                    <p className="text-xs text-muted-foreground mt-1">Envie dúvidas ou sugestões usando o botão acima.</p>
+                  </div>
+                ) : (
+                <>
+                <div className="w-full min-w-0 overflow-x-auto rounded-lg border border-border">
+                <Table className="min-w-[600px]">
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/40">
                       <TableHead className="w-[50px]">No</TableHead>
                       <TableHead>Título</TableHead>
                       <TableHead>Conteúdo</TableHead>
@@ -537,12 +610,8 @@ const Settings = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {commentsLoading ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-8">Carregando...</TableCell></TableRow>
-                    ) : comments.length === 0 ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum comentário enviado</TableCell></TableRow>
-                    ) : (
-                      comments.map((c, index) => (
+                    {comments.map((c, index) => {
+                      return (
                         <TableRow key={c.id}>
                           <TableCell>{(commentsPagination.page - 1) * 10 + index + 1}</TableCell>
                           <TableCell className="font-medium">{c.title || "Sem título"}</TableCell>
@@ -581,10 +650,35 @@ const Settings = () => {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
+                      );
+                    })}
                   </TableBody>
                 </Table>
+                </div>
+
+                {commentsPagination.totalPages > 1 && (
+                  <div className="flex justify-end pt-4">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => commentsPagination.page > 1 && fetchComments(commentsPagination.page - 1)}
+                            className={cn(commentsPagination.page === 1 && "pointer-events-none opacity-50")}
+                          />
+                        </PaginationItem>
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => commentsPagination.page < commentsPagination.totalPages && fetchComments(commentsPagination.page + 1)}
+                            className={cn(commentsPagination.page === commentsPagination.totalPages && "pointer-events-none opacity-50")}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+                </>
+                )}
+              </div>
 
                 {/* Detail Modal */}
                 <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
@@ -626,29 +720,7 @@ const Settings = () => {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
-
-                {commentsPagination.totalPages > 1 && (
-                  <div className="flex justify-end pt-4">
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious 
-                            onClick={() => commentsPagination.page > 1 && fetchComments(commentsPagination.page - 1)}
-                            className={cn(commentsPagination.page === 1 && "pointer-events-none opacity-50")}
-                          />
-                        </PaginationItem>
-                        <PaginationItem>
-                          <PaginationNext 
-                            onClick={() => commentsPagination.page < commentsPagination.totalPages && fetchComments(commentsPagination.page + 1)}
-                            className={cn(commentsPagination.page === commentsPagination.totalPages && "pointer-events-none opacity-50")}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                )}
-              </div>
-            </ChartCard>
+            </div>
           )}
         </div>
       </div>

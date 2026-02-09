@@ -1,13 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
-import { Users, TrendingUp, Calendar, AlertCircle } from "lucide-react";
+import { Users, TrendingUp, Calendar, AlertCircle, GitBranch, ChevronRight } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
-import ChartCard from "@/components/dashboard/ChartCard";
 import { Link } from "react-router-dom";
 import { consultantApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+
+const STAGE_LABELS: Record<string, string> = {
+  lead: "Contato Inicial",
+  contacted: "Contatado",
+  meeting: "Reunião",
+  proposal: "Proposta",
+  won: "Fechado",
+  lost: "Perdido",
+};
 
 const ConsultantDashboard = () => {
-  const { data: metrics, isLoading, error } = useQuery({
+  const { data: metrics, isLoading, error, refetch } = useQuery({
     queryKey: ['consultant', 'dashboard', 'metrics'],
     queryFn: () => consultantApi.getDashboardMetrics(),
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -38,8 +47,13 @@ const ConsultantDashboard = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">{(error as any)?.error || "Erro ao carregar dados"}</p>
+      <div className="rounded-xl border-2 border-destructive/30 bg-card p-8 max-w-md mx-auto text-center">
+        <AlertCircle className="h-12 w-12 text-destructive/80 mx-auto mb-4" />
+        <p className="text-sm font-medium text-foreground mb-1">Erro ao carregar o painel</p>
+        <p className="text-xs text-muted-foreground mb-4">{(error as any)?.error || "Tente novamente em instantes."}</p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          Tentar novamente
+        </Button>
       </div>
     );
   }
@@ -49,11 +63,11 @@ const ConsultantDashboard = () => {
   const totalProspects = pipelineData.reduce((sum: number, item: any) => sum + item.count, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Painel do Consultor</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Painel do Consultor</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Visão geral de clientes e tarefas
           </p>
@@ -61,8 +75,8 @@ const ConsultantDashboard = () => {
       </div>
 
       {/* KPI Cards - 2×2 on mobile/tablet, 4 in a row on desktop */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="rounded-xl border-2 border-blue-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-xl border-2 border-blue-500/70 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-all duration-200">
           <ProfessionalKpiCard
             title="Total de Clientes"
             value={metrics?.kpis?.totalClients?.toString() || "0"}
@@ -73,7 +87,7 @@ const ConsultantDashboard = () => {
             subtitle=""
           />
         </div>
-        <div className="rounded-xl border-2 border-emerald-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
+        <div className="rounded-xl border-2 border-emerald-500/70 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all duration-200">
           <ProfessionalKpiCard
             title="Patrimônio Total"
             value={`R$ ${(metrics?.kpis?.totalNetWorth / 1000000).toFixed(1)}M`}
@@ -84,7 +98,7 @@ const ConsultantDashboard = () => {
             subtitle="sob gestão"
           />
         </div>
-        <div className="rounded-xl border-2 border-amber-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
+        <div className="rounded-xl border-2 border-amber-500/70 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-all duration-200">
           <ProfessionalKpiCard
             title="Tarefas Pendentes"
             value={metrics?.kpis?.pendingTasks?.toString() || "0"}
@@ -95,14 +109,14 @@ const ConsultantDashboard = () => {
             subtitle="para hoje"
           />
         </div>
-        <div className="rounded-xl border-2 border-pink-500 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm active:scale-[0.99] sm:hover:shadow-md transition-transform duration-200">
+        <div className="rounded-xl border-2 border-violet-500/70 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-all duration-200">
           <ProfessionalKpiCard
             title="Prospectos"
             value={metrics?.kpis?.prospects?.toString() || "0"}
             change=""
             changeType="neutral"
             icon={AlertCircle}
-            iconClassName="text-pink-500"
+            iconClassName="text-violet-500"
             subtitle="no pipeline"
           />
         </div>
@@ -110,87 +124,90 @@ const ConsultantDashboard = () => {
 
       {/* Pipeline and Tasks */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 border-2 border-indigo-500/20 shadow-md hover:shadow-lg transition-all duration-300">
-          <ChartCard title="Pipeline de Prospecção" subtitle="Status dos prospectos" className="bg-transparent">
-          <div className="space-y-4">
-            {pipelineData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum prospecto no pipeline
-              </p>
-            ) : (
-              pipelineData.map((stage: any, index: number) => (
+        <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow min-w-0">
+          <h2 className="text-sm font-semibold text-foreground">Pipeline de Prospecção</h2>
+          <p className="text-xs text-muted-foreground mt-1 mb-4">Status dos prospectos</p>
+          {pipelineData.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <GitBranch className="h-12 w-12 text-muted-foreground/50 mb-3" />
+              <p className="text-sm font-medium text-foreground">Nenhum prospecto no pipeline</p>
+              <p className="text-xs text-muted-foreground mt-1">Adicione prospectos para acompanhar o funil.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pipelineData.map((stage: any, index: number) => (
                 <div key={index} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-foreground">
-                      {stage.stage === 'lead' ? 'Contato Inicial' :
-                       stage.stage === 'contacted' ? 'Contatado' :
-                       stage.stage === 'meeting' ? 'Reunião' :
-                       stage.stage === 'proposal' ? 'Proposta' :
-                       stage.stage === 'won' ? 'Fechado' :
-                       stage.stage === 'lost' ? 'Perdido' : stage.stage}
+                      {STAGE_LABELS[stage.stage] ?? stage.stage}
                     </span>
-                    <span className="text-sm text-muted-foreground">{stage.count}</span>
+                    <span className="text-sm text-muted-foreground tabular-nums">{stage.count}</span>
                   </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full transition-all"
-                    style={{ width: `${totalProspects > 0 ? (stage.count / totalProspects) * 100 : 0}%` }}
-                  />
+                  <div className="w-full bg-muted/60 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-violet-500/80 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${totalProspects > 0 ? (stage.count / totalProspects) * 100 : 0}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
           <div className="mt-4 pt-4 border-t border-border">
-            <Link to="/consultant/pipeline" className="text-sm text-primary hover:underline">
-              Ver pipeline completo →
+            <Link
+              to="/consultant/pipeline"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              Ver pipeline completo
+              <ChevronRight className="h-4 w-4 shrink-0" />
             </Link>
           </div>
-        </ChartCard>
         </div>
 
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-teal-500/10 border-2 border-cyan-500/20 shadow-md hover:shadow-lg transition-all duration-300">
-          <ChartCard title="Próximas Tarefas" subtitle="Ações pendentes" className="bg-transparent">
-          <div className="space-y-3">
-            {recentTasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhuma tarefa pendente
-              </p>
-            ) : (
-              recentTasks.map((task: any) => (
+        <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
+          <h2 className="text-sm font-semibold text-foreground">Próximas Tarefas</h2>
+          <p className="text-xs text-muted-foreground mt-1 mb-4">Ações pendentes</p>
+          {recentTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
+              <p className="text-sm font-medium text-foreground">Nenhuma tarefa pendente</p>
+              <p className="text-xs text-muted-foreground mt-1">Suas próximas ações aparecerão aqui.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentTasks.map((task: any) => (
                 <div
                   key={task.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {task.task}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {task.client} • {task.dueDate}
-                    </p>
+                    <p className="text-sm font-medium text-foreground truncate">{task.task}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{task.client} • {task.dueDate}</p>
                   </div>
                   <span
-                    className={`ml-2 px-2 py-1 text-xs font-medium rounded ${
+                    className={`shrink-0 px-2 py-1 text-xs font-medium rounded-full ${
                       task.priority === "high"
                         ? "bg-destructive/10 text-destructive"
                         : task.priority === "medium"
-                        ? "bg-warning/10 text-warning"
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {task.priority === "high" ? "Alta" : task.priority === "medium" ? "Média" : "Baixa"}
                   </span>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
           <div className="mt-4 pt-4 border-t border-border">
-            <Link to="/consultant/tasks" className="text-sm text-primary hover:underline">
-              Ver todas as tarefas →
+            <Link
+              to="/consultant/tasks"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              Ver todas as tarefas
+              <ChevronRight className="h-4 w-4 shrink-0" />
             </Link>
           </div>
-        </ChartCard>
         </div>
       </div>
     </div>

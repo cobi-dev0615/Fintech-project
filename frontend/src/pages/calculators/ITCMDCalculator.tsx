@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Coins, Calculator, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
-import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const ITCMDCalculator = () => {
   const [propertyValue, setPropertyValue] = useState<number | "">("");
@@ -55,43 +54,33 @@ const ITCMDCalculator = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Calculadora ITCMD</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Calcule o Imposto de Transmissão Causa Mortis e Doação
-          </p>
-        </div>
+    <div className="space-y-6 min-w-0">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Calculadora ITCMD</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Calcule o Imposto de Transmissão Causa Mortis e Doação
+        </p>
       </div>
 
-      <Alert>
+      <Alert className="border-primary/30 bg-primary/5">
         <Info className="h-4 w-4" />
-        <AlertDescription>
+        <AlertDescription className="text-sm">
           ITCMD (Imposto de Transmissão Causa Mortis e Doação) é um imposto estadual cobrado sobre
           heranças e doações. As alíquotas variam por estado e podem ter faixas de valor.
         </AlertDescription>
       </Alert>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Parâmetros">
+        <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow")}>
+          <h2 className="text-sm font-semibold text-foreground mb-4">Parâmetros</h2>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="value">Valor do Bem (R$)</Label>
-              <CurrencyInput
-                id="value"
-                value={propertyValue}
-                onChange={setPropertyValue}
-                placeholder="500.000,00"
-              />
+              <CurrencyInput id="value" value={propertyValue} onChange={setPropertyValue} placeholder="500.000,00" />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="type">Tipo de Transmissão</Label>
-              <Select
-                value={transactionType}
-                onValueChange={(v: any) => setTransactionType(v)}
-              >
+              <Select value={transactionType} onValueChange={(v: any) => setTransactionType(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -101,7 +90,6 @@ const ITCMDCalculator = () => {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="state">Estado</Label>
               <Select value={state} onValueChange={setState}>
@@ -114,16 +102,17 @@ const ITCMDCalculator = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">Alíquotas variam por UF</p>
             </div>
-
             <Button onClick={calculate} className="w-full" size="lg">
               <Calculator className="h-4 w-4 mr-2" />
               Calcular
             </Button>
           </div>
-        </ChartCard>
+        </div>
 
-        <ChartCard title="Resultados">
+        <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[280px] flex flex-col")}>
+          <h2 className="text-sm font-semibold text-foreground mb-4">Resultados</h2>
           {results ? (
             <div className="space-y-6">
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
@@ -156,12 +145,12 @@ const ITCMDCalculator = () => {
               </div>
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <Coins className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Preencha os campos e clique em "Calcular" para ver os resultados</p>
+            <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
+              <Coins className="h-12 w-12 text-muted-foreground/50 mb-3" />
+              <p className="text-sm text-muted-foreground">Preencha os campos e clique em &quot;Calcular&quot; para ver os resultados.</p>
             </div>
           )}
-        </ChartCard>
+        </div>
       </div>
     </div>
   );

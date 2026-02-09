@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { Percent, Calculator, TrendingUp, Info } from "lucide-react";
+import { Calculator, TrendingUp, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
-import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const ProfitabilitySimulator = () => {
   const [initialAmount, setInitialAmount] = useState<number | "">("");
@@ -57,50 +57,44 @@ const ProfitabilitySimulator = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Simulador de Rentabilidade</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Compare diferentes cenários de investimento e rentabilidade
-          </p>
-        </div>
+    <div className="space-y-6 min-w-0">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Simulador de Rentabilidade</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Compare diferentes cenários de investimento e rentabilidade
+        </p>
       </div>
 
-      <Alert>
+      <Alert className="border-primary/30 bg-primary/5">
         <Info className="h-4 w-4" />
-        <AlertDescription>
+        <AlertDescription className="text-sm">
           Compare diferentes perfis de investimento (Conservador, Moderado, Arrojado) e veja como
           seu patrimônio pode crescer em cada cenário.
         </AlertDescription>
       </Alert>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Parâmetros">
+        <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow")}>
+          <h2 className="text-sm font-semibold text-foreground mb-4">Parâmetros</h2>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="amount">Valor Inicial (R$)</Label>
-              <CurrencyInput
-                id="amount"
-                value={initialAmount}
-                onChange={setInitialAmount}
-                placeholder="10.000,00"
-              />
+              <CurrencyInput id="amount" value={initialAmount} onChange={setInitialAmount} placeholder="10.000,00" />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="period">Período (anos)</Label>
               <Input
                 id="period"
                 type="number"
+                min={1}
                 placeholder="10"
                 value={timePeriod}
                 onChange={(e) => setTimePeriod(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">Tempo de aplicação em anos</p>
             </div>
-
             <div className="space-y-3">
-              <Label>Cenários de Rentabilidade</Label>
+              <Label>Cenários de Rentabilidade (% ao ano)</Label>
               {scenarios.map((scenario, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <Input
@@ -121,22 +115,22 @@ const ProfitabilitySimulator = () => {
                       newScenarios[index].rate = e.target.value;
                       setScenarios(newScenarios);
                     }}
-                    className="w-24"
+                    className="w-20"
                     placeholder="%"
                   />
-                  <span className="text-sm text-muted-foreground">%</span>
+                  <span className="text-sm text-muted-foreground shrink-0">%</span>
                 </div>
               ))}
             </div>
-
             <Button onClick={calculate} className="w-full" size="lg">
               <Calculator className="h-4 w-4 mr-2" />
               Simular
             </Button>
           </div>
-        </ChartCard>
+        </div>
 
-        <ChartCard title="Comparação de Cenários">
+        <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[320px] flex flex-col")}>
+          <h2 className="text-sm font-semibold text-foreground mb-4">Comparação de Cenários</h2>
           {results ? (
             <div className="space-y-6">
               <div className="space-y-4">
@@ -178,12 +172,12 @@ const ProfitabilitySimulator = () => {
               </div>
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Preencha os campos e clique em "Simular" para ver os resultados</p>
+            <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
+              <TrendingUp className="h-12 w-12 text-muted-foreground/50 mb-3" />
+              <p className="text-sm text-muted-foreground">Preencha os campos e clique em &quot;Simular&quot; para ver os resultados.</p>
             </div>
           )}
-        </ChartCard>
+        </div>
       </div>
     </div>
   );

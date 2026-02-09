@@ -33,6 +33,7 @@ import {
   Home,
   Coins,
   Percent,
+  PieChart,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,7 @@ const customerNavItems: NavItem[] = [
   { icon: UserPlus, label: "Convites", href: "/app/invitations", enabled: true, section: "Principal" },
   { icon: MessageSquare, label: "Mensagens", href: "/app/messages", enabled: true, section: "Principal" },
   { icon: Package, label: "Planos", href: "/app/plans", enabled: true, section: "Principal" },
-  { icon: LayoutDashboard, label: "Ativos", href: "/app/assets", enabled: true, section: "Financeiro" },
+  { icon: PieChart, label: "Ativos", href: "/app/assets", enabled: true, section: "Financeiro" },
   {
     icon: Link2,
     label: "Conexões",
@@ -230,8 +231,13 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
   // Shared navigation content component
   const NavigationContent = ({ showLabels = true, onLinkClick }: { showLabels?: boolean; onLinkClick?: () => void }) => (
     <>
-      {/* Logo / header - matches TopBar height and glass feel */}
-      <div className="flex items-center justify-between h-12 px-3 sm:px-4 border-b border-sidebar-border shrink-0">
+      {/* Logo / header - when collapsed, center logo and position toggle button absolute so logo stays centered */}
+      <div
+        className={cn(
+          "flex items-center h-12 border-b border-sidebar-border shrink-0",
+          showLabels ? "justify-between px-3 sm:px-4" : "justify-center relative px-0"
+        )}
+      >
         {showLabels && (
           <Link to={getDashboardPath()} className="flex items-center gap-2 min-w-0" onClick={onLinkClick}>
             <img src="/logo.png" alt="zurT Logo" className="h-9 w-9 object-contain shrink-0" />
@@ -239,7 +245,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
           </Link>
         )}
         {!showLabels && (
-          <Link to={getDashboardPath()} className="mx-auto flex shrink-0" onClick={onLinkClick}>
+          <Link to={getDashboardPath()} className="flex shrink-0" onClick={onLinkClick}>
             <img src="/logo.png" alt="zurT Logo" className="h-9 w-9 object-contain" />
           </Link>
         )}
@@ -248,7 +254,10 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
             variant="ghost"
             size="icon"
             onClick={onCollapse}
-            className="h-8 w-8 shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors"
+            className={cn(
+              "h-8 w-8 shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors",
+              !showLabels && "absolute right-1 top-1/2 -translate-y-1/2"
+            )}
             aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -280,7 +289,8 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
                 {sectionLabel}
                 <div
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-not-allowed opacity-50"
+                    "flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-not-allowed opacity-50",
+                    showLabels ? "px-3" : "px-2 justify-center"
                   )}
                   title="Funcionalidade em breve"
                 >
@@ -418,7 +428,8 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
               to={item.href || '#'}
               onClick={onLinkClick}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                showLabels ? "px-3" : "px-2 justify-center",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-primary border border-sidebar-primary/30"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
