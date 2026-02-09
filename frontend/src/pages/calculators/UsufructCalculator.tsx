@@ -78,12 +78,12 @@ const UsufructCalculator = () => {
     <div className="space-y-6 min-w-0">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Calculadora de Usufruto</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
           Calcule o valor do usufruto e da nua propriedade em doações e heranças
         </p>
       </div>
 
-      <Alert className="border-primary/30 bg-primary/5">
+      <Alert className="rounded-xl border border-primary/30 bg-primary/5">
         <Info className="h-4 w-4" />
         <AlertDescription className="text-sm">
           O usufruto é o direito de usar e gozar de um bem pertencente a outra pessoa. A nua propriedade
@@ -92,8 +92,16 @@ const UsufructCalculator = () => {
       </Alert>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow")}>
-          <h2 className="text-sm font-semibold text-foreground mb-4">Parâmetros</h2>
+        <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0")}>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+              <Calculator className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Parâmetros</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Valor do imóvel e tipo de usufruto</p>
+            </div>
+          </div>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="value">Valor do Imóvel (R$)</Label>
@@ -133,8 +141,16 @@ const UsufructCalculator = () => {
           </div>
         </div>
 
-        <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[280px] flex flex-col")}>
-          <h2 className="text-sm font-semibold text-foreground mb-4">Resultados</h2>
+        <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[280px] flex flex-col min-w-0")}>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+              <Home className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Resultados</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Usufruto e nua propriedade</p>
+            </div>
+          </div>
           {results ? (
             <div className="space-y-6">
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
@@ -165,9 +181,10 @@ const UsufructCalculator = () => {
               </div>
             </div>
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
+            <div className="flex flex-1 flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border bg-muted/20 min-h-[140px]">
               <Home className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <p className="text-sm text-muted-foreground">Preencha os campos e clique em &quot;Calcular&quot; para ver os resultados.</p>
+              <p className="text-sm font-medium text-foreground">Nenhum resultado ainda</p>
+              <p className="text-xs text-muted-foreground mt-1">Preencha os parâmetros e clique em &quot;Calcular&quot;</p>
             </div>
           )}
         </div>
