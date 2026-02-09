@@ -34,18 +34,18 @@ const NetWorthChart = () => {
       title="Variação do Patrimônio (Net Asset Change)"
       subtitle="Evolução com base em saldos e transações do Open Finance"
       actions={
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 rounded-lg p-0.5 bg-muted/50 border border-border/50">
           {(["7M", "1A", "Tudo"] as const).map((range) => (
             <button
               key={range}
               type="button"
               onClick={() => setTimeRange(range)}
               className={`
-                min-h-[36px] min-w-[44px] px-3 py-2 text-xs font-medium rounded-lg transition-colors touch-manipulation
+                min-h-[32px] min-w-[40px] px-3 py-1.5 text-xs font-medium rounded-md transition-all touch-manipulation
                 ${
                   timeRange === range
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted active:bg-muted"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
                 }
               `}
             >

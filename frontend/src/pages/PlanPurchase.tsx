@@ -232,34 +232,47 @@ const PlanPurchase = () => {
   }
 
   return (
-    <div className="container-fluid">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Escolha seu Plano</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-6 min-w-0">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Escolha seu Plano</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Selecione o plano que melhor se adapta às suas necessidades. Você pode alterar a qualquer momento.
         </p>
       </div>
 
       {/* Billing Period Toggle */}
-      <div className="mb-6 flex justify-center">
-        <Tabs value={billingPeriod} onValueChange={(value) => setBillingPeriod(value as 'monthly' | 'annual')}>
-          <TabsList>
-            <TabsTrigger value="monthly">Mensal</TabsTrigger>
-            <TabsTrigger value="annual">Anual</TabsTrigger>
+      <div className="flex justify-center">
+        <Tabs value={billingPeriod} onValueChange={(value) => setBillingPeriod(value as 'monthly' | 'annual')} className="w-full sm:w-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:inline-grid sm:w-auto sm:min-w-[200px] h-10 p-1 rounded-lg bg-muted">
+            <TabsTrigger value="monthly" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              Mensal
+            </TabsTrigger>
+            <TabsTrigger value="annual" className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              Anual
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       {/* Plans Grid */}
-      <div className="relative">
+      <div className="relative min-h-[200px]">
         {plansLoading && (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl min-h-[280px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         )}
+        {!plansLoading && plans.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card p-12 flex flex-col items-center justify-center text-center">
+            <CreditCard className="h-12 w-12 text-muted-foreground mb-3 opacity-70" />
+            <p className="font-medium text-foreground">Nenhum plano disponível</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+              Os planos não estão disponíveis no momento. Tente novamente mais tarde.
+            </p>
+          </div>
+        ) : (
         <div className={cn(
-          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-6xl mx-auto",
-          plansLoading && "opacity-50"
+          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5",
+          plansLoading && "opacity-50 pointer-events-none"
         )}>
           {plans.map((plan) => {
             const isCurrent = isCurrentPlan(plan.id);
@@ -276,15 +289,15 @@ const PlanPurchase = () => {
               <Card
                 key={plan.id}
                 className={cn(
-                  "relative flex flex-col transition-all duration-300",
-                  featured && colors.featured + " scale-[1.02]",
-                  !featured && colors.hover,
+                  "relative flex flex-col transition-all duration-300 border-2 min-w-0 overflow-visible",
+                  featured && colors.featured,
+                  !featured && colors.border + " " + colors.hover,
                   isCurrent && `ring-2 ${colors.ring}`
                 )}
               >
                 {featured && (
                   <div className={cn(
-                    "absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap",
+                    "absolute -top-2.5 left-1/2 -translate-x-1/2 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-sm",
                     colors.badge
                   )}>
                     Mais Popular
@@ -293,14 +306,14 @@ const PlanPurchase = () => {
 
                 {billingPeriod === 'annual' && savings > 0 && (
                   <div className="absolute top-2 right-2">
-                    <Badge variant="secondary" className="bg-success/10 text-success border-success/20 text-xs">
+                    <Badge variant="secondary" className="bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 text-xs">
                       -{savings}%
                     </Badge>
                   </div>
                 )}
 
                 {isCurrent && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 left-2">
                     <Badge variant="default" className={colors.badge}>
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       Atual
@@ -308,7 +321,7 @@ const PlanPurchase = () => {
                   </div>
                 )}
 
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 pt-5">
                   <CardTitle className="text-xl flex items-center gap-2">
                     {isCurrent && (
                       <CheckCircle2 className="h-4 w-4 text-success" />
@@ -348,7 +361,7 @@ const PlanPurchase = () => {
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
                       {plan.connectionLimit !== null 
-                        ? `${plan.connectionLimit} conexão${plan.connectionLimit > 1 ? 'ões' : ''}`
+                        ? `${plan.connectionLimit} ${plan.connectionLimit === 1 ? 'conexão' : 'conexões'}`
                         : 'Conexões ilimitadas'
                       }
                     </p>
@@ -370,10 +383,10 @@ const PlanPurchase = () => {
                     disabled={isCurrent || purchasing !== null}
                     variant={featured ? "default" : "outline"}
                     className={cn(
-                      "w-full",
-                      featured && "bg-green-500 hover:bg-green-600"
+                      "w-full mt-auto",
+                      featured && "bg-green-600 hover:bg-green-700 text-white border-0"
                     )}
-                    size="sm"
+                    size="default"
                   >
                     {purchasing === plan.id ? (
                       <>
@@ -399,6 +412,7 @@ const PlanPurchase = () => {
             );
           })}
         </div>
+        )}
       </div>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>

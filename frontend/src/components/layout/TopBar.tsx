@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Menu, UserCircle, LogOut, User } from "lucide-react";
+import { Search, Menu, UserCircle, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,9 +93,20 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center justify-center gap-2 px-4 py-2 hover:bg-primary/90 rounded-full transition-all bg-primary text-primary-foreground shadow-sm shadow-primary/20 group">
-                <User className="h-4 w-4" />
-                <span className="text-xs font-bold tracking-tight">{getAbbreviatedName()}</span>
+              <button
+                type="button"
+                className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-lg border border-border bg-transparent text-foreground hover:bg-muted/80 hover:border-muted-foreground/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                aria-label="Abrir menu da conta"
+              >
+                <Avatar className="h-7 w-7 rounded-full border border-border">
+                  <AvatarImage src={undefined} alt="" />
+                  <AvatarFallback className="text-xs font-medium bg-muted text-muted-foreground">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium text-foreground hidden sm:inline max-w-[120px] truncate">
+                  {getAbbreviatedName() || 'Conta'}
+                </span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 mt-2">

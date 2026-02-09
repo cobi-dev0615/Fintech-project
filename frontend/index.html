@@ -24,9 +24,7 @@
     <!-- Pluggy Connect Widget: load async so CDN timeout does not block the app -->
     <script src="https://cdn.pluggy.ai/pluggy-connect/v2.7.0/pluggy-connect.js" async></script>
     
-    <!-- Resource hints for faster navigation -->
-    <link rel="prefetch" href="/login" />
-    <link rel="prefetch" href="/register" />
+    <!-- Prefetch removed: in production use dist/ (no prefetch of routes). In dev, prefetch can cause 504 if server is slow. -->
     
     <!-- Inline critical CSS for instant rendering -->
     <style>
@@ -74,6 +72,7 @@
       <div class="spinner"></div>
     </div>
     <div id="root"></div>
+    <!-- DEV ONLY: production must serve the built app from dist/ (see DEPLOY.md). -->
     <script type="module" src="/src/main.tsx"></script>
     <script>
       // Remove initial loader once React mounts

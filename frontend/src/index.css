@@ -254,4 +254,23 @@
   .animate-pulse-glow {
     animation: pulse-glow 2s infinite;
   }
+
+  /* Smart scrollbar for Assets and similar panels - thin, theme-aligned */
+  .assets-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.5) transparent;
+  }
+  .assets-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .assets-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .assets-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.4);
+    border-radius: 4px;
+  }
+  .assets-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.6);
+  }
 }

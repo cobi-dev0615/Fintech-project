@@ -207,16 +207,18 @@ const Invitations = () => {
     }
   };
 
+  const REFERRAL_DISCOUNT_THRESHOLD = 10;
+  const referralProgress = Math.min(invitedUsers.length, REFERRAL_DISCOUNT_THRESHOLD);
+  const referralProgressPct = (referralProgress / REFERRAL_DISCOUNT_THRESHOLD) * 100;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Convites de Consultores</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gerencie seus convites de consultores financeiros
-          </p>
-        </div>
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Convites de Consultores</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Gerencie seus convites de consultores financeiros
+        </p>
       </div>
 
       {/* Consultant(s) who invited me */}
@@ -236,49 +238,51 @@ const Invitations = () => {
         ) : (
           <ul className="space-y-3">
             {pendingInvitations.map((inv) => (
-              <li key={inv.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border bg-muted/20">
-                <div className="flex items-center gap-2">
-                  <UserPlus className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <span className="font-medium">{inv.consultantName}</span>
-                    <span className="text-muted-foreground text-sm ml-2">{inv.consultantEmail}</span>
+              <li key={inv.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-border bg-muted/20">
+                <div className="flex items-center gap-2 min-w-0">
+                  <UserPlus className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <span className="font-medium text-foreground">{inv.consultantName}</span>
+                    <span className="text-muted-foreground text-sm ml-2 truncate block sm:inline">{inv.consultantEmail}</span>
                   </div>
                 </div>
-                <Badge variant="secondary">Aguardando sua resposta</Badge>
+                <Badge variant="secondary" className="shrink-0">Aguardando sua resposta</Badge>
               </li>
             ))}
             {acceptedConsultants.map((c) => (
-              <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border bg-muted/10">
-                <div className="flex items-center gap-2 min-w-0">
-                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                  <div className="min-w-0">
-                    <span className="font-medium">{c.name}</span>
-                    <span className="text-muted-foreground text-sm ml-2">{c.email}</span>
+              <li key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-border bg-muted/10">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="rounded-full bg-primary/10 p-2 shrink-0">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
                   </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground">{c.name}</p>
+                    <p className="text-sm text-muted-foreground truncate">{c.email}</p>
+                  </div>
+                  <Badge variant="default" className="shrink-0 hidden sm:inline-flex">Conectado</Badge>
                 </div>
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex flex-wrap items-center gap-3 pl-11 sm:pl-0">
                   <div className="flex items-center gap-2">
-                    <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <Label htmlFor={`share-${c.id}`} className="text-sm whitespace-nowrap cursor-pointer">
-                      Compartilhar carteira
-                    </Label>
                     <Switch
                       id={`share-${c.id}`}
                       checked={c.canViewAll !== false}
                       disabled={togglingShare === c.id}
                       onCheckedChange={() => handleToggleWalletShare(c.id, c.canViewAll !== false)}
                     />
+                    <Label htmlFor={`share-${c.id}`} className="text-sm cursor-pointer">
+                      Compartilhar carteira
+                    </Label>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
                     onClick={() => { setConsultantToDisconnect({ id: c.id, name: c.name }); setDisconnectDialogOpen(true); }}
                   >
-                    <Unlink className="h-4 w-4 mr-1" />
-                    Desconectar
+                    <Unlink className="h-4 w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Desconectar</span>
                   </Button>
-                  <Badge>Conectado</Badge>
+                  <Badge className="sm:hidden shrink-0">Conectado</Badge>
                 </div>
               </li>
             ))}
@@ -297,41 +301,66 @@ const Invitations = () => {
             <Skeleton className="h-24 w-full" />
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <Input readOnly value={referralLink} className="font-mono text-sm" />
-              <Button variant="outline" size="icon" onClick={copyReferralLink} disabled={!referralLink} title="Copiar link">
-                <Copy className="h-4 w-4" />
+          <div className="space-y-5">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                readOnly
+                value={referralLink}
+                className="font-mono text-sm min-w-0 bg-muted/30"
+              />
+              <Button
+                onClick={copyReferralLink}
+                disabled={!referralLink}
+                className="shrink-0"
+                title="Copiar link"
+              >
+                <Copy className="h-4 w-4 sm:mr-2" />
+                Copiar link
               </Button>
             </div>
-            {invitedUsers.length >= 10 && (
-              <div className="flex items-center gap-2 rounded-lg bg-primary/10 text-primary px-3 py-2 text-sm">
-                <Percent className="h-4 w-4" />
+            {invitedUsers.length >= REFERRAL_DISCOUNT_THRESHOLD && (
+              <div className="flex items-center gap-2 rounded-lg bg-green-500/15 border border-green-500/30 text-green-700 dark:text-green-400 px-3 py-2.5 text-sm">
+                <Percent className="h-4 w-4 shrink-0" />
                 <span>Você tem direito a 20% de desconto na assinatura mensal!</span>
               </div>
             )}
-            {invitedUsers.length < 10 && invitedUsers.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                Convidou <strong>{invitedUsers.length}</strong> pessoa(s). Convide mais <strong>{10 - invitedUsers.length}</strong> para ganhar 20% de desconto.
-              </p>
+            {invitedUsers.length > 0 && invitedUsers.length < REFERRAL_DISCOUNT_THRESHOLD && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    <strong className="text-foreground">{invitedUsers.length}</strong> de {REFERRAL_DISCOUNT_THRESHOLD} convites — faltam <strong>{REFERRAL_DISCOUNT_THRESHOLD - invitedUsers.length}</strong> para o desconto
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-300"
+                    style={{ width: `${referralProgressPct}%` }}
+                  />
+                </div>
+              </div>
             )}
             <div>
-              <h4 className="font-medium flex items-center gap-2 mb-2">
-                <Users className="h-4 w-4" /> Pessoas que você convidou ({invitedUsers.length})
+              <h4 className="font-medium flex items-center gap-2 mb-2 text-foreground">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Pessoas que você convidou ({invitedUsers.length})
               </h4>
               {invitedUsers.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 border rounded-lg bg-muted/30 text-center">
-                  Nenhuma pessoa convidada ainda. Compartilhe seu link acima para convidar clientes para a plataforma.
-                </p>
+                <div className="py-8 px-4 rounded-lg border border-border bg-muted/20 text-center">
+                  <Users className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-70" />
+                  <p className="text-sm font-medium text-foreground">Nenhuma pessoa convidada ainda</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                    Compartilhe seu link acima para convidar amigos. Ao atingir 10 cadastros, você ganha 20% de desconto.
+                  </p>
+                </div>
               ) : (
-                <ul className="border rounded-lg divide-y text-sm">
+                <ul className="border border-border rounded-lg divide-y divide-border overflow-hidden">
                   {invitedUsers.map((u) => (
-                    <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                    <li key={u.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-3 hover:bg-muted/20 transition-colors">
                       <div className="min-w-0">
-                        <span className="font-medium">{u.name}</span>
-                        <span className="text-muted-foreground ml-2">{u.email}</span>
+                        <p className="font-medium text-foreground">{u.name}</p>
+                        <p className="text-sm text-muted-foreground truncate">{u.email}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <Badge variant={u.status === "registered" ? "default" : "secondary"}>
                           {u.status === "registered" ? "Cadastrado" : u.status === "pending_approval" ? "Aguardando aprovação" : "Inativo"}
                         </Badge>
@@ -375,10 +404,14 @@ const Invitations = () => {
             </Button>
           </div>
         ) : pendingInvitations.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum convite pendente</p>
-            <p className="text-sm mt-2">Quando um consultor enviar um convite, ele aparecerá aqui</p>
+          <div className="flex flex-col items-center justify-center py-14 px-4 text-center">
+            <div className="rounded-full bg-muted/50 p-5 mb-4">
+              <UserPlus className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground">Nenhum convite pendente</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+              Quando um consultor enviar um convite, ele aparecerá aqui para você aceitar ou recusar.
+            </p>
           </div>
         ) : (
           <Table>

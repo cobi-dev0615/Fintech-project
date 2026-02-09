@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trash2, CheckCheck, Eye } from "lucide-react";
+import { Trash2, CheckCheck, Eye, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { notificationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -326,7 +326,7 @@ const Notifications = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-bold text-foreground">Notificações</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Notificações</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {unreadCount > 0
               ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}`
@@ -336,6 +336,7 @@ const Notifications = () => {
         {unreadCount > 0 && (
           <Button
             variant="outline"
+            size="sm"
             onClick={handleMarkAllAsRead}
             className="flex items-center gap-2 shrink-0"
           >
@@ -361,28 +362,36 @@ const Notifications = () => {
       )}
 
       {/* Desktop: Table */}
-      <div className="hidden md:block bg-card/50 backdrop-blur-xl rounded-xl border border-border overflow-hidden">
+      <div className="hidden md:block rounded-xl border border-border bg-card overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-16 text-center">No</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Conteúdo</TableHead>
-              <TableHead className="w-40">Data</TableHead>
-              <TableHead className="w-48">Ações</TableHead>
+            <TableRow className="border-border hover:bg-transparent">
+              <TableHead className="w-14 text-center text-muted-foreground font-medium">#</TableHead>
+              <TableHead className="text-muted-foreground font-medium">Tipo</TableHead>
+              <TableHead className="text-muted-foreground font-medium">Conteúdo</TableHead>
+              <TableHead className="w-40 text-muted-foreground font-medium">Data</TableHead>
+              <TableHead className="w-40 text-right text-muted-foreground font-medium">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && notifications.length === 0 && !loadError ? (
               <TableRow>
-                <TableCell colSpan={5} className="p-8 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="p-12 text-center text-muted-foreground">
                   Carregando notificações...
                 </TableCell>
               </TableRow>
             ) : notifications.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="p-8 text-center text-muted-foreground">
-                  Nenhuma notificação
+                <TableCell colSpan={5} className="p-0">
+                  <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                    <div className="rounded-full bg-muted/50 p-5 mb-4">
+                      <Bell className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                    <p className="text-base font-medium text-foreground">Nenhuma notificação</p>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                      Novas notificações aparecerão aqui quando você receber convites, mensagens ou alertas dos consultores.
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
@@ -427,7 +436,7 @@ const Notifications = () => {
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="w-48 text-right">
+                  <TableCell className="w-40 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button
                         variant="ghost"
@@ -461,12 +470,18 @@ const Notifications = () => {
       {/* Mobile: Card list - no horizontal scroll */}
       <div className="md:hidden space-y-3 min-w-0">
         {loading && notifications.length === 0 && !loadError ? (
-          <div className="rounded-xl border border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
+          <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
             Carregando notificações...
           </div>
         ) : notifications.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
-            Nenhuma notificação
+          <div className="rounded-xl border border-border bg-card p-8 flex flex-col items-center justify-center text-center">
+            <div className="rounded-full bg-muted/50 p-4 mb-3">
+              <Bell className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
+              Novas notificações aparecerão aqui quando você receber convites ou alertas.
+            </p>
           </div>
         ) : (
           notifications.map((notification, index) => (
@@ -530,13 +545,15 @@ const Notifications = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 min-w-0">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 min-w-0">
-          <div className="text-sm text-muted-foreground min-w-0 break-words">
+          <p className="text-sm text-muted-foreground min-w-0 break-words" aria-live="polite">
             Mostrando {notifications.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} a {Math.min(currentPage * itemsPerPage, total)} de {total} notificações
-          </div>
+          </p>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">Itens por página:</span>
+            <label htmlFor="items-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
+              Itens por página:
+            </label>
             <Select
               value={itemsPerPage.toString()}
               onValueChange={(value) => {
@@ -544,7 +561,7 @@ const Notifications = () => {
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="w-20 h-8">
+              <SelectTrigger id="items-per-page" className="w-[4.5rem] h-9" aria-label="Itens por página">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

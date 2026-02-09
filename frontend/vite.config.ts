@@ -64,10 +64,10 @@ export default defineConfig(({ mode }) => {
       'www.zurt.com.br',
       'zurt.com.br',
     ],
-    hmr: false, // Disable HMR to prevent SSL errors when accessed via HTTPS
-    // Note: HMR requires WebSocket support through reverse proxy
-    // If you need HMR over HTTPS, configure nginx to proxy WebSocket connections
-    // For now, disable to avoid ERR_SSL_PROTOCOL_ERROR
+    // Disable HMR to avoid WebSocket errors and SSL issues when behind HTTPS.
+    // If you still see "Invalid WebSocket frame: RSV1 must be clear", try: hard refresh (Ctrl+Shift+R),
+    // clear site data, or run dev without a reverse proxy (direct localhost:8080).
+    hmr: false,
     watch: {
       usePolling: false,
     },
@@ -107,9 +107,8 @@ export default defineConfig(({ mode }) => {
       'react-day-picker',
       'lucide-react',
     ],
-    // Force re-bundling to fix content length mismatch errors
-    force: true,
-    // Exclude problematic dependencies from pre-bundling
+    // Avoid force: true on dev to reduce esbuild work and prevent "The service was stopped" on low-RAM
+    force: false,
     exclude: [
       '@swc/core',
       '@swc/wasm',
@@ -117,19 +116,13 @@ export default defineConfig(({ mode }) => {
       '@swc/core-linux-x64-musl',
       'lovable-tagger',
     ],
-    // Reduce concurrent pre-bundling to prevent timeouts
     esbuildOptions: {
       target: 'esnext',
-      // Increase memory limit for large dependencies
       logOverride: { 'this-is-undefined-in-esm': 'silent' },
-      // Exclude native bindings from bundling
       external: ['@swc/wasm'],
     },
-    // Handle recharts specifically
-    entries: [
-      'src/main.tsx',
-      'src/pages/**/*.tsx',
-    ],
+    // Single entry reduces initial esbuild work and memory use (avoids crash on 2GB VPS)
+    entries: ['src/main.tsx'],
   },
   build: {
     chunkSizeWarningLimit: 1000,
@@ -215,7 +208,11 @@ export default defineConfig(({ mode }) => {
     // Source maps for production (can disable for smaller bundles)
     sourcemap: false,
   },
-  // Improve dev server stability
+  preview: {
+    port: 8080,
+    host: "::",
+    strictPort: false,
+  },
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
   },

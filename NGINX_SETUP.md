@@ -78,17 +78,11 @@ server {
         proxy_buffering off;
     }
 
-    # Serve frontend (Vite dev server on port 8080)
+    # Serve frontend from built files (avoids 504 – no upstream process needed)
     location / {
-        proxy_pass http://localhost:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+        root /home/Fintech-project/frontend/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
     }
 }
 ```
@@ -125,6 +119,28 @@ server {
    ```bash
    curl https://www.zurt.com.br/api/auth/login -X POST -H "Content-Type: application/json" -d '{"email":"test","password":"test"}'
    ```
+
+## Fixing 504 Gateway Time-out on the frontend
+
+If you see **504 Gateway Time-out** when opening `https://zurt.com.br/`, Nginx is proxying `/` to an upstream (e.g. `http://localhost:8080`) and that upstream is not responding (nothing running or it crashed).
+
+**Fix: serve the built frontend as static files instead of proxying.**
+
+1. Build the frontend once:
+   ```bash
+   cd /home/Fintech-project/frontend && npm run build
+   ```
+2. In your Nginx config, replace the `location /` block that uses `proxy_pass http://localhost:8080` with:
+   ```nginx
+   location / {
+       root /home/Fintech-project/frontend/dist;
+       index index.html;
+       try_files $uri $uri/ /index.html;
+   }
+   ```
+3. Reload Nginx: `sudo nginx -t && sudo systemctl reload nginx`.
+
+After this, the site is served directly by Nginx from `dist/`; no process on port 8080 is needed and the 504 goes away.
 
 ## Important Notes
 
