@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { TrendingUp, PieChart as PieChartIcon, RefreshCw, Building2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { TrendingUp, PieChart as PieChartIcon, RefreshCw, Building2, Link2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   PieChart as RechartsPieChart,
   Pie,
@@ -99,9 +102,10 @@ const Investments = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {/* Page header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Investimentos</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Investimentos</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Dados do Open Finance — portfólio consolidado
           </p>
@@ -111,47 +115,65 @@ const Investments = () => {
           size="sm"
           onClick={handleSync}
           disabled={syncing || loading}
+          className="shrink-0"
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+          <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
           {syncing ? "Sincronizando…" : "Atualizar"}
         </Button>
       </div>
 
       {loading ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-28 rounded-lg" />
+            ))}
+          </div>
+          <Skeleton className="h-64 rounded-lg w-full" />
+        </>
       ) : error ? (
-        <div className="text-center py-8">
-          <p className="text-destructive">{error}</p>
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
+          <p className="text-destructive font-medium">{error}</p>
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => fetchData()}>
+            Tentar novamente
+          </Button>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <ProfessionalKpiCard
-              title="Valor total"
-              value={`R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-              change=""
-              changeType="neutral"
-              icon={TrendingUp}
-              subtitle="Open Finance"
-            />
-            <ProfessionalKpiCard
-              title="Posições"
-              value={investments.length.toString()}
-              change=""
-              changeType="neutral"
-              icon={PieChartIcon}
-              subtitle="ativos"
-            />
-            <ProfessionalKpiCard
-              title="Tipos"
-              value={breakdown.length.toString()}
-              change=""
-              changeType="neutral"
-              icon={TrendingUp}
-              subtitle="categorias"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
+            <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
+              <ProfessionalKpiCard
+                title="Valor total"
+                value={`R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                change=""
+                changeType="neutral"
+                icon={TrendingUp}
+                iconClassName="text-blue-600 dark:text-blue-400"
+                subtitle="Open Finance"
+              />
+            </div>
+            <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow">
+              <ProfessionalKpiCard
+                title="Posições"
+                value={investments.length.toString()}
+                change=""
+                changeType="neutral"
+                icon={PieChartIcon}
+                iconClassName="text-emerald-600 dark:text-emerald-400"
+                subtitle="ativos"
+              />
+            </div>
+            <div className="rounded-xl border-2 border-violet-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow">
+              <ProfessionalKpiCard
+                title="Tipos"
+                value={breakdown.length.toString()}
+                change=""
+                changeType="neutral"
+                icon={TrendingUp}
+                iconClassName="text-violet-600 dark:text-violet-400"
+                subtitle="categorias"
+              />
+            </div>
           </div>
 
           {allocationData.length > 0 && (
@@ -234,40 +256,53 @@ const Investments = () => {
             </ChartCard>
           )}
 
-          <ChartCard title="Posições (Open Finance)">
+          <ChartCard title="Posições (Open Finance)" subtitle={investments.length > 0 ? `${investments.length} posição(ões)` : undefined}>
             {investments.length === 0 ? (
-              <div className="text-center py-12">
-                <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-                <p className="text-muted-foreground">
-                  Nenhum investimento encontrado. Conecte contas em Conexões para ver seus ativos aqui.
+              <div className="flex flex-col items-center justify-center py-12 px-4 sm:py-16">
+                <div className="rounded-full bg-primary/10 p-4 mb-4">
+                  <TrendingUp className="h-10 w-10 sm:h-12 sm:w-12 text-primary" aria-hidden />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Nenhum investimento encontrado</h3>
+                <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+                  Conecte suas contas pelo Open Finance para ver ativos, fundos e rentabilidade aqui.
+                </p>
+                <Link to="/app/connections/open-finance">
+                  <Button className="gap-2">
+                    <Link2 className="h-4 w-4" />
+                    Ir para Conexões
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <p className="text-xs text-muted-foreground mt-4">
+                  Menu lateral → Conexões → Open Finance
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/50">
-                    <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full min-w-[640px]">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Ativo
                       </th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Tipo
                       </th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Quantidade
                       </th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Preço unit.
                       </th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Valor atual
                       </th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Rentab.
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-card">
+                  <tbody>
                     {investments.map((inv: any) => {
                       const value = parseFloat(inv.current_value || 0);
                       const qty = parseFloat(inv.quantity || 0);
@@ -276,7 +311,7 @@ const Investments = () => {
                       return (
                         <tr
                           key={inv.id || inv.pluggy_investment_id}
-                          className="border-b border-border hover:bg-muted/50 transition-colors"
+                          className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors"
                         >
                           <td className="py-3 px-4">
                             <div>
