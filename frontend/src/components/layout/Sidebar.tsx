@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Link2,
@@ -46,6 +46,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -69,43 +71,47 @@ interface NavItem {
   href?: string; // Optional if it has subitems
   enabled?: boolean; // Whether this menu item is enabled/active
   subItems?: NavSubItem[]; // Submenu items
+  section?: string; // Optional section label for grouping (shown when sidebar expanded)
 }
 
-// Customer navigation items - all enabled
+// Customer navigation items - all enabled, with sections for clearer hierarchy
 const customerNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/app/dashboard", enabled: true },
-  { icon: Bell, label: "Notificações", href: "/app/notifications", enabled: true },
-  { icon: UserPlus, label: "Convites", href: "/app/invitations", enabled: true },
-  { icon: MessageSquare, label: "Mensagens", href: "/app/messages", enabled: true },
-  { icon: Package, label: "Planos", href: "/app/plans", enabled: true },
-  { icon: LayoutDashboard, label: "Ativos", href: "/app/assets", enabled: true },
-  { 
-    icon: Link2, 
-    label: "Conexões", 
+  { icon: LayoutDashboard, label: "Dashboard", href: "/app/dashboard", enabled: true, section: "Principal" },
+  { icon: Bell, label: "Notificações", href: "/app/notifications", enabled: true, section: "Principal" },
+  { icon: UserPlus, label: "Convites", href: "/app/invitations", enabled: true, section: "Principal" },
+  { icon: MessageSquare, label: "Mensagens", href: "/app/messages", enabled: true, section: "Principal" },
+  { icon: Package, label: "Planos", href: "/app/plans", enabled: true, section: "Principal" },
+  { icon: LayoutDashboard, label: "Ativos", href: "/app/assets", enabled: true, section: "Financeiro" },
+  {
+    icon: Link2,
+    label: "Conexões",
     enabled: true,
+    section: "Financeiro",
     subItems: [
       { label: "Open Finance", href: "/app/connections/open-finance", enabled: true, icon: Globe },
       { label: "B3", href: "/app/connections/b3", enabled: true, icon: BarChart2 },
-    ]
+    ],
   },
-  { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true },
-  { icon: Receipt, label: "Transações", href: "/app/transactions", enabled: true },
-  { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: true },
-  { icon: TrendingUp, label: "Investimentos", href: "/app/investments", enabled: true },
+  { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true, section: "Financeiro" },
+  { icon: Receipt, label: "Transações", href: "/app/transactions", enabled: true, section: "Financeiro" },
+  { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: true, section: "Financeiro" },
+  { icon: TrendingUp, label: "Investimentos", href: "/app/investments", enabled: true, section: "Financeiro" },
   {
     icon: FileText,
     label: "Relatórios",
     enabled: true,
+    section: "Relatórios",
     subItems: [
       { label: "Gerar Relatório", href: "/app/reports", enabled: true, icon: FilePlus },
       { label: "Histórico", href: "/app/reports/history", enabled: true, icon: History },
     ],
   },
-  { icon: Target, label: "Metas", href: "/app/goals", enabled: true },
+  { icon: Target, label: "Metas", href: "/app/goals", enabled: true, section: "Relatórios" },
   {
     icon: Calculator,
     label: "Calculadoras",
     enabled: true,
+    section: "Ferramentas",
     subItems: [
       { label: "FIRE", href: "/app/calculators/fire", enabled: true, icon: TrendingUp },
       { label: "Juros Compostos", href: "/app/calculators/compound", enabled: true, icon: Calculator },
@@ -118,18 +124,19 @@ const customerNavItems: NavItem[] = [
 
 // Consultant navigation items - all enabled
 const consultantNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/consultant/dashboard", enabled: true },
-  { icon: Bell, label: "Notificações", href: "/consultant/notifications", enabled: true },
-  { icon: Package, label: "Planos", href: "/consultant/plans", enabled: true },
-  { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: true },
-  { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: true },
-  { icon: UserPlus, label: "Enviar Convites", href: "/consultant/invitations", enabled: true },
-  { icon: MessageSquare, label: "Mensagens", href: "/consultant/messages", enabled: true },
-  { icon: FileText, label: "Relatórios", href: "/consultant/reports", enabled: true },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/consultant/dashboard", enabled: true, section: "Principal" },
+  { icon: Bell, label: "Notificações", href: "/consultant/notifications", enabled: true, section: "Principal" },
+  { icon: Package, label: "Planos", href: "/consultant/plans", enabled: true, section: "Principal" },
+  { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: true, section: "Clientes" },
+  { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: true, section: "Clientes" },
+  { icon: UserPlus, label: "Enviar Convites", href: "/consultant/invitations", enabled: true, section: "Clientes" },
+  { icon: MessageSquare, label: "Mensagens", href: "/consultant/messages", enabled: true, section: "Clientes" },
+  { icon: FileText, label: "Relatórios", href: "/consultant/reports", enabled: true, section: "Relatórios" },
   {
     icon: Calculator,
     label: "Calculadoras",
     enabled: true,
+    section: "Ferramentas",
     subItems: [
       { label: "FIRE", href: "/consultant/calculators/fire", enabled: true, icon: TrendingUp },
       { label: "Juros Compostos", href: "/consultant/calculators/compound", enabled: true, icon: Calculator },
@@ -138,21 +145,21 @@ const consultantNavItems: NavItem[] = [
       { label: "Rentabilidade", href: "/consultant/calculators/profitability", enabled: true, icon: Percent },
     ],
   },
-  { icon: TrendingUp, label: "Simulador", href: "/consultant/simulator", enabled: true },
+  { icon: TrendingUp, label: "Simulador", href: "/consultant/simulator", enabled: true, section: "Ferramentas" },
 ];
 
 // Admin navigation items - all enabled
 const adminNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard", enabled: true },
-  { icon: Bell, label: "Notificações", href: "/admin/notifications", enabled: true },
-  { icon: Shield, label: "Usuários", href: "/admin/users", enabled: true },
-  { icon: Package, label: "Planos", href: "/admin/plans", enabled: true },
-  { icon: DollarSign, label: "Financeiro", href: "/admin/financial", enabled: true },
-  { icon: Activity, label: "Integrações", href: "/admin/integrations", enabled: true },
-  { icon: MessageSquare, label: "Comentários", href: "/admin/comments", enabled: true },
-  { icon: Search, label: "Prospecção", href: "/admin/prospecting", enabled: true },
-  { icon: Receipt, label: "Histórico de Pagamentos", href: "/admin/payments", enabled: true },
-  { icon: Clock, label: "Histórico de Login", href: "/admin/login-history", enabled: true },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard", enabled: true, section: "Principal" },
+  { icon: Bell, label: "Notificações", href: "/admin/notifications", enabled: true, section: "Principal" },
+  { icon: Shield, label: "Usuários", href: "/admin/users", enabled: true, section: "Gestão" },
+  { icon: Package, label: "Planos", href: "/admin/plans", enabled: true, section: "Gestão" },
+  { icon: DollarSign, label: "Financeiro", href: "/admin/financial", enabled: true, section: "Gestão" },
+  { icon: Activity, label: "Integrações", href: "/admin/integrations", enabled: true, section: "Sistema" },
+  { icon: MessageSquare, label: "Comentários", href: "/admin/comments", enabled: true, section: "Sistema" },
+  { icon: Search, label: "Prospecção", href: "/admin/prospecting", enabled: true, section: "Sistema" },
+  { icon: Receipt, label: "Histórico de Pagamentos", href: "/admin/payments", enabled: true, section: "Sistema" },
+  { icon: Clock, label: "Histórico de Login", href: "/admin/login-history", enabled: true, section: "Sistema" },
 ];
 
 const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOpenChange }: SidebarProps) => {
@@ -223,25 +230,17 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
   // Shared navigation content component
   const NavigationContent = ({ showLabels = true, onLinkClick }: { showLabels?: boolean; onLinkClick?: () => void }) => (
     <>
-      {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-border">
+      {/* Logo / header - matches TopBar height and glass feel */}
+      <div className="flex items-center justify-between h-12 px-3 sm:px-4 border-b border-sidebar-border shrink-0">
         {showLabels && (
-          <Link to={getDashboardPath()} className="flex items-center gap-2" onClick={onLinkClick}>
-            <img 
-              src="/logo.png" 
-              alt="zurT Logo" 
-              className="h-12 w-12 object-contain"
-            />
-            <span className="font-semibold text-lg text-foreground">zurT</span>
+          <Link to={getDashboardPath()} className="flex items-center gap-2 min-w-0" onClick={onLinkClick}>
+            <img src="/logo.png" alt="zurT Logo" className="h-9 w-9 object-contain shrink-0" />
+            <span className="font-semibold text-base text-sidebar-foreground truncate">zurT</span>
           </Link>
         )}
         {!showLabels && (
-          <Link to={getDashboardPath()} className="mx-auto" onClick={onLinkClick}>
-            <img 
-              src="/logo.png" 
-              alt="zurT Logo" 
-              className="h-12 w-12 object-contain"
-            />
+          <Link to={getDashboardPath()} className="mx-auto flex shrink-0" onClick={onLinkClick}>
+            <img src="/logo.png" alt="zurT Logo" className="h-9 w-9 object-contain" />
           </Link>
         )}
         {!isMobile && (
@@ -249,39 +248,46 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
             variant="ghost"
             size="icon"
             onClick={onCollapse}
-            className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="h-8 w-8 shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors"
+            aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
           >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+      {/* Navigation - scrollable, with section labels when expanded */}
+      <ScrollArea className="flex-1 min-h-0">
+        <nav className="px-2 py-3 space-y-0.5">
+        {navItems.map((item, index) => {
+          const showSectionLabel = showLabels && item.section && (index === 0 || navItems[index - 1]?.section !== item.section);
           const isEnabled = item.enabled !== false; // Default to true if not specified
           const hasSubItems = item.subItems && item.subItems.length > 0;
           const isExpanded = expandedItems.has(item.label);
           const isSubActive = isSubItemActive(item.subItems);
           const isActive = item.href ? location.pathname === item.href : isSubActive;
           
+          const sectionLabel = showSectionLabel && item.section ? (
+            <div key={`section-${item.section}`} className="pt-3 pb-1.5 px-3">
+              <span className="text-xs font-semibold text-sidebar-section uppercase tracking-wider">{item.section}</span>
+            </div>
+          ) : null;
+
           // Render disabled items differently
           if (!isEnabled) {
             return (
-              <div
-                key={item.label}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-not-allowed opacity-50"
-                )}
-                title="Funcionalidade em breve"
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {showLabels && <span>{item.label}</span>}
-              </div>
+              <React.Fragment key={item.label}>
+                {sectionLabel}
+                <div
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-not-allowed opacity-50"
+                  )}
+                  title="Funcionalidade em breve"
+                >
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  {showLabels && <span>{item.label}</span>}
+                </div>
+              </React.Fragment>
             );
           }
 
@@ -424,6 +430,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
           );
         })}
       </nav>
+      </ScrollArea>
     </>
   );
 

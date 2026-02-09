@@ -69,15 +69,16 @@
     --shadow-card-hover: 0 10px 40px rgba(0, 0, 0, 0.5);
     --shadow-blue: 0 10px 40px rgba(59, 130, 246, 0.15);
     
-    /* Sidebar - Dark theme */
-    --sidebar-background: 222 47% 11%; /* gray-900 */
-    --sidebar-foreground: 215 16% 65%; /* gray-400 */
+    /* Sidebar - Dark theme (matches card + primary accent) */
+    --sidebar-background: 222 47% 11%; /* gray-900 - same as card */
+    --sidebar-foreground: 215 16% 75%; /* gray-300 - slightly brighter for readability */
     --sidebar-primary: 217 91% 60%; /* blue-500 */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 18%; /* gray-800 */
+    --sidebar-accent: 222 47% 18%; /* gray-800 - hover/active bg */
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 217 33% 17%; /* gray-700 */
     --sidebar-ring: 217 91% 60%; /* blue-500 */
+    --sidebar-section: 215 16% 47%; /* gray-500 - section labels */
   }
 
   /* Keep dark as default, but allow light mode override */
