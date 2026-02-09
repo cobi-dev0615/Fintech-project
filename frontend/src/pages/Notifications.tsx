@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Trash2, CheckCheck, Eye, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { notificationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -161,6 +162,7 @@ const Notifications = () => {
       toast({
         title: "Sucesso",
         description: "Todas as notificações foram marcadas como lidas.",
+        variant: "success",
       });
     } catch (error: any) {
       toast({
@@ -189,6 +191,7 @@ const Notifications = () => {
       toast({
         title: "Notificação removida",
         description: "A notificação foi removida com sucesso.",
+        variant: "success",
       });
     } catch (error: any) {
       toast({
@@ -326,7 +329,7 @@ const Notifications = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Notificações</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Notificações</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {unreadCount > 0
               ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}`
@@ -335,7 +338,6 @@ const Notifications = () => {
         </div>
         {unreadCount > 0 && (
           <Button
-            variant="outline"
             size="sm"
             onClick={handleMarkAllAsRead}
             className="flex items-center gap-2 shrink-0"
@@ -346,10 +348,11 @@ const Notifications = () => {
         )}
       </div>
 
-      {/* Error state with retry (e.g. 504 Gateway Timeout) */}
+      {/* Error state with retry */}
       {loadError && !loading && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
-          <p className="text-sm font-medium text-foreground mb-1">Falha ao carregar</p>
+        <div className="rounded-xl border-2 border-destructive/30 bg-card p-8 text-center max-w-md mx-auto">
+          <Bell className="h-12 w-12 text-destructive/70 mx-auto mb-4" />
+          <p className="text-sm font-medium text-foreground mb-1">Falha ao carregar notificações</p>
           <p className="text-sm text-muted-foreground mb-4">{loadError}</p>
           <Button
             variant="outline"
@@ -362,10 +365,27 @@ const Notifications = () => {
       )}
 
       {/* Desktop: Table */}
-      <div className="hidden md:block rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+      <div className="hidden md:block rounded-xl border-2 border-blue-500/70 bg-card overflow-hidden shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
+        {loading && notifications.length === 0 && !loadError ? (
+          <div className="p-6 space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton className="h-8 w-8 rounded shrink-0" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <Skeleton className="h-4 w-full max-w-xs" />
+                  <Skeleton className="h-3 w-full max-w-md" />
+                </div>
+                <Skeleton className="h-4 w-24 shrink-0" />
+                <Skeleton className="h-8 w-16 shrink-0" />
+              </div>
+            ))}
+          </div>
+        ) : (
+        <div className="overflow-x-auto rounded-lg border-0 border-border">
         <Table>
           <TableHeader>
-            <TableRow className="border-border hover:bg-transparent">
+            <TableRow className="border-border bg-muted/40 hover:bg-muted/40">
               <TableHead className="w-14 text-center text-muted-foreground font-medium">#</TableHead>
               <TableHead className="text-muted-foreground font-medium">Tipo</TableHead>
               <TableHead className="text-muted-foreground font-medium">Conteúdo</TableHead>
@@ -374,22 +394,14 @@ const Notifications = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading && notifications.length === 0 && !loadError ? (
-              <TableRow>
-                <TableCell colSpan={5} className="p-12 text-center text-muted-foreground">
-                  Carregando notificações...
-                </TableCell>
-              </TableRow>
-            ) : notifications.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="p-0">
+            {notifications.length === 0 ? (
+              <TableRow className="hover:bg-transparent border-0">
+                <TableCell colSpan={5} className="p-0 border-0">
                   <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                    <div className="rounded-full bg-muted/50 p-5 mb-4">
-                      <Bell className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                    <p className="text-base font-medium text-foreground">Nenhuma notificação</p>
-                    <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                      Novas notificações aparecerão aqui quando você receber convites, mensagens ou alertas dos consultores.
+                    <Bell className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                    <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                      Novas notificações aparecerão aqui quando você receber convites, mensagens ou alertas.
                     </p>
                   </div>
                 </TableCell>
@@ -398,7 +410,7 @@ const Notifications = () => {
               notifications.map((notification, index) => (
                 <TableRow
                   key={notification.id}
-                  className={!notification.isRead ? 'bg-muted/30' : ''}
+                  className={`border-b border-border last:border-0 hover:bg-muted/30 ${!notification.isRead ? 'bg-primary/5' : ''}`}
                 >
                   <TableCell className="w-16 text-center text-sm text-muted-foreground">
                     {(currentPage - 1) * itemsPerPage + index + 1}
@@ -465,19 +477,27 @@ const Notifications = () => {
             )}
           </TableBody>
         </Table>
+        </div>
+        )}
       </div>
 
       {/* Mobile: Card list - no horizontal scroll */}
       <div className="md:hidden space-y-3 min-w-0">
         {loading && notifications.length === 0 && !loadError ? (
-          <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-            Carregando notificações...
+          <div className="rounded-xl border-2 border-blue-500/70 bg-card p-6 space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : notifications.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card p-8 flex flex-col items-center justify-center text-center">
-            <div className="rounded-full bg-muted/50 p-4 mb-3">
-              <Bell className="h-10 w-10 text-muted-foreground" />
-            </div>
+          <div className="rounded-xl border-2 border-blue-500/70 bg-card p-8 flex flex-col items-center justify-center text-center">
+            <Bell className="h-12 w-12 text-muted-foreground/50 mb-4" />
             <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
               Novas notificações aparecerão aqui quando você receber convites ou alertas.
@@ -487,7 +507,7 @@ const Notifications = () => {
           notifications.map((notification, index) => (
             <div
               key={notification.id}
-              className={`rounded-xl border border-border bg-card p-4 space-y-3 ${!notification.isRead ? 'bg-muted/20' : ''}`}
+              className={`rounded-xl border border-border bg-card p-4 space-y-3 ${!notification.isRead ? 'border-primary/30 bg-primary/5' : ''}`}
             >
               <div className="flex items-start justify-between gap-2 min-w-0">
                 <span
@@ -545,7 +565,7 @@ const Notifications = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-border min-w-0">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 min-w-0">
           <p className="text-sm text-muted-foreground min-w-0 break-words" aria-live="polite">
             Mostrando {notifications.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} a {Math.min(currentPage * itemsPerPage, total)} de {total} notificações
