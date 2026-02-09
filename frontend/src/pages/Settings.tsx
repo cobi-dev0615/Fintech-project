@@ -651,7 +651,8 @@ const Settings = () => {
                           </TableCell>
                         </TableRow>
                       );
-                    })}
+                    });
+                  }
                   </TableBody>
                 </Table>
                 </div>
