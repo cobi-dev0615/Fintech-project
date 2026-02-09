@@ -128,31 +128,40 @@ const Cards = () => {
       ) : (
         <>
           {cards.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <ProfessionalKpiCard
-                title="Limite total"
-                value={`R$ ${totalLimit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                change=""
-                changeType="neutral"
-                icon={Wallet}
-                subtitle={`${cards.length} cartão(ões)`}
-              />
-              <ProfessionalKpiCard
-                title="Disponível"
-                value={`R$ ${totalAvailable.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                change=""
-                changeType="positive"
-                icon={Banknote}
-                subtitle="Limite disponível"
-              />
-              <ProfessionalKpiCard
-                title="Faturas em aberto"
-                value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                change=""
-                changeType="neutral"
-                icon={FileText}
-                subtitle="Saldo devedor"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
+              <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
+                <ProfessionalKpiCard
+                  title="Limite total"
+                  value={`R$ ${totalLimit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                  change=""
+                  changeType="neutral"
+                  icon={Wallet}
+                  iconClassName="text-blue-600 dark:text-blue-400"
+                  subtitle={`${cards.length} cartão(ões)`}
+                />
+              </div>
+              <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow">
+                <ProfessionalKpiCard
+                  title="Disponível"
+                  value={`R$ ${totalAvailable.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                  change=""
+                  changeType="positive"
+                  icon={Banknote}
+                  iconClassName="text-emerald-600 dark:text-emerald-400"
+                  subtitle="Limite disponível"
+                />
+              </div>
+              <div className="rounded-xl border-2 border-amber-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-shadow">
+                <ProfessionalKpiCard
+                  title="Faturas em aberto"
+                  value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                  change=""
+                  changeType="neutral"
+                  icon={FileText}
+                  iconClassName="text-amber-600 dark:text-amber-400"
+                  subtitle="Saldo devedor"
+                />
+              </div>
             </div>
           )}
 
@@ -172,7 +181,7 @@ const Cards = () => {
               </div>
             ) : (
               <TooltipProvider>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-w-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-5 min-w-0">
                   {cards.map((card: any) => {
                     const limit = parseFloat(card.limit || 0);
                     const available = parseFloat(card.available_limit || 0);
@@ -187,7 +196,7 @@ const Cards = () => {
                     return (
                       <div
                         key={card.id || card.pluggy_card_id}
-                        className="p-3 sm:p-4 rounded-xl border border-border bg-card/50 hover:bg-card/70 transition-colors space-y-2.5 min-w-0"
+                        className="p-3 sm:p-4 rounded-xl border-2 border-primary/40 bg-card min-w-0 shadow-sm hover:shadow-md hover:shadow-primary/5 transition-shadow space-y-2.5"
                       >
                         <div className="flex items-center justify-between gap-2 min-w-0">
                           <div className="flex items-center gap-3 min-w-0">
