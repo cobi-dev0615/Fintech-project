@@ -189,20 +189,21 @@ const TransactionHistory = () => {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="flex flex-col gap-3 mb-4 min-w-0">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 min-w-0 flex-wrap">
-            <div className="relative w-full min-w-0 sm:flex-1 sm:max-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground shrink-0" />
+        {/* Filters: compact on desktop, stacked on mobile */}
+        <div className="flex flex-col gap-2 mb-3 min-w-0">
+          {/* Row 1: search + account + per page (inline on sm+) */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 min-w-0">
+            <div className="relative flex-1 min-w-0 sm:max-w-[180px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground shrink-0" />
               <Input
                 placeholder="Buscar..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 w-full min-w-0 max-w-full"
+                className="pl-8 h-9 w-full min-w-0 text-sm"
               />
             </div>
             <Select value={accountId || "all"} onValueChange={(v) => setAccountId(v === "all" ? "" : v)}>
-              <SelectTrigger className="w-full min-w-0 sm:w-[180px] shrink-0">
+              <SelectTrigger className="h-9 w-full sm:w-[160px] min-w-0 shrink-0 text-sm">
                 <SelectValue placeholder="Conta" />
               </SelectTrigger>
               <SelectContent>
@@ -215,7 +216,7 @@ const TransactionHistory = () => {
               </SelectContent>
             </Select>
             <Select value={limit.toString()} onValueChange={(v) => setLimit(Number(v))}>
-              <SelectTrigger className="w-full min-w-0 sm:w-[120px] shrink-0">
+              <SelectTrigger className="h-9 w-full sm:w-[100px] min-w-0 shrink-0 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -228,9 +229,9 @@ const TransactionHistory = () => {
             </Select>
           </div>
 
-          {/* Date presets + range */}
+          {/* Row 2: period presets + date range (one row on md+, wraps on small) */}
           <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <span className="text-xs text-muted-foreground shrink-0">Período:</span>
+            <span className="text-xs font-medium text-muted-foreground shrink-0 py-1.5">Período</span>
             {[
               { label: "7 dias", days: 7 },
               { label: "30 dias", days: 30 },
@@ -241,31 +242,35 @@ const TransactionHistory = () => {
                 key={label}
                 variant="outline"
                 size="sm"
-                className="h-8 shrink-0"
+                className="h-8 shrink-0 text-xs px-2.5"
                 onClick={() => setDatePreset(days)}
               >
                 {label}
               </Button>
             ))}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-[130px] h-8 text-xs"
-              />
-              <span className="text-muted-foreground text-xs">até</span>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-[130px] h-8 text-xs"
-              />
-            </div>
+            <span className="hidden sm:inline text-muted-foreground text-xs shrink-0">|</span>
+            <label htmlFor="tx-date-from" className="text-xs text-muted-foreground shrink-0">De</label>
+            <Input
+              id="tx-date-from"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-8 min-w-[8.5rem] w-[8.5rem] shrink-0 text-xs [&::-webkit-calendar-picker-indicator]:opacity-100"
+              title="Data inicial"
+            />
+            <span className="text-muted-foreground text-xs shrink-0">até</span>
+            <Input
+              id="tx-date-to"
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-8 min-w-[8.5rem] w-[8.5rem] shrink-0 text-xs [&::-webkit-calendar-picker-indicator]:opacity-100"
+              title="Data final"
+            />
           </div>
 
           {total > 0 && (
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+            <p className="text-xs text-muted-foreground truncate pt-0.5">
               {(page - 1) * limit + 1}–{Math.min(page * limit, total)} de {total}
             </p>
           )}
