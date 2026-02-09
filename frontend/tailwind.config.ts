@@ -77,6 +77,7 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
           section: "hsl(var(--sidebar-section))",
+          "active-bg": "hsl(var(--sidebar-active-bg))",
         },
         // MyRenda Orange-Amber Palette
         orange: {

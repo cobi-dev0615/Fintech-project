@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, MessageSquare, Plus, TrendingUp, Wallet, EyeOff, Trash2, DollarSign, CreditCard, Building2, Loader2, Receipt } from "lucide-react";
+import { ArrowLeft, FileText, Plus, TrendingUp, Wallet, EyeOff, Trash2, DollarSign, CreditCard, Building2, Loader2, Receipt, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
-import ChartCard from "@/components/dashboard/ChartCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -199,7 +199,7 @@ const ClientProfile = () => {
           <div className="min-w-0 flex-1">
             {showContent ? (
               <>
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">{client!.name}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words tracking-tight">{client!.name}</h1>
                 <p className="text-sm text-muted-foreground mt-1 truncate sm:break-all" title={client!.email}>
                   {client!.email}
                 </p>
@@ -211,18 +211,6 @@ const ClientProfile = () => {
             )}
           </div>
         </div>
-        {showContent && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" className="flex-1 sm:flex-none" disabled={!canViewWallet}>
-            <FileText className="h-4 w-4 mr-2 shrink-0" />
-            <span className="truncate">Gerar Relatório</span>
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-            <MessageSquare className="h-4 w-4 mr-2 shrink-0" />
-            <span className="truncate">Mensagem</span>
-          </Button>
-        </div>
-        )}
       </div>
 
       {/* Wallet sharing disabled notice */}
@@ -238,38 +226,18 @@ const ClientProfile = () => {
       {/* KPI Cards - only when wallet is shared */}
       {showContent && canViewWallet && financial && (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
-        <ProfessionalKpiCard
-          title="Patrimônio Líquido"
-          value={`R$ ${financial.netWorth.toLocaleString("pt-BR")}`}
-          change=""
-          changeType="neutral"
-          icon={TrendingUp}
-          subtitle=""
-        />
-        <ProfessionalKpiCard
-          title="Caixa"
-          value={`R$ ${financial.cash.toLocaleString("pt-BR")}`}
-          change=""
-          changeType="neutral"
-          icon={DollarSign}
-          subtitle=""
-        />
-        <ProfessionalKpiCard
-          title="Investimentos"
-          value={`R$ ${financial.investments.toLocaleString("pt-BR")}`}
-          change=""
-          changeType="neutral"
-          icon={TrendingUp}
-          subtitle=""
-        />
-        <ProfessionalKpiCard
-          title="Dívidas"
-          value={`R$ ${financial.debt.toLocaleString("pt-BR")}`}
-          change=""
-          changeType="neutral"
-          icon={CreditCard}
-          subtitle=""
-        />
+        <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-all min-h-[88px] flex flex-col justify-center">
+          <ProfessionalKpiCard title="Patrimônio Líquido" value={`R$ ${financial.netWorth.toLocaleString("pt-BR")}`} change="" changeType="neutral" icon={TrendingUp} iconClassName="text-blue-500" subtitle="" />
+        </div>
+        <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all min-h-[88px] flex flex-col justify-center">
+          <ProfessionalKpiCard title="Caixa" value={`R$ ${financial.cash.toLocaleString("pt-BR")}`} change="" changeType="neutral" icon={DollarSign} iconClassName="text-emerald-500" subtitle="" />
+        </div>
+        <div className="rounded-xl border-2 border-violet-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-all min-h-[88px] flex flex-col justify-center">
+          <ProfessionalKpiCard title="Investimentos" value={`R$ ${financial.investments.toLocaleString("pt-BR")}`} change="" changeType="neutral" icon={TrendingUp} iconClassName="text-violet-500" subtitle="" />
+        </div>
+        <div className="rounded-xl border-2 border-amber-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-all min-h-[88px] flex flex-col justify-center">
+          <ProfessionalKpiCard title="Dívidas" value={`R$ ${financial.debt.toLocaleString("pt-BR")}`} change="" changeType="neutral" icon={CreditCard} iconClassName="text-amber-500" subtitle="" />
+        </div>
       </div>
       )}
 
@@ -285,31 +253,45 @@ const ClientProfile = () => {
             </div>
           ) : (
           <>
-          <ChartCard title="Resumo Financeiro">
+          <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
+            <h2 className="text-sm font-semibold text-foreground mb-1">Resumo Financeiro</h2>
             {canViewWallet ? (
               <p className="text-sm text-muted-foreground">
-                Visão consolidada das finanças do cliente. Os dados são atualizados automaticamente
-                através das conexões com instituições financeiras.
+                Visão consolidada das finanças do cliente. Os dados são atualizados automaticamente através das conexões com instituições financeiras.
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
                 O cliente desativou o compartilhamento da carteira. Os dados financeiros não estão disponíveis.
               </p>
             )}
-          </ChartCard>
+          </div>
 
           {canViewWallet && (
             <>
               {financeLoading && (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <div className="space-y-4">
+                  <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 space-y-3">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                  <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-5 space-y-3">
+                    <Skeleton className="h-5 w-56" />
+                    <Skeleton className="h-20 w-full" />
+                  </div>
                 </div>
               )}
               {!financeLoading && financeDetail && (
                 <>
-                  <ChartCard title="Conexões Open Finance" subtitle={`${financeDetail.connections.length} instituição(ões) conectada(s)`}>
+                  <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow min-w-0">
+                    <h2 className="text-sm font-semibold text-foreground">Conexões Open Finance</h2>
+                    <p className="text-xs text-muted-foreground mt-1 mb-4">{financeDetail.connections.length} instituição(ões) conectada(s)</p>
                     {financeDetail.connections.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">Nenhuma conexão Open Finance. Os dados abaixo são obtidos quando o cliente conecta instituições via Open Finance.</p>
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Link2 className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                        <p className="text-sm font-medium text-foreground">Nenhuma conexão Open Finance</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-sm">Os dados aparecem quando o cliente conecta instituições via Open Finance.</p>
+                      </div>
                     ) : (
                       <div className="flex flex-wrap gap-3 min-w-0">
                         {financeDetail.connections.map((c) => (
@@ -328,11 +310,17 @@ const ClientProfile = () => {
                         ))}
                       </div>
                     )}
-                  </ChartCard>
+                  </div>
 
-                  <ChartCard title="Contas Bancárias (Open Finance)" subtitle={`${financeDetail.accounts.length} conta(s) sincronizada(s)`}>
+                  <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-w-0">
+                    <h2 className="text-sm font-semibold text-foreground">Contas Bancárias (Open Finance)</h2>
+                    <p className="text-xs text-muted-foreground mt-1 mb-4">{financeDetail.accounts.length} conta(s) sincronizada(s)</p>
                     {financeDetail.accounts.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">Nenhuma conta do Open Finance encontrada.</p>
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Wallet className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                        <p className="text-sm font-medium text-foreground">Nenhuma conta encontrada</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-sm">Contas serão listadas quando o cliente sincronizar pelo Open Finance.</p>
+                      </div>
                     ) : (
                       <>
                         <div className="space-y-3 md:hidden">
@@ -369,7 +357,7 @@ const ClientProfile = () => {
                         </div>
                       </>
                     )}
-                  </ChartCard>
+                  </div>
                 </>
               )}
             </>
@@ -384,20 +372,33 @@ const ClientProfile = () => {
               {loading ? "Carregando..." : (error || "Cliente não encontrado")}
             </div>
           ) : canViewWallet && financeDetail ? (
-            <ChartCard title="Transações Recentes (Open Finance)" subtitle={`Últimas ${financeDetail.transactions.length} transações`}>
+            <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Receipt className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Transações Recentes (Open Finance)</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Últimas {financeDetail.transactions.length} transações</p>
+                </div>
+              </div>
               {financeDetail.transactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">Nenhuma transação do Open Finance encontrada.</p>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <Receipt className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <p className="text-sm font-medium text-foreground">Nenhuma transação encontrada</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-sm">As transações aparecem quando o cliente tem contas conectadas pelo Open Finance.</p>
+                </div>
               ) : (
                 <>
-                  <div className="space-y-3 max-h-[50vh] overflow-y-auto md:hidden min-w-0">
+                  <div className="space-y-3 max-h-[50vh] overflow-y-auto md:hidden min-w-0 pr-1 pb-1 transactions-scrollbar">
                     {financeDetail.transactions.map((tx) => {
                       const amount = Number(tx.amount || 0);
                       const isIncome = amount > 0;
                       return (
-                        <div key={tx.id} className="rounded-lg border border-border p-3 space-y-1.5 min-w-0">
+                        <div key={tx.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-1.5 min-w-0 transition-colors hover:bg-muted/30">
                           <div className="flex justify-between items-start gap-2">
                             <p className="text-xs text-muted-foreground shrink-0">{format(new Date(tx.date), "dd/MM/yyyy", { locale: ptBR })}</p>
-                            <span className={`text-sm font-medium shrink-0 ${isIncome ? "text-success" : "text-destructive"}`}>
+                            <span className={`text-sm font-medium shrink-0 tabular-nums ${isIncome ? "text-success" : "text-destructive"}`}>
                               {isIncome ? "+" : ""}{formatCurrency(amount)}
                             </span>
                           </div>
@@ -408,15 +409,15 @@ const ClientProfile = () => {
                       );
                     })}
                   </div>
-                  <div className="hidden md:block overflow-x-auto max-h-[400px] overflow-y-auto min-w-0">
-                    <table className="w-full text-sm">
-                      <thead className="sticky top-0 bg-background">
+                  <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[400px] min-w-0 pr-1 pb-1 transactions-scrollbar rounded-b-lg">
+                    <table className="w-full text-sm min-w-[520px]">
+                      <thead className="sticky top-0 z-10 bg-card border-b border-border">
                         <tr className="border-b border-border">
-                          <th className="text-left py-2 px-3">Data</th>
-                          <th className="text-left py-2 px-3">Descrição</th>
-                          <th className="text-left py-2 px-3">Conta</th>
-                          <th className="text-left py-2 px-3">Instituição</th>
-                          <th className="text-right py-2 px-3">Valor</th>
+                          <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data</th>
+                          <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Descrição</th>
+                          <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conta</th>
+                          <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Instituição</th>
+                          <th className="text-right py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Valor</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -424,13 +425,13 @@ const ClientProfile = () => {
                           const amount = Number(tx.amount || 0);
                           const isIncome = amount > 0;
                           return (
-                            <tr key={tx.id} className="border-b border-border/50">
-                              <td className="py-2 px-3">{format(new Date(tx.date), "dd/MM/yyyy", { locale: ptBR })}</td>
-                              <td className="py-2 px-3">{tx.description || tx.merchant || "-"}</td>
-                              <td className="py-2 px-3">{tx.account_name || "-"}</td>
-                              <td className="py-2 px-3">{tx.institution_name || "-"}</td>
+                            <tr key={tx.id} className="border-b border-border/50 transition-colors hover:bg-muted/20">
+                              <td className="py-2.5 px-3 text-muted-foreground">{format(new Date(tx.date), "dd/MM/yyyy", { locale: ptBR })}</td>
+                              <td className="py-2.5 px-3 font-medium">{tx.description || tx.merchant || "-"}</td>
+                              <td className="py-2.5 px-3">{tx.account_name || "-"}</td>
+                              <td className="py-2.5 px-3">{tx.institution_name || "-"}</td>
                               <td
-                                className={`py-2 px-3 text-right font-medium ${isIncome ? "text-success" : "text-destructive"}`}
+                                className={`py-2.5 px-3 text-right font-medium tabular-nums ${isIncome ? "text-success" : "text-destructive"}`}
                               >
                                 {isIncome ? "+" : ""}{formatCurrency(amount)}
                               </td>
@@ -442,7 +443,7 @@ const ClientProfile = () => {
                   </div>
                 </>
               )}
-            </ChartCard>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4">O cliente desativou o compartilhamento da carteira. Os dados não estão disponíveis.</p>
           )}
@@ -454,9 +455,15 @@ const ClientProfile = () => {
               {loading ? "Carregando..." : (error || "Cliente não encontrado")}
             </div>
           ) : canViewWallet && financeDetail ? (
-            <ChartCard title="Cartões de Crédito (Open Finance)" subtitle={`${financeDetail.cards.length} cartão(ões)`}>
+            <div className="rounded-xl border-2 border-amber-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-shadow min-w-0">
+              <h2 className="text-sm font-semibold text-foreground">Cartões de Crédito (Open Finance)</h2>
+              <p className="text-xs text-muted-foreground mt-1 mb-4">{financeDetail.cards.length} cartão(ões)</p>
               {financeDetail.cards.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">Nenhum cartão do Open Finance encontrado.</p>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <CreditCard className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <p className="text-sm font-medium text-foreground">Nenhum cartão encontrado</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-sm">Cartões conectados pelo Open Finance aparecerão aqui.</p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {financeDetail.cards.map((card) => (
@@ -481,7 +488,7 @@ const ClientProfile = () => {
                   ))}
                 </div>
               )}
-            </ChartCard>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4">O cliente desativou o compartilhamento da carteira. Os dados não estão disponíveis.</p>
           )}
@@ -494,9 +501,15 @@ const ClientProfile = () => {
             </div>
           ) : canViewWallet && financeDetail ? (
             <>
-              <ChartCard title="Investimentos (Open Finance)" subtitle={`${financeDetail.investments.length} posição(ões)`}>
+              <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow min-w-0">
+                <h2 className="text-sm font-semibold text-foreground">Investimentos (Open Finance)</h2>
+                <p className="text-xs text-muted-foreground mt-1 mb-4">{financeDetail.investments.length} posição(ões)</p>
                 {financeDetail.investments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4">Nenhum investimento do Open Finance encontrado.</p>
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <TrendingUp className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                    <p className="text-sm font-medium text-foreground">Nenhum investimento encontrado</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-sm">Os investimentos do cliente aparecerão aqui quando conectados pelo Open Finance.</p>
+                  </div>
                 ) : (
                   <div className="space-y-4 min-w-0">
                     {financeDetail.breakdown.length > 0 && (
@@ -559,30 +572,34 @@ const ClientProfile = () => {
                     </div>
                   </div>
                 )}
-              </ChartCard>
-              <ChartCard title="Portfólio de Investimentos">
-                <p className="text-sm text-muted-foreground">
-                  Detalhamento completo dos investimentos do cliente, incluindo ações, FIIs,
-                  fundos e renda fixa.
+              </div>
+              <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow min-w-0">
+                <h2 className="text-sm font-semibold text-foreground">Portfólio de Investimentos</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Detalhamento completo dos investimentos do cliente, incluindo ações, FIIs, fundos e renda fixa.
                 </p>
-              </ChartCard>
+              </div>
             </>
           ) : (
-            <ChartCard title="Portfólio de Investimentos">
-              <p className="text-sm text-muted-foreground">
+            <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm min-w-0">
+              <h2 className="text-sm font-semibold text-foreground">Portfólio de Investimentos</h2>
+              <p className="text-sm text-muted-foreground mt-1">
                 O cliente desativou o compartilhamento da carteira. Os dados de investimentos não estão disponíveis.
               </p>
-            </ChartCard>
+            </div>
           )}
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-4 min-w-0 mt-0 md:mt-2">
-          <ChartCard title="Relatórios Gerados">
+          <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
+            <h2 className="text-sm font-semibold text-foreground mb-4">Relatórios Gerados</h2>
             <div className="space-y-3">
               {reports.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhum relatório gerado ainda
-                </p>
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <p className="text-sm font-medium text-foreground">Nenhum relatório gerado ainda</p>
+                  <p className="text-xs text-muted-foreground mt-1">Gere relatórios para este cliente pela ação &quot;Gerar Relatório&quot;.</p>
+                </div>
               ) : (
                 reports.map((report: any) => (
                   <div
@@ -614,19 +631,18 @@ const ClientProfile = () => {
                 ))
               )}
             </div>
-          </ChartCard>
+          </div>
         </TabsContent>
 
         <TabsContent value="notes" className="space-y-4 min-w-0 mt-0 md:mt-2">
-          <ChartCard 
-            title="Anotações" 
-            actions={
-              <Button size="sm">
+          <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <h2 className="text-sm font-semibold text-foreground">Anotações</h2>
+              <Button size="sm" className="shrink-0">
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Anotação
               </Button>
-            }
-          >
+            </div>
             <div className="space-y-4 min-w-0">
               {notes.map((note) => (
                 <div
@@ -661,7 +677,7 @@ const ClientProfile = () => {
                 </Button>
               </div>
             </div>
-          </ChartCard>
+          </div>
         </TabsContent>
           </div>
 
@@ -680,41 +696,73 @@ const ClientProfile = () => {
                   boxShadow: "-4px 0 12px rgba(0,0,0,0.25)",
                 }}
               >
-                <TabsList className="flex flex-col h-auto w-full shrink-0 gap-3 p-2 rounded-xl bg-muted">
-                  <TabsTrigger value="account" className="flex items-center justify-center h-12 w-12 rounded-lg bg-transparent shadow-none data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Account">
+                <TabsList className="flex flex-col h-auto w-full shrink-0 gap-3 p-2 rounded-xl bg-sidebar border border-sidebar-border text-sidebar-foreground">
+                  <TabsTrigger
+                    value="account"
+                    className="flex items-center justify-center h-12 w-12 min-h-[44px] rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-primary data-[state=active]:border data-[state=active]:border-sidebar-primary/30 shadow-none"
+                    title="Account"
+                  >
                     <Wallet className="h-5 w-5 shrink-0" />
                   </TabsTrigger>
-                  <TabsTrigger value="transaction" className="flex items-center justify-center h-12 w-12 rounded-lg bg-transparent shadow-none data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Transaction">
+                  <TabsTrigger
+                    value="transaction"
+                    className="flex items-center justify-center h-12 w-12 min-h-[44px] rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-primary data-[state=active]:border data-[state=active]:border-sidebar-primary/30 shadow-none"
+                    title="Transaction"
+                  >
                     <Receipt className="h-5 w-5 shrink-0" />
                   </TabsTrigger>
-                  <TabsTrigger value="credit_card" className="flex items-center justify-center h-12 w-12 rounded-lg bg-transparent shadow-none data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Credit card">
+                  <TabsTrigger
+                    value="credit_card"
+                    className="flex items-center justify-center h-12 w-12 min-h-[44px] rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-primary data-[state=active]:border data-[state=active]:border-sidebar-primary/30 shadow-none"
+                    title="Credit card"
+                  >
                     <CreditCard className="h-5 w-5 shrink-0" />
                   </TabsTrigger>
-                  <TabsTrigger value="investments" className="flex items-center justify-center h-12 w-12 rounded-lg bg-transparent shadow-none data-[state=active]:bg-background data-[state=active]:shadow-sm" title="Investments">
+                  <TabsTrigger
+                    value="investments"
+                    className="flex items-center justify-center h-12 w-12 min-h-[44px] rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-primary data-[state=active]:border data-[state=active]:border-sidebar-primary/30 shadow-none"
+                    title="Investments"
+                  >
                     <TrendingUp className="h-5 w-5 shrink-0" />
                   </TabsTrigger>
                 </TabsList>
               </div>,
               document.body
             )}
-          {/* Desktop: inline tab strip above content */}
+          {/* Desktop: inline tab strip above content - matches left sidebar style */}
           <div className="hidden lg:flex flex-row w-auto shrink-0 gap-1 p-0 order-2 md:order-1">
-            <TabsList className="flex flex-row h-10 w-auto inline-flex gap-1 p-1.5 rounded-md bg-card">
-              <TabsTrigger value="account" className="flex-none px-3 py-1.5 text-sm" title="Account">
-                <Wallet className="h-4 w-4 mr-2 shrink-0" />
-                Account
+            <TabsList className="flex flex-row h-auto w-auto inline-flex gap-1 p-1.5 rounded-xl bg-sidebar border border-sidebar-border text-sidebar-foreground">
+              <TabsTrigger
+                value="account"
+                className="flex-none flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-primary data-[state=active]:border data-[state=active]:border-sidebar-primary/30 shadow-none"
+                title="Conta"
+              >
+                <Wallet className="h-4 w-4 shrink-0" />
+                Conta
               </TabsTrigger>
-              <TabsTrigger value="transaction" className="flex-none px-3 py-1.5 text-sm" title="Transaction">
-                <Receipt className="h-4 w-4 mr-2 shrink-0" />
-                Transaction
+              <TabsTrigger
+                value="transaction"
+                className="flex-none flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-primary data-[state=active]:border data-[state=active]:border-sidebar-primary/30 shadow-none"
+                title="Transações"
+              >
+                <Receipt className="h-4 w-4 shrink-0" />
+                Transações
               </TabsTrigger>
-              <TabsTrigger value="credit_card" className="flex-none px-3 py-1.5 text-sm" title="Credit card">
-                <CreditCard className="h-4 w-4 mr-2 shrink-0" />
-                Credit card
+              <TabsTrigger
+                value="credit_card"
+                className="flex-none flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-primary data-[state=active]:border data-[state=active]:border-sidebar-primary/30 shadow-none"
+                title="Cartão"
+              >
+                <CreditCard className="h-4 w-4 shrink-0" />
+                Cartão
               </TabsTrigger>
-              <TabsTrigger value="investments" className="flex-none px-3 py-1.5 text-sm" title="Investments">
-                <TrendingUp className="h-4 w-4 mr-2 shrink-0" />
-                Investments
+              <TabsTrigger
+                value="investments"
+                className="flex-none flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-primary data-[state=active]:border data-[state=active]:border-sidebar-primary/30 shadow-none"
+                title="Investimentos"
+              >
+                <TrendingUp className="h-4 w-4 shrink-0" />
+                Investimentos
               </TabsTrigger>
             </TabsList>
           </div>

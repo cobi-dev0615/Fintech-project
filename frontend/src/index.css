@@ -79,6 +79,7 @@
     --sidebar-border: 217 33% 17%; /* gray-700 */
     --sidebar-ring: 217 91% 60%; /* blue-500 */
     --sidebar-section: 215 16% 47%; /* gray-500 - section labels */
+    --sidebar-active-bg: 217 91% 60% / 0.12; /* primary with low opacity for active item */
   }
 
   /* Keep dark as default, but allow light mode override */
@@ -194,7 +195,11 @@
   .nav-item-active {
     @apply bg-sidebar-accent text-sidebar-primary;
   }
-  
+
+  .sidebar-nav-link.active {
+    box-shadow: inset 3px 0 0 0 hsl(var(--sidebar-primary));
+  }
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
@@ -273,5 +278,28 @@
   }
   .assets-scrollbar::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.6);
+  }
+
+  /* Transações Recentes (Open Finance) - scrollbar matches sidebar style */
+  .transactions-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-border)) transparent;
+  }
+  .transactions-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .transactions-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .transactions-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-border));
+    border-radius: 9999px;
+  }
+  .transactions-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-primary) / 0.5);
+  }
+  .transactions-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
