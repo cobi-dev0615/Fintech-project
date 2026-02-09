@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Download, Trash2, User, Calendar } from "lucide-react";
+import { FileText, Download, Trash2, User, Calendar, Loader2, FilePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import ChartCard from "@/components/dashboard/ChartCard";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -185,19 +184,28 @@ const ProfessionalReports = () => {
       });
 
   return (
-    <div className="space-y-6 pb-6 md:pb-0">
+    <div className="space-y-6 pb-6 md:pb-0 min-w-0">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-1">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Relatórios Profissionais</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Relatórios Profissionais</h1>
+          <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
             Crie e gerencie relatórios personalizados para seus clientes
           </p>
         </div>
       </div>
 
       {/* Report Generator */}
-      <ChartCard title="Gerar Novo Relatório" className="overflow-hidden">
+      <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <FilePlus className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Gerar Novo Relatório</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Escolha o cliente, tipo e opções e gere o PDF</p>
+          </div>
+        </div>
         <div className="space-y-5 md:space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-4">
             <div className="space-y-2">
@@ -271,47 +279,63 @@ const ProfessionalReports = () => {
             disabled={!reportType || generateMutation.isPending || clients.length === 0} 
             onClick={handleGenerateReport}
           >
-            <FileText className="h-4 w-4 mr-2 shrink-0" />
+            {generateMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" /> : <FileText className="h-4 w-4 mr-2 shrink-0" />}
             {generateMutation.isPending ? "Gerando..." : "Gerar Relatório PDF"}
           </Button>
           {clients.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              Você precisa ter clientes ativos para gerar relatórios específicos.
+              Você precisa ter clientes ativos para gerar relatórios.
             </p>
           )}
         </div>
-      </ChartCard>
+      </div>
 
       {/* Reports History */}
-      <ChartCard title="Relatórios Gerados" className="overflow-hidden">
+      <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow min-w-0">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Relatórios Gerados</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {filteredReports.length > 0 ? `${filteredReports.length} relatório(s)` : "Histórico de relatórios"}
+            </p>
+          </div>
+        </div>
         <div className="space-y-4">
           {loading ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-28 md:h-24 w-full rounded-lg" />
+                <Skeleton key={i} className="h-24 w-full rounded-lg" />
               ))}
             </div>
           ) : reportsError ? (
-            <div className="text-center py-12 px-4 text-destructive">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Erro ao carregar relatórios</p>
-              <p className="text-sm text-muted-foreground mt-2">
+            <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-6 text-center">
+              <FileText className="h-12 w-12 mx-auto mb-3 text-destructive/70" />
+              <p className="text-sm font-medium text-foreground">Erro ao carregar relatórios</p>
+              <p className="text-xs text-muted-foreground mt-1">
                 {(reportsError as any)?.error || "Tente novamente mais tarde"}
               </p>
             </div>
           ) : filteredReports.length === 0 ? (
-            <div className="text-center py-12 px-4 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum relatório gerado ainda</p>
-              <p className="text-sm mt-2">
-                {selectedClient !== "all" ? "Nenhum relatório encontrado para este cliente" : "Gere seu primeiro relatório acima"}
+            <div className="flex flex-col items-center justify-center py-10 text-center rounded-lg border border-dashed border-border bg-muted/20 min-h-[140px]">
+              <FileText className="h-12 w-12 text-muted-foreground/50 mb-3" />
+              <p className="text-sm font-medium text-foreground">
+                {selectedClient !== "all" ? "Nenhum relatório para este cliente" : "Nenhum relatório gerado ainda"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedClient !== "all" ? "Altere o filtro de cliente acima ou gere um novo relatório" : "Gere seu primeiro relatório no formulário acima"}
               </p>
             </div>
           ) : (
             filteredReports.map((report: Report) => (
               <div
                 key={report.id}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                className={cn(
+                  "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-lg border transition-colors",
+                  "border-border bg-muted/20 hover:bg-muted/30"
+                )}
               >
                 <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
                   <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -322,11 +346,11 @@ const ProfessionalReports = () => {
                       <h3 className="font-semibold text-foreground text-sm sm:text-base">
                         {reportTypeLabels[report.type] || report.type}
                       </h3>
-                      <Badge variant="default" className="text-xs shrink-0 hidden sm:inline-flex">
+                      <Badge className="text-xs shrink-0 hidden sm:inline-flex bg-emerald-600 hover:bg-emerald-600/90 text-white border-0">
                         Gerado
                       </Badge>
                       {report.hasWatermark && (
-                        <Badge variant="outline" className="text-xs shrink-0">
+                        <Badge variant="secondary" className="text-xs shrink-0">
                           <User className="h-3 w-3 mr-1" />
                           Marca d'água
                         </Badge>
@@ -347,7 +371,7 @@ const ProfessionalReports = () => {
                 </div>
                 {/* Mobile: status + time + buttons in one line. Desktop: buttons only */}
                 <div className="flex items-center gap-2 sm:gap-2 shrink-0 border-t border-border pt-3 sm:pt-0 sm:border-t-0 flex-wrap">
-                  <Badge variant="default" className="text-xs shrink-0 sm:hidden">
+                  <Badge className="text-xs shrink-0 sm:hidden bg-emerald-600 hover:bg-emerald-600/90 text-white border-0">
                     Gerado
                   </Badge>
                   <span className="flex items-center gap-1 text-sm text-muted-foreground sm:hidden shrink-0">
@@ -379,7 +403,7 @@ const ProfessionalReports = () => {
             ))
           )}
         </div>
-      </ChartCard>
+      </div>
 
       <AlertDialog open={!!deleteReportId} onOpenChange={(open) => !open && setDeleteReportId(null)}>
         <AlertDialogContent>
