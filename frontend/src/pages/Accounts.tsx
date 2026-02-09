@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Wallet, RefreshCw, Building2 } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Wallet, RefreshCw, Building2, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -13,6 +13,28 @@ const Accounts = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedBanks, setExpandedBanks] = useState<Set<string>>(new Set());
+
+  const accountsByBank = useMemo(() => {
+    const map = new Map<string, { accounts: any[]; total: number }>();
+    accounts.forEach((acc: any) => {
+      const bank = acc.institution_name || "Outros";
+      if (!map.has(bank)) map.set(bank, { accounts: [], total: 0 });
+      const entry = map.get(bank)!;
+      entry.accounts.push(acc);
+      entry.total += parseFloat(acc.current_balance || 0);
+    });
+    return Array.from(map.entries()).map(([name, { accounts: list, total }]) => ({ name, accounts: list, total }));
+  }, [accounts]);
+
+  const toggleBank = (bankName: string) => {
+    setExpandedBanks((prev) => {
+      const next = new Set(prev);
+      if (next.has(bankName)) next.delete(bankName);
+      else next.add(bankName);
+      return next;
+    });
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -44,6 +66,7 @@ const Accounts = () => {
       toast({
         title: "Sincronização concluída",
         description: "Suas contas foram atualizadas.",
+        variant: "success",
       });
     } catch (err: any) {
       toast({
@@ -57,10 +80,10 @@ const Accounts = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Contas</h1>
+    <div className="space-y-6 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Contas</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Contas bancárias conectadas via Open Finance
           </p>
@@ -70,6 +93,7 @@ const Accounts = () => {
           size="sm"
           onClick={handleSync}
           disabled={syncing || loading}
+          className="shrink-0"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
           {syncing ? "Sincronizando…" : "Atualizar"}
@@ -77,53 +101,87 @@ const Accounts = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Carregando...</p>
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
         </div>
       ) : error ? (
-        <div className="text-center py-8">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
           <p className="text-destructive">{error}</p>
         </div>
       ) : (
         <>
-          <ProfessionalKpiCard
-            title="Saldo total"
-            value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            change=""
-            changeType="neutral"
-            icon={Wallet}
-            subtitle={`${accounts.length} conta(s)`}
-          />
+          <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
+            <ProfessionalKpiCard
+              title="Saldo total"
+              value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              change=""
+              changeType="neutral"
+              icon={Wallet}
+              iconClassName="text-blue-600 dark:text-blue-400"
+              subtitle={`${accounts.length} conta(s)`}
+            />
+          </div>
 
-          <ChartCard title="Contas (Open Finance)">
+          <ChartCard title="Contas (Open Finance)" subtitle={accounts.length > 0 ? `${accounts.length} conta(s)` : undefined}>
             {accounts.length === 0 ? (
-              <div className="text-center py-12">
-                <Building2 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-                <p className="text-muted-foreground">
-                  Nenhuma conta conectada. Conecte suas contas em Conexões para ver os saldos aqui.
+              <div className="flex flex-col items-center justify-center py-14 text-center">
+                <div className="rounded-full bg-muted/50 p-5 mb-4">
+                  <Building2 className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <p className="font-medium text-foreground">Nenhuma conta conectada</p>
+                <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                  Conecte suas contas em Conexões → Open Finance para ver os saldos aqui.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {accounts.map((acc: any) => (
-                  <div
-                    key={acc.id || acc.pluggy_account_id}
-                    className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                        <Building2 className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{acc.institution_name || "Banco"}</p>
-                        <p className="text-xs text-muted-foreground">{acc.name || acc.type || "Conta"}</p>
-                      </div>
+              <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 assets-scrollbar">
+                {accountsByBank.map(({ name: bankName, accounts: bankAccounts, total: bankTotal }) => {
+                  const isExpanded = expandedBanks.has(bankName);
+                  return (
+                    <div key={bankName} className="rounded-xl border border-border overflow-hidden bg-card/50">
+                      <button
+                        type="button"
+                        onClick={() => toggleBank(bankName)}
+                        className="flex items-center justify-between gap-3 w-full p-4 text-left hover:bg-muted/20 transition-colors min-w-0"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                          )}
+                          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                            <Building2 className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground truncate">{bankName}</p>
+                            <p className="text-xs text-muted-foreground">{bankAccounts.length} conta(s)</p>
+                          </div>
+                        </div>
+                        <p className="font-semibold tabular-nums shrink-0">
+                          R$ {bankTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
+                      </button>
+                      {isExpanded && (
+                        <div className="border-t border-border bg-muted/10">
+                          {bankAccounts.map((acc: any) => (
+                            <div
+                              key={acc.id || acc.pluggy_account_id}
+                              className="flex items-center justify-between gap-2 px-4 py-2.5 pl-14 hover:bg-muted/10 min-w-0"
+                            >
+                              <span className="text-sm truncate text-foreground">
+                                {acc.name || acc.type || "Conta"}
+                              </span>
+                              <span className="text-sm font-medium tabular-nums shrink-0">
+                                R$ {parseFloat(acc.current_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <p className="font-semibold tabular-nums">
-                      R$ {parseFloat(acc.current_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </ChartCard>

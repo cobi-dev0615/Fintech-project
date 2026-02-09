@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { RefreshCw, Search, ChevronLeft, ChevronRight, Receipt, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,24 +15,81 @@ import { useToast } from "@/hooks/use-toast";
 
 const LIMIT_OPTIONS = [10, 20, 50, 100];
 
+const formatDateKey = (dateStr: string) => {
+  try {
+    const d = new Date(dateStr);
+    return d.toISOString().slice(0, 10);
+  } catch {
+    return dateStr;
+  }
+};
+
+const formatDateLabel = (dateStr: string) => {
+  try {
+    return new Date(dateStr).toLocaleDateString("pt-BR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
 const TransactionHistory = () => {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState("");
+  const [accountId, setAccountId] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [accountOptions, setAccountOptions] = useState<{ value: string; label: string }[]>([]);
+
+  const setDatePreset = (days: number | null) => {
+    if (days === null) {
+      setDateFrom("");
+      setDateTo("");
+      return;
+    }
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+    setDateTo(to.toISOString().slice(0, 10));
+    setDateFrom(from.toISOString().slice(0, 10));
+  };
+
+  const fetchAccounts = useCallback(async () => {
+    try {
+      const data = await financeApi.getAccounts().catch(() => ({ accounts: [] }));
+      const list = (data.accounts || []) as any[];
+      const options = list.map((acc: any) => ({
+        value: String(acc.pluggy_account_id ?? acc.id ?? ""),
+        label: [acc.institution_name, acc.name].filter(Boolean).join(" • ") || "Conta",
+      })).filter((o: { value: string }) => o.value);
+      setAccountOptions(options);
+    } catch {
+      setAccountOptions([]);
+    }
+  }, []);
 
   const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await financeApi.getTransactions({
         page,
         limit,
         q: search || undefined,
+        accountId: accountId || undefined,
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
       });
       setTransactions(data.transactions || []);
       const res = data as {
@@ -46,13 +103,18 @@ const TransactionHistory = () => {
       setTotalPages(pages);
     } catch (err: any) {
       console.error("Error fetching transactions:", err);
+      setError(err?.message ?? err?.error ?? "Erro ao carregar transações.");
       setTransactions([]);
       setTotal(0);
       setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search]);
+  }, [page, limit, search, accountId, dateFrom, dateTo]);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   useEffect(() => {
     fetchTransactions();
@@ -60,7 +122,7 @@ const TransactionHistory = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [search, limit]);
+  }, [search, limit, accountId, dateFrom, dateTo]);
 
   const handleSync = async () => {
     try {
@@ -70,6 +132,7 @@ const TransactionHistory = () => {
       toast({
         title: "Sincronização concluída",
         description: "Transações atualizadas via Open Finance.",
+        variant: "success",
       });
     } catch (err: any) {
       toast({
@@ -81,6 +144,18 @@ const TransactionHistory = () => {
       setSyncing(false);
     }
   };
+
+  const groupedByDate = useMemo(() => {
+    const map = new Map<string, any[]>();
+    transactions.forEach((tx: any) => {
+      const key = formatDateKey(tx.date || "");
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(tx);
+    });
+    return Array.from(map.entries())
+      .sort(([a], [b]) => (b > a ? 1 : -1))
+      .map(([dateKey, list]) => ({ dateKey, list }));
+  }, [transactions]);
 
   return (
     <div className="w-full min-w-0 overflow-x-hidden space-y-6">
@@ -103,11 +178,21 @@ const TransactionHistory = () => {
         </Button>
       </div>
 
-      <ChartCard title="Transações" className="min-w-0">
-        {/* Filters: mobile-first, full width */}
+      <ChartCard
+        title="Transações"
+        subtitle={total > 0 ? `${total} transação(ões)` : undefined}
+        className="min-w-0"
+      >
+        {error && (
+          <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {/* Filters */}
         <div className="flex flex-col gap-3 mb-4 min-w-0">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 min-w-0">
-            <div className="relative w-full min-w-0 sm:flex-1 sm:max-w-xs">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 min-w-0 flex-wrap">
+            <div className="relative w-full min-w-0 sm:flex-1 sm:max-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground shrink-0" />
               <Input
                 placeholder="Buscar..."
@@ -116,6 +201,19 @@ const TransactionHistory = () => {
                 className="pl-9 w-full min-w-0 max-w-full"
               />
             </div>
+            <Select value={accountId || "all"} onValueChange={(v) => setAccountId(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-full min-w-0 sm:w-[180px] shrink-0">
+                <SelectValue placeholder="Conta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as contas</SelectItem>
+                {accountOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label.length > 28 ? opt.label.slice(0, 25) + "…" : opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={limit.toString()} onValueChange={(v) => setLimit(Number(v))}>
               <SelectTrigger className="w-full min-w-0 sm:w-[120px] shrink-0">
                 <SelectValue />
@@ -129,6 +227,43 @@ const TransactionHistory = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Date presets + range */}
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <span className="text-xs text-muted-foreground shrink-0">Período:</span>
+            {[
+              { label: "7 dias", days: 7 },
+              { label: "30 dias", days: 30 },
+              { label: "90 dias", days: 90 },
+              { label: "Tudo", days: null },
+            ].map(({ label, days }) => (
+              <Button
+                key={label}
+                variant="outline"
+                size="sm"
+                className="h-8 shrink-0"
+                onClick={() => setDatePreset(days)}
+              >
+                {label}
+              </Button>
+            ))}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[130px] h-8 text-xs"
+              />
+              <span className="text-muted-foreground text-xs">até</span>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[130px] h-8 text-xs"
+              />
+            </div>
+          </div>
+
           {total > 0 && (
             <p className="text-xs sm:text-sm text-muted-foreground truncate">
               {(page - 1) * limit + 1}–{Math.min(page * limit, total)} de {total}
@@ -137,54 +272,75 @@ const TransactionHistory = () => {
         </div>
 
         {loading ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">Carregando...</p>
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-3" />
+            <p className="text-sm text-muted-foreground">Carregando transações...</p>
           </div>
         ) : transactions.length === 0 ? (
-          <div className="text-center py-8 px-2">
-            <p className="text-sm text-muted-foreground break-words">
-              Nenhuma transação encontrada. Conecte contas em Conexões → Open Finance e sincronize.
+          <div className="flex flex-col items-center justify-center py-14 text-center">
+            <div className="rounded-full bg-muted/50 p-5 mb-4">
+              <Receipt className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground">Nenhuma transação encontrada</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+              Ajuste os filtros ou conecte contas em Conexões → Open Finance e clique em Atualizar para sincronizar.
             </p>
           </div>
         ) : (
           <>
-            {/* Single mobile-first list for all screen sizes: stacked cards, no horizontal scroll */}
-            <ul className="space-y-2 w-full min-w-0 list-none p-0 m-0">
-              {transactions.map((tx: any) => {
-                const amount = parseFloat(tx.amount ?? 0);
-                const amountColor = amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400";
-                return (
-                  <li
-                    key={tx.id ?? tx.pluggy_transaction_id ?? tx.date + tx.description}
-                    className="flex flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2.5 w-full min-w-0 box-border"
-                  >
-                    <div className="flex items-start justify-between gap-2 min-w-0">
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {tx.date ? new Date(tx.date).toLocaleDateString("pt-BR") : "—"}
-                      </span>
-                      <span className={`text-sm font-semibold tabular-nums shrink-0 ${amountColor}`}>
-                        {amount >= 0 ? "+" : "−"} R$ {Math.abs(amount).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <p className="text-sm font-medium text-foreground break-words min-w-0">
-                      {tx.description || tx.merchant || "Transação"}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                      {tx.account_name && (
-                        <span className="text-xs text-muted-foreground truncate max-w-full">
-                          {tx.account_name}
-                        </span>
-                      )}
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
-                        {tx.category || "Outros"}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1 assets-scrollbar">
+              {groupedByDate.map(({ dateKey, list }) => (
+                <div key={dateKey} className="space-y-2 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide sticky top-0 bg-background/95 py-1 z-10">
+                    {formatDateLabel(dateKey)}
+                  </p>
+                  <ul className="space-y-2 list-none p-0 m-0">
+                    {list.map((tx: any) => {
+                      const amount = parseFloat(tx.amount ?? 0);
+                      const isCredit = amount >= 0;
+                      const amountColor = isCredit
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-red-600 dark:text-red-400";
+                      const Icon = isCredit ? ArrowUpRight : ArrowDownLeft;
+                      return (
+                        <li
+                          key={tx.id ?? tx.pluggy_transaction_id ?? tx.date + (tx.description || "") + (tx.amount ?? "")}
+                          className="flex flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2.5 w-full min-w-0 box-border"
+                        >
+                          <div className="flex items-start justify-between gap-2 min-w-0">
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              {tx.date ? new Date(tx.date).toLocaleDateString("pt-BR") : "—"}
+                            </span>
+                            <span className={`flex items-center gap-1 text-sm font-semibold tabular-nums shrink-0 ${amountColor}`}>
+                              <Icon className="h-3.5 w-3.5" />
+                              {amount >= 0 ? "+" : "−"} R${" "}
+                              {Math.abs(amount).toLocaleString("pt-BR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium text-foreground break-words min-w-0">
+                            {tx.description || tx.merchant || "Transação"}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                            {tx.account_name && (
+                              <span className="text-xs text-muted-foreground truncate max-w-full">
+                                {tx.account_name}
+                              </span>
+                            )}
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                              {tx.category || "Outros"}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
 
-            {/* Pagination: compact, no horizontal overflow */}
             {totalPages > 1 && (
               <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-border min-w-0">
                 <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">

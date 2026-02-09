@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link2, RefreshCw, Building2, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Link2, RefreshCw, Building2, CheckCircle2, Clock, AlertCircle, ChevronDown, ChevronRight, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { connectionsApi, financeApi } from "@/lib/api";
@@ -16,12 +16,23 @@ interface Connection {
 
 const OpenFinance = () => {
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [expandedConnectionIds, setExpandedConnectionIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
   const fetchingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const toggleConnection = (id: string) => {
+    setExpandedConnectionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const fetchConnections = async () => {
     if (fetchingRef.current) return;
@@ -32,8 +43,13 @@ const OpenFinance = () => {
 
     try {
       setLoading(true);
-      const connectionsData = await connectionsApi.getAll();
+      const [connectionsData, accountsData] = await Promise.all([
+        connectionsApi.getAll(),
+        financeApi.getAccounts().catch(() => ({ accounts: [], grouped: [], total: 0 })),
+      ]);
       if (abortController.signal.aborted) return;
+
+      setAccounts(accountsData.accounts || []);
 
       const mapped: Connection[] = connectionsData.connections.map((conn: any) => ({
         id: conn.id,
@@ -57,6 +73,7 @@ const OpenFinance = () => {
       setConnections(mapped);
       setError(null);
     } catch (err: any) {
+      setAccounts([]);
       if (abortController.signal.aborted) return;
       setError(err?.error || "Erro ao carregar conexões");
       console.error("Error fetching connections:", err);
@@ -158,15 +175,15 @@ const OpenFinance = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Open Finance</h1>
+    <div className="space-y-6 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Open Finance</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Conecte bancos e corretoras para sincronizar contas e transações
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={creating}>
             <RefreshCw className={`h-4 w-4 mr-2 ${creating ? "animate-spin" : ""}`} />
             {creating ? "Sincronizando…" : "Atualizar"}
@@ -178,57 +195,107 @@ const OpenFinance = () => {
         </div>
       </div>
 
-      <ChartCard title="Bancos e corretoras conectados">
+      <ChartCard title="Bancos e corretoras conectados" subtitle={connections.length > 0 ? `${connections.length} instituição(ões)` : undefined}>
         {connections.length === 0 ? (
-          <div className="text-center py-10">
-            <Building2 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground mb-4">Nenhuma instituição conectada</p>
-            <Button onClick={handlePluggyConnection} disabled={creating}>
+          <div className="flex flex-col items-center justify-center py-14 text-center">
+            <div className="rounded-full bg-muted/50 p-5 mb-4">
+              <Building2 className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground">Nenhuma instituição conectada</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+              Clique em Conectar para vincular seu banco ou corretora e sincronizar contas e transações.
+            </p>
+            <Button onClick={handlePluggyConnection} disabled={creating} className="mt-5">
               <Link2 className="h-4 w-4 mr-2" />
-              Conectar
+              Conectar instituição
             </Button>
           </div>
         ) : (
-          <ul className="divide-y divide-border">
-            {connections.map((conn) => (
-              <li key={conn.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    <Building2 className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">{conn.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {conn.type === "b3" ? "Corretora" : "Banco"}
-                      {conn.lastSync && ` • Última sync: ${conn.lastSync}`}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {conn.status === "connected" && (
-                    <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Conectado
-                    </span>
+          <ul className="space-y-2 max-h-[480px] overflow-y-auto pr-1 assets-scrollbar">
+            {connections.map((conn) => {
+              const isExpanded = expandedConnectionIds.has(conn.id);
+              const connectionAccounts = accounts.filter(
+                (a: any) =>
+                  (a.institution_name || "").toLowerCase() === (conn.name || "").toLowerCase() ||
+                  (a.institution_name || a.name || "").toLowerCase().includes((conn.name || "").toLowerCase())
+              );
+              return (
+                <li key={conn.id} className="rounded-xl border border-border overflow-hidden bg-card/50">
+                  <button
+                    type="button"
+                    onClick={() => toggleConnection(conn.id)}
+                    className="flex items-center justify-between gap-3 w-full p-4 text-left hover:bg-muted/20 transition-colors min-w-0"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                        <Building2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground truncate">{conn.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {conn.type === "b3" ? "Corretora" : "Banco"}
+                          {conn.lastSync && ` • Última sync: ${conn.lastSync}`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {conn.status === "connected" && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Conectado
+                        </span>
+                      )}
+                      {conn.status === "pending" && (
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                          <Clock className="h-4 w-4" />
+                          Pendente
+                        </span>
+                      )}
+                      {(conn.status === "expired" || conn.status === "error" || conn.status === "failed") && (
+                        <span className="inline-flex items-center gap-1 text-xs text-destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          {statusLabel[conn.status] || conn.status}
+                        </span>
+                      )}
+                      {(conn.status === "disconnected" || conn.status === "revoked") && (
+                        <span className="text-xs text-muted-foreground">{statusLabel[conn.status] || conn.status}</span>
+                      )}
+                    </div>
+                  </button>
+                  {isExpanded && (
+                    <div className="border-t border-border bg-muted/10">
+                      {connectionAccounts.length === 0 ? (
+                        <div className="px-4 py-3 pl-14 text-sm text-muted-foreground">
+                          Nenhuma conta sincronizada para esta instituição. Use Atualizar para sincronizar.
+                        </div>
+                      ) : (
+                        <ul className="py-2">
+                          {connectionAccounts.map((acc: any) => (
+                            <li
+                              key={acc.id || acc.pluggy_account_id}
+                              className="flex items-center justify-between gap-2 px-4 py-2.5 pl-14 hover:bg-muted/10 min-w-0"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <span className="text-sm truncate text-foreground">{acc.name || "Conta"}</span>
+                              </div>
+                              <span className="text-sm font-medium tabular-nums shrink-0">
+                                R$ {parseFloat(acc.current_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   )}
-                  {conn.status === "pending" && (
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-                      <Clock className="h-4 w-4" />
-                      Pendente
-                    </span>
-                  )}
-                  {(conn.status === "expired" || conn.status === "error" || conn.status === "failed") && (
-                    <span className="inline-flex items-center gap-1 text-xs text-destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      {statusLabel[conn.status] || conn.status}
-                    </span>
-                  )}
-                  {(conn.status === "disconnected" || conn.status === "revoked") && (
-                    <span className="text-xs text-muted-foreground">{statusLabel[conn.status] || conn.status}</span>
-                  )}
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </ChartCard>
