@@ -1,5 +1,26 @@
 # Nginx Configuration for zurT API Routing
 
+## 504 Gateway Time-out – Quick fix checklist
+
+If you see **504 Gateway Time-out** on `https://zurt.com.br`:
+
+1. **For the main page (/)**
+   - Ensure `location /` serves **static files** from `frontend/dist`, **not** `proxy_pass` to another server.
+   - If you proxy `/` to e.g. `localhost:8080`, the 504 means nothing is running there or it’s too slow. Switch to the static `root` + `try_files` block below (see “Serve frontend” in this doc).
+   - Build the frontend: `cd frontend && npm run build`, then point `root` to that `dist` folder.
+
+2. **For /api requests**
+   - Backend must be running (e.g. on port 5000). Check: `curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/health` or similar.
+   - In nginx, the `location /api` block must have long timeouts (e.g. `proxy_read_timeout 120s;`). Default 60s can cause 504 on slow requests. Use the example config in this repo.
+
+3. **Apply and reload**
+   - Edit the site config: `sudo nano /etc/nginx/sites-available/zurt.com.br`
+   - Test: `sudo nginx -t`
+   - Reload: `sudo systemctl reload nginx`
+   - Check logs: `sudo tail -f /var/log/nginx/error.log`
+
+---
+
 ## Problem
 Requests to `https://www.zurt.com.br/api/auth/login` are returning 404 because nginx is not configured to proxy `/api` requests to the backend server.
 
@@ -21,9 +42,9 @@ location /api {
     proxy_cache_bypass $http_upgrade;
     
     # Increase timeouts for long-running requests
-    proxy_connect_timeout 60s;
-    proxy_send_timeout 60s;
-    proxy_read_timeout 60s;
+    proxy_connect_timeout 120s;
+    proxy_send_timeout 120s;
+    proxy_read_timeout 120s;
 }
 ```
 
@@ -53,9 +74,9 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
         
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
+        proxy_connect_timeout 120s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
     }
 
     # Proxy WebSocket connections

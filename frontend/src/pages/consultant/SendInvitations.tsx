@@ -1,11 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { UserPlus, Send, Trash2, ChevronsUpDown, Loader2, ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle, Mail } from "lucide-react";
+import { Send, Trash2, ChevronsUpDown, Loader2, ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle, Mail, MailPlus, History, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import ChartCard from "@/components/dashboard/ChartCard";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Popover,
   PopoverContent,
@@ -52,7 +62,8 @@ const SendInvitations = () => {
   const [customersLoading, setCustomersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const invitationsPerPage = 3;
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; email: string } | null>(null);
+  const invitationsPerPage = 5;
   const { toast } = useToast();
 
   const fetchAvailableCustomers = useCallback(async (search?: string) => {
@@ -148,15 +159,14 @@ const SendInvitations = () => {
     }
   };
 
-  const handleDeleteInvitation = async (invitationId: string, email: string) => {
-    if (!confirm(`Tem certeza que deseja excluir o convite para ${email}?`)) {
-      return;
-    }
-
+  const handleDeleteInvitation = async () => {
+    if (!deleteTarget) return;
+    const { id: invitationId, email } = deleteTarget;
     try {
       setDeleting(invitationId);
       await consultantApi.deleteInvitation(invitationId);
       setInvitations(invitations.filter((inv) => inv.id !== invitationId));
+      setDeleteTarget(null);
       toast({
         title: "Sucesso",
         description: "Convite excluído com sucesso",
@@ -215,88 +225,94 @@ const SendInvitations = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Enviar Convites</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Convide clientes para conectar-se com você na plataforma
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Enviar Convites</h1>
+          <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
+            Convide clientes para conectar-se com você na plataforma zurT
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Send Invitation Form */}
-        <ChartCard title="Enviar Novo Convite">
+        <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <MailPlus className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Enviar Novo Convite</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Preencha o email e opcionalmente personalize a mensagem</p>
+            </div>
+          </div>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Email do Cliente *</Label>
-              <p className="text-xs text-muted-foreground">
-                Clientes registrados que ainda não foram convidados aparecem na lista. Use as setas do teclado para navegar e Enter para selecionar.
-              </p>
-              <Popover open={emailOpen} onOpenChange={handleOpenChange}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={emailOpen}
-                    className="w-full justify-between font-normal"
-                  >
-                    <span className={cn(!email && "text-muted-foreground")}>
-                      {email || "Buscar ou digitar email..."}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                  <Command shouldFilter={false}>
-                    <CommandInput
-                      placeholder="Buscar por nome ou email..."
-                      value={searchQuery}
-                      onValueChange={setSearchQuery}
-                    />
-                    <CommandList>
-                      <CommandEmpty>
-                        {customersLoading ? (
-                          <div className="flex items-center justify-center py-6">
-                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                          </div>
-                        ) : (
-                          "Nenhum cliente disponível. Digite o email manualmente no campo."
-                        )}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {availableCustomers.map((customer) => (
-                          <CommandItem
-                            key={customer.id}
-                            value={`${customer.email} ${customer.name || ""}`}
-                            onSelect={() => {
-                              setEmail(customer.email);
-                              setName(customer.name || "");
-                              setEmailOpen(false);
-                            }}
-                          >
-                            <div className="flex flex-1 items-center justify-between gap-2 min-w-0">
-                              <div className="min-w-0 truncate">
-                                <span className="font-medium">{customer.email}</span>
+              <Label htmlFor="invite-email">Email do Cliente *</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="invite-email"
+                  type="email"
+                  placeholder="exemplo@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 min-w-0"
+                />
+                <Popover open={emailOpen} onOpenChange={handleOpenChange}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="icon" type="button" aria-label="Buscar cliente" title="Buscar cliente na lista">
+                      <ChevronsUpDown className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[min(100vw-2rem,320px)] p-0" align="end">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Buscar por nome ou email..."
+                        value={searchQuery}
+                        onValueChange={setSearchQuery}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {customersLoading ? (
+                            <div className="flex items-center justify-center py-6">
+                              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            </div>
+                          ) : (
+                            "Nenhum cliente disponível. Digite o email ao lado."
+                          )}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {availableCustomers.map((customer) => (
+                            <CommandItem
+                              key={customer.id}
+                              value={`${customer.email} ${customer.name || ""}`}
+                              onSelect={() => {
+                                setEmail(customer.email);
+                                setName(customer.name || "");
+                                setEmailOpen(false);
+                              }}
+                            >
+                              <div className="flex flex-1 min-w-0 truncate">
+                                <span className="font-medium truncate">{customer.email}</span>
                                 {customer.name && (
-                                  <span className="block text-xs text-muted-foreground truncate">
+                                  <span className="ml-2 text-xs text-muted-foreground truncate hidden sm:inline">
                                     {customer.name}
                                   </span>
                                 )}
                               </div>
-                              <Badge variant="secondary" className="shrink-0 text-xs">
-                                NEW
-                              </Badge>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Digite o email ou use o ícone ao lado para buscar clientes já registrados.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -317,59 +333,70 @@ const SendInvitations = () => {
                 placeholder="Olá! Gostaria de convidá-lo para usar a plataforma zurT..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="min-h-[100px]"
+                className="min-h-[100px] resize-none"
               />
             </div>
 
             <Button onClick={handleSendInvitation} className="w-full" size="lg" disabled={sending}>
-              <Send className="h-4 w-4 mr-2" />
+              {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
               {sending ? "Enviando..." : "Enviar Convite por Email"}
             </Button>
           </div>
-        </ChartCard>
+        </div>
 
         {/* Invitations History */}
-        <ChartCard title="Histórico de Convites">
+        <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow min-w-0">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500">
+              <History className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Histórico de Convites</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Acompanhe o status dos convites enviados</p>
+            </div>
+          </div>
           <div className="space-y-3">
             {loading ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>Carregando...</p>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                ))}
               </div>
             ) : invitations.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum convite enviado ainda</p>
+              <div className="flex flex-col items-center justify-center py-10 text-center rounded-lg border border-dashed border-border bg-muted/20">
+                <Mail className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <p className="text-sm font-medium text-foreground">Nenhum convite enviado ainda</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm">Envie um convite pelo formulário ao lado para começar.</p>
               </div>
             ) : (
               paginatedInvitations.map((invitation) => (
                 <div
                   key={invitation.id}
-                  className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                  className="p-4 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 transition-colors"
                 >
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div className="flex-1">
-                      <div className="font-semibold text-foreground mb-1">
-                        {invitation.name || invitation.email}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{invitation.email}</div>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground truncate">{invitation.name || invitation.email}</p>
+                      <p className="text-sm text-muted-foreground truncate">{invitation.email}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       {getStatusBadge(invitation.status)}
                       {invitation.status === "pending" && (
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteInvitation(invitation.id, invitation.email)}
+                          onClick={() => setDeleteTarget({ id: invitation.id, email: invitation.email })}
                           disabled={deleting === invitation.id}
                           title="Excluir convite"
+                          aria-label="Excluir convite"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {deleting === invitation.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground pt-3 border-t border-border">
                     <span>Enviado: {formatDate(invitation.sentAt)}</span>
                     <span>Expira: {formatDate(invitation.expiresAt)}</span>
                   </div>
@@ -378,24 +405,26 @@ const SendInvitations = () => {
             )}
           </div>
           {totalInvitations > 0 && (
-            <div className="flex flex-col gap-3 pt-4 border-t border-border text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-              <p>
+            <div className="flex flex-col gap-3 pt-4 mt-4 border-t border-border text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <p className="tabular-nums">
                 Mostrando {showingFrom}-{showingTo} de {totalInvitations} convites
               </p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="icon"
+                  className="h-8 w-8"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   aria-label="Página anterior"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-foreground font-medium">{currentPage} / {Math.max(1, totalPages)}</span>
+                <span className="text-foreground font-medium tabular-nums min-w-[4ch] text-center">{currentPage} / {totalPages}</span>
                 <Button
                   variant="outline"
                   size="icon"
+                  className="h-8 w-8"
                   disabled={currentPage === totalPages || totalInvitations === 0}
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   aria-label="Próxima página"
@@ -405,32 +434,57 @@ const SendInvitations = () => {
               </div>
             </div>
           )}
-        </ChartCard>
+        </div>
       </div>
 
       {/* Tips */}
-      <ChartCard title="Dicas para Convites">
-        <div className="space-y-3 text-sm text-muted-foreground">
+      <div className="rounded-xl border-2 border-amber-500/50 bg-card p-5 shadow-sm min-w-0">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <Lightbulb className="h-5 w-5" />
+          </div>
+          <h2 className="text-sm font-semibold text-foreground">Dicas para Convites</h2>
+        </div>
+        <div className="space-y-4 text-sm text-muted-foreground">
           <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-xs font-bold text-primary">1</span>
-            </div>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
             <div>
-              <div className="font-semibold text-foreground mb-1">Personalize sua mensagem</div>
+              <p className="font-semibold text-foreground mb-0.5">Personalize sua mensagem</p>
               <p>Uma mensagem personalizada aumenta as chances de aceitação do convite.</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-xs font-bold text-primary">2</span>
-            </div>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</span>
             <div>
-              <div className="font-semibold text-foreground mb-1">Acompanhe o status</div>
-              <p>Veja quais convites foram aceitos, pendentes ou expirados no histórico.</p>
+              <p className="font-semibold text-foreground mb-0.5">Acompanhe o status</p>
+              <p>Veja no histórico quais convites foram aceitos, pendentes ou expirados.</p>
             </div>
           </div>
         </div>
-      </ChartCard>
+      </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir convite?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o convite para{" "}
+              <strong>{deleteTarget?.email}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteInvitation}
+              disabled={!!deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

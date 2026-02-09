@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { MessageSquare, Send, Search, UserPlus, Calendar, Plus, MoreVertical, Trash2, History, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import ChartCard from "@/components/dashboard/ChartCard";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { consultantApi, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow, format } from "date-fns";
@@ -337,51 +337,70 @@ const Messages = () => {
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Page Header */}
       <div className="flex-shrink-0 flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Mensagens</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Comunique-se com seus clientes
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Mensagens</h1>
+          <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
+            Comunique-se com seus clientes pela plataforma
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/consultant/invitations')}>
-            <UserPlus className="h-4 w-4 mr-2" />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/consultant/invitations')}>
+            <UserPlus className="h-4 w-4 mr-2 shrink-0" />
             Enviar Convite
           </Button>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2 shrink-0" />
             Nova Conversa
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 flex-1 min-h-0">
         {/* Conversations List */}
-        <ChartCard className="p-0 flex flex-col min-h-0">
-          <div className="p-3 border-b border-border">
+        <div className="rounded-xl border-2 border-blue-500/70 bg-card flex flex-col min-h-0 overflow-hidden shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
+          <div className="flex items-center gap-3 p-3 border-b border-border shrink-0">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <MessageSquare className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-semibold text-foreground">Conversas</h2>
+              <p className="text-xs text-muted-foreground truncate">Selecione para abrir</p>
+            </div>
+          </div>
+          <div className="p-3 border-b border-border shrink-0">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Buscar conversas..."
-                className="pl-9"
+                className="pl-9 h-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Buscar conversas"
               />
             </div>
           </div>
           <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-1 p-2">
               {conversationsLoading ? (
-                <div className="space-y-3 p-4">
+                <div className="space-y-2 p-2">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
+                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
                   ))}
                 </div>
               ) : filteredConversations.length === 0 ? (
-                <div className="text-center py-8 text-sm text-muted-foreground">
-                  {searchQuery ? "Nenhuma conversa encontrada" : "Nenhuma conversa encontrada"}
-                  {!searchQuery && conversations.length === 0 && (
-                    <p className="text-xs mt-2">Comece uma nova conversa com um cliente</p>
+                <div className="flex flex-col items-center justify-center py-10 text-center px-4 rounded-lg border border-dashed border-border bg-muted/20 min-h-[160px]">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <p className="text-sm font-medium text-foreground">
+                    {searchQuery ? "Nenhuma conversa encontrada" : "Nenhuma conversa ainda"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {searchQuery ? "Tente outro termo" : "Inicie uma conversa com um cliente"}
+                  </p>
+                  {!searchQuery && (
+                    <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" size="sm" className="mt-3">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nova Conversa
+                    </Button>
                   )}
                 </div>
               ) : (
@@ -389,37 +408,38 @@ const Messages = () => {
                   <button
                     key={conversation.id}
                     onClick={() => setSelectedConversation(conversation.id)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                    className={cn(
+                      "w-full text-left p-3 rounded-lg transition-colors border",
                       selectedConversation === conversation.id
-                        ? "bg-primary/10 border border-primary/20"
-                        : "hover:bg-muted"
-                    }`}
+                        ? "bg-primary/10 border-primary/30"
+                        : "border-transparent hover:bg-muted/50"
+                    )}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                             <span className="text-sm font-semibold text-primary">
                               {conversation.clientName.charAt(0).toUpperCase()}
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-sm text-foreground truncate">
+                            <p className="font-semibold text-sm text-foreground truncate">
                               {conversation.clientName}
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate">
-                              {conversation.lastMessage}
-                            </div>
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {conversation.lastMessage || "—"}
+                            </p>
                           </div>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
                           {formatConversationTime(conversation.timestamp)}
                         </span>
                         {conversation.unread > 0 && (
-                          <Badge className="bg-primary text-primary-foreground text-xs min-w-[20px] justify-center">
-                            {conversation.unread > 99 ? '99+' : conversation.unread}
+                          <Badge className="bg-primary text-primary-foreground text-xs min-w-[20px] justify-center h-5">
+                            {conversation.unread > 99 ? "99+" : conversation.unread}
                           </Badge>
                         )}
                       </div>
@@ -429,30 +449,32 @@ const Messages = () => {
               )}
             </div>
           </ScrollArea>
-        </ChartCard>
+        </div>
 
-        {/* Chat dialog: fixed height; scrollbar only in conversation history */}
-        <div className="lg:col-span-2 min-h-0 flex flex-col ">
-          <ChartCard className="h-full min-h-0 flex flex-col p-0 ">
+        {/* Chat panel */}
+        <div className="lg:col-span-2 min-h-0 flex flex-col rounded-xl border-2 border-violet-500/70 bg-card overflow-hidden shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow">
             {conversationLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <Skeleton className="h-32 w-full" />
+              <div className="flex-1 flex flex-col p-4 gap-4">
+                <Skeleton className="h-14 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-3/4 rounded-lg ml-auto" />
+                <Skeleton className="h-24 w-1/2 rounded-lg" />
               </div>
             ) : currentConversation ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b border-border">
+                <div className="p-4 border-b border-border shrink-0 bg-muted/20">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <span className="text-sm font-semibold text-primary">
                         {currentConversation?.clientName?.charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-foreground">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground truncate">
                         {currentConversation?.clientName}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Cliente</div>
+                      </p>
+                      <p className="text-xs text-muted-foreground">Cliente</p>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -479,16 +501,18 @@ const Messages = () => {
 
                 {/* Chat area: only this part scrolls (not header, not input block) */}
                 <div
-                  className="flex-1 min-h-0 max-h-[min(70vh,calc(100vh-14rem))] overflow-y-auto overflow-x-hidden overscroll-contain p-4 pb-0"
+                  className="flex-1 min-h-0 max-h-[min(70vh,calc(100vh-21rem))] overflow-y-auto overflow-x-hidden overscroll-contain p-4 pb-0"
                   ref={scrollAreaRef}
                   style={{ overscrollBehavior: 'contain' }}
                 >
                   <div className="space-y-4 pb-24">
                     {currentConversation?.messages?.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Nenhuma mensagem ainda</p>
-                        <p className="text-xs mt-1">Envie a primeira mensagem para começar a conversa</p>
+                      <div className="text-center py-10">
+                        <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground mb-3">
+                          <MessageSquare className="h-6 w-6" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground">Nenhuma mensagem ainda</p>
+                        <p className="text-xs text-muted-foreground mt-1">Envie a primeira mensagem para começar</p>
                       </div>
                     ) : (
                       currentConversation?.messages?.map((message: Message) => (
@@ -499,25 +523,25 @@ const Messages = () => {
                           }`}
                         >
                           <div
-                            className={`max-w-[70%] rounded-lg p-3 ${
+                            className={cn(
+                              "max-w-[75%] sm:max-w-[70%] rounded-xl px-3 py-2.5 shadow-sm",
                               message.sender === "consultant"
                                 ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-foreground"
-                            }`}
+                                : "bg-muted text-foreground border border-border/50"
+                            )}
                           >
                             {message.content ? <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p> : null}
                             {message.attachmentUrl && message.attachmentName && (
-                              <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline flex items-center gap-1 mt-1">
-                                <Paperclip className="h-3 w-3 flex-shrink-0" />
+                              <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline flex items-center gap-1.5 mt-1.5 opacity-90 hover:opacity-100">
+                                <Paperclip className="h-3.5 w-3.5 flex-shrink-0" />
                                 {message.attachmentName}
                               </a>
                             )}
                             <p
-                              className={`text-xs mt-1 ${
-                                message.sender === "consultant"
-                                  ? "text-amber-200/95"
-                                  : "text-cyan-400 dark:text-cyan-400"
-                              }`}
+                              className={cn(
+                                "text-[11px] mt-1.5 opacity-80",
+                                message.sender === "consultant" ? "text-primary-foreground/90" : "text-muted-foreground"
+                              )}
                             >
                               {formatMessageTime(message.timestamp)}
                             </p>
@@ -530,7 +554,7 @@ const Messages = () => {
                 </div>
 
                 {/* Message input block - no scroll, fixed at bottom */}
-                <div className="flex-shrink-0 bg-card border-t border-border p-4">
+                <div className="flex-shrink-0 bg-muted/20 border-t border-border p-4">
                   {pendingAttachment && (
                     <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
                       <span className="truncate flex-1">{pendingAttachment.filename}</span>
@@ -592,19 +616,25 @@ const Messages = () => {
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center text-center p-8">
-                <div>
-                  <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <p className="text-muted-foreground mb-2">
-                    Selecione uma conversa para começar a trocar mensagens
+                <div className="max-w-sm">
+                  <div className="flex justify-center mb-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 text-muted-foreground">
+                      <MessageSquare className="h-8 w-8" />
+                    </div>
+                  </div>
+                  <p className="font-medium text-foreground mb-1">
+                    Selecione uma conversa
                   </p>
-                  <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" className="mt-4">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Escolha uma conversa na lista ao lado ou inicie uma nova com um cliente
+                  </p>
+                  <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline">
                     <Plus className="h-4 w-4 mr-2" />
-                    Iniciar Nova Conversa
+                    Nova Conversa
                   </Button>
                 </div>
               </div>
             )}
-          </ChartCard>
         </div>
       </div>
 
