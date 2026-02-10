@@ -58,6 +58,8 @@ interface SubscriptionDetail {
   };
 }
 
+const LIMIT_OPTIONS = [5, 10, 20];
+
 const Subscriptions = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -65,6 +67,7 @@ const Subscriptions = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -88,7 +91,7 @@ const Subscriptions = () => {
           status: filterStatus !== "all" ? filterStatus : undefined,
           plan: filterPlan !== "all" ? filterPlan : undefined,
           page,
-          limit: 20,
+          limit: pageSize,
           startDate: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
           endDate: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
         });
@@ -113,7 +116,11 @@ const Subscriptions = () => {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, filterStatus, filterPlan, page, dateRange.from, dateRange.to]);
+  }, [searchQuery, filterStatus, filterPlan, page, pageSize, dateRange.from, dateRange.to]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
 
   const filteredSubscriptions = subscriptions;
 
@@ -365,55 +372,91 @@ const Subscriptions = () => {
           </table>
         </div>
         
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-            <div className="text-sm text-muted-foreground">
-              Mostrando {((page - 1) * pagination.limit) + 1} - {Math.min(page * pagination.limit, pagination.total)} de {pagination.total}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1 || loading}
-              >
-                Anterior
-              </Button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (pagination.totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (page <= 3) {
-                    pageNum = i + 1;
-                  } else if (page >= pagination.totalPages - 2) {
-                    pageNum = pagination.totalPages - 4 + i;
-                  } else {
-                    pageNum = page - 2 + i;
-                  }
-                  return (
-                    <Button
-                      key={pageNum}
-                      variant={page === pageNum ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPage(pageNum)}
-                      disabled={loading}
-                    >
-                      {pageNum}
-                    </Button>
-                  );
-                })}
+        {/* Pagination + page size */}
+        {(pagination.total > 0 || pagination.totalPages > 1) && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {((page - 1) * pagination.limit) + 1}–{Math.min(page * pagination.limit, pagination.total)} de {pagination.total}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                disabled={page === pagination.totalPages || loading}
-              >
-                Próxima
-              </Button>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Por página</span>
+                <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                  <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LIMIT_OPTIONS.map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            {pagination.totalPages > 1 && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1 || loading}
+                >
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (page <= 3) {
+                      pageNum = i + 1;
+                    } else if (page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={page === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPage(pageNum)}
+                        disabled={loading}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                  disabled={page === pagination.totalPages || loading}
+                >
+                  Próxima
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+        {pagination.total === 0 && pagination.totalPages <= 1 && (
+          <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-border">
+            <span className="text-sm text-muted-foreground">Por página</span>
+            <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+              <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LIMIT_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
         </>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, LogIn, Loader2, Shield, CheckCircle2, XCircle, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
@@ -34,11 +35,14 @@ interface LoginHistory {
   };
 }
 
+const LIMIT_OPTIONS = [5, 10, 20];
+
 const LoginHistory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loginHistory, setLoginHistory] = useState<LoginHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 50,
@@ -56,7 +60,7 @@ const LoginHistory = () => {
         setLoading(true);
         const response = await adminApi.getLoginHistory({
           page,
-          limit: 50,
+          limit: pageSize,
         });
         setLoginHistory(response.loginHistory);
         setPagination(response.pagination);
@@ -68,7 +72,11 @@ const LoginHistory = () => {
     };
 
     fetchLoginHistory();
-  }, [page]);
+  }, [page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
 
   // Reset to page 1 when search changes
   useEffect(() => {
@@ -349,12 +357,30 @@ const LoginHistory = () => {
               </table>
             </div>
 
-            {/* Enhanced Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
-                <div className="text-sm text-muted-foreground">
-                  Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
+            {/* Pagination + page size */}
+            {(pagination.total > 0 || pagination.totalPages > 1) && (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-sm text-muted-foreground">
+                    Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">Por página</span>
+                    <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                      <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LIMIT_OPTIONS.map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+                {pagination.totalPages > 1 && (
                 <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
@@ -390,6 +416,24 @@ const LoginHistory = () => {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
+                )}
+              </div>
+            )}
+            {pagination.total === 0 && pagination.totalPages <= 1 && (
+              <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-border">
+                <span className="text-sm text-muted-foreground">Por página</span>
+                <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                  <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LIMIT_OPTIONS.map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </>
