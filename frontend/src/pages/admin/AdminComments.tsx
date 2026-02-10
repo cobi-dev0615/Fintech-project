@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
-import { 
-  MessageSquare, 
-  Search, 
-  Filter, 
-  Reply, 
-  Loader2, 
-  MoreHorizontal,
+import { useState, useEffect, useCallback } from "react";
+import {
+  Search,
+  Filter,
+  Reply,
+  Loader2,
   CheckCircle2,
-  Clock
+  Clock,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,13 +25,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -40,12 +39,20 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+
+const LIMIT_OPTIONS = [5, 10, 20];
 
 const AdminComments = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -55,16 +62,18 @@ const AdminComments = () => {
   const [replyText, setReplyText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchComments = async (page: number) => {
+  const fetchComments = useCallback(async (p: number, limit: number) => {
     setLoading(true);
     try {
-      const response = await adminApi.getComments(page);
+      const response = await adminApi.getComments(p, limit);
       setComments(response.comments);
       setPagination({
         page: response.pagination.page,
+        limit: response.pagination.limit,
+        total: response.pagination.total,
         totalPages: response.pagination.totalPages,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
         description: "Erro ao carregar comentários",
@@ -73,11 +82,33 @@ const AdminComments = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
-    fetchComments(1);
-  }, []);
+    fetchComments(page, pageSize);
+  }, [page, pageSize, fetchComments]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
+
+  const getPageNumbers = (): (number | string)[] => {
+    const totalPages = pagination.totalPages;
+    const currentPage = pagination.page;
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("...");
+      if (totalPages > 1) pages.push(totalPages);
+    }
+    return pages;
+  };
 
   const handleOpenReplyModal = (comment: any) => {
     setSelectedComment(comment);
@@ -96,7 +127,7 @@ const AdminComments = () => {
         description: "Resposta enviada com sucesso",
       });
       setIsReplyModalOpen(false);
-      fetchComments(pagination.page);
+      fetchComments(page, pageSize);
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -216,34 +247,86 @@ const AdminComments = () => {
           </Table>
         </div>
 
-        {pagination.totalPages > 1 && (
-          <div className="mt-4">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => pagination.page > 1 && fetchComments(pagination.page - 1)}
-                    className={cn(pagination.page === 1 && "pointer-events-none opacity-50")}
-                  />
-                </PaginationItem>
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((p) => (
-                  <PaginationItem key={p}>
-                    <PaginationLink 
-                      onClick={() => fetchComments(p)}
-                      isActive={pagination.page === p}
+        {/* Pagination + page size */}
+        {(pagination.total > 0 || pagination.totalPages > 1) && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1} a{" "}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Por página</span>
+                <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                  <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LIMIT_OPTIONS.map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={pagination.page === 1}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {getPageNumbers().map((pageNum, idx) =>
+                  pageNum === "..." ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
+                      ...
+                    </span>
+                  ) : (
+                    <Button
+                      key={pageNum}
+                      variant={pagination.page === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPage(pageNum as number)}
+                      className="h-8 w-8 p-0"
                     >
-                      {p}
-                    </PaginationLink>
-                  </PaginationItem>
+                      {pageNum}
+                    </Button>
+                  )
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                  disabled={pagination.page === pagination.totalPages}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+        {pagination.total === 0 && pagination.totalPages <= 1 && (
+          <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-border">
+            <span className="text-sm text-muted-foreground">Por página</span>
+            <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+              <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LIMIT_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
                 ))}
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => pagination.page < pagination.totalPages && fetchComments(pagination.page + 1)}
-                    className={cn(pagination.page === pagination.totalPages && "pointer-events-none opacity-50")}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+              </SelectContent>
+            </Select>
           </div>
         )}
       </ChartCard>
