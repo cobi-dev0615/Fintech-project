@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { FileText, Calendar, BarChart3, TrendingUp, History, Check } from "lucide-react";
+import { FileText, PieChart, TrendingUp, History, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -12,22 +12,20 @@ const CARD_ACCENTS = [
   { border: "border-blue-500/70", shadow: "hover:shadow-blue-500/5", icon: "text-blue-600 dark:text-blue-400" },
   { border: "border-emerald-500/70", shadow: "hover:shadow-emerald-500/5", icon: "text-emerald-600 dark:text-emerald-400" },
   { border: "border-violet-500/70", shadow: "hover:shadow-violet-500/5", icon: "text-violet-600 dark:text-violet-400" },
-  { border: "border-amber-500/70", shadow: "hover:shadow-amber-500/5", icon: "text-amber-600 dark:text-amber-400" },
 ] as const;
 
 const Reports = () => {
-  const [reportType, setReportType] = useState<string>("");
+  const reportTypes = [
+    { id: "customer-portfolio", value: "portfolio_analysis", label: "Customer Portfolio", icon: PieChart, description: "Todos os ativos obtidos via open finance" },
+    { id: "investment-report", value: "portfolio_analysis", label: "Investment Report", icon: TrendingUp, description: "Análise de investimentos e composição da carteira" },
+    { id: "transaction-report", value: "transactions", label: "Transaction Report", icon: FileText, description: "Histórico de transações por período" },
+  ];
+  const [selectedId, setSelectedId] = useState<string>("");
   const [dateRange, setDateRange] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  const reportTypes = [
-    { value: "consolidated", label: "Relatório Consolidado", icon: BarChart3, description: "Visão geral completa do patrimônio" },
-    { value: "transactions", label: "Extrato de Transações", icon: FileText, description: "Histórico de transações por período" },
-    { value: "portfolio_analysis", label: "Evolução de Investimentos", icon: TrendingUp, description: "Performance e evolução patrimonial" },
-    { value: "monthly", label: "Relatório Mensal", icon: Calendar, description: "Resumo mensal de receitas e despesas" },
-  ];
+  const reportType = reportTypes.find((t) => t.id === selectedId)?.value ?? "";
 
   const handleGenerate = async () => {
     if (!reportType) {
@@ -94,7 +92,7 @@ const Reports = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-5">
         {reportTypes.map((type, index) => {
           const accent = CARD_ACCENTS[index];
-          const isSelected = reportType === type.value;
+          const isSelected = selectedId === type.id;
           const Icon = type.icon;
           return (
             <button
@@ -143,13 +141,13 @@ const Reports = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Tipo de Relatório</label>
-              <Select value={reportType} onValueChange={setReportType}>
+              <Select value={selectedId} onValueChange={setSelectedId}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
                   {reportTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
+                    <SelectItem key={type.id} value={type.id}>
                       {type.label}
                     </SelectItem>
                   ))}
@@ -188,4 +186,24 @@ const Reports = () => {
 };
 
 export default Reports;
+
+;
+
+;
+
+;
+
+ "Gerando PDF…" : "Gerar Relatório PDF"}
+          </Button>
+        </div>
+      </ChartCard>
+    </div>
+  );
+};
+
+export default Reports;
+
+;
+
+;
 

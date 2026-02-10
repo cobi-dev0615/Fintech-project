@@ -275,7 +275,94 @@ export async function buildReportPdf(options: {
     );
     doc.moveDown(0.6);
 
-    if (reportType === 'transactions' && transactions.length > 0) {
+    if (reportType === 'monthly') {
+      doc.moveDown(1);
+      doc.fontSize(12).fillColor('#111827').text('Resumo do período', { continued: false });
+      doc.moveDown(0.3);
+      const sectionY = doc.y;
+      doc.moveTo(50, sectionY).lineTo(562, sectionY).strokeColor('#d1d5db').stroke();
+      doc.moveDown(0.5);
+      const margin = 50;
+      if (transactions.length > 0) {
+        const receitas = transactions.filter((t) => t.amount_cents > 0).reduce((s, t) => s + t.amount_cents, 0);
+        const despesas = transactions.filter((t) => t.amount_cents < 0).reduce((s, t) => s + Math.abs(t.amount_cents), 0);
+        const saldo = receitas - despesas;
+        doc.fontSize(10).fillColor('#374151');
+        doc.text(`Total de receitas: ${formatBRL(receitas)}`, margin, doc.y, { continued: false });
+        doc.text(`Total de despesas: ${formatBRL(-despesas)}`, margin, doc.y + 14, { continued: false });
+        doc.fontSize(10).fillColor(saldo >= 0 ? '#166534' : '#b91c1c');
+        doc.text(`Saldo do período: ${formatBRL(saldo)}`, margin, doc.y + 28, { continued: false });
+        doc.y += 44;
+        doc.moveDown(0.5);
+        doc.fontSize(11).fillColor('#1f2937').text('Movimentações', { continued: false });
+        doc.moveDown(0.3);
+        const tableWidth = 512;
+        const txColW = { date: 58, desc: tableWidth - 58 - 52 - 78, category: 52, amount: 78 };
+        const rowHeight = 10;
+        const headerHeight = 14;
+        const bottomY = 720;
+        const drawTxHeader = (y: number) => {
+          doc.fillColor('#e5e7eb').strokeColor('#d1d5db');
+          doc.rect(margin, y, tableWidth, headerHeight).fillAndStroke();
+          doc.fontSize(8).fillColor('#374151');
+          doc.text('Data', margin + 5, y + 4, { width: txColW.date - 4 });
+          doc.text('Descrição', margin + txColW.date + 5, y + 4, { width: txColW.desc - 4 });
+          doc.text('Categoria', margin + txColW.date + txColW.desc + 5, y + 4, { width: txColW.category - 4 });
+          doc.text('Valor', margin + txColW.date + txColW.desc + txColW.category + 5, y + 4, { width: txColW.amount - 6, align: 'right' });
+          return y + headerHeight;
+        };
+        let tableY = doc.y;
+        tableY = drawTxHeader(tableY);
+        doc.y = tableY;
+        const monthlyRows = transactions.slice(0, 500);
+        for (let i = 0; i < monthlyRows.length; i++) {
+          const row = monthlyRows[i];
+          if (doc.y + rowHeight > bottomY) {
+            doc.addPage({ size: 'A4', margin: 50 });
+            doc.y = 50;
+            tableY = drawTxHeader(doc.y);
+            doc.y = tableY;
+          }
+          const desc = (row.description || row.merchant || '—').slice(0, 48);
+          const cat = (row.category || '—').slice(0, 14);
+          const amountStr = formatBRL(row.amount_cents);
+          const isNegative = row.amount_cents < 0;
+          const rowY = doc.y;
+          if (i % 2 === 1) {
+            doc.fillColor('#f9fafb');
+            doc.rect(margin, rowY, tableWidth, rowHeight).fill();
+          }
+          doc.strokeColor('#e5e7eb');
+          doc.rect(margin, rowY, tableWidth, rowHeight).stroke();
+          doc.fontSize(8).fillColor(isNegative ? '#b91c1c' : '#374151');
+          doc.text(formatDate(row.occurred_at), margin + 4, rowY + 2, { width: txColW.date - 4 });
+          doc.text(desc, margin + txColW.date + 4, rowY + 2, { width: txColW.desc - 4 });
+          doc.text(cat, margin + txColW.date + txColW.desc + 4, rowY + 2, { width: txColW.category - 4 });
+          doc.text(amountStr, margin + txColW.date + txColW.desc + txColW.category + 4, rowY + 2, { width: txColW.amount - 4, align: 'right' });
+          doc.y = rowY + rowHeight;
+        }
+        doc.moveDown(0.8);
+        const footerBoxY = doc.y;
+        const footerBoxH = 36;
+        doc.fillColor('#f9fafb').strokeColor('#e5e7eb');
+        doc.rect(margin, footerBoxY, tableWidth, footerBoxH).fillAndStroke();
+        doc.fontSize(9).fillColor('#374151').text(
+          `Total: ${transactions.length} transação(ões) no período.`,
+          margin + 10, footerBoxY + 8, { width: tableWidth - 20 }
+        );
+        doc.fontSize(8).fillColor('#6b7280').text(
+          'Documento gerado automaticamente por zurT. Para dúvidas, acesse a plataforma.',
+          margin + 10, footerBoxY + 22, { width: tableWidth - 20 }
+        );
+        doc.y = footerBoxY + footerBoxH + 12;
+      } else {
+        doc.fontSize(10).fillColor('#6b7280').text(
+          'Nenhuma movimentação encontrada no período selecionado ou não há dados sincronizados.',
+          margin, doc.y, { width: 512 }
+        );
+        doc.y += 24;
+      }
+    } else if (reportType === 'transactions' && transactions.length > 0) {
       doc.moveDown(1);
       doc.fontSize(12).fillColor('#111827').text('Transações', { continued: false });
       doc.moveDown(0.3);
@@ -356,7 +443,8 @@ export async function buildReportPdf(options: {
       );
     }
 
-    if (!(reportType === 'transactions' && transactions.length > 0)) {
+    const hasOwnFooter = (reportType === 'transactions' && transactions.length > 0) || (reportType === 'monthly' && transactions.length > 0);
+    if (!hasOwnFooter) {
       doc.moveDown(3);
       doc.fontSize(9).fillColor('#999999').text(
         '— Documento gerado automaticamente por zurT. Para dúvidas, acesse a plataforma.',
