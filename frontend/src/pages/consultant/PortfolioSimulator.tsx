@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { TrendingUp, PieChart, BarChart3, Settings, Download } from "lucide-react";
+import { TrendingUp, PieChart, BarChart3, Settings, Download, LineChart as LineChartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import ChartCard from "@/components/dashboard/ChartCard";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   PieChart as RechartsPieChart,
   Pie,
@@ -103,12 +103,12 @@ const PortfolioSimulator = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Simulador de Portfólio</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Simulador de Portfólio</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
             Crie projeções de portfólio para apresentar aos clientes
           </p>
         </div>
@@ -122,8 +122,17 @@ const PortfolioSimulator = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Configuration */}
-        <div className="lg:col-span-1 space-y-6">
-          <ChartCard title="Configuração">
+        <div className="lg:col-span-1 space-y-6 min-w-0">
+          <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow")}>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                <Settings className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Configuração</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Cliente, cenário e horizonte</p>
+              </div>
+            </div>
           <div className="space-y-4">
             <div className="space-y-2">
                 <Label htmlFor="client">Cliente</Label>
@@ -174,10 +183,19 @@ const PortfolioSimulator = () => {
               Simular
             </Button>
           </div>
-        </ChartCard>
+        </div>
 
           {results && (
-            <ChartCard title="Alocação">
+            <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow")}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                  <PieChart className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Alocação</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Perfil do cenário selecionado</p>
+                </div>
+              </div>
               <div className="space-y-3">
                 {results.allocation.map((item: any, index: number) => (
                   <div key={index} className="space-y-2">
@@ -193,16 +211,26 @@ const PortfolioSimulator = () => {
                     </div>
                   </div>
                 ))}
-                  </div>
-            </ChartCard>
+              </div>
+            </div>
           )}
                 </div>
 
         {/* Results */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0">
           {results ? (
             <>
-              <ChartCard title="Resultados da Simulação">
+              <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow")}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                    <LineChartIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-foreground">Resultados da Simulação</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">Projeção e crescimento do portfólio</p>
+                  </div>
+                </div>
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                     <div className="text-xs sm:text-sm text-muted-foreground mb-1">Valor Final</div>
@@ -245,9 +273,20 @@ const PortfolioSimulator = () => {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </ChartCard>
+              </div>
+              </div>
 
-              <ChartCard title="Análise de Cenários">
+              <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow")}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-foreground">Análise de Cenários</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">Compare perfis de investimento</p>
+                  </div>
+                </div>
+              <div className="space-y-3">
                 <p className="text-xs sm:text-sm text-muted-foreground mb-4 break-words">
                   Comparação dos diferentes perfis de investimento para o cliente {results.client}
                 </p>
@@ -284,15 +323,26 @@ const PortfolioSimulator = () => {
                     </div>
                   ))}
                 </div>
-              </ChartCard>
+              </div>
+              </div>
             </>
           ) : (
-            <ChartCard title="Simulação">
-            <div className="text-center py-12 text-muted-foreground">
-                <PieChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Configure os parâmetros e clique em "Simular" para ver os resultados</p>
+            <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[200px] flex flex-col")}>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                  <PieChart className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Simulação</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Projeção de portfólio por cenário</p>
+                </div>
+              </div>
+              <div className="flex flex-1 flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border bg-muted/20 min-h-[140px]">
+                <PieChart className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <p className="text-sm font-medium text-foreground">Nenhum resultado ainda</p>
+                <p className="text-xs text-muted-foreground mt-1">Selecione um cliente, configure o cenário e clique em &quot;Simular&quot;</p>
+              </div>
             </div>
-            </ChartCard>
           )}
         </div>
       </div>
