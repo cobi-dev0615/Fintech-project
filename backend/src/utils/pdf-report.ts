@@ -143,7 +143,7 @@ function ensureSpace(doc: any, margin: number, needed: number, onNewPage?: () =>
 }
 
 /** Draw portfolio report from DB-driven payload. No fixed page count; sections only if data exists; pagination by content. */
-function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, reportTitle?: string, opts?: { watermarkText?: string }) {
+function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, reportTitle?: string, opts?: { watermarkText?: string; reportDescription?: string }) {
   const margin = 50;
   const pageW = 612 - margin * 2;
   const company = data.companyName || 'zurT';
@@ -151,6 +151,7 @@ function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, rep
   const hasInvestments = data.investments.length > 0;
   const title = reportTitle || 'Relatório de Portfólio';
   const watermarkText = opts?.watermarkText;
+  const reportDescription = opts?.reportDescription;
   const onNewPage = watermarkText ? () => drawWatermark(doc, watermarkText) : undefined;
   const ensure = (m: number, needed: number) => ensureSpace(doc, m, needed, onNewPage);
 
@@ -164,8 +165,13 @@ function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, rep
   doc.fontSize(16).fillColor('#1e3a5f').text(title, 612 - margin - 200, 48, { width: 200, align: 'right' });
   doc.fontSize(9).fillColor('#64748b').text(`Data: ${data.reportDate}`, 612 - margin - 200, 66, { width: 200, align: 'right' });
   doc.fontSize(9).fillColor('#64748b').text(`Cliente: ${data.clientName}`, 612 - margin - 200, 76, { width: 200, align: 'right' });
-  doc.moveTo(margin, 88).lineTo(margin + pageW, 88).stroke('#e2e8f0');
-  let y = 95;
+  let headerBottom = 88;
+  if (reportDescription) {
+    doc.fontSize(8).fillColor('#94a3b8').text(reportDescription, 612 - margin - 200, 86, { width: 200, align: 'right' });
+    headerBottom = 98;
+  }
+  doc.moveTo(margin, headerBottom).lineTo(margin + pageW, headerBottom).stroke('#e2e8f0');
+  let y = headerBottom + 7;
 
   // -------- Resumo (summary stats - 4 metrics, user-friendly cards) --------
   const totalCash = data.cashBalance ?? (data.accounts?.reduce((s, a) => s + a.balance, 0) ?? 0);
@@ -474,7 +480,11 @@ function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, rep
 }
 
 /**
- * Build a PDF buffer for a report. For portfolio_analysis, content is driven by portfolioPayload (from DB); no fixed page count.
+ * Build a PDF buffer for a report. Content by type:
+ * - portfolio_analysis: Financial summary, accounts, cards, investment composition, transaction and investment history.
+ * - financial_planning: Complete client portfolio plus planning section (objectives and recommendations) for follow-up meetings.
+ * - monthly: Period summary (income, expenses, balance) and transaction table for the selected interval.
+ * - custom: Same consolidated view as client: summary, accounts, cards, investments, and recent transactions.
  */
 export async function buildReportPdf(options: {
   reportType: string;
@@ -493,27 +503,85 @@ export async function buildReportPdf(options: {
   const wmText = (watermark && watermarkText) ? watermarkText : undefined;
 
   const portfolioReportTypes = ['portfolio_analysis', 'consolidated', 'financial_planning', 'custom'];
+  const reportDescriptions: Record<string, string> = {
+    portfolio_analysis: 'Resumo financeiro, contas, cartões, composição de investimentos e histórico de transações e investimentos.',
+    financial_planning: 'Portfólio completo do cliente e seção de planejamento com objetivos e recomendações para reuniões de acompanhamento.',
+    custom: 'Visão consolidada: resumo, contas, cartões, investimentos e transações recentes.',
+    consolidated: 'Visão consolidada do portfólio do cliente.',
+  };
   if (portfolioReportTypes.includes(reportType) && portfolioPayload) {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     const title = (params?.reportLabel as string) || typeLabel;
-    drawPortfolioReportFromData(doc, portfolioPayload, title, wmText ? { watermarkText: wmText } : undefined);
-    if (reportType === 'financial_planning') {
+    const reportDescription = reportDescriptions[reportType];
+    drawPortfolioReportFromData(doc, portfolioPayload, title, {
+      ...(wmText ? { watermarkText: wmText } : {}),
+      ...(reportDescription ? { reportDescription } : {}),
+    });
+    if (reportType === 'financial_planning' && portfolioPayload) {
       const pageW = 612 - 100;
       const margin = 50;
       doc.addPage({ size: 'A4', margin: 50 });
       if (wmText) drawWatermark(doc, wmText);
-      doc.y = 80;
-      doc.fontSize(11).fillColor('#1f2937').text('Planejamento Financeiro', { continued: false });
-      doc.moveDown(0.5);
-      doc.moveTo(margin, doc.y).lineTo(margin + pageW, doc.y).strokeColor('#e5e7eb').stroke();
-      doc.moveDown(0.8);
+      doc.y = 60;
+      doc.fontSize(14).fillColor('#1e3a5f').text('Planejamento Financeiro', margin, doc.y, { continued: false });
+      doc.fontSize(9).fillColor('#64748b').text(`Cliente: ${portfolioPayload.clientName} • ${portfolioPayload.reportDate}`, margin, doc.y + 18, { continued: false });
+      doc.moveTo(margin, doc.y + 28).lineTo(margin + pageW, doc.y + 28).strokeColor('#e5e7eb').stroke();
+      let planY = doc.y + 38;
+
+      // -------- Resumo do portfólio (recap so the planning section is self-contained) --------
+      const totalValue = portfolioPayload.totalValue ?? portfolioPayload.investments.reduce((s, i) => s + Number(i.current_value || 0), 0);
+      const totalCash = portfolioPayload.cashBalance ?? (portfolioPayload.accounts?.reduce((s, a) => s + a.balance, 0) ?? 0);
+      const totalDebt = portfolioPayload.totalDebt ?? (portfolioPayload.creditCards?.reduce((s, c) => s + c.balance, 0) ?? 0);
+      const hasInv = portfolioPayload.investments.length > 0;
+      const avgProfitability = hasInv && totalValue > 0 && portfolioPayload.investments.some((i) => i.profitability != null)
+        ? portfolioPayload.investments.reduce((s, i) => s + Number(i.current_value || 0) * (i.profitability != null ? Number(i.profitability) : 0), 0) / totalValue
+        : null;
+
+      doc.y = planY;
+      doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, 18).fill();
+      doc.rect(margin, doc.y, 4, 18).fill(DARK_BLUE);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#1e3a5f').text('Resumo do portfólio do cliente', margin + 12, doc.y + 5, { continued: false });
+      doc.font('Helvetica');
+      doc.y += 26;
+      const gap = 8;
+      const cardW = (pageW - gap * 3) / 4;
+      const boxH = 40;
+      const cardY = doc.y;
+      const planMetrics = [
+        { label: 'Patrimônio em investimentos', value: hasInv ? formatBRLFromNumber(totalValue) : 'R$ 0,00', bg: '#eff6ff' },
+        { label: 'Rentabilidade média', value: avgProfitability != null ? `CDI + ${avgProfitability.toFixed(2)}%` : '—', bg: '#ecfdf5' },
+        { label: 'Saldo em contas', value: formatBRLFromNumber(totalCash), bg: '#eef2ff' },
+        { label: 'Dívida (cartões)', value: formatBRLFromNumber(totalDebt), bg: '#fffbeb' },
+      ];
+      for (let i = 0; i < planMetrics.length; i++) {
+        const x = margin + i * (cardW + gap);
+        doc.fillColor(planMetrics[i].bg).rect(x, cardY, cardW, boxH).fill();
+        doc.strokeColor('#e2e8f0').lineWidth(0.5).rect(x, cardY, cardW, boxH).stroke();
+        doc.fontSize(7).fillColor('#64748b').text(planMetrics[i].label.toUpperCase(), x + 8, cardY + 6, { width: cardW - 12 });
+        doc.fontSize(10).fillColor('#1e3a5f').text(planMetrics[i].value, x + 8, cardY + 22, { width: cardW - 12 });
+      }
+      doc.y = cardY + boxH + 20;
+
+      // -------- Objetivos --------
+      doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, 18).fill();
+      doc.rect(margin, doc.y, 4, 18).fill(DARK_BLUE);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#1e3a5f').text('Objetivos', margin + 12, doc.y + 5, { continued: false });
+      doc.font('Helvetica');
+      doc.y += 26;
       doc.fontSize(10).fillColor('#374151').text(
-        'Objetivos: Este relatório consolida a visão atual do portfólio do cliente. Recomenda-se definir objetivos de curto, médio e longo prazo em conjunto com o investidor e revisar a alocação periodicamente.',
+        'Este relatório consolida a visão atual do portfólio do cliente. Recomenda-se definir objetivos de curto, médio e longo prazo em conjunto com o investidor e revisar a alocação periodicamente. Utilize esta seção para registrar os objetivos acordados nas reuniões de acompanhamento.',
         margin, doc.y, { width: pageW, align: 'left' }
       );
-      doc.moveDown(1);
+      doc.y += 48;
+
+      // -------- Recomendações --------
+      doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, 18).fill();
+      doc.rect(margin, doc.y, 4, 18).fill(DARK_BLUE);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#1e3a5f').text('Recomendações', margin + 12, doc.y + 5, { continued: false });
+      doc.font('Helvetica');
+      doc.y += 26;
       doc.fontSize(10).fillColor('#374151').text(
-        'Recomendações: As informações de contas, cartões e investimentos refletem os dados disponíveis na plataforma. Utilize este documento como base para as reuniões de acompanhamento e para propor ajustes conforme o perfil e os objetivos do cliente.',
+        'As informações de contas, cartões e investimentos refletem os dados disponíveis na plataforma. Utilize este documento como base para as reuniões de acompanhamento e para propor ajustes conforme o perfil e os objetivos do cliente.',
         margin, doc.y, { width: pageW, align: 'left' }
       );
     }
@@ -532,6 +600,9 @@ export async function buildReportPdf(options: {
     doc.moveDown(1.5);
 
     doc.fontSize(14).text(typeLabel, { continued: false });
+    if (reportType === 'monthly') {
+      doc.fontSize(9).fillColor('#64748b').text('Resumo do período (receitas, despesas, saldo) e tabela de movimentações do intervalo selecionado.', { continued: false });
+    }
     doc.moveDown(0.5);
 
     doc.fontSize(11).fillColor('#666666').text(`Gerado em ${createdAt}`, { continued: false });

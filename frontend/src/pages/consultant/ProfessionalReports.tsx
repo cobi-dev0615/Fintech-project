@@ -30,7 +30,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const REPORTS_PAGE_SIZE = 10;
+const REPORTS_PAGE_SIZE = 6;
 
 interface Report {
   id: string;
@@ -53,19 +53,15 @@ const ProfessionalReports = () => {
   const { toast } = useToast();
 
   const reportTypes = [
-    "consolidated",
     "portfolio_analysis",
     "financial_planning",
     "monthly",
-    "custom",
   ];
 
   const reportTypeLabels: Record<string, string> = {
-    consolidated: "Relatório Consolidado",
     portfolio_analysis: "Análise de Portfólio",
     financial_planning: "Planejamento Financeiro",
     monthly: "Relatório Mensal",
-    custom: "Relatório Personalizado",
   };
 
   const reportTypeDescriptions: Record<string, string> = {
@@ -73,7 +69,6 @@ const ProfessionalReports = () => {
     portfolio_analysis: "Análise de portfólio do cliente: resumo financeiro, contas, cartões, composição de investimentos e histórico de transações e investimentos.",
     financial_planning: "Portfólio completo do cliente mais uma seção de planejamento com objetivos e recomendações para uso em reuniões de acompanhamento.",
     monthly: "Relatório mensal com resumo do período (receitas, despesas, saldo) e tabela de movimentações para o intervalo selecionado.",
-    custom: "Relatório personalizado com a mesma visão consolidada do cliente: resumo, contas, cartões, investimentos e transações recentes.",
   };
 
   // Fetch reports and clients in parallel with caching
@@ -225,8 +220,10 @@ const ProfessionalReports = () => {
         </div>
       </div>
 
-      {/* Report Generator */}
-      <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
+      {/* Report Generator + Reports History — horizontal layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
+        {/* Report Generator */}
+        <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <FilePlus className="h-5 w-5" />
@@ -323,10 +320,10 @@ const ProfessionalReports = () => {
             </p>
           )}
         </div>
-      </div>
+        </div>
 
-      {/* Reports History */}
-      <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow min-w-0">
+        {/* Reports History */}
+        <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow min-w-0">
         <div className="flex items-center gap-3 mb-5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500">
             <FileText className="h-5 w-5" />
@@ -466,6 +463,7 @@ const ProfessionalReports = () => {
             )}
             </>
           )}
+        </div>
         </div>
       </div>
 

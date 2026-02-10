@@ -2518,11 +2518,9 @@ export async function consultantRoutes(fastify: FastifyInstance) {
 
       // Validate report type
       const validTypes = [
-        'consolidated',
         'portfolio_analysis',
         'financial_planning',
         'monthly',
-        'custom',
         'transactions',
         'monthly_evolution',
         'advisor_custom',
