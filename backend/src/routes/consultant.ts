@@ -4,7 +4,7 @@ import path from 'path';
 import { db } from '../db/connection.js';
 import { cache } from '../utils/cache.js';
 import { createAlert } from '../utils/notifications.js';
-import { buildReportPdf, getFallbackPdfBuffer } from '../utils/pdf-report.js';
+import { buildReportPdf, getFallbackPdfBuffer, type PortfolioReportPayload } from '../utils/pdf-report.js';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'messages');
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -2209,6 +2209,67 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       const dateRange = params?.dateRange as string | undefined;
       const targetUserId = report.target_user_id || consultantId;
 
+      let portfolioPayload: PortfolioReportPayload | undefined;
+      if (reportType === 'portfolio_analysis') {
+        let clientName = 'Cliente';
+        try {
+          const userRow = await db.query('SELECT full_name FROM users WHERE id = $1', [targetUserId]);
+          clientName = userRow.rows[0]?.full_name || clientName;
+        } catch (_) {}
+        const investments: PortfolioReportPayload['investments'] = [];
+        let totalValue = 0;
+        try {
+          const hasPluggy = await db.query('SELECT 1 FROM pluggy_investments LIMIT 1').then(() => true).catch(() => false);
+          if (hasPluggy) {
+            const invResult = await db.query(
+              `SELECT name, type, current_value, profitability, quantity, unit_price
+               FROM pluggy_investments WHERE user_id = $1 ORDER BY current_value DESC NULLS LAST`,
+              [targetUserId]
+            );
+            for (const r of invResult.rows) {
+              const val = parseFloat(r.current_value ?? 0);
+              totalValue += val;
+              investments.push({
+                name: r.name || 'Investimento',
+                type: r.type || undefined,
+                current_value: val,
+                profitability: r.profitability != null ? parseFloat(r.profitability) : undefined,
+                quantity: r.quantity,
+                unit_price: r.unit_price,
+              });
+            }
+          }
+        } catch (_) {}
+        if (investments.length === 0) {
+          try {
+            const hasHoldings = await db.query('SELECT 1 FROM holdings LIMIT 1').then(() => true).catch(() => false);
+            if (hasHoldings) {
+              const holdResult = await db.query(
+                `SELECT COALESCE(a.name, h.asset_name_fallback, 'Ativo') as name, market_value_cents
+                 FROM holdings h
+                 LEFT JOIN assets a ON h.asset_id = a.id
+                 WHERE h.user_id = $1 ORDER BY market_value_cents DESC NULLS LAST`,
+                [targetUserId]
+              );
+              for (const r of holdResult.rows) {
+                const val = Number(r.market_value_cents || 0) / 100;
+                totalValue += val;
+                investments.push({
+                  name: r.name || 'Ativo',
+                  current_value: val,
+                });
+              }
+            }
+          } catch (_) {}
+        }
+        portfolioPayload = {
+          clientName,
+          reportDate: createdAt,
+          investments,
+          totalValue: investments.length > 0 ? totalValue : undefined,
+        };
+      }
+
       type TxRow = { occurred_at: Date; description: string | null; merchant: string | null; category: string | null; amount_cents: number; currency: string; account_name?: string | null };
       let transactions: TxRow[] = [];
       if (reportType === 'transactions') {
@@ -2279,6 +2340,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
           dateRange,
           params,
           transactions: transactions.length ? transactions : undefined,
+          portfolioPayload,
         });
         if (!pdf || pdf.length === 0) {
           pdf = getFallbackPdfBuffer(reportType, createdAt);

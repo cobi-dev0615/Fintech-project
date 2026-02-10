@@ -2,12 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { FileText, Download, Trash2, ChevronLeft, ChevronRight, FilePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -121,7 +116,7 @@ const ReportHistory = () => {
       a.download = name;
       a.click();
       URL.revokeObjectURL(a.href);
-      toast({ title: "Download iniciado", description: "O PDF está sendo baixado." });
+      toast({ title: "Download iniciado", description: "O PDF está sendo baixado.", variant: "success" });
     } catch (e) {
       toast({
         title: "Erro",
@@ -138,7 +133,7 @@ const ReportHistory = () => {
       await reportsApi.delete(deleteReportId);
       setReports((prev) => prev.filter((r) => r.id !== deleteReportId));
       setDeleteReportId(null);
-      toast({ title: "Relatório removido", description: "O relatório foi excluído." });
+      toast({ title: "Relatório removido", description: "O relatório foi excluído.", variant: "success" });
     } catch (e: any) {
       toast({
         title: "Erro",
@@ -256,40 +251,38 @@ const ReportHistory = () => {
                         Gerado em {report.date}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <TooltipProvider>
-                          <div className="flex items-center justify-end gap-1">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleDownload(report.id)}
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Baixar PDF</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                  onClick={() => setDeleteReportId(report.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Remover relatório</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TooltipProvider>
+                        <div className="flex items-center justify-end gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleDownload(report.id)}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Baixar PDF</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={() => setDeleteReportId(report.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Remover relatório</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -52,6 +52,7 @@ const Reports = () => {
             </a>
           </>
         ),
+        variant: "success",
       });
       setReportType("");
       setDateRange("");
