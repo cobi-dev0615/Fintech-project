@@ -213,8 +213,10 @@ export function useAuth() {
     hasUnauthorizedError.current = false;
     authService.logout();
     setUser(null);
+    setHasToken(false);
     queryClient.clear();
     queryClient.setQueryData(['auth', 'me'], null);
+    navigate('/login', { replace: true });
   };
 
   return {

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { cn } from "@/lib/utils";
@@ -8,11 +8,24 @@ import TopBar from "./TopBar";
 
 const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour of inactivity
 
+const isProtectedPath = (pathname: string) =>
+  pathname.startsWith("/app") || pathname.startsWith("/consultant") || pathname.startsWith("/admin");
+
 const AppLayout = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Redirect to login when on a protected path with no session
+  useEffect(() => {
+    if (!isProtectedPath(location.pathname)) return;
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+    if (!token || token.trim() === "") {
+      navigate("/login", { replace: true });
+    }
+  }, [location.pathname, navigate]);
 
   // Session timeout: log out user after 1 hour of inactivity
   useSessionTimeout({

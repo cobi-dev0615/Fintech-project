@@ -59,8 +59,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
   };
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    logout(); // clears session and navigates to /login
   };
 
   return (
