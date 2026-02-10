@@ -118,24 +118,43 @@ const LIGHT_BLUE = '#b3d9f2';
 const YELLOW_BG = '#fffde7';
 const FOOTER_HEIGHT = 70;
 const BOTTOM_Y = 792 - 50 - FOOTER_HEIGHT;
+const PAGE_CX = 306;
+const PAGE_CY = 396;
 
-/** Ensure we have room for at least needed pt; if not, add a new page. Returns current doc.y (top of new page if added). */
-function ensureSpace(doc: any, margin: number, needed: number): number {
+/** Draw a diagonal watermark on the current page (centered, semi-transparent). */
+function drawWatermark(doc: any, text: string) {
+  if (!text) return;
+  doc.save();
+  doc.opacity(0.15);
+  doc.fontSize(44).fillColor('#1e3a5f');
+  doc.rotate(-45, { origin: [PAGE_CX, PAGE_CY] });
+  doc.text(text, PAGE_CX - 240, PAGE_CY - 16, { width: 480, align: 'center' });
+  doc.restore();
+}
+
+/** Ensure we have room for at least needed pt; if not, add a new page. Optional onNewPage called after adding a page. Returns current doc.y (top of new page if added). */
+function ensureSpace(doc: any, margin: number, needed: number, onNewPage?: () => void): number {
   if (doc.y + needed > BOTTOM_Y) {
     doc.addPage({ size: 'A4', margin });
+    if (onNewPage) onNewPage();
     return margin;
   }
   return doc.y;
 }
 
 /** Draw portfolio report from DB-driven payload. No fixed page count; sections only if data exists; pagination by content. */
-function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, reportTitle?: string) {
+function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, reportTitle?: string, opts?: { watermarkText?: string }) {
   const margin = 50;
   const pageW = 612 - margin * 2;
   const company = data.companyName || 'zurT';
   const totalValue = data.totalValue ?? data.investments.reduce((s, i) => s + Number(i.current_value || 0), 0);
   const hasInvestments = data.investments.length > 0;
   const title = reportTitle || 'Relatório de Portfólio';
+  const watermarkText = opts?.watermarkText;
+  const onNewPage = watermarkText ? () => drawWatermark(doc, watermarkText) : undefined;
+  const ensure = (m: number, needed: number) => ensureSpace(doc, m, needed, onNewPage);
+
+  if (watermarkText) drawWatermark(doc, watermarkText);
 
   // -------- Header (first page) --------
   doc.fontSize(10).fillColor('#333333');
@@ -154,74 +173,71 @@ function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, rep
   const avgProfitability = hasInvestments && totalValue > 0 && data.investments.some((i) => i.profitability != null)
     ? data.investments.reduce((s, i) => s + Number(i.current_value || 0) * (i.profitability != null ? Number(i.profitability) : 0), 0) / totalValue
     : null;
-  const hasAnySummary = hasInvestments || totalCash !== 0 || totalDebt !== 0;
-
-  if (hasAnySummary) {
-    y = ensureSpace(doc, margin, 80);
-    doc.y = y;
-    const resumoBarH = 18;
-    doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, resumoBarH).fill();
-    doc.rect(margin, doc.y, 4, resumoBarH).fill(DARK_BLUE);
-    doc.font('Helvetica-Bold').fontSize(12).fillColor('#1e3a5f').text('Resumo', margin + 12, doc.y + 4, { continued: false });
-    doc.font('Helvetica');
-    doc.y += resumoBarH + 4;
-    const gap = 8;
-    const cardW = (pageW - gap * 3) / 4;
-    const boxH = 52;
-    const metrics = [
-      { label: 'Patrimônio em investimentos', value: hasInvestments ? formatBRLFromNumber(totalValue) : 'R$ 0,00', sub: hasInvestments ? `${data.investments.length} ativo(s)` : 'Sem ativos', accent: '#0ea5e9', bg: '#eff6ff' },
-      { label: 'Rentabilidade média', value: avgProfitability != null ? `CDI + ${avgProfitability.toFixed(2)}%` : '—', sub: 'Média ponderada', accent: '#10b981', bg: '#ecfdf5' },
-      { label: 'Saldo em contas', value: formatBRLFromNumber(totalCash), sub: 'Contas bancárias', accent: '#6366f1', bg: '#eef2ff' },
-      { label: 'Dívida (cartões)', value: formatBRLFromNumber(totalDebt), sub: 'Total a pagar', accent: '#f59e0b', bg: '#fffbeb' },
-    ];
-    const cardY = doc.y;
-    for (let i = 0; i < metrics.length; i++) {
-      const x = margin + i * (cardW + gap);
-      doc.fillColor(metrics[i].bg).rect(x, cardY, cardW, boxH).fill();
-      doc.strokeColor(metrics[i].accent).lineWidth(2).rect(x, cardY, cardW, boxH).stroke();
-      doc.rect(x, cardY, 4, boxH).fill(metrics[i].accent);
-      doc.fontSize(7).fillColor('#64748b').text(metrics[i].label.toUpperCase(), x + 14, cardY + 8, { width: cardW - 18, lineGap: 2 });
-      doc.fontSize(12).fillColor('#1e3a5f').text(metrics[i].value, x + 14, cardY + 28, { width: cardW - 18 });
-      doc.fontSize(7).fillColor('#94a3b8').text(metrics[i].sub, x + 14, cardY + 44, { width: cardW - 18 });
-    }
-    doc.y = cardY + boxH + 14;
+  // Always show Resumo (consolidated statement: assets, profitability, balances, liabilities)
+  y = ensure(margin, 80);
+  doc.y = y;
+  const resumoBarH = 18;
+  doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, resumoBarH).fill();
+  doc.rect(margin, doc.y, 4, resumoBarH).fill(DARK_BLUE);
+  doc.font('Helvetica-Bold').fontSize(12).fillColor('#1e3a5f').text('Resumo', margin + 12, doc.y + 4, { continued: false });
+  doc.font('Helvetica');
+  doc.y += resumoBarH + 4;
+  const gap = 8;
+  const cardW = (pageW - gap * 3) / 4;
+  const boxH = 52;
+  const metrics = [
+    { label: 'Patrimônio em investimentos', value: hasInvestments ? formatBRLFromNumber(totalValue) : 'R$ 0,00', sub: hasInvestments ? `${data.investments.length} ativo(s)` : 'Sem ativos', accent: '#0ea5e9', bg: '#eff6ff' },
+    { label: 'Rentabilidade média', value: avgProfitability != null ? `CDI + ${avgProfitability.toFixed(2)}%` : '—', sub: 'Média ponderada', accent: '#10b981', bg: '#ecfdf5' },
+    { label: 'Saldo em contas', value: formatBRLFromNumber(totalCash), sub: 'Contas bancárias', accent: '#6366f1', bg: '#eef2ff' },
+    { label: 'Dívida (cartões)', value: formatBRLFromNumber(totalDebt), sub: 'Total a pagar', accent: '#f59e0b', bg: '#fffbeb' },
+  ];
+  const cardY = doc.y;
+  for (let i = 0; i < metrics.length; i++) {
+    const x = margin + i * (cardW + gap);
+    doc.fillColor(metrics[i].bg).rect(x, cardY, cardW, boxH).fill();
+    doc.strokeColor(metrics[i].accent).lineWidth(2).rect(x, cardY, cardW, boxH).stroke();
+    doc.rect(x, cardY, 4, boxH).fill(metrics[i].accent);
+    doc.fontSize(7).fillColor('#64748b').text(metrics[i].label.toUpperCase(), x + 14, cardY + 8, { width: cardW - 18, lineGap: 2 });
+    doc.fontSize(12).fillColor('#1e3a5f').text(metrics[i].value, x + 14, cardY + 28, { width: cardW - 18 });
+    doc.fontSize(7).fillColor('#94a3b8').text(metrics[i].sub, x + 14, cardY + 44, { width: cardW - 18 });
   }
+  doc.y = cardY + boxH + 14;
 
   const hasAccounts = data.accounts && data.accounts.length > 0;
   const hasCards = data.creditCards && data.creditCards.length > 0;
 
-  // -------- Contas (accounts) --------
+  // -------- Contas (accounts) - always show for consolidated statement --------
+  y = ensure(margin, 70);
+  doc.y = y;
+  const sectionBarH = 18;
+  doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, sectionBarH).fill();
+  doc.rect(margin, doc.y, 4, sectionBarH).fill(DARK_BLUE);
+  doc.font('Helvetica-Bold').fontSize(12).fillColor('#1e3a5f').text('Contas', margin + 12, doc.y + 4, { continued: false });
+  doc.font('Helvetica');
+  doc.y += sectionBarH;
+  doc.moveTo(margin, doc.y).lineTo(margin + pageW, doc.y).stroke('#e2e8f0');
+  doc.y += 10;
+  const acctTypeW = 120;
+  const acctValueW = 118;
+  const acctNameW = pageW - acctTypeW - acctValueW;
+  const acctColW = { name: acctNameW, type: acctTypeW, value: acctValueW };
+  const acctTableW = pageW;
+  const acctRowH = 13;
+  const pad = 6;
+  const acctHeaderH = 16;
+  const acctHeaderY = doc.y;
+  doc.rect(margin, acctHeaderY, acctTableW, acctHeaderH).fill(DARK_BLUE);
+  doc.strokeColor('#1e3a5f').lineWidth(1).rect(margin, acctHeaderY, acctTableW, acctHeaderH).stroke();
+  doc.fontSize(8).fillColor('#ffffff');
+  doc.text('CONTA', margin + pad, acctHeaderY + 5, { width: acctColW.name - pad });
+  doc.text('TIPO', margin + acctColW.name + pad, acctHeaderY + 5, { width: acctColW.type - pad });
+  doc.text('SALDO (R$)', margin + acctColW.name + acctColW.type + pad, acctHeaderY + 5, { width: acctColW.value - pad, align: 'right' });
+  doc.y = acctHeaderY + acctHeaderH;
+  const accountTypeLabel = (t: string | undefined) => (t === 'CHECKING_ACCOUNT' ? 'Conta corrente' : t === 'CREDIT_CARD' ? 'Cartão' : (t || '—').replace(/_/g, ' '));
+  const acctStroke = '#cbd5e1';
   if (hasAccounts) {
-    y = ensureSpace(doc, margin, 70);
-    doc.y = y;
-    const sectionBarH = 18;
-    doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, sectionBarH).fill();
-    doc.rect(margin, doc.y, 4, sectionBarH).fill(DARK_BLUE);
-    doc.font('Helvetica-Bold').fontSize(12).fillColor('#1e3a5f').text('Contas', margin + 12, doc.y + 4, { continued: false });
-    doc.font('Helvetica');
-    doc.y += sectionBarH;
-    doc.moveTo(margin, doc.y).lineTo(margin + pageW, doc.y).stroke('#e2e8f0');
-    doc.y += 10;
-    const acctTypeW = 120;
-    const acctValueW = 118;
-    const acctNameW = pageW - acctTypeW - acctValueW;
-    const acctColW = { name: acctNameW, type: acctTypeW, value: acctValueW };
-    const acctTableW = pageW;
-    const acctRowH = 13;
-    const pad = 6;
-    const acctHeaderH = 16;
-    const acctHeaderY = doc.y;
-    doc.rect(margin, acctHeaderY, acctTableW, acctHeaderH).fill(DARK_BLUE);
-    doc.strokeColor('#1e3a5f').lineWidth(1).rect(margin, acctHeaderY, acctTableW, acctHeaderH).stroke();
-    doc.fontSize(8).fillColor('#ffffff');
-    doc.text('CONTA', margin + pad, acctHeaderY + 5, { width: acctColW.name - pad });
-    doc.text('TIPO', margin + acctColW.name + pad, acctHeaderY + 5, { width: acctColW.type - pad });
-    doc.text('SALDO (R$)', margin + acctColW.name + acctColW.type + pad, acctHeaderY + 5, { width: acctColW.value - pad, align: 'right' });
-    doc.y = acctHeaderY + acctHeaderH;
-    const accountTypeLabel = (t: string | undefined) => (t === 'CHECKING_ACCOUNT' ? 'Conta corrente' : t === 'CREDIT_CARD' ? 'Cartão' : (t || '—').replace(/_/g, ' '));
-    const acctStroke = '#cbd5e1';
     data.accounts!.forEach((acct, idx) => {
-      doc.y = ensureSpace(doc, margin, acctRowH + 6);
+      doc.y = ensure(margin, acctRowH + 6);
       const rowY = doc.y;
       if (idx % 2 === 1) doc.fillColor('#f8fafc').rect(margin, rowY, acctTableW, acctRowH).fill();
       doc.strokeColor(acctStroke).lineWidth(0.5).rect(margin, rowY, acctTableW, acctRowH).stroke();
@@ -239,48 +255,53 @@ function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, rep
     doc.fontSize(8).fillColor('#1e3a5f');
     doc.text('Total', margin + pad, acctTotalRowY + 3, { width: acctColW.name - pad });
     doc.text(formatBRLFromNumber(acctTotal), margin + acctColW.name + acctColW.type + pad, acctTotalRowY + 3, { width: acctColW.value - pad, align: 'right' });
-    const acctTableBottom = acctTotalRowY + acctRowH;
-    doc.y = acctTableBottom;
-    doc.strokeColor(acctStroke).lineWidth(0.5);
-    doc.moveTo(margin + acctColW.name, acctHeaderY).lineTo(margin + acctColW.name, acctTableBottom).stroke();
-    doc.moveTo(margin + acctColW.name + acctColW.type, acctHeaderY).lineTo(margin + acctColW.name + acctColW.type, acctTableBottom).stroke();
-    doc.rect(margin, acctHeaderY, acctTableW, acctTableBottom - acctHeaderY).stroke();
-    doc.y += 12;
+    doc.y = acctTotalRowY + acctRowH;
+  } else {
+    doc.rect(margin, doc.y, acctTableW, acctRowH).stroke(acctStroke);
+    doc.fontSize(8).fillColor('#64748b');
+    doc.text('Nenhuma conta bancária vinculada.', margin + pad, doc.y + 3, { width: acctColW.name });
+    doc.text('R$ 0,00', margin + acctColW.name + acctColW.type + pad, doc.y + 3, { width: acctColW.value - pad, align: 'right' });
+    doc.y += acctRowH;
   }
+  const acctTableBottom = doc.y;
+  doc.strokeColor(acctStroke).lineWidth(0.5);
+  doc.moveTo(margin + acctColW.name, acctHeaderY).lineTo(margin + acctColW.name, acctTableBottom).stroke();
+  doc.moveTo(margin + acctColW.name + acctColW.type, acctHeaderY).lineTo(margin + acctColW.name + acctColW.type, acctTableBottom).stroke();
+  doc.rect(margin, acctHeaderY, acctTableW, acctTableBottom - acctHeaderY).stroke();
+  doc.y += 12;
 
-  // -------- Cartões de crédito --------
+  // -------- Cartões de crédito - always show for consolidated statement --------
+  y = ensure(margin, 70);
+  doc.y = y;
+  doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, sectionBarH).fill();
+  doc.rect(margin, doc.y, 4, sectionBarH).fill(DARK_BLUE);
+  doc.font('Helvetica-Bold').fontSize(12).fillColor('#1e3a5f').text('Cartões de Crédito', margin + 12, doc.y + 4, { continued: false });
+  doc.font('Helvetica');
+  doc.y += sectionBarH;
+  doc.moveTo(margin, doc.y).lineTo(margin + pageW, doc.y).stroke('#e2e8f0');
+  doc.y += 10;
+  const cardPad = 6;
+  const cardBalanceW = 100;
+  const cardLimitW = 98;
+  const cardLast4W = 44;
+  const cardBrandW = 72;
+  const cardNameW = pageW - cardBrandW - cardLast4W - cardBalanceW - cardLimitW;
+  const cardColW = { name: cardNameW, brand: cardBrandW, last4: cardLast4W, balance: cardBalanceW, limit: cardLimitW };
+  const cardTableW = pageW;
+  const cardRowH = 13;
+  const cardHeaderY = doc.y;
+  doc.rect(margin, cardHeaderY, cardTableW, 16).fill(DARK_BLUE).stroke('#1e3a5f');
+  doc.fontSize(8).fillColor('#ffffff');
+  doc.text('CARTÃO', margin + cardPad, cardHeaderY + 5, { width: cardColW.name - cardPad });
+  doc.text('BANDEIRA', margin + cardColW.name + cardPad, cardHeaderY + 5, { width: cardColW.brand - cardPad });
+  doc.text('FIM', margin + cardColW.name + cardColW.brand + cardPad, cardHeaderY + 5, { width: cardColW.last4 - cardPad });
+  doc.text('DÍVIDA (R$)', margin + cardColW.name + cardColW.brand + cardColW.last4 + cardPad, cardHeaderY + 5, { width: cardColW.balance - cardPad, align: 'right' });
+  doc.text('LIMITE (R$)', margin + cardColW.name + cardColW.brand + cardColW.last4 + cardColW.balance + cardPad, cardHeaderY + 5, { width: cardColW.limit - cardPad, align: 'right' });
+  doc.y = cardHeaderY + 16;
   if (hasCards) {
-    y = ensureSpace(doc, margin, 70);
-    doc.y = y;
-    const sectionBarH = 18;
-    doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, sectionBarH).fill();
-    doc.rect(margin, doc.y, 4, sectionBarH).fill(DARK_BLUE);
-    doc.font('Helvetica-Bold').fontSize(12).fillColor('#1e3a5f').text('Cartões de Crédito', margin + 12, doc.y + 4, { continued: false });
-    doc.font('Helvetica');
-    doc.y += sectionBarH;
-    doc.moveTo(margin, doc.y).lineTo(margin + pageW, doc.y).stroke('#e2e8f0');
-    doc.y += 10;
-    const cardPad = 6;
-    const cardBalanceW = 100;
-    const cardLimitW = 98;
-    const cardLast4W = 44;
-    const cardBrandW = 72;
-    const cardNameW = pageW - cardBrandW - cardLast4W - cardBalanceW - cardLimitW;
-    const cardColW = { name: cardNameW, brand: cardBrandW, last4: cardLast4W, balance: cardBalanceW, limit: cardLimitW };
-    const cardTableW = pageW;
-    const cardRowH = 13;
-    const cardHeaderY = doc.y;
-    doc.rect(margin, cardHeaderY, cardTableW, 16).fill(DARK_BLUE).stroke('#1e3a5f');
-    doc.fontSize(8).fillColor('#ffffff');
-    doc.text('CARTÃO', margin + cardPad, cardHeaderY + 5, { width: cardColW.name - cardPad });
-    doc.text('BANDEIRA', margin + cardColW.name + cardPad, cardHeaderY + 5, { width: cardColW.brand - cardPad });
-    doc.text('FIM', margin + cardColW.name + cardColW.brand + cardPad, cardHeaderY + 5, { width: cardColW.last4 - cardPad });
-    doc.text('DÍVIDA (R$)', margin + cardColW.name + cardColW.brand + cardColW.last4 + cardPad, cardHeaderY + 5, { width: cardColW.balance - cardPad, align: 'right' });
-    doc.text('LIMITE (R$)', margin + cardColW.name + cardColW.brand + cardColW.last4 + cardColW.balance + cardPad, cardHeaderY + 5, { width: cardColW.limit - cardPad, align: 'right' });
-    doc.y = cardHeaderY + 16;
     const cardTotalDebt = data.creditCards!.reduce((s, c) => s + c.balance, 0);
     data.creditCards!.forEach((card, idx) => {
-      doc.y = ensureSpace(doc, margin, cardRowH + 6);
+      doc.y = ensure(margin, cardRowH + 6);
       const rowY = doc.y;
       doc.rect(margin, rowY, cardTableW, cardRowH).stroke('#e5e7eb');
       if (idx % 2 === 1) doc.rect(margin, rowY, cardTableW, cardRowH).fill('#f8fafc');
@@ -299,39 +320,44 @@ function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, rep
     doc.text('Total a pagar', margin + cardPad, totalRowY + 3, { width: cardColW.name - cardPad });
     doc.text(formatBRLFromNumber(cardTotalDebt), margin + cardColW.name + cardColW.brand + cardColW.last4 + cardPad, totalRowY + 3, { width: cardColW.balance - cardPad, align: 'right' });
     doc.y = totalRowY + cardRowH + 12;
+  } else {
+    doc.rect(margin, doc.y, cardTableW, cardRowH).stroke('#e5e7eb');
+    doc.fontSize(8).fillColor('#64748b');
+    doc.text('Nenhum cartão de crédito vinculado.', margin + cardPad, doc.y + 3, { width: cardColW.name });
+    doc.text('R$ 0,00', margin + cardColW.name + cardColW.brand + cardColW.last4 + cardPad, doc.y + 3, { width: cardColW.balance - cardPad, align: 'right' });
+    doc.y += cardRowH + 12;
   }
 
-  // -------- Histórico de Transações --------
+  // -------- Histórico de Transações (últimos 3 meses) - always show for consolidated statement --------
   const hasTransactions = data.transactions && data.transactions.length > 0;
+  y = ensure(margin, 80);
+  doc.y = y;
+  doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, sectionBarH).fill();
+  doc.rect(margin, doc.y, 4, sectionBarH).fill(DARK_BLUE);
+  doc.font('Helvetica-Bold').fontSize(12).fillColor('#1e3a5f').text('Histórico de Transações (últimos 3 meses)', margin + 12, doc.y + 4, { continued: false });
+  doc.font('Helvetica');
+  doc.y += sectionBarH;
+  doc.moveTo(margin, doc.y).lineTo(margin + pageW, doc.y).stroke('#e2e8f0');
+  doc.y += 10;
+  const txColW = { date: 58, desc: pageW - 58 - 54 - 78, category: 54, amount: 78 };
+  const txTableW = pageW;
+  const txRowHeight = 10;
+  const txHeaderH = 14;
+  const drawTxHeader = (yPos: number) => {
+    doc.rect(margin, yPos, txTableW, txHeaderH).fill(DARK_BLUE).stroke('#1e3a5f');
+    doc.fontSize(8).fillColor('#ffffff');
+    doc.text('Data', margin + 5, yPos + 4, { width: txColW.date - 4 });
+    doc.text('Descrição', margin + txColW.date + 5, yPos + 4, { width: txColW.desc - 4 });
+    doc.text('Categoria', margin + txColW.date + txColW.desc + 5, yPos + 4, { width: txColW.category - 4 });
+    doc.text('Valor', margin + txColW.date + txColW.desc + txColW.category + 5, yPos + 4, { width: txColW.amount - 6, align: 'right' });
+  };
   if (hasTransactions) {
-    y = ensureSpace(doc, margin, 80);
-    doc.y = y;
-    const sectionBarH = 18;
-    doc.fillColor('#dbeafe').rect(margin, doc.y, pageW, sectionBarH).fill();
-    doc.rect(margin, doc.y, 4, sectionBarH).fill(DARK_BLUE);
-    doc.font('Helvetica-Bold').fontSize(12).fillColor('#1e3a5f').text('Histórico de Transações', margin + 12, doc.y + 4, { continued: false });
-    doc.font('Helvetica');
-    doc.y += sectionBarH;
-    doc.moveTo(margin, doc.y).lineTo(margin + pageW, doc.y).stroke('#e2e8f0');
-    doc.y += 10;
-    const txColW = { date: 58, desc: pageW - 58 - 54 - 78, category: 54, amount: 78 };
-    const txTableW = pageW;
-    const txRowHeight = 10;
-    const txHeaderH = 14;
-    const drawTxHeader = (yPos: number) => {
-      doc.rect(margin, yPos, txTableW, txHeaderH).fill(DARK_BLUE).stroke('#1e3a5f');
-      doc.fontSize(8).fillColor('#ffffff');
-      doc.text('Data', margin + 5, yPos + 4, { width: txColW.date - 4 });
-      doc.text('Descrição', margin + txColW.date + 5, yPos + 4, { width: txColW.desc - 4 });
-      doc.text('Categoria', margin + txColW.date + txColW.desc + 5, yPos + 4, { width: txColW.category - 4 });
-      doc.text('Valor', margin + txColW.date + txColW.desc + txColW.category + 5, yPos + 4, { width: txColW.amount - 6, align: 'right' });
-    };
     const txList = data.transactions!.slice(0, 150);
     drawTxHeader(doc.y);
     doc.y += txHeaderH;
     for (let i = 0; i < txList.length; i++) {
       const row = txList[i];
-      doc.y = ensureSpace(doc, margin, txRowHeight + 4);
+      doc.y = ensure(margin, txRowHeight + 4);
       if (doc.y === margin) {
         drawTxHeader(margin);
         doc.y = margin + txHeaderH;
@@ -360,11 +386,18 @@ function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, rep
       margin, doc.y, { width: txTableW }
     );
     doc.y += 14;
+  } else {
+    drawTxHeader(doc.y);
+    doc.y += txHeaderH;
+    doc.rect(margin, doc.y, txTableW, txRowHeight).stroke('#e5e7eb');
+    doc.fontSize(8).fillColor('#64748b');
+    doc.text('Nenhuma transação nos últimos 3 meses.', margin + 5, doc.y + 2, { width: txColW.desc });
+    doc.y += txRowHeight + 14;
   }
 
   // -------- Histórico de Investimentos (Composição da Carteira) --------
   if (hasInvestments) {
-    y = ensureSpace(doc, margin, 85);
+    y = ensure(margin, 85);
     doc.y = y;
     doc.rect(margin, doc.y - 2, 4, 14).fill(DARK_BLUE);
     doc.fontSize(11).fillColor(DARK_BLUE).text('Histórico de Investimentos — Composição da Carteira', margin + 12, doc.y, { continued: false });
@@ -386,7 +419,7 @@ function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, rep
     doc.y = y;
 
     data.investments.forEach((row, i) => {
-      const drawY = ensureSpace(doc, margin, rowHeight + 4);
+      const drawY = ensure(margin, rowHeight + 4);
       doc.y = drawY;
       doc.rect(margin, drawY, tableW, rowHeight).stroke('#e5e7eb');
       if (i % 2 === 1) doc.rect(margin, drawY, tableW, rowHeight).fill('#f8fafc');
@@ -408,7 +441,7 @@ function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, rep
     doc.text(formatBRLFromNumber(totalValue), margin + colW.name + colW.type + colW.profitability + 6, doc.y + 3, { width: colW.value - 6, align: 'right' });
     doc.y += rowHeight + 14;
   } else {
-    doc.y = ensureSpace(doc, margin, 50);
+    doc.y = ensure(margin, 50);
     doc.rect(margin, doc.y - 2, 4, 14).fill(DARK_BLUE);
     doc.fontSize(11).fillColor(DARK_BLUE).text('Composição da Carteira', margin + 12, doc.y, { continued: false });
     doc.y += 14;
@@ -427,7 +460,7 @@ function drawPortfolioReportFromData(doc: any, data: PortfolioReportPayload, rep
   }
 
   // -------- Disclaimer + footer (sample style: yellow box, then centered footer) --------
-  const disclaimerY = ensureSpace(doc, margin, 88);
+  const disclaimerY = ensure(margin, 88);
   doc.y = disclaimerY;
   doc.rect(margin, doc.y, pageW, 72).fill(YELLOW_BG).stroke('#e5e7eb');
   doc.fontSize(8).fillColor('#374151').text(
@@ -450,18 +483,47 @@ export async function buildReportPdf(options: {
   params?: Record<string, unknown>;
   transactions?: TransactionRow[];
   portfolioPayload?: PortfolioReportPayload | null;
+  /** When true, draw a diagonal watermark on every page. */
+  watermark?: boolean;
+  /** Text to show in the watermark (e.g. consultant name or "CONFIDENCIAL"). Used when watermark is true. */
+  watermarkText?: string;
 }): Promise<Buffer> {
-  const { reportType, createdAt, dateRange, params, transactions = [], portfolioPayload } = options;
+  const { reportType, createdAt, dateRange, params, transactions = [], portfolioPayload, watermark, watermarkText } = options;
   const typeLabel = (params?.reportLabel as string) || REPORT_TYPE_LABELS[reportType] || reportType;
+  const wmText = (watermark && watermarkText) ? watermarkText : undefined;
 
-  if (reportType === 'portfolio_analysis' && portfolioPayload) {
+  const portfolioReportTypes = ['portfolio_analysis', 'consolidated', 'financial_planning', 'custom'];
+  if (portfolioReportTypes.includes(reportType) && portfolioPayload) {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    drawPortfolioReportFromData(doc, portfolioPayload, typeLabel);
+    const title = (params?.reportLabel as string) || typeLabel;
+    drawPortfolioReportFromData(doc, portfolioPayload, title, wmText ? { watermarkText: wmText } : undefined);
+    if (reportType === 'financial_planning') {
+      const pageW = 612 - 100;
+      const margin = 50;
+      doc.addPage({ size: 'A4', margin: 50 });
+      if (wmText) drawWatermark(doc, wmText);
+      doc.y = 80;
+      doc.fontSize(11).fillColor('#1f2937').text('Planejamento Financeiro', { continued: false });
+      doc.moveDown(0.5);
+      doc.moveTo(margin, doc.y).lineTo(margin + pageW, doc.y).strokeColor('#e5e7eb').stroke();
+      doc.moveDown(0.8);
+      doc.fontSize(10).fillColor('#374151').text(
+        'Objetivos: Este relatório consolida a visão atual do portfólio do cliente. Recomenda-se definir objetivos de curto, médio e longo prazo em conjunto com o investidor e revisar a alocação periodicamente.',
+        margin, doc.y, { width: pageW, align: 'left' }
+      );
+      doc.moveDown(1);
+      doc.fontSize(10).fillColor('#374151').text(
+        'Recomendações: As informações de contas, cartões e investimentos refletem os dados disponíveis na plataforma. Utilize este documento como base para as reuniões de acompanhamento e para propor ajustes conforme o perfil e os objetivos do cliente.',
+        margin, doc.y, { width: pageW, align: 'left' }
+      );
+    }
     doc.end();
     return streamToBuffer(doc);
   }
 
   const doc = new PDFDocument({ size: 'A4', margin: 50 });
+
+    if (wmText) drawWatermark(doc, wmText);
 
     const pageW = 612 - 100;
     const colW = { date: 70, desc: pageW - 70 - 70 - 80, category: 70, amount: 80 };
@@ -544,6 +606,7 @@ export async function buildReportPdf(options: {
           const row = monthlyRows[i];
           if (doc.y + rowHeight > bottomY) {
             doc.addPage({ size: 'A4', margin: 50 });
+            if (wmText) drawWatermark(doc, wmText);
             doc.y = 50;
             tableY = drawTxHeader(doc.y);
             doc.y = tableY;
@@ -621,6 +684,7 @@ export async function buildReportPdf(options: {
         const row = transactions[i];
         if (doc.y + rowHeight > bottomY) {
           doc.addPage({ size: 'A4', margin: 50 });
+          if (wmText) drawWatermark(doc, wmText);
           doc.y = 50;
           tableY = drawTransactionTableHeader(doc.y);
           doc.y = tableY;

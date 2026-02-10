@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FileText, Download, Trash2, User, Calendar, Loader2, FilePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,17 @@ import {
 import { consultantApi, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const REPORTS_PAGE_SIZE = 10;
 
 interface Report {
   id: string;
@@ -39,6 +48,7 @@ const ProfessionalReports = () => {
   const [includeWatermark, setIncludeWatermark] = useState(true);
   const [customBranding, setCustomBranding] = useState(false);
   const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
+  const [reportsPage, setReportsPage] = useState(1);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -56,6 +66,14 @@ const ProfessionalReports = () => {
     financial_planning: "Planejamento Financeiro",
     monthly: "Relatório Mensal",
     custom: "Relatório Personalizado",
+  };
+
+  const reportTypeDescriptions: Record<string, string> = {
+    consolidated: "Visão única do cliente: resumo (patrimônio, rentabilidade, saldo em contas, dívida), contas bancárias, cartões de crédito, investimentos e histórico de transações dos últimos 3 meses.",
+    portfolio_analysis: "Análise de portfólio do cliente: resumo financeiro, contas, cartões, composição de investimentos e histórico de transações e investimentos.",
+    financial_planning: "Portfólio completo do cliente mais uma seção de planejamento com objetivos e recomendações para uso em reuniões de acompanhamento.",
+    monthly: "Relatório mensal com resumo do período (receitas, despesas, saldo) e tabela de movimentações para o intervalo selecionado.",
+    custom: "Relatório personalizado com a mesma visão consolidada do cliente: resumo, contas, cartões, investimentos e transações recentes.",
   };
 
   // Fetch reports and clients in parallel with caching
@@ -175,6 +193,11 @@ const ProfessionalReports = () => {
     }
   };
 
+  // Reset reports page when client filter changes
+  useEffect(() => {
+    setReportsPage(1);
+  }, [selectedClient]);
+
   // Filter reports by selected client
   const filteredReports = selectedClient === "all" 
     ? reports 
@@ -182,6 +205,13 @@ const ProfessionalReports = () => {
         const client = clients.find((c: any) => c.id === selectedClient);
         return client && r.clientName === client.name;
       });
+
+  const reportsTotal = filteredReports.length;
+  const reportsTotalPages = Math.max(1, Math.ceil(reportsTotal / REPORTS_PAGE_SIZE));
+  const safePage = Math.min(reportsPage, reportsTotalPages);
+  const reportsStart = (safePage - 1) * REPORTS_PAGE_SIZE;
+  const paginatedReports = filteredReports.slice(reportsStart, reportsStart + REPORTS_PAGE_SIZE);
+  const reportsEnd = reportsTotal > 0 ? Math.min(reportsStart + REPORTS_PAGE_SIZE, reportsTotal) : 0;
 
   return (
     <div className="space-y-6 pb-6 md:pb-0 min-w-0">
@@ -245,6 +275,11 @@ const ProfessionalReports = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {reportType && reportTypeDescriptions[reportType] && (
+                <p className="text-xs text-muted-foreground mt-1.5 pl-0.5">
+                  {reportTypeDescriptions[reportType]}
+                </p>
+              )}
             </div>
           </div>
 
@@ -299,7 +334,11 @@ const ProfessionalReports = () => {
           <div>
             <h2 className="text-sm font-semibold text-foreground">Relatórios Gerados</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {filteredReports.length > 0 ? `${filteredReports.length} relatório(s)` : "Histórico de relatórios"}
+              {reportsTotal > 0
+                ? reportsTotalPages > 1
+                  ? `${reportsStart + 1}–${reportsEnd} de ${reportsTotal} relatório(s)`
+                  : `${reportsTotal} relatório(s)`
+                : "Histórico de relatórios"}
             </p>
           </div>
         </div>
@@ -329,7 +368,8 @@ const ProfessionalReports = () => {
               </p>
             </div>
           ) : (
-            filteredReports.map((report: Report) => (
+            <>
+            {paginatedReports.map((report: Report) => (
               <div
                 key={report.id}
                 className={cn(
@@ -400,7 +440,31 @@ const ProfessionalReports = () => {
                   </div>
                 </div>
               </div>
-            ))
+            ))}
+            {reportsTotalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground order-2 sm:order-1">
+                  Página {safePage} de {reportsTotalPages}
+                </p>
+                <Pagination className="order-1 sm:order-2">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setReportsPage((p) => Math.max(1, p - 1))}
+                        className={cn(safePage === 1 && "pointer-events-none opacity-50")}
+                      />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setReportsPage((p) => Math.min(reportsTotalPages, p + 1))}
+                        className={cn(safePage === reportsTotalPages && "pointer-events-none opacity-50")}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>

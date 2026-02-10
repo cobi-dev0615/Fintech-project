@@ -2209,8 +2209,10 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       const dateRange = params?.dateRange as string | undefined;
       const targetUserId = report.target_user_id || consultantId;
 
+      type TxRow = { occurred_at: Date; description: string | null; merchant: string | null; category: string | null; amount_cents: number; currency: string; account_name?: string | null };
+      const needsPortfolio = ['portfolio_analysis', 'consolidated', 'financial_planning', 'custom'].includes(reportType);
       let portfolioPayload: PortfolioReportPayload | undefined;
-      if (reportType === 'portfolio_analysis') {
+      if (needsPortfolio) {
         let clientName = 'Cliente';
         try {
           const userRow = await db.query('SELECT full_name FROM users WHERE id = $1', [targetUserId]);
@@ -2262,17 +2264,117 @@ export async function consultantRoutes(fastify: FastifyInstance) {
             }
           } catch (_) {}
         }
+        const accounts: PortfolioReportPayload['accounts'] = [];
+        try {
+          const hasPluggyAcc = await db.query('SELECT 1 FROM pluggy_accounts LIMIT 1').then(() => true).catch(() => false);
+          if (hasPluggyAcc) {
+            const accResult = await db.query(
+              `SELECT name, type, current_balance FROM pluggy_accounts WHERE user_id = $1 ORDER BY name`,
+              [targetUserId]
+            );
+            for (const r of accResult.rows) {
+              const bal = parseFloat(r.current_balance ?? 0);
+              accounts.push({ name: r.name || 'Conta', type: r.type || undefined, balance: bal });
+            }
+          }
+        } catch (_) {}
+        if (accounts.length === 0) {
+          try {
+            const hasBank = await db.query('SELECT 1 FROM bank_accounts LIMIT 1').then(() => true).catch(() => false);
+            if (hasBank) {
+              const bankResult = await db.query(
+                `SELECT display_name as name, balance_cents FROM bank_accounts WHERE user_id = $1 ORDER BY display_name`,
+                [targetUserId]
+              );
+              for (const r of bankResult.rows) {
+                accounts.push({ name: r.name || 'Conta', balance: Number(r.balance_cents || 0) / 100 });
+              }
+            }
+          } catch (_) {}
+        }
+        const creditCards: PortfolioReportPayload['creditCards'] = [];
+        try {
+          const hasCards = await db.query('SELECT 1 FROM pluggy_credit_cards LIMIT 1').then(() => true).catch(() => false);
+          if (hasCards) {
+            const cardResult = await db.query(
+              `SELECT brand, last4, balance, "limit" FROM pluggy_credit_cards WHERE user_id = $1 ORDER BY brand, last4`,
+              [targetUserId]
+            );
+            for (const r of cardResult.rows) {
+              const bal = parseFloat(r.balance ?? 0);
+              const lim = r.limit != null ? parseFloat(r.limit) : undefined;
+              creditCards.push({
+                name: [r.brand, r.last4].filter(Boolean).join(' **** ') || 'Cartão',
+                brand: r.brand || undefined,
+                last4: r.last4 || undefined,
+                balance: bal,
+                limit: lim,
+              });
+            }
+          }
+        } catch (_) {}
+        const portfolioTxFrom = new Date();
+        portfolioTxFrom.setMonth(portfolioTxFrom.getMonth() - 3);
+        const portfolioTxFromStr = portfolioTxFrom.toISOString().slice(0, 10);
+        const portfolioTransactions: TxRow[] = [];
+        try {
+          const hasTx = await db.query('SELECT 1 FROM transactions LIMIT 1').then(() => true).catch(() => false);
+          if (hasTx) {
+            const txResult = await db.query(
+              `SELECT t.occurred_at, t.description, t.merchant, t.category, t.amount_cents, t.currency,
+                      ba.display_name as account_name
+               FROM transactions t
+               LEFT JOIN bank_accounts ba ON t.account_id = ba.id
+               WHERE t.user_id = $1 AND t.occurred_at >= $2
+               ORDER BY t.occurred_at DESC LIMIT 150`,
+              [targetUserId, portfolioTxFrom.toISOString()]
+            );
+            portfolioTransactions.push(...txResult.rows);
+          }
+        } catch (_) {}
+        if (portfolioTransactions.length === 0) {
+          try {
+            const hasPluggy = await db.query('SELECT 1 FROM pluggy_transactions LIMIT 1').then(() => true).catch(() => false);
+            if (hasPluggy) {
+              const ptResult = await db.query(
+                `SELECT pt.date, pt.description, pt.merchant, pt.category, pt.amount, pa.name as account_name
+                 FROM pluggy_transactions pt
+                 LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
+                 WHERE pt.user_id = $1 AND pt.date >= $2
+                 ORDER BY pt.date DESC, pt.created_at DESC LIMIT 150`,
+                [targetUserId, portfolioTxFromStr]
+              );
+              for (const r of ptResult.rows) {
+                portfolioTransactions.push({
+                  occurred_at: new Date((r as any).date),
+                  description: (r as any).description,
+                  merchant: (r as any).merchant,
+                  category: (r as any).category,
+                  amount_cents: Math.round(Number((r as any).amount) * 100),
+                  currency: 'BRL',
+                  account_name: (r as any).account_name,
+                });
+              }
+            }
+          } catch (_) {}
+        }
+        const totalCash = accounts.reduce((s, a) => s + a.balance, 0);
+        const totalDebt = creditCards.reduce((s, c) => s + c.balance, 0);
         portfolioPayload = {
           clientName,
           reportDate: createdAt,
           investments,
           totalValue: investments.length > 0 ? totalValue : undefined,
+          accounts: accounts.length > 0 ? accounts : undefined,
+          creditCards: creditCards.length > 0 ? creditCards : undefined,
+          transactions: portfolioTransactions.length > 0 ? portfolioTransactions : undefined,
+          cashBalance: totalCash,
+          totalDebt,
         };
       }
 
-      type TxRow = { occurred_at: Date; description: string | null; merchant: string | null; category: string | null; amount_cents: number; currency: string; account_name?: string | null };
       let transactions: TxRow[] = [];
-      if (reportType === 'transactions') {
+      if (reportType === 'transactions' || reportType === 'monthly') {
         const range = dateRange || 'last-year';
         const now = new Date();
         let fromDate: Date;
@@ -2332,6 +2434,20 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         }
       }
 
+      let watermarkText: string | undefined;
+      if (params?.watermark) {
+        try {
+          const profileResult = await db.query(
+            'SELECT watermark_text, company_name FROM consultant_profiles WHERE user_id = $1',
+            [consultantId]
+          );
+          const row = profileResult.rows[0];
+          watermarkText = (row?.watermark_text || row?.company_name || 'CONFIDENCIAL').trim() || 'CONFIDENCIAL';
+        } catch (_) {
+          watermarkText = 'CONFIDENCIAL';
+        }
+      }
+
       let pdf: Buffer;
       try {
         pdf = await buildReportPdf({
@@ -2341,6 +2457,8 @@ export async function consultantRoutes(fastify: FastifyInstance) {
           params,
           transactions: transactions.length ? transactions : undefined,
           portfolioPayload,
+          watermark: !!params?.watermark,
+          watermarkText,
         });
         if (!pdf || pdf.length === 0) {
           pdf = getFallbackPdfBuffer(reportType, createdAt);
