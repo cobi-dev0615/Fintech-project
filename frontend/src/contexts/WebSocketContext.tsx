@@ -31,6 +31,7 @@ class WebSocketManager {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 3000;
   private isIntentionallyClosed = false;
+  private hasLoggedUnavailable = false;
 
   private connected = false;
   private lastMessage: WebSocketMessage | null = null;
@@ -58,6 +59,9 @@ class WebSocketManager {
   }
 
   connect(userId: string, userRole: string) {
+    const wsEnabled = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_WS_ENABLED !== 'false';
+    if (!wsEnabled) return;
+
     const allowedRoles = ['admin', 'consultant', 'customer'];
     if (!allowedRoles.includes(userRole)) return;
 
@@ -76,6 +80,7 @@ class WebSocketManager {
     this.url = this.getWebSocketUrl();
     this.isIntentionallyClosed = false;
     this.reconnectAttempts = 0;
+    this.hasLoggedUnavailable = false;
     this.doConnect();
   }
 
@@ -124,16 +129,26 @@ class WebSocketManager {
         this.ws = null;
         this.setConnected?.(false);
 
-        if (!this.isIntentionallyClosed && this.reconnectAttempts < this.maxReconnectAttempts && event.code !== 1000) {
-          this.reconnectAttempts++;
-          const delay = this.reconnectDelay * Math.min(this.reconnectAttempts, 3);
-          this.reconnectTimeout = setTimeout(() => this.doConnect(), delay);
+        if (!this.isIntentionallyClosed && event.code !== 1000) {
+          if (this.reconnectAttempts < this.maxReconnectAttempts) {
+            this.reconnectAttempts++;
+            const delay = this.reconnectDelay * Math.min(this.reconnectAttempts, 3);
+            this.reconnectTimeout = setTimeout(() => this.doConnect(), delay);
+          } else if (!this.hasLoggedUnavailable) {
+            this.hasLoggedUnavailable = true;
+            if (typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV) {
+              console.warn('WebSocket unavailable after retries. Real-time updates disabled.');
+            }
+          }
         }
       };
     } catch (err) {
-      console.error('Failed to create WebSocket connection:', err);
       this.connected = false;
       this.setConnected?.(false);
+      if (typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV && !this.hasLoggedUnavailable) {
+        this.hasLoggedUnavailable = true;
+        console.warn('WebSocket unavailable. Real-time updates disabled.');
+      }
     }
   }
 

@@ -16,9 +16,9 @@ const CARD_ACCENTS = [
 
 const Reports = () => {
   const reportTypes = [
-    { id: "customer-portfolio", value: "portfolio_analysis", label: "Customer Portfolio", icon: PieChart, description: "Todos os ativos obtidos via open finance" },
-    { id: "investment-report", value: "portfolio_analysis", label: "Investment Report", icon: TrendingUp, description: "Análise de investimentos e composição da carteira" },
-    { id: "transaction-report", value: "transactions", label: "Transaction Report", icon: FileText, description: "Histórico de transações por período" },
+    { id: "customer-portfolio", value: "portfolio_analysis", label: "Portfólio do Cliente", icon: PieChart, description: "Todos os ativos obtidos via open finance" },
+    { id: "investment-report", value: "portfolio_analysis", label: "Relatório de Investimentos", icon: TrendingUp, description: "Análise de investimentos e composição da carteira" },
+    { id: "transaction-report", value: "transactions", label: "Relatório de Transações", icon: FileText, description: "Histórico de transações por período" },
   ];
   const [selectedId, setSelectedId] = useState<string>("");
   const [dateRange, setDateRange] = useState<string>("");
@@ -39,7 +39,12 @@ const Reports = () => {
 
     try {
       setGenerating(true);
-      const result = await reportsApi.generate({ type: reportType, dateRange: dateRange || undefined });
+      const selectedLabel = reportTypes.find((t) => t.id === selectedId)?.label ?? "";
+      const result = await reportsApi.generate({
+        type: reportType,
+        dateRange: dateRange || undefined,
+        params: { reportLabel: selectedLabel },
+      });
       toast({
         title: "Sucesso",
         description: (
@@ -52,7 +57,7 @@ const Reports = () => {
         ),
         variant: "success",
       });
-      setReportType("");
+      setSelectedId("");
       setDateRange("");
     } catch (err: any) {
       toast({
@@ -96,10 +101,10 @@ const Reports = () => {
           const Icon = type.icon;
           return (
             <button
-              key={type.value}
+              key={type.id}
               type="button"
               onClick={() => {
-                setReportType(type.value);
+                setSelectedId(type.id);
                 scrollToForm();
               }}
               className={cn(
@@ -186,24 +191,3 @@ const Reports = () => {
 };
 
 export default Reports;
-
-;
-
-;
-
-;
-
- "Gerando PDF…" : "Gerar Relatório PDF"}
-          </Button>
-        </div>
-      </ChartCard>
-    </div>
-  );
-};
-
-export default Reports;
-
-;
-
-;
-

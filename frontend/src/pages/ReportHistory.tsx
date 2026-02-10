@@ -79,7 +79,7 @@ const ReportHistory = () => {
       setReports(
         data.reports.map((r) => ({
           id: r.id,
-          type: reportTypeLabels[r.type] || r.type,
+          type: (r.params?.reportLabel as string) || reportTypeLabels[r.type] || r.type,
           typeKey: r.type,
           date: r.generatedAt,
           status: r.status === "generated" ? "generated" : "pending",

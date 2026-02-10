@@ -6,6 +6,7 @@ export const reportsApi = {
       reports: Array<{
         id: string;
         type: string;
+        params?: { reportLabel?: string; dateRange?: string; [k: string]: unknown };
         generatedAt: string;
         status: string;
         downloadUrl: string | null;

@@ -34,13 +34,21 @@ export async function reportsRoutes(fastify: FastifyInstance) {
         [userId]
       );
 
-      const reports = result.rows.map(row => ({
-        id: row.id,
-        type: row.type,
-        generatedAt: new Date(row.created_at).toLocaleDateString('pt-BR'),
-        status: row.file_url ? 'generated' : 'pending',
-        downloadUrl: row.file_url,
-      }));
+      const reports = result.rows.map(row => {
+        const params = row.params_json && typeof row.params_json === 'object'
+          ? row.params_json
+          : typeof row.params_json === 'string'
+            ? (() => { try { return JSON.parse(row.params_json); } catch { return {}; } })()
+            : {};
+        return {
+          id: row.id,
+          type: row.type,
+          params,
+          generatedAt: new Date(row.created_at).toLocaleDateString('pt-BR'),
+          status: row.file_url ? 'generated' : 'pending',
+          downloadUrl: row.file_url,
+        };
+      });
 
       return reply.send({ reports });
     } catch (error: any) {
@@ -56,7 +64,8 @@ export async function reportsRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).userId;
-      const { type, dateRange, params } = request.body as any;
+      const { type, dateRange, params: bodyParams } = request.body as any;
+      const params = bodyParams && typeof bodyParams === 'object' ? bodyParams : {};
 
       if (!type) {
         return reply.code(400).send({ error: 'Report type is required' });
@@ -154,6 +163,8 @@ export async function reportsRoutes(fastify: FastifyInstance) {
           : {};
       const dateRange = params?.dateRange as string | undefined;
 
+      type TxRow = { occurred_at: Date; description: string | null; merchant: string | null; category: string | null; amount_cents: number; currency: string; account_name?: string | null };
+
       // Fetch portfolio data for "Análise de Portfólio"
       let portfolioPayload: PortfolioReportPayload | undefined;
       if (reportType === 'portfolio_analysis') {
@@ -208,16 +219,117 @@ export async function reportsRoutes(fastify: FastifyInstance) {
             }
           } catch (_) {}
         }
+
+        const accounts: PortfolioReportPayload['accounts'] = [];
+        try {
+          const hasPluggyAcc = await db.query('SELECT 1 FROM pluggy_accounts LIMIT 1').then(() => true).catch(() => false);
+          if (hasPluggyAcc) {
+            const accResult = await db.query(
+              `SELECT name, type, current_balance FROM pluggy_accounts WHERE user_id = $1 ORDER BY name`,
+              [userId]
+            );
+            for (const r of accResult.rows) {
+              const bal = parseFloat(r.current_balance ?? 0);
+              accounts.push({ name: r.name || 'Conta', type: r.type || undefined, balance: bal });
+            }
+          }
+        } catch (_) {}
+        if (accounts.length === 0) {
+          try {
+            const hasBank = await db.query('SELECT 1 FROM bank_accounts LIMIT 1').then(() => true).catch(() => false);
+            if (hasBank) {
+              const bankResult = await db.query(
+                `SELECT display_name as name, balance_cents FROM bank_accounts WHERE user_id = $1 ORDER BY display_name`,
+                [userId]
+              );
+              for (const r of bankResult.rows) {
+                accounts.push({ name: r.name || 'Conta', balance: Number(r.balance_cents || 0) / 100 });
+              }
+            }
+          } catch (_) {}
+        }
+
+        const creditCards: PortfolioReportPayload['creditCards'] = [];
+        try {
+          const hasCards = await db.query('SELECT 1 FROM pluggy_credit_cards LIMIT 1').then(() => true).catch(() => false);
+          if (hasCards) {
+            const cardResult = await db.query(
+              `SELECT brand, last4, balance, "limit" FROM pluggy_credit_cards WHERE user_id = $1 ORDER BY brand, last4`,
+              [userId]
+            );
+            for (const r of cardResult.rows) {
+              const bal = parseFloat(r.balance ?? 0);
+              const lim = r.limit != null ? parseFloat(r.limit) : undefined;
+              creditCards.push({
+                name: [r.brand, r.last4].filter(Boolean).join(' **** ') || 'Cartão',
+                brand: r.brand || undefined,
+                last4: r.last4 || undefined,
+                balance: bal,
+                limit: lim,
+              });
+            }
+          }
+        } catch (_) {}
+
+        const portfolioTransactions: TxRow[] = [];
+        const now = new Date();
+        const fromDate = new Date(now);
+        fromDate.setMonth(fromDate.getMonth() - 3);
+        const fromStr = fromDate.toISOString().slice(0, 10);
+        try {
+          const hasTx = await db.query('SELECT 1 FROM transactions LIMIT 1').then(() => true).catch(() => false);
+          if (hasTx) {
+            const txResult = await db.query(
+              `SELECT t.occurred_at, t.description, t.merchant, t.category, t.amount_cents, t.currency,
+                      ba.display_name as account_name
+               FROM transactions t
+               LEFT JOIN bank_accounts ba ON t.account_id = ba.id
+               WHERE t.user_id = $1 AND t.occurred_at >= $2
+               ORDER BY t.occurred_at DESC LIMIT 150`,
+              [userId, fromDate.toISOString()]
+            );
+            portfolioTransactions.push(...txResult.rows);
+          }
+        } catch (_) {}
+        if (portfolioTransactions.length === 0) {
+          try {
+            const hasPluggy = await db.query('SELECT 1 FROM pluggy_transactions LIMIT 1').then(() => true).catch(() => false);
+            if (hasPluggy) {
+              const ptResult = await db.query(
+                `SELECT pt.date, pt.description, pt.merchant, pt.category, pt.amount, pa.name as account_name
+                 FROM pluggy_transactions pt
+                 LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
+                 WHERE pt.user_id = $1 AND pt.date >= $2
+                 ORDER BY pt.date DESC, pt.created_at DESC LIMIT 150`,
+                [userId, fromStr]
+              );
+              for (const r of ptResult.rows) {
+                portfolioTransactions.push({
+                  occurred_at: new Date((r as any).date),
+                  description: (r as any).description,
+                  merchant: (r as any).merchant,
+                  category: (r as any).category,
+                  amount_cents: Math.round(Number((r as any).amount) * 100),
+                  currency: 'BRL',
+                  account_name: (r as any).account_name,
+                });
+              }
+            }
+          } catch (_) {}
+        }
+
         portfolioPayload = {
           clientName,
           reportDate: createdAt,
           investments,
           totalValue: investments.length > 0 ? totalValue : undefined,
+          accounts: accounts.length > 0 ? accounts : undefined,
+          creditCards: creditCards.length > 0 ? creditCards : undefined,
+          transactions: portfolioTransactions.length > 0 ? portfolioTransactions : undefined,
         };
       }
 
       // Fetch transaction data for "Extrato de Transações" and "Relatório Mensal" (main table + Open Finance fallback)
-      type TxRow = { occurred_at: Date; description: string | null; merchant: string | null; category: string | null; amount_cents: number; currency: string; account_name?: string | null };
       let transactions: TxRow[] = [];
       if (reportType === 'transactions' || reportType === 'monthly') {
         const range = dateRange || 'last-year';
