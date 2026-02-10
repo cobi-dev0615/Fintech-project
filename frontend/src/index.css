@@ -1,0 +1,305 @@
+/* Optimized font loading - use font-display: swap for faster rendering */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* MyRenda Dark Theme - Default */
+    /* Core backgrounds - Dark gray palette */
+    --background: 222 47% 4%; /* gray-950 #030712 */
+    --foreground: 0 0% 100%; /* white */
+    
+    /* Cards and surfaces */
+    --card: 222 47% 11%; /* gray-900 #111827 */
+    --card-foreground: 0 0% 100%;
+    
+    --popover: 222 47% 11%; /* gray-900 */
+    --popover-foreground: 0 0% 100%;
+    
+    /* Primary - Blue/Cyan (Professional Fintech) */
+    --primary: 217 91% 60%; /* blue-500 #3b82f6 */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Dark gray surface */
+    --secondary: 222 47% 18%; /* gray-800 #1f2937 */
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Muted elements */
+    --muted: 222 47% 18%; /* gray-800 */
+    --muted-foreground: 215 16% 47%; /* gray-500 #6b7280 */
+    
+    /* Accent - Cyan for highlights */
+    --accent: 188 85% 53%; /* cyan-500 #06b6d4 */
+    --accent-foreground: 0 0% 100%;
+    
+    /* Destructive - Red */
+    --destructive: 0 84% 60%; /* red-500 #ef4444 */
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders and inputs */
+    --border: 217 33% 17%; /* gray-700 #374151 */
+    --input: 217 33% 17%; /* gray-700 */
+    --ring: 217 91% 60%; /* blue-500 */
+    
+    --radius: 0.75rem;
+    
+    /* Fintech specific colors */
+    --success: 142 76% 36%; /* green-500 #22c55e */
+    --success-foreground: 0 0% 100%;
+    --warning: 43 96% 56%; /* yellow-500 #eab308 */
+    --warning-foreground: 0 0% 100%;
+    --info: 217 91% 60%; /* blue-500 #3b82f6 */
+    --info-foreground: 0 0% 100%;
+    
+    /* Professional Fintech Gradients - Blue to Cyan */
+    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    --gradient-hero: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    --gradient-card: linear-gradient(180deg, rgba(17, 24, 39, 0.7) 0%, rgba(17, 24, 39, 0.5) 100%);
+    
+    /* Shadows - Dark theme */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-card-hover: 0 10px 40px rgba(0, 0, 0, 0.5);
+    --shadow-blue: 0 10px 40px rgba(59, 130, 246, 0.15);
+    
+    /* Sidebar - Dark theme (matches card + primary accent) */
+    --sidebar-background: 222 47% 11%; /* gray-900 - same as card */
+    --sidebar-foreground: 215 16% 75%; /* gray-300 - slightly brighter for readability */
+    --sidebar-primary: 217 91% 60%; /* blue-500 */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 18%; /* gray-800 - hover/active bg */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 217 33% 17%; /* gray-700 */
+    --sidebar-ring: 217 91% 60%; /* blue-500 */
+    --sidebar-section: 215 16% 47%; /* gray-500 - section labels */
+    --sidebar-active-bg: 217 91% 60% / 0.12; /* primary with low opacity for active item */
+  }
+
+  /* Keep dark as default, but allow light mode override */
+  .light {
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
+    
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 16% 47%;
+    
+    --accent: 188 85% 53%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
+    
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-card-hover: 0 10px 40px rgba(0, 0, 0, 0.08);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #030712; /* gray-950 - MyRenda dark background */
+  }
+  
+  /* Force dark theme by default */
+  html {
+    color-scheme: dark;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Professional KPI Card styles */
+  .kpi-card {
+    @apply bg-card rounded-lg p-4 border border-border transition-all duration-200;
+    box-shadow: var(--shadow-card);
+  }
+  
+  .kpi-card:hover {
+    box-shadow: var(--shadow-card-hover);
+    border-color: hsl(var(--border));
+  }
+  
+  /* Chart Card */
+  .chart-card {
+    @apply bg-card rounded-lg p-6 border border-border;
+    box-shadow: var(--shadow-card);
+  }
+  
+  /* Alert Card */
+  .alert-card {
+    @apply bg-card rounded-lg p-4 border border-border transition-all duration-200;
+  }
+  
+  .alert-card:hover {
+    border-color: hsl(var(--border));
+  }
+  
+  /* Fintech data display */
+  .value-positive {
+    @apply text-success;
+  }
+  
+  .value-negative {
+    @apply text-destructive;
+  }
+  
+  /* Glass effect - MyRenda style */
+  .glass {
+    @apply bg-gray-900/70 backdrop-blur-xl border border-gray-800/50;
+    backdrop-filter: blur(12px);
+  }
+  
+  /* Feature card hover */
+  .feature-card {
+    @apply bg-card rounded-2xl p-6 transition-all duration-300 border border-border;
+    box-shadow: var(--shadow-card);
+  }
+  
+  .feature-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+  }
+  
+  /* Nav item active state */
+  .nav-item-active {
+    @apply bg-sidebar-accent text-sidebar-primary;
+  }
+
+  .sidebar-nav-link.active {
+    box-shadow: inset 3px 0 0 0 hsl(var(--sidebar-primary));
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Professional Fintech Gradient Text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .gradient-accent-text {
+    @apply bg-clip-text text-transparent;
+    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* MyRenda Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.8); }
+  }
+
+  @keyframes toast-timeline-shrink {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+  
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out forwards;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s infinite;
+  }
+
+  /* Smart scrollbar for Assets and similar panels - thin, theme-aligned */
+  .assets-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.5) transparent;
+  }
+  .assets-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .assets-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .assets-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.4);
+    border-radius: 4px;
+  }
+  .assets-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.6);
+  }
+
+  /* Transações Recentes (Open Finance) - scrollbar matches sidebar style */
+  .transactions-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-border)) transparent;
+  }
+  .transactions-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .transactions-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .transactions-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-border));
+    border-radius: 9999px;
+  }
+  .transactions-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-primary) / 0.5);
+  }
+  .transactions-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
