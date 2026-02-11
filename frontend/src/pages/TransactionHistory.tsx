@@ -25,9 +25,17 @@ const formatDateKey = (dateStr: string) => {
   }
 };
 
-const formatDateLabel = (dateStr: string) => {
+const formatDateLabel = (dateStr: string, locale: string) => {
   try {
-    return new Date(dateStr).toLocaleDateString("pt-BR", {
+    // Map i18next language codes to Intl locale codes
+    const localeMap: Record<string, string> = {
+      'pt-BR': 'pt-BR',
+      'en': 'en-US',
+      'pt': 'pt-BR',
+    };
+    const intlLocale = localeMap[locale] || locale;
+
+    return new Date(dateStr).toLocaleDateString(intlLocale, {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -38,7 +46,7 @@ const formatDateLabel = (dateStr: string) => {
 };
 
 const TransactionHistory = () => {
-  const { t } = useTranslation(['transactions', 'common']);
+  const { t, i18n } = useTranslation(['transactions', 'common']);
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -299,7 +307,7 @@ const TransactionHistory = () => {
               {groupedByDate.map(({ dateKey, list }) => (
                 <div key={dateKey} className="space-y-2 min-w-0">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide sticky top-0 bg-background/95 py-1 z-10">
-                    {formatDateLabel(dateKey)}
+                    {formatDateLabel(dateKey, i18n.language)}
                   </p>
                   <ul className="space-y-2 list-none p-0 m-0">
                     {list.map((tx: any) => {
