@@ -159,8 +159,8 @@ const RevenueChart = memo(function RevenueChart({ t }: { t: any }) {
             <BarChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} width={50} />
-              <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px" }} formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 0 }).format(v)} width={70} />
+              <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px" }} formatter={(value: number) => new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(value)} />
               <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -201,7 +201,7 @@ const AdminDashboard = () => {
     if (!data?.alerts) return [];
     return data.alerts.map((alert: { id: string; type: string; message: string; time: string }) => ({
       ...alert,
-      time: new Date(alert.time).toLocaleString('pt-BR'),
+      time: new Date(alert.time).toLocaleString(t('common:locale')),
     }));
   }, [data?.alerts]);
 
@@ -273,7 +273,7 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <ProfessionalKpiCard
           title={t('admin:dashboard.kpis.totalUsers')}
-          value={kpiData.activeUsers.toLocaleString("pt-BR")}
+          value={kpiData.activeUsers.toLocaleString(t('common:locale'))}
           change={t('common:newThisMonth', { count: kpiData.newUsers })}
           changeType="positive"
           icon={Users}
@@ -281,14 +281,14 @@ const AdminDashboard = () => {
         />
         <ProfessionalKpiCard
           title={t('admin:dashboard.kpis.monthlyRevenue')}
-          value={`R$ ${kpiData.mrr.toLocaleString("pt-BR")}`}
-          change="+2,1%"
+          value={new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(kpiData.mrr)}
+          change=""
           changeType="positive"
           icon={TrendingUp}
           subtitle={t('common:monthly')}
         />
         <ProfessionalKpiCard
-          title="Taxa de Churn"
+          title={t('admin:dashboard.kpis.churnRate')}
           value={`${kpiData.churnRate}%`}
           change={t('common:vsPreviousMonth')}
           changeType="neutral"

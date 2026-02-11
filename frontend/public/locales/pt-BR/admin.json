@@ -12,7 +12,8 @@
       "totalUsers": "Total de Usuários",
       "activeSubscriptions": "Assinaturas Ativas",
       "monthlyRevenue": "Receita Mensal",
-      "activityRate": "Taxa de Atividade"
+      "activityRate": "Taxa de Atividade",
+      "churnRate": "Taxa de Churn"
     }
   },
   "userManagement": {
@@ -85,7 +86,10 @@
       "active": "Ativa",
       "cancelled": "Cancelada",
       "expired": "Expirada",
-      "pending": "Pendente"
+      "pending": "Pendente",
+      "pastDue": "Em Atraso",
+      "trial": "Teste",
+      "paused": "Pausada"
     },
     "actions": {
       "view": "Ver",
@@ -146,26 +150,53 @@
   "paymentHistory": {
     "title": "Histórico de Pagamentos",
     "subtitle": "Acompanhe todas as transações",
+    "tabs": {
+      "subscriptions": "Assinaturas",
+      "payments": "Pagamentos"
+    },
     "filters": {
       "all": "Todos",
+      "allStatus": "Todos os status",
       "completed": "Concluídos",
       "pending": "Pendentes",
       "failed": "Falhados"
     },
+    "searchPayments": "Buscar por e-mail, nome ou ID...",
+    "searchSubscriptions": "Buscar por e-mail, nome ou plano...",
+    "subscription": "assinatura",
+    "subscriptions": "assinaturas",
+    "payment": "pagamento",
+    "payments": "pagamentos",
+    "noSubscriptions": "Nenhuma assinatura encontrada",
+    "noPayments": "Nenhum pagamento encontrado",
     "tableHeaders": {
       "user": "Usuário",
       "plan": "Plano",
       "amount": "Valor",
+      "price": "Preço",
       "status": "Status",
       "date": "Data",
       "method": "Método",
-      "actions": "Ações"
+      "actions": "Ações",
+      "paymentId": "ID do Pagamento",
+      "provider": "Provedor"
+    },
+    "kpis": {
+      "totalRevenue": "Receita Total",
+      "approvedPayments": "Pagamentos aprovados",
+      "paidPayments": "Pagamentos Pagos",
+      "completed": "Concluídos",
+      "pendingPayments": "Pagamentos Pendentes",
+      "waiting": "Aguardando pagamento",
+      "failedPayments": "Pagamentos Falhados",
+      "withError": "Com erro"
     },
     "status": {
       "completed": "Concluído",
       "pending": "Pendente",
       "failed": "Falhado",
-      "refunded": "Reembolsado"
+      "refunded": "Reembolsado",
+      "paid": "Pago"
     },
     "methods": {
       "creditCard": "Cartão de Crédito",
@@ -179,7 +210,24 @@
     "refund": "Reembolsar",
     "refundConfirm": "Tem certeza que deseja reembolsar este pagamento?",
     "refundSuccess": "Pagamento reembolsado com sucesso",
-    "refundError": "Erro ao reembolsar pagamento"
+    "refundError": "Erro ao reembolsar pagamento",
+    "errorLoading": "Erro ao carregar histórico de pagamentos",
+    "errorLoadingSubscriptions": "Erro ao carregar histórico de assinaturas",
+    "deletePaymentSuccess": "Pagamento excluído com sucesso",
+    "deletePaymentError": "Erro ao excluir pagamento",
+    "deleteSubscriptionSuccess": "Assinatura excluída com sucesso",
+    "deleteSubscriptionError": "Erro ao excluir assinatura",
+    "deleteDialog": {
+      "title": "Confirmar Exclusão",
+      "confirmPayment": "Tem certeza que deseja excluir o pagamento de {{name}}?",
+      "confirmSubscription": "Tem certeza que deseja excluir a assinatura de {{name}}?",
+      "amount": "Valor",
+      "date": "Data",
+      "price": "Preço",
+      "warning": "Esta ação não pode ser desfeita.",
+      "deleting": "Excluindo..."
+    },
+    "dateTimeFormat": "dd/MM/yyyy 'às' HH:mm"
   },
   "comments": {
     "title": "Feedback dos Usuários",
@@ -252,17 +300,86 @@
     "subtitle": "Visão completa das finanças",
     "backToList": "Voltar para lista",
     "summary": "Resumo Financeiro",
-    "accounts": "Contas",
-    "transactions": "Transações",
-    "investments": "Investimentos",
-    "cards": "Cartões",
     "loading": "Carregando...",
     "noData": "Sem dados disponíveis",
     "netWorth": "Patrimônio Líquido",
     "totalAssets": "Ativos Totais",
     "totalLiabilities": "Passivos Totais",
     "monthlyIncome": "Receita Mensal",
-    "monthlyExpenses": "Despesas Mensais"
+    "monthlyExpenses": "Despesas Mensais",
+    "errorLoading": "Erro ao carregar dados financeiros do cliente",
+    "dataNotFound": "Dados financeiros não encontrados",
+    "financialSummary": "Resumo Financeiro",
+    "financialSummaryDescription": "Visão geral da posição financeira consolidada do cliente.",
+    "kpis": {
+      "netWorth": "Patrimônio",
+      "netWorthSubtitle": "Patrimônio total",
+      "cash": "Caixa",
+      "cashSubtitle": "Saldo disponível",
+      "investments": "Investimentos",
+      "investmentsSubtitle": "Total investido",
+      "debt": "Dívidas",
+      "debtSubtitle": "Total de dívidas"
+    },
+    "connections": {
+      "title": "Conexões",
+      "subtitle": "{{count}} conexões",
+      "empty": "Nenhuma conexão encontrada",
+      "institution": "Instituição"
+    },
+    "accounts": {
+      "title": "Contas",
+      "subtitle": "{{count}} contas",
+      "empty": "Nenhuma conta encontrada",
+      "tableHeaders": {
+        "name": "Nome",
+        "type": "Tipo",
+        "institution": "Instituição",
+        "balance": "Saldo"
+      }
+    },
+    "investments": {
+      "title": "Investimentos",
+      "subtitle": "{{count}} investimentos",
+      "empty": "Nenhum investimento encontrado",
+      "allocationByType": "Alocação por Tipo",
+      "tableHeaders": {
+        "type": "Tipo",
+        "name": "Nome",
+        "institution": "Instituição",
+        "quantity": "Quantidade",
+        "value": "Valor"
+      }
+    },
+    "investmentTypes": {
+      "fund": "Fundo",
+      "cdb": "CDB",
+      "lci": "LCI",
+      "lca": "LCA",
+      "stock": "Ação",
+      "etf": "ETF",
+      "reit": "FII",
+      "other": "Outro"
+    },
+    "cards": {
+      "title": "Cartões de Crédito",
+      "subtitle": "{{count}} cartões",
+      "empty": "Nenhum cartão encontrado",
+      "card": "Cartão",
+      "openInvoice": "Fatura em aberto"
+    },
+    "transactions": {
+      "title": "Transações Recentes",
+      "subtitle": "{{count}} transações",
+      "empty": "Nenhuma transação encontrada",
+      "tableHeaders": {
+        "date": "Data",
+        "description": "Descrição",
+        "account": "Conta",
+        "institution": "Instituição",
+        "amount": "Valor"
+      }
+    }
   },
   "financialReports": {
     "title": "Relatórios Financeiros",
@@ -271,6 +388,7 @@
     "reportType": "Tipo de Relatório",
     "period": "Período",
     "export": "Exportar",
+    "errorLoading": "Erro ao carregar relatórios financeiros",
     "types": {
       "revenue": "Receita",
       "subscriptions": "Assinaturas",
@@ -281,7 +399,53 @@
       "lastMonth": "Último Mês",
       "lastQuarter": "Último Trimestre",
       "lastYear": "Último Ano",
-      "custom": "Personalizado"
+      "custom": "Personalizado",
+      "year": "Ano {{year}}",
+      "quarters": "Trimestre atual",
+      "months": "Mês atual"
+    },
+    "periodLabel": "Período",
+    "periodOptions": {
+      "monthly": "Mensal",
+      "quarterly": "Trimestral",
+      "yearly": "Anual"
+    },
+    "kpis": {
+      "totalRevenue": "Receita Total",
+      "mrr": "MRR",
+      "recurring": "Recorrente",
+      "commissions": "Comissões",
+      "paidToConsultants": "Pagas a consultores",
+      "netRevenue": "Receita Líquida",
+      "revenueMinusCommissions": "Receita menos comissões"
+    },
+    "charts": {
+      "revenueEvolution": "Evolução da Receita",
+      "revenueVsCharges": "Receita vs. cobranças",
+      "revenueLabel": "Receita",
+      "chargesLabel": "Cobranças",
+      "commissionsByConsultant": "Comissões por Consultor",
+      "commissionDistribution": "Distribuição de comissões",
+      "commissionLabel": "Comissão",
+      "noRevenueData": "Sem dados de receita",
+      "noRevenueDesc": "Não há registros de receita para este período.",
+      "noCommissionData": "Sem dados de comissão",
+      "noCommissionDesc": "Não há registros de comissão para este período."
+    },
+    "transactions": {
+      "title": "Extrato de Transações",
+      "subtitle": "Últimas transações",
+      "list": "Lista de transações",
+      "to": "a",
+      "filterPeriod": "Filtrar período",
+      "noTransactions": "Sem transações",
+      "noTransactionsDesc": "Não há transações para o período selecionado."
+    },
+    "filterDialog": {
+      "title": "Filtrar por Período",
+      "from": "De",
+      "to": "Até",
+      "apply": "Aplicar"
     },
     "generating": "Gerando...",
     "empty": "Nenhum relatório disponível",
@@ -289,7 +453,21 @@
     "generateSuccess": "Relatório gerado com sucesso",
     "generateError": "Erro ao gerar relatório",
     "exportSuccess": "Relatório exportado com sucesso",
-    "exportError": "Erro ao exportar relatório"
+    "exportError": "Erro ao exportar relatório",
+    "downloadFilename": "relatorios-financeiros-{{date}}.csv",
+    "export": {
+      "period": "Período",
+      "revenueHeaders": "Mês",
+      "revenueValue": "Receita",
+      "charges": "Cobranças",
+      "consultant": "Consultor",
+      "clients": "Clientes",
+      "commission": "Comissão",
+      "date": "Data",
+      "type": "Tipo",
+      "client": "Cliente",
+      "amount": "Valor"
+    }
   },
   "integrations": {
     "title": "Monitor de Integrações",
@@ -320,20 +498,32 @@
   "loginHistory": {
     "title": "Histórico de Logins",
     "subtitle": "Atividade de acesso dos usuários",
+    "searchPlaceholder": "Buscar por e-mail, nome ou IP...",
+    "attempt": "tentativa",
+    "attempts": "tentativas",
     "filters": {
       "all": "Todos",
       "customers": "Clientes",
       "consultants": "Consultores",
       "admins": "Administradores"
     },
+    "stats": {
+      "successful": "Logins com Sucesso",
+      "failed": "Logins com Falha",
+      "uniqueIPs": "IPs Únicos"
+    },
     "tableHeaders": {
+      "dateTime": "Data/Hora",
       "user": "Usuário",
       "role": "Função",
+      "ipAddress": "Endereço IP",
+      "browserDevice": "Navegador/Dispositivo",
       "ip": "IP",
       "device": "Dispositivo",
       "location": "Localização",
       "date": "Data/Hora",
-      "status": "Status"
+      "status": "Status",
+      "actions": "Ações"
     },
     "status": {
       "success": "Sucesso",
@@ -343,7 +533,20 @@
     "loading": "Carregando...",
     "export": "Exportar",
     "exportSuccess": "Histórico exportado com sucesso",
-    "exportError": "Erro ao exportar histórico"
+    "exportError": "Erro ao exportar histórico",
+    "deleteSuccess": "Registro excluído com sucesso",
+    "deleteError": "Erro ao excluir registro",
+    "deleteDialog": {
+      "title": "Confirmar Exclusão",
+      "confirm": "Tem certeza que deseja excluir o registro de login de {{name}}?",
+      "date": "Data",
+      "status": "Status",
+      "warning": "Esta ação não pode ser desfeita.",
+      "deleting": "Excluindo..."
+    },
+    "emailLabel": "E-mail",
+    "ipLabel": "IP",
+    "dateTimeFormat": "dd/MM/yyyy 'às' HH:mm"
   },
   "settings": {
     "title": "Configurações do Administrador",

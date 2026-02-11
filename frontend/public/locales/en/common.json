@@ -55,5 +55,18 @@
   "bank": "Bank",
   "locale": "en-US",
   "notAvailable": "N/A",
-  "sessionExpired": "Your session has expired due to inactivity. Please log in again."
+  "sessionExpired": "Your session has expired due to inactivity. Please log in again.",
+  "showingResults": "Showing {{from}} to {{to}} of {{total}}",
+  "plan": "Plan",
+  "newThisMonth": "+{{count}} new this month",
+  "monthly": "Monthly",
+  "vsPreviousMonth": "vs. previous month",
+  "refresh": "Refresh",
+  "errorLoading": "Error loading data",
+  "export": "Export",
+  "clear": "Clear",
+  "email": "Email",
+  "ip": "IP",
+  "itemsPerPageAria": "Items per page",
+  "year": "Year"
 }

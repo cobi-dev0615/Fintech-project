@@ -213,7 +213,7 @@ const PaymentHistory = () => {
 
   const formatPrice = (cents: number) => {
     const reais = cents / 100;
-    return `R$ ${reais.toFixed(2).replace('.', ',')}`;
+    return new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(reais);
   };
 
   const handleDeleteClick = (payment: Payment) => {
@@ -668,7 +668,7 @@ const PaymentHistory = () => {
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className="text-sm text-foreground">
-                            {payment.subscription?.plan.name || "N/A"}
+                            {payment.subscription?.plan.name || t('common:notAvailable')}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -681,7 +681,7 @@ const PaymentHistory = () => {
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className="text-sm text-muted-foreground">
-                            {payment.provider || "N/A"}
+                            {payment.provider || t('common:notAvailable')}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -794,7 +794,7 @@ const PaymentHistory = () => {
                   <span className="text-sm text-muted-foreground mt-2 block">
                     {t('admin:paymentHistory.deleteDialog.amount')}: {formatPrice(paymentToDelete.amountCents)}
                     <br />
-                    {t('admin:paymentHistory.deleteDialog.date')}: {format(new Date(paymentToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: dateLocale })}
+                    {t('admin:paymentHistory.deleteDialog.date')}: {format(new Date(paymentToDelete.createdAt), t('admin:paymentHistory.dateTimeFormat'), { locale: dateLocale })}
                   </span>
                 </>
               ) : subscriptionToDelete ? (
@@ -806,7 +806,7 @@ const PaymentHistory = () => {
                     <br />
                     {t('admin:paymentHistory.deleteDialog.price')}: {formatPrice(subscriptionToDelete.priceCents)}
                     <br />
-                    {t('admin:paymentHistory.deleteDialog.date')}: {format(new Date(subscriptionToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: dateLocale })}
+                    {t('admin:paymentHistory.deleteDialog.date')}: {format(new Date(subscriptionToDelete.createdAt), t('admin:paymentHistory.dateTimeFormat'), { locale: dateLocale })}
                   </span>
                 </>
               ) : null}

@@ -119,7 +119,7 @@ const FinancialReports = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `relatorios-financeiros-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = t('admin:financialReports.downloadFilename', { date: new Date().toISOString().slice(0, 10) });
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -163,7 +163,7 @@ const FinancialReports = () => {
             </Select>
             {period === "year" && (
               <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
-                <SelectTrigger className="w-[100px] sm:w-[110px]" aria-label="Ano">
+                <SelectTrigger className="w-[100px] sm:w-[110px]" aria-label={t('common:year')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -204,7 +204,7 @@ const FinancialReports = () => {
             <div className="rounded-xl border-2 border-emerald-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all">
               <ProfessionalKpiCard
                 title={t('admin:financialReports.kpis.totalRevenue')}
-                value={`R$ ${totalRevenue.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`}
+                value={new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(totalRevenue)}
                 change={periodSubtitle}
                 changeType="neutral"
                 icon={DollarSign}
@@ -215,7 +215,7 @@ const FinancialReports = () => {
             <div className="rounded-xl border-2 border-blue-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-all">
               <ProfessionalKpiCard
                 title={t('admin:financialReports.kpis.mrr')}
-                value={`R$ ${mrr.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`}
+                value={new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(mrr)}
                 change={t('admin:financialReports.kpis.recurring')}
                 changeType="positive"
                 icon={TrendingUp}
@@ -226,7 +226,7 @@ const FinancialReports = () => {
             <div className="rounded-xl border-2 border-violet-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-all">
               <ProfessionalKpiCard
                 title={t('admin:financialReports.kpis.commissions')}
-                value={`R$ ${totalCommissions.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`}
+                value={new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(totalCommissions)}
                 change=""
                 changeType="neutral"
                 icon={CreditCard}
@@ -237,7 +237,7 @@ const FinancialReports = () => {
             <div className="rounded-xl border-2 border-cyan-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-cyan-500/5 transition-all">
               <ProfessionalKpiCard
                 title={t('admin:financialReports.kpis.netRevenue')}
-                value={`R$ ${netRevenue.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`}
+                value={new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(netRevenue)}
                 change=""
                 changeType="positive"
                 icon={DollarSign}
@@ -257,7 +257,7 @@ const FinancialReports = () => {
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 0 }).format(v)} />
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                 <Tooltip
                   contentStyle={{
@@ -267,7 +267,7 @@ const FinancialReports = () => {
                     boxShadow: "0 4px 6px -1px rgba(0,0,0,0.2)",
                   }}
                   formatter={(value: number, name: string) =>
-                    name === t('admin:financialReports.charts.revenueLabel') ? [`R$ ${value.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`, name] : [value, name]
+                    name === t('admin:financialReports.charts.revenueLabel') ? [new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(value), name] : [value, name]
                   }
                 />
                 <Legend />
@@ -298,7 +298,7 @@ const FinancialReports = () => {
                   textAnchor="end"
                   height={60}
                 />
-                <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
+                <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 0 }).format(v)} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
@@ -306,7 +306,7 @@ const FinancialReports = () => {
                     borderRadius: "8px",
                     boxShadow: "0 4px 6px -1px rgba(0,0,0,0.2)",
                   }}
-                  formatter={(value: number) => [`R$ ${value.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`, t('admin:financialReports.charts.commissionLabel')]}
+                  formatter={(value: number) => [new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(value), t('admin:financialReports.charts.commissionLabel')]}
                 />
                 <Legend />
                 <Bar dataKey="commission" fill="hsl(var(--primary))" name={t('admin:financialReports.charts.commissionLabel')} radius={[4, 4, 0, 0]} />
@@ -371,7 +371,7 @@ const FinancialReports = () => {
                     }`}
                   >
                     {transaction.amount > 0 ? "+" : ""}
-                    R$ {Math.abs(transaction.amount).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
+                    {new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(Math.abs(transaction.amount))}
                   </div>
                   <div className="text-xs text-muted-foreground">{transaction.date}</div>
                 </div>

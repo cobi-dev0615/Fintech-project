@@ -55,5 +55,18 @@
   "bank": "Banco",
   "locale": "pt-BR",
   "notAvailable": "N/D",
-  "sessionExpired": "Sua sessão expirou por inatividade. Por favor, faça login novamente."
+  "sessionExpired": "Sua sessão expirou por inatividade. Por favor, faça login novamente.",
+  "showingResults": "Mostrando {{from}} a {{to}} de {{total}}",
+  "plan": "Plano",
+  "newThisMonth": "+{{count}} novos este mês",
+  "monthly": "Mensal",
+  "vsPreviousMonth": "vs. mês anterior",
+  "refresh": "Atualizar",
+  "errorLoading": "Erro ao carregar dados",
+  "export": "Exportar",
+  "clear": "Limpar",
+  "email": "E-mail",
+  "ip": "IP",
+  "itemsPerPageAria": "Itens por página",
+  "year": "Ano"
 }

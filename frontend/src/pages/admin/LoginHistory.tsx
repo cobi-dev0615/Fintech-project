@@ -324,7 +324,7 @@ const LoginHistory = () => {
                         </td>
                         <td className="py-3 px-4">
                           <span className="text-sm font-mono text-foreground">
-                            {entry.ipAddress || "N/A"}
+                            {entry.ipAddress || t('common:notAvailable')}
                           </span>
                         </td>
                         <td className="py-3 px-4">
@@ -333,7 +333,7 @@ const LoginHistory = () => {
                               ? (entry.userAgent.length > 50 
                                 ? entry.userAgent.substring(0, 50) + "..." 
                                 : entry.userAgent)
-                              : "N/A"}
+                              : t('common:notAvailable')}
                           </span>
                         </td>
                         <td className="py-3 px-4">
@@ -380,7 +380,7 @@ const LoginHistory = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground whitespace-nowrap">{t('common:perPage')}</span>
                     <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-                      <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
+                      <SelectTrigger className="h-8 w-[100px]" aria-label={t('common:itemsPerPageAria')}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -436,7 +436,7 @@ const LoginHistory = () => {
               <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-border">
                 <span className="text-sm text-muted-foreground">{t('common:perPage')}</span>
                 <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-                  <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
+                  <SelectTrigger className="h-8 w-[100px]" aria-label={t('common:itemsPerPageAria')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -462,11 +462,11 @@ const LoginHistory = () => {
               {t('admin:loginHistory.deleteDialog.confirm', { name: recordToDelete?.user.name })}
               <br />
               <span className="text-sm text-muted-foreground mt-2 block">
-                Email: {recordToDelete?.user.email}
+                {t('admin:loginHistory.emailLabel')}: {recordToDelete?.user.email}
                 <br />
-                IP: {recordToDelete?.ipAddress || "N/A"}
+                {t('admin:loginHistory.ipLabel')}: {recordToDelete?.ipAddress || t('common:notAvailable')}
                 <br />
-                {t('admin:loginHistory.deleteDialog.date')}: {recordToDelete && format(new Date(recordToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: dateLocale })}
+                {t('admin:loginHistory.deleteDialog.date')}: {recordToDelete && format(new Date(recordToDelete.createdAt), t('admin:loginHistory.dateTimeFormat'), { locale: dateLocale })}
                 <br />
                 {t('admin:loginHistory.deleteDialog.status')}: {recordToDelete?.success ? t('admin:loginHistory.status.success') : t('admin:loginHistory.status.failed')}
               </span>

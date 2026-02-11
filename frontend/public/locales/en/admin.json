@@ -12,7 +12,8 @@
       "totalUsers": "Total Users",
       "activeSubscriptions": "Active Subscriptions",
       "monthlyRevenue": "Monthly Revenue",
-      "activityRate": "Activity Rate"
+      "activityRate": "Activity Rate",
+      "churnRate": "Churn Rate"
     }
   },
   "userManagement": {
@@ -85,7 +86,10 @@
       "active": "Active",
       "cancelled": "Cancelled",
       "expired": "Expired",
-      "pending": "Pending"
+      "pending": "Pending",
+      "pastDue": "Past Due",
+      "trial": "Trial",
+      "paused": "Paused"
     },
     "actions": {
       "view": "View",
@@ -146,26 +150,53 @@
   "paymentHistory": {
     "title": "Payment History",
     "subtitle": "Track all transactions",
+    "tabs": {
+      "subscriptions": "Subscriptions",
+      "payments": "Payments"
+    },
     "filters": {
       "all": "All",
+      "allStatus": "All statuses",
       "completed": "Completed",
       "pending": "Pending",
       "failed": "Failed"
     },
+    "searchPayments": "Search by email, name or ID...",
+    "searchSubscriptions": "Search by email, name or plan...",
+    "subscription": "subscription",
+    "subscriptions": "subscriptions",
+    "payment": "payment",
+    "payments": "payments",
+    "noSubscriptions": "No subscriptions found",
+    "noPayments": "No payments found",
     "tableHeaders": {
       "user": "User",
       "plan": "Plan",
       "amount": "Amount",
+      "price": "Price",
       "status": "Status",
       "date": "Date",
       "method": "Method",
-      "actions": "Actions"
+      "actions": "Actions",
+      "paymentId": "Payment ID",
+      "provider": "Provider"
+    },
+    "kpis": {
+      "totalRevenue": "Total Revenue",
+      "approvedPayments": "Approved payments",
+      "paidPayments": "Paid Payments",
+      "completed": "Completed",
+      "pendingPayments": "Pending Payments",
+      "waiting": "Awaiting payment",
+      "failedPayments": "Failed Payments",
+      "withError": "With error"
     },
     "status": {
       "completed": "Completed",
       "pending": "Pending",
       "failed": "Failed",
-      "refunded": "Refunded"
+      "refunded": "Refunded",
+      "paid": "Paid"
     },
     "methods": {
       "creditCard": "Credit Card",
@@ -179,7 +210,24 @@
     "refund": "Refund",
     "refundConfirm": "Are you sure you want to refund this payment?",
     "refundSuccess": "Payment refunded successfully",
-    "refundError": "Error refunding payment"
+    "refundError": "Error refunding payment",
+    "errorLoading": "Error loading payment history",
+    "errorLoadingSubscriptions": "Error loading subscription history",
+    "deletePaymentSuccess": "Payment deleted successfully",
+    "deletePaymentError": "Error deleting payment",
+    "deleteSubscriptionSuccess": "Subscription deleted successfully",
+    "deleteSubscriptionError": "Error deleting subscription",
+    "deleteDialog": {
+      "title": "Confirm Deletion",
+      "confirmPayment": "Are you sure you want to delete the payment for {{name}}?",
+      "confirmSubscription": "Are you sure you want to delete the subscription for {{name}}?",
+      "amount": "Amount",
+      "date": "Date",
+      "price": "Price",
+      "warning": "This action cannot be undone.",
+      "deleting": "Deleting..."
+    },
+    "dateTimeFormat": "MM/dd/yyyy 'at' hh:mm a"
   },
   "comments": {
     "title": "User Feedback",
@@ -252,17 +300,86 @@
     "subtitle": "Complete financial overview",
     "backToList": "Back to list",
     "summary": "Financial Summary",
-    "accounts": "Accounts",
-    "transactions": "Transactions",
-    "investments": "Investments",
-    "cards": "Cards",
     "loading": "Loading...",
     "noData": "No data available",
     "netWorth": "Net Worth",
     "totalAssets": "Total Assets",
     "totalLiabilities": "Total Liabilities",
     "monthlyIncome": "Monthly Income",
-    "monthlyExpenses": "Monthly Expenses"
+    "monthlyExpenses": "Monthly Expenses",
+    "errorLoading": "Error loading customer financial data",
+    "dataNotFound": "Financial data not found",
+    "financialSummary": "Financial Summary",
+    "financialSummaryDescription": "Overview of the customer's consolidated financial position.",
+    "kpis": {
+      "netWorth": "Net Worth",
+      "netWorthSubtitle": "Total equity",
+      "cash": "Cash",
+      "cashSubtitle": "Available balance",
+      "investments": "Investments",
+      "investmentsSubtitle": "Total invested",
+      "debt": "Debt",
+      "debtSubtitle": "Total debt"
+    },
+    "connections": {
+      "title": "Connections",
+      "subtitle": "{{count}} connections",
+      "empty": "No connections found",
+      "institution": "Institution"
+    },
+    "accounts": {
+      "title": "Accounts",
+      "subtitle": "{{count}} accounts",
+      "empty": "No accounts found",
+      "tableHeaders": {
+        "name": "Name",
+        "type": "Type",
+        "institution": "Institution",
+        "balance": "Balance"
+      }
+    },
+    "investments": {
+      "title": "Investments",
+      "subtitle": "{{count}} investments",
+      "empty": "No investments found",
+      "allocationByType": "Allocation by Type",
+      "tableHeaders": {
+        "type": "Type",
+        "name": "Name",
+        "institution": "Institution",
+        "quantity": "Quantity",
+        "value": "Value"
+      }
+    },
+    "investmentTypes": {
+      "fund": "Fund",
+      "cdb": "CDB",
+      "lci": "LCI",
+      "lca": "LCA",
+      "stock": "Stock",
+      "etf": "ETF",
+      "reit": "REIT",
+      "other": "Other"
+    },
+    "cards": {
+      "title": "Credit Cards",
+      "subtitle": "{{count}} cards",
+      "empty": "No cards found",
+      "card": "Card",
+      "openInvoice": "Open invoice"
+    },
+    "transactions": {
+      "title": "Recent Transactions",
+      "subtitle": "{{count}} transactions",
+      "empty": "No transactions found",
+      "tableHeaders": {
+        "date": "Date",
+        "description": "Description",
+        "account": "Account",
+        "institution": "Institution",
+        "amount": "Amount"
+      }
+    }
   },
   "financialReports": {
     "title": "Financial Reports",
@@ -271,6 +388,7 @@
     "reportType": "Report Type",
     "period": "Period",
     "export": "Export",
+    "errorLoading": "Error loading financial reports",
     "types": {
       "revenue": "Revenue",
       "subscriptions": "Subscriptions",
@@ -281,7 +399,53 @@
       "lastMonth": "Last Month",
       "lastQuarter": "Last Quarter",
       "lastYear": "Last Year",
-      "custom": "Custom"
+      "custom": "Custom",
+      "year": "Year {{year}}",
+      "quarters": "Current quarter",
+      "months": "Current month"
+    },
+    "periodLabel": "Period",
+    "periodOptions": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "kpis": {
+      "totalRevenue": "Total Revenue",
+      "mrr": "MRR",
+      "recurring": "Recurring",
+      "commissions": "Commissions",
+      "paidToConsultants": "Paid to consultants",
+      "netRevenue": "Net Revenue",
+      "revenueMinusCommissions": "Revenue minus commissions"
+    },
+    "charts": {
+      "revenueEvolution": "Revenue Evolution",
+      "revenueVsCharges": "Revenue vs. charges",
+      "revenueLabel": "Revenue",
+      "chargesLabel": "Charges",
+      "commissionsByConsultant": "Commissions by Consultant",
+      "commissionDistribution": "Commission distribution",
+      "commissionLabel": "Commission",
+      "noRevenueData": "No revenue data",
+      "noRevenueDesc": "There are no revenue records for this period.",
+      "noCommissionData": "No commission data",
+      "noCommissionDesc": "There are no commission records for this period."
+    },
+    "transactions": {
+      "title": "Transaction Statement",
+      "subtitle": "Latest transactions",
+      "list": "Transaction list",
+      "to": "to",
+      "filterPeriod": "Filter period",
+      "noTransactions": "No transactions",
+      "noTransactionsDesc": "There are no transactions for the selected period."
+    },
+    "filterDialog": {
+      "title": "Filter by Period",
+      "from": "From",
+      "to": "To",
+      "apply": "Apply"
     },
     "generating": "Generating...",
     "empty": "No reports available",
@@ -289,7 +453,21 @@
     "generateSuccess": "Report generated successfully",
     "generateError": "Error generating report",
     "exportSuccess": "Report exported successfully",
-    "exportError": "Error exporting report"
+    "exportError": "Error exporting report",
+    "downloadFilename": "financial-reports-{{date}}.csv",
+    "export": {
+      "period": "Period",
+      "revenueHeaders": "Month",
+      "revenueValue": "Revenue",
+      "charges": "Charges",
+      "consultant": "Consultant",
+      "clients": "Clients",
+      "commission": "Commission",
+      "date": "Date",
+      "type": "Type",
+      "client": "Client",
+      "amount": "Amount"
+    }
   },
   "integrations": {
     "title": "Integrations Monitor",
@@ -320,20 +498,32 @@
   "loginHistory": {
     "title": "Login History",
     "subtitle": "User access activity",
+    "searchPlaceholder": "Search by email, name or IP...",
+    "attempt": "attempt",
+    "attempts": "attempts",
     "filters": {
       "all": "All",
       "customers": "Customers",
       "consultants": "Consultants",
       "admins": "Administrators"
     },
+    "stats": {
+      "successful": "Successful Logins",
+      "failed": "Failed Logins",
+      "uniqueIPs": "Unique IPs"
+    },
     "tableHeaders": {
+      "dateTime": "Date/Time",
       "user": "User",
       "role": "Role",
+      "ipAddress": "IP Address",
+      "browserDevice": "Browser/Device",
       "ip": "IP",
       "device": "Device",
       "location": "Location",
       "date": "Date/Time",
-      "status": "Status"
+      "status": "Status",
+      "actions": "Actions"
     },
     "status": {
       "success": "Success",
@@ -343,7 +533,20 @@
     "loading": "Loading...",
     "export": "Export",
     "exportSuccess": "History exported successfully",
-    "exportError": "Error exporting history"
+    "exportError": "Error exporting history",
+    "deleteSuccess": "Record deleted successfully",
+    "deleteError": "Error deleting record",
+    "deleteDialog": {
+      "title": "Confirm Deletion",
+      "confirm": "Are you sure you want to delete the login record for {{name}}?",
+      "date": "Date",
+      "status": "Status",
+      "warning": "This action cannot be undone.",
+      "deleting": "Deleting..."
+    },
+    "emailLabel": "Email",
+    "ipLabel": "IP",
+    "dateTimeFormat": "MM/dd/yyyy 'at' hh:mm a"
   },
   "settings": {
     "title": "Administrator Settings",

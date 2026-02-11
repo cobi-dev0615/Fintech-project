@@ -74,7 +74,7 @@ const CustomerFinanceDetail = () => {
   }, [id, toast]);
 
   const formatCurrency = (val: number | string) =>
-    `R$ ${Number(val || 0).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`;
+    new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(Number(val || 0));
 
   if (loading) {
     return (
@@ -177,7 +177,7 @@ const CustomerFinanceDetail = () => {
                   <Building2 className="h-5 w-5 text-muted-foreground" />
                 )}
                 <span className="text-sm font-medium">{c.institution_name || t('admin:customerFinance.connections.institution')}</span>
-                <span className="text-xs text-muted-foreground">({c.status})</span>
+                <span className="text-xs text-muted-foreground">({t(`common:status.${c.status}`, { defaultValue: c.status })})</span>
               </div>
             ))}
           </div>
