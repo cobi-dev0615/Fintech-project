@@ -13,5 +13,17 @@
     "successDesc": "Seus dados foram atualizados com sucesso.",
     "error": "Erro na sincronização",
     "errorDesc": "Não foi possível sincronizar os dados."
+  },
+  "chart": {
+    "title": "Variação do Patrimônio",
+    "subtitle": "Evolução com base em saldos e transações do Open Finance",
+    "timeRange": {
+      "7M": "7M",
+      "1A": "1A",
+      "all": "Tudo"
+    },
+    "loading": "Carregando...",
+    "noData": "Nenhum dado disponível",
+    "tooltipLabel": "Patrimônio"
   }
 }

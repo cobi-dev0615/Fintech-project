@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import ChartCard from "./ChartCard";
 import { financeApi, dashboardApi } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 const NetWorthChart = () => {
-  const [timeRange, setTimeRange] = useState<"7M" | "1A" | "Tudo">("7M");
+  const { t } = useTranslation('dashboard');
+  const [timeRange, setTimeRange] = useState<"7M" | "1A" | "all">("7M");
   const [data, setData] = useState<Array<{ month: string; value: number }>>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,11 +33,11 @@ const NetWorthChart = () => {
 
   return (
     <ChartCard
-      title="Variação do Patrimônio (Net Asset Change)"
-      subtitle="Evolução com base em saldos e transações do Open Finance"
+      title={t('chart.title')}
+      subtitle={t('chart.subtitle')}
       actions={
         <div className="flex items-center gap-1 rounded-lg p-0.5 bg-muted/50 border border-border/50">
-          {(["7M", "1A", "Tudo"] as const).map((range) => (
+          {(["7M", "1A", "all"] as const).map((range) => (
             <button
               key={range}
               type="button"
@@ -49,7 +51,7 @@ const NetWorthChart = () => {
                 }
               `}
             >
-              {range}
+              {t(`chart.timeRange.${range}`)}
             </button>
           ))}
         </div>
@@ -58,11 +60,11 @@ const NetWorthChart = () => {
       <div className="h-56 sm:h-64 min-w-0">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-muted-foreground">Carregando...</p>
+            <p className="text-sm text-muted-foreground">{t('chart.loading')}</p>
           </div>
         ) : data.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-muted-foreground">Nenhum dado disponível</p>
+            <p className="text-sm text-muted-foreground">{t('chart.noData')}</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
@@ -100,7 +102,7 @@ const NetWorthChart = () => {
               labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, marginBottom: "4px" }}
               formatter={(value: number) => [
                 `R$ ${value.toLocaleString("pt-BR")}`,
-                "Patrimônio",
+                t('chart.tooltipLabel'),
               ]}
             />
             <Area

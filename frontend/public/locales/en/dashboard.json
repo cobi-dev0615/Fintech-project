@@ -13,5 +13,17 @@
     "successDesc": "Your data has been successfully updated.",
     "error": "Sync error",
     "errorDesc": "Could not synchronize data."
+  },
+  "chart": {
+    "title": "Net Asset Change",
+    "subtitle": "Evolution based on Open Finance balances and transactions",
+    "timeRange": {
+      "7M": "7M",
+      "1A": "1Y",
+      "all": "All"
+    },
+    "loading": "Loading...",
+    "noData": "No data available",
+    "tooltipLabel": "Net Worth"
   }
 }
