@@ -8,6 +8,7 @@ import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 interface User {
   id: string;
@@ -22,6 +23,7 @@ interface User {
 const LIMIT_OPTIONS = [5, 10, 20];
 
 const UserManagement = () => {
+  const { t, i18n } = useTranslation(['admin', 'common']);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -60,8 +62,8 @@ const UserManagement = () => {
       setPagination(response.pagination);
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: error?.error || "Falha ao carregar usuários",
+        title: t('common:error'),
+        description: error?.error || t('common:errorLoading'),
         variant: "destructive",
       });
     } finally {
@@ -80,14 +82,15 @@ const UserManagement = () => {
       consultant: "bg-purple-500/10 text-purple-500",
       admin: "bg-orange-500/10 text-orange-500",
     };
-    const labels: Record<string, string> = {
-      customer: "Cliente",
-      consultant: "Consultor",
-      admin: "Administrador",
+    const getRoleLabel = (r: string) => {
+      if (r === 'customer') return t('admin:userManagement.roles.customer');
+      if (r === 'consultant') return t('admin:userManagement.roles.consultant');
+      if (r === 'admin') return t('admin:userManagement.roles.admin');
+      return r;
     };
     return (
       <Badge className={styles[role] ?? "bg-muted text-muted-foreground"}>
-        {labels[role] ?? role}
+        {getRoleLabel(role)}
       </Badge>
     );
   };
@@ -98,14 +101,15 @@ const UserManagement = () => {
       blocked: "bg-red-500/10 text-red-600",
       pending: "bg-amber-500/10 text-amber-600",
     };
-    const labels: Record<string, string> = {
-      active: "Ativo",
-      blocked: "Bloqueado",
-      pending: "Pendente",
+    const getStatusLabel = (s: string) => {
+      if (s === 'active') return t('admin:userManagement.status.active');
+      if (s === 'blocked') return t('admin:userManagement.status.suspended');
+      if (s === 'pending') return t('admin:userManagement.status.inactive');
+      return s;
     };
     return (
       <Badge className={styles[status] ?? "bg-muted text-muted-foreground"}>
-        {labels[status] ?? status}
+        {getStatusLabel(status)}
       </Badge>
     );
   };
@@ -114,14 +118,14 @@ const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Gestão de Usuários</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('admin:userManagement.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gerencie usuários, permissões e roles
+            {t('admin:userManagement.subtitle')}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading} className="gap-2">
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Atualizar
+          {t('common:refresh')}
         </Button>
       </div>
 
@@ -130,7 +134,7 @@ const UserManagement = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome ou email"
+              placeholder={t('admin:userManagement.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -138,33 +142,33 @@ const UserManagement = () => {
           </div>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Role" />
+              <SelectValue placeholder={t('admin:userManagement.tableHeaders.role')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas as roles</SelectItem>
-              <SelectItem value="customer">Cliente</SelectItem>
-              <SelectItem value="consultant">Consultor</SelectItem>
-              <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="all">{t('admin:userManagement.filters.all')}</SelectItem>
+              <SelectItem value="customer">{t('admin:userManagement.roles.customer')}</SelectItem>
+              <SelectItem value="consultant">{t('admin:userManagement.roles.consultant')}</SelectItem>
+              <SelectItem value="admin">{t('admin:userManagement.roles.admin')}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t('admin:userManagement.tableHeaders.status')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="active">Ativo</SelectItem>
-              <SelectItem value="blocked">Bloqueado</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
+              <SelectItem value="all">{t('admin:userManagement.filters.all')}</SelectItem>
+              <SelectItem value="active">{t('admin:userManagement.status.active')}</SelectItem>
+              <SelectItem value="blocked">{t('admin:userManagement.status.suspended')}</SelectItem>
+              <SelectItem value="pending">{t('admin:userManagement.status.inactive')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </ChartCard>
 
-      <ChartCard title={`${pagination.total} Usuário${pagination.total !== 1 ? "s" : ""}`}>
+      <ChartCard title={`${pagination.total} ${pagination.total === 1 ? t('admin:userManagement.tableHeaders.name') : t('admin:userManagement.tableHeaders.name') + 's'}`}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">Carregando usuários...</p>
+            <p className="text-muted-foreground">{t('admin:userManagement.loading')}</p>
           </div>
         ) : (
           <>
@@ -173,22 +177,22 @@ const UserManagement = () => {
                 <thead className="bg-muted/50">
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Usuário
+                      {t('admin:userManagement.tableHeaders.name')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Role
+                      {t('admin:userManagement.tableHeaders.role')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Status
+                      {t('admin:userManagement.tableHeaders.status')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Plano
+                      {t('common:plan')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Cadastro
+                      {t('admin:userManagement.tableHeaders.createdAt')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Ações
+                      {t('admin:userManagement.tableHeaders.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -198,9 +202,9 @@ const UserManagement = () => {
                       <td colSpan={6} className="py-12 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <Users className="h-12 w-12 text-muted-foreground/50" />
-                          <p className="text-sm font-medium text-foreground">Nenhum usuário encontrado</p>
+                          <p className="text-sm font-medium text-foreground">{t('admin:userManagement.empty')}</p>
                           <p className="text-xs text-muted-foreground">
-                            Ajuste os filtros ou limpe a busca
+                            {t('common:adjustFilters')}
                           </p>
                         </div>
                       </td>
@@ -224,7 +228,7 @@ const UserManagement = () => {
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className="text-sm text-muted-foreground">
-                            {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+                            {new Date(user.createdAt).toLocaleDateString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US')}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -234,7 +238,7 @@ const UserManagement = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate(`/admin/users/${user.id}/finance`)}
-                                title="Ver dados financeiros"
+                                title={t('admin:customerFinance.title')}
                               >
                                 <PieChart className="h-4 w-4" />
                               </Button>
@@ -242,7 +246,7 @@ const UserManagement = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="Ver detalhes"
+                              title={t('admin:userManagement.viewDetails')}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -261,11 +265,15 @@ const UserManagement = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex flex-wrap items-center gap-4">
                     <span className="text-sm text-muted-foreground">
-                      Mostrando {((page - 1) * pagination.limit) + 1}–{Math.min(page * pagination.limit, pagination.total)} de {pagination.total} usuário{pagination.total !== 1 ? "s" : ""}
+                      {t('common:showingResults', {
+                        from: ((page - 1) * pagination.limit) + 1,
+                        to: Math.min(page * pagination.limit, pagination.total),
+                        total: pagination.total
+                      })}
                     </span>
                     <div className="flex items-center gap-2">
                       <label htmlFor="users-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
-                        Por página
+                        {t('common:perPage')}
                       </label>
                       <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
                         <SelectTrigger id="users-per-page" className="h-9 w-[110px]">
@@ -288,7 +296,7 @@ const UserManagement = () => {
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page <= 1 || loading}
                     >
-                      Anterior
+                      {t('common:previous')}
                     </Button>
                     <div className="flex items-center gap-1">
                       {Array.from({ length: Math.min(5, Math.max(1, pagination.totalPages)) }, (_, i) => {
@@ -323,7 +331,7 @@ const UserManagement = () => {
                       onClick={() => setPage((p) => Math.min(Math.max(1, pagination.totalPages), p + 1))}
                       disabled={page >= Math.max(1, pagination.totalPages) || loading}
                     >
-                      Próxima
+                      {t('common:next')}
                     </Button>
                   </div>
                 </div>

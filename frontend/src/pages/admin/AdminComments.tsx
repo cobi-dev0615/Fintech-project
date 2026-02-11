@@ -16,6 +16,8 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { ptBR, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import {
   Table,
   TableBody,
@@ -43,6 +45,8 @@ import { Textarea } from "@/components/ui/textarea";
 const LIMIT_OPTIONS = [5, 10, 20];
 
 const AdminComments = () => {
+  const { t, i18n } = useTranslation(['admin', 'common']);
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -75,8 +79,8 @@ const AdminComments = () => {
       });
     } catch (error: unknown) {
       toast({
-        title: "Erro",
-        description: "Erro ao carregar comentários",
+        title: t('common:error'),
+        description: t('admin:comments.errorLoading'),
         variant: "destructive",
       });
     } finally {
@@ -123,15 +127,15 @@ const AdminComments = () => {
     try {
       await adminApi.replyToComment(selectedComment.id, replyText);
       toast({
-        title: "Sucesso",
-        description: "Resposta enviada com sucesso",
+        title: t('common:success'),
+        description: t('admin:comments.replySuccess'),
       });
       setIsReplyModalOpen(false);
       fetchComments(page, pageSize);
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: "Erro ao enviar resposta",
+        title: t('common:error'),
+        description: t('admin:comments.replyError'),
         variant: "destructive",
       });
     } finally {
@@ -150,19 +154,19 @@ const AdminComments = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Gerenciamento de Comentários</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('admin:comments.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Responda e gerencie o feedback dos usuários
+            {t('admin:comments.subtitle')}
           </p>
         </div>
       </div>
 
-      <ChartCard title="Comentários dos Usuários">
+      <ChartCard title={t('admin:comments.cardTitle')}>
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome, e-mail ou conteúdo..."
+              placeholder={t('admin:comments.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -170,7 +174,7 @@ const AdminComments = () => {
           </div>
           <Button variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
-            Filtros
+            {t('common:filters')}
           </Button>
         </div>
 
@@ -178,12 +182,12 @@ const AdminComments = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Usuário</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Comentário</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Ação</TableHead>
+                <TableHead>{t('admin:comments.tableHeaders.user')}</TableHead>
+                <TableHead>{t('admin:comments.tableHeaders.title')}</TableHead>
+                <TableHead>{t('admin:comments.tableHeaders.comment')}</TableHead>
+                <TableHead>{t('admin:comments.tableHeaders.date')}</TableHead>
+                <TableHead>{t('admin:comments.tableHeaders.status')}</TableHead>
+                <TableHead>{t('admin:comments.tableHeaders.action')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -196,7 +200,7 @@ const AdminComments = () => {
               ) : filteredComments.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    Nenhum comentário encontrado
+                    {t('admin:comments.empty')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -215,29 +219,29 @@ const AdminComments = () => {
                       {c.content}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {format(new Date(c.created_at), "dd/MM/yyyy HH:mm")}
+                      {format(new Date(c.created_at), "dd/MM/yyyy HH:mm", { locale: dateLocale })}
                     </TableCell>
                     <TableCell>
                       {c.reply ? (
                         <div className="flex items-center gap-1.5 text-success">
                           <CheckCircle2 className="h-4 w-4" />
-                          <span className="text-xs font-medium">Respondido</span>
+                          <span className="text-xs font-medium">{t('admin:comments.status.replied')}</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 text-warning">
                           <Clock className="h-4 w-4" />
-                          <span className="text-xs font-medium">Pendente</span>
+                          <span className="text-xs font-medium">{t('admin:comments.status.pending')}</span>
                         </div>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleOpenReplyModal(c)}
                       >
                         <Reply className="h-4 w-4 mr-2" />
-                        {c.reply ? "Ver/Editar" : "Responder"}
+                        {c.reply ? t('admin:comments.viewEdit') : t('admin:comments.reply')}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -252,11 +256,14 @@ const AdminComments = () => {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-sm text-muted-foreground">
-                Mostrando {pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1} a{" "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
+                {t('common:showingResults', {
+                  from: pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1,
+                  to: Math.min(pagination.page * pagination.limit, pagination.total),
+                  total: pagination.total
+                })}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground whitespace-nowrap">Por página</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{t('common:perPage')}</span>
                 <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
                   <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
                     <SelectValue />
@@ -314,7 +321,7 @@ const AdminComments = () => {
         )}
         {pagination.total === 0 && pagination.totalPages <= 1 && (
           <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-border">
-            <span className="text-sm text-muted-foreground">Por página</span>
+            <span className="text-sm text-muted-foreground">{t('common:perPage')}</span>
             <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
               <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
                 <SelectValue />
@@ -335,30 +342,30 @@ const AdminComments = () => {
       <Dialog open={isReplyModalOpen} onOpenChange={setIsReplyModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Responder Comentário</DialogTitle>
+            <DialogTitle>{t('admin:comments.replyDialog.title')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="bg-muted/50 p-4 rounded-lg">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Comentário de {selectedComment?.user_name}</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('admin:comments.replyDialog.commentFrom', { name: selectedComment?.user_name })}</p>
               {selectedComment?.title && <p className="text-sm font-bold mb-1">{selectedComment.title}</p>}
               <p className="text-sm text-foreground italic">"{selectedComment?.content}"</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reply">Sua Resposta</Label>
-              <Textarea 
+              <Label htmlFor="reply">{t('admin:comments.replyDialog.yourReply')}</Label>
+              <Textarea
                 id="reply"
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
-                placeholder="Digite sua resposta aqui..."
+                placeholder={t('admin:comments.replyDialog.placeholder')}
                 className="min-h-[150px]"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReplyModalOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setIsReplyModalOpen(false)}>{t('common:cancel')}</Button>
             <Button onClick={handleSendReply} disabled={isSubmitting || !replyText.trim()}>
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Reply className="h-4 w-4 mr-2" />}
-              Enviar Resposta
+              {t('admin:comments.replyDialog.sendReply')}
             </Button>
           </DialogFooter>
         </DialogContent>

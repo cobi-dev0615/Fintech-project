@@ -8,8 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const Settings = () => {
+  const { t } = useTranslation(['admin', 'common']);
   const [activeStep, setActiveStep] = useState<string>("emails");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,8 +32,8 @@ const Settings = () => {
   });
 
   const steps = [
-    { id: "emails", label: "Emails Automatizados", icon: Mail },
-    { id: "platform", label: "Configurações da Plataforma", icon: SettingsIcon },
+    { id: "emails", label: t('admin:settings.steps.emails'), icon: Mail },
+    { id: "platform", label: t('admin:settings.steps.platform'), icon: SettingsIcon },
   ];
 
   // Load settings on mount (if API available)
@@ -52,14 +54,14 @@ const Settings = () => {
           break;
       }
       toast({
-        title: "Sucesso",
-        description: "Configurações salvas com sucesso!",
+        title: t('common:success'),
+        description: t('admin:settings.saveSuccess'),
       });
     } catch (error: any) {
       console.error(`Failed to save ${section} settings:`, error);
       toast({
-        title: "Erro",
-        description: error?.error || `Falha ao salvar configurações de ${section}`,
+        title: t('common:error'),
+        description: error?.error || t('admin:settings.saveError'),
         variant: "destructive",
       });
     } finally {
@@ -79,9 +81,9 @@ const Settings = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Configurações da Plataforma</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('admin:settings.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gerencie emails e configurações da plataforma
+            {t('admin:settings.subtitle')}
           </p>
         </div>
       </div>
@@ -120,7 +122,7 @@ const Settings = () => {
                       {step.label}
                     </span>
                     <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">
-                      Passo {index + 1}
+                      {t('admin:settings.step', { number: index + 1 })}
                     </span>
                   </div>
                 </button>
@@ -133,14 +135,14 @@ const Settings = () => {
         <div className="flex-1">
           {/* Email Settings */}
           {activeStep === "emails" && (
-            <ChartCard 
-              title="Configurações de Email"
-              actions={<Button onClick={() => handleSaveSection('email')} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? "Salvando..." : "Salvar Configurações de Email"}</Button>}
+            <ChartCard
+              title={t('admin:settings.emailSettings.title')}
+              actions={<Button onClick={() => handleSaveSection('email')} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? t('admin:settings.saving') : t('admin:settings.emailSettings.saveButton')}</Button>}
             >
               <div className="space-y-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="fromEmail">Email Remetente</Label>
+                    <Label htmlFor="fromEmail">{t('admin:settings.emailSettings.fromEmail')}</Label>
                     <Input
                       id="fromEmail"
                       value={emailSettings.fromEmail}
@@ -151,7 +153,7 @@ const Settings = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="fromName">Nome Remetente</Label>
+                    <Label htmlFor="fromName">{t('admin:settings.emailSettings.fromName')}</Label>
                     <Input
                       id="fromName"
                       value={emailSettings.fromName}
@@ -165,9 +167,9 @@ const Settings = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="welcome">Email de Boas-vindas</Label>
+                      <Label htmlFor="welcome">{t('admin:settings.emailSettings.welcomeEmail')}</Label>
                       <p className="text-xs text-muted-foreground">
-                        Enviar email automático quando novo usuário se registra
+                        {t('admin:settings.emailSettings.welcomeEmailDesc')}
                       </p>
                     </div>
                     <Switch
@@ -182,9 +184,9 @@ const Settings = () => {
 
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="report">Relatório Mensal</Label>
+                      <Label htmlFor="report">{t('admin:settings.emailSettings.monthlyReport')}</Label>
                       <p className="text-xs text-muted-foreground">
-                        Enviar relatório mensal automaticamente
+                        {t('admin:settings.emailSettings.monthlyReportDesc')}
                       </p>
                     </div>
                     <Switch
@@ -199,9 +201,9 @@ const Settings = () => {
 
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="alerts">Alertas por Email</Label>
+                      <Label htmlFor="alerts">{t('admin:settings.emailSettings.emailAlerts')}</Label>
                       <p className="text-xs text-muted-foreground">
-                        Permitir envio de alertas por email
+                        {t('admin:settings.emailSettings.emailAlertsDesc')}
                       </p>
                     </div>
                     <Switch
@@ -220,16 +222,16 @@ const Settings = () => {
 
           {/* Platform Settings */}
           {activeStep === "platform" && (
-            <ChartCard 
-              title="Configurações da Plataforma"
-              actions={<Button onClick={() => handleSaveSection('platform')} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? "Salvando..." : "Salvar Configurações da Plataforma"}</Button>}
+            <ChartCard
+              title={t('admin:settings.platformSettings.title')}
+              actions={<Button onClick={() => handleSaveSection('platform')} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? t('admin:settings.saving') : t('admin:settings.platformSettings.saveButton')}</Button>}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="maintenance">Modo Manutenção</Label>
+                    <Label htmlFor="maintenance">{t('admin:settings.platformSettings.maintenanceMode')}</Label>
                     <p className="text-xs text-muted-foreground">
-                      Bloqueia acesso de todos os usuários exceto administradores
+                      {t('admin:settings.platformSettings.maintenanceModeDesc')}
                     </p>
                   </div>
                   <Switch
@@ -244,9 +246,9 @@ const Settings = () => {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="registrations">Permitir Registros</Label>
+                    <Label htmlFor="registrations">{t('admin:settings.platformSettings.allowRegistrations')}</Label>
                     <p className="text-xs text-muted-foreground">
-                      Permite que novos usuários se registrem na plataforma
+                      {t('admin:settings.platformSettings.allowRegistrationsDesc')}
                     </p>
                   </div>
                   <Switch
@@ -261,9 +263,9 @@ const Settings = () => {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="verification">Verificação de Email</Label>
+                    <Label htmlFor="verification">{t('admin:settings.platformSettings.emailVerification')}</Label>
                     <p className="text-xs text-muted-foreground">
-                      Requer verificação de email para ativar conta
+                      {t('admin:settings.platformSettings.emailVerificationDesc')}
                     </p>
                   </div>
                   <Switch

@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +39,8 @@ interface LoginHistory {
 const LIMIT_OPTIONS = [5, 10, 20];
 
 const LoginHistory = () => {
+  const { t, i18n } = useTranslation(['admin', 'common']);
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
   const [searchQuery, setSearchQuery] = useState("");
   const [loginHistory, setLoginHistory] = useState<LoginHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,9 +109,15 @@ const LoginHistory = () => {
       consultant: "bg-primary/10 text-primary",
       customer: "bg-success/10 text-success",
     };
+    const getRoleLabel = (r: string) => {
+      if (r === 'admin') return t('admin:userManagement.roles.admin');
+      if (r === 'consultant') return t('admin:userManagement.roles.consultant');
+      if (r === 'customer') return t('admin:userManagement.roles.customer');
+      return r;
+    };
     return (
       <Badge className={styles[role as keyof typeof styles] || "bg-muted text-muted-foreground"}>
-        {role === 'admin' ? 'Admin' : role === 'consultant' ? 'Consultor' : 'Cliente'}
+        {getRoleLabel(role)}
       </Badge>
     );
   };
@@ -126,8 +135,8 @@ const LoginHistory = () => {
       await adminApi.deleteLoginHistory(recordToDelete.id);
 
       toast({
-        title: "Sucesso",
-        description: "Registro excluído com sucesso",
+        title: t('common:success'),
+        description: t('admin:loginHistory.deleteSuccess'),
       });
 
       // Remove from local state
@@ -139,8 +148,8 @@ const LoginHistory = () => {
     } catch (err: any) {
       console.error('Error deleting login history record:', err);
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao excluir registro",
+        title: t('common:error'),
+        description: err?.error || t('admin:loginHistory.deleteError'),
         variant: "destructive",
       });
     } finally {
@@ -193,9 +202,9 @@ const LoginHistory = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Histórico de Login</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('admin:loginHistory.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Monitore todas as tentativas de login dos usuários da plataforma
+            {t('admin:loginHistory.subtitle')}
           </p>
         </div>
       </div>
@@ -205,7 +214,7 @@ const LoginHistory = () => {
         <ChartCard>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Logins Bem-sucedidos</p>
+              <p className="text-sm text-muted-foreground">{t('admin:loginHistory.stats.successful')}</p>
               <p className="text-2xl font-bold text-foreground mt-1">{successfulLogins}</p>
             </div>
             <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
@@ -216,7 +225,7 @@ const LoginHistory = () => {
         <ChartCard>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Tentativas Falhadas</p>
+              <p className="text-sm text-muted-foreground">{t('admin:loginHistory.stats.failed')}</p>
               <p className="text-2xl font-bold text-foreground mt-1">{failedLogins}</p>
             </div>
             <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -227,7 +236,7 @@ const LoginHistory = () => {
         <ChartCard>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">IPs Únicos</p>
+              <p className="text-sm text-muted-foreground">{t('admin:loginHistory.stats.uniqueIPs')}</p>
               <p className="text-2xl font-bold text-foreground mt-1">{uniqueIPs}</p>
             </div>
             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -242,7 +251,7 @@ const LoginHistory = () => {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por usuário, email, IP ou ID..."
+            placeholder={t('admin:loginHistory.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -251,7 +260,7 @@ const LoginHistory = () => {
       </ChartCard>
 
       {/* Login History Table */}
-      <ChartCard title={`${pagination.total} Tentativa${pagination.total !== 1 ? "s" : ""} de Login`}>
+      <ChartCard title={`${pagination.total} ${pagination.total === 1 ? t('admin:loginHistory.attempt') : t('admin:loginHistory.attempts')}`}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -263,25 +272,25 @@ const LoginHistory = () => {
                 <thead className="bg-muted/50">
                   <tr className="border-b border-border">
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Data/Hora
+                      {t('admin:loginHistory.tableHeaders.dateTime')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Usuário
+                      {t('admin:loginHistory.tableHeaders.user')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Função
+                      {t('admin:loginHistory.tableHeaders.role')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Endereço IP
+                      {t('admin:loginHistory.tableHeaders.ipAddress')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Navegador/Dispositivo
+                      {t('admin:loginHistory.tableHeaders.browserDevice')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Status
+                      {t('admin:loginHistory.tableHeaders.status')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Ações
+                      {t('admin:loginHistory.tableHeaders.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -289,7 +298,7 @@ const LoginHistory = () => {
                   {filteredHistory.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                        Nenhum registro de login encontrado
+                        {t('admin:loginHistory.empty')}
                       </td>
                     </tr>
                   ) : (
@@ -300,10 +309,10 @@ const LoginHistory = () => {
                       >
                         <td className="py-3 px-4">
                           <div className="text-sm text-foreground">
-                            {format(new Date(entry.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                            {format(new Date(entry.createdAt), "dd/MM/yyyy", { locale: dateLocale })}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {format(new Date(entry.createdAt), "HH:mm:ss", { locale: ptBR })}
+                            {format(new Date(entry.createdAt), "HH:mm:ss", { locale: dateLocale })}
                           </div>
                         </td>
                         <td className="py-3 px-4">
@@ -331,12 +340,12 @@ const LoginHistory = () => {
                           {entry.success ? (
                             <Badge className="bg-success/10 text-success">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Sucesso
+                              {t('admin:loginHistory.status.success')}
                             </Badge>
                           ) : (
                             <Badge className="bg-destructive/10 text-destructive">
                               <XCircle className="h-3 w-3 mr-1" />
-                              Falhou
+                              {t('admin:loginHistory.status.failed')}
                             </Badge>
                           )}
                         </td>
@@ -362,10 +371,14 @@ const LoginHistory = () => {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="text-sm text-muted-foreground">
-                    Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
+                    {t('common:showingResults', {
+                      from: ((pagination.page - 1) * pagination.limit) + 1,
+                      to: Math.min(pagination.page * pagination.limit, pagination.total),
+                      total: pagination.total
+                    })}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">Por página</span>
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">{t('common:perPage')}</span>
                     <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
                       <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
                         <SelectValue />
@@ -421,7 +434,7 @@ const LoginHistory = () => {
             )}
             {pagination.total === 0 && pagination.totalPages <= 1 && (
               <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-border">
-                <span className="text-sm text-muted-foreground">Por página</span>
+                <span className="text-sm text-muted-foreground">{t('common:perPage')}</span>
                 <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
                   <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
                     <SelectValue />
@@ -444,31 +457,31 @@ const LoginHistory = () => {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin:loginHistory.deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o registro de login de <strong>{recordToDelete?.user.name}</strong>?
+              {t('admin:loginHistory.deleteDialog.confirm', { name: recordToDelete?.user.name })}
               <br />
               <span className="text-sm text-muted-foreground mt-2 block">
                 Email: {recordToDelete?.user.email}
                 <br />
                 IP: {recordToDelete?.ipAddress || "N/A"}
                 <br />
-                Data: {recordToDelete && format(new Date(recordToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                {t('admin:loginHistory.deleteDialog.date')}: {recordToDelete && format(new Date(recordToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: dateLocale })}
                 <br />
-                Status: {recordToDelete?.success ? "Sucesso" : "Falhou"}
+                {t('admin:loginHistory.deleteDialog.status')}: {recordToDelete?.success ? t('admin:loginHistory.status.success') : t('admin:loginHistory.status.failed')}
               </span>
               <br />
-              Esta ação não pode ser desfeita.
+              {t('admin:loginHistory.deleteDialog.warning')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteRecord}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? "Excluindo..." : "Excluir"}
+              {deleting ? t('admin:loginHistory.deleteDialog.deleting') : t('common:delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

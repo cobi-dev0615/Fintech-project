@@ -7,6 +7,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { adminApi } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ interface Prospect {
 const LIMIT_OPTIONS = [5, 10, 20];
 
 const DAMAProspecting = () => {
+  const { t, i18n } = useTranslation(['admin', 'common']);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStage, setFilterStage] = useState<string>("all");
   const [filterPotential, setFilterPotential] = useState<string>("all");
@@ -101,13 +103,14 @@ const DAMAProspecting = () => {
       pro: "bg-primary/10 text-primary",
       consultant: "bg-emerald-500/10 text-emerald-500",
     };
-    const labels: Record<string, string> = {
-      free: "Free",
-      basic: "Basic",
-      pro: "Pro",
-      consultant: "Consultor",
+    const getStageLabel = (s: string) => {
+      if (s === 'free') return t('admin:prospecting.stages.free');
+      if (s === 'basic') return t('admin:prospecting.stages.basic');
+      if (s === 'pro') return t('admin:prospecting.stages.pro');
+      if (s === 'consultant') return t('admin:prospecting.stages.consultant');
+      return s;
     };
-    return <Badge className={styles[stage] ?? styles.free}>{labels[stage] ?? stage}</Badge>;
+    return <Badge className={styles[stage] ?? styles.free}>{getStageLabel(stage)}</Badge>;
   };
 
   const getPotentialBadge = (potential: string) => {
@@ -116,36 +119,37 @@ const DAMAProspecting = () => {
       medium: "bg-amber-500/10 text-amber-500",
       low: "bg-muted text-muted-foreground",
     };
-    const labels: Record<string, string> = {
-      high: "Alto",
-      medium: "Médio",
-      low: "Baixo",
+    const getPotentialLabel = (p: string) => {
+      if (p === 'high') return t('admin:prospecting.potential.high');
+      if (p === 'medium') return t('admin:prospecting.potential.medium');
+      if (p === 'low') return t('admin:prospecting.potential.low');
+      return p;
     };
-    return <Badge className={styles[potential] ?? styles.low}>{labels[potential] ?? potential}</Badge>;
+    return <Badge className={styles[potential] ?? styles.low}>{getPotentialLabel(potential)}</Badge>;
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Prospecção DAMA</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('admin:prospecting.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Acompanhe prospectos por estágio e potencial
+            {t('admin:prospecting.subtitle')}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <ProfessionalKpiCard
-          title="Total Prospectos"
+          title={t('admin:prospecting.kpis.totalProspects')}
           value={pagination.total.toString()}
-          change={`página ${pagination.page}`}
+          change={t('admin:prospecting.kpis.page', { page: pagination.page })}
           changeType="neutral"
           icon={Users}
           subtitle=""
         />
         <ProfessionalKpiCard
-          title="Alto Potencial"
+          title={t('admin:prospecting.kpis.highPotential')}
           value={kpis.highPotential.toString()}
           change=""
           changeType="positive"
@@ -153,15 +157,15 @@ const DAMAProspecting = () => {
           subtitle=""
         />
         <ProfessionalKpiCard
-          title="Patrimônio Total"
-          value={`R$ ${(kpis.totalNetWorth ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+          title={t('admin:prospecting.kpis.totalNetWorth')}
+          value={`R$ ${(kpis.totalNetWorth ?? 0).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`}
           change=""
           changeType="neutral"
           icon={DollarSign}
           subtitle=""
         />
         <ProfessionalKpiCard
-          title="Engajamento Médio"
+          title={t('admin:prospecting.kpis.avgEngagement')}
           value={`${(kpis.avgEngagement ?? 0).toFixed(0)}%`}
           change=""
           changeType="neutral"
@@ -174,18 +178,24 @@ const DAMAProspecting = () => {
         {Object.entries(funnelData).map(([stage, count]) => (
           <div key={stage} className="rounded-xl border border-border bg-card p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{count}</p>
-            <p className="text-xs text-muted-foreground uppercase mt-1">{stage}</p>
+            <p className="text-xs text-muted-foreground uppercase mt-1">
+              {stage === 'free' ? t('admin:prospecting.stages.free') :
+               stage === 'basic' ? t('admin:prospecting.stages.basic') :
+               stage === 'pro' ? t('admin:prospecting.stages.pro') :
+               stage === 'consultant' ? t('admin:prospecting.stages.consultant') :
+               stage}
+            </p>
           </div>
         ))}
       </div>
 
-      <ChartCard title={`${pagination.total} Prospecto${pagination.total !== 1 ? "s" : ""}`}>
+      <ChartCard title={`${pagination.total} ${pagination.total === 1 ? t('admin:prospecting.prospect') : t('admin:prospecting.prospects')}`}>
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome ou e-mail..."
+                placeholder={t('admin:prospecting.searchPlaceholder')}
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -193,46 +203,46 @@ const DAMAProspecting = () => {
             </div>
             <Select value={filterStage} onValueChange={setFilterStage}>
               <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="Estágio" />
+                <SelectValue placeholder={t('admin:prospecting.filters.stage')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos estágios</SelectItem>
-                <SelectItem value="free">Free</SelectItem>
-                <SelectItem value="basic">Basic</SelectItem>
-                <SelectItem value="pro">Pro</SelectItem>
-                <SelectItem value="consultant">Consultor</SelectItem>
+                <SelectItem value="all">{t('admin:prospecting.filters.allStages')}</SelectItem>
+                <SelectItem value="free">{t('admin:prospecting.stages.free')}</SelectItem>
+                <SelectItem value="basic">{t('admin:prospecting.stages.basic')}</SelectItem>
+                <SelectItem value="pro">{t('admin:prospecting.stages.pro')}</SelectItem>
+                <SelectItem value="consultant">{t('admin:prospecting.stages.consultant')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterPotential} onValueChange={setFilterPotential}>
               <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="Potencial" />
+                <SelectValue placeholder={t('admin:prospecting.filters.potential')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todo potencial</SelectItem>
-                <SelectItem value="high">Alto</SelectItem>
-                <SelectItem value="medium">Médio</SelectItem>
-                <SelectItem value="low">Baixo</SelectItem>
+                <SelectItem value="all">{t('admin:prospecting.filters.allPotential')}</SelectItem>
+                <SelectItem value="high">{t('admin:prospecting.potential.high')}</SelectItem>
+                <SelectItem value="medium">{t('admin:prospecting.potential.medium')}</SelectItem>
+                <SelectItem value="low">{t('admin:prospecting.potential.low')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
+            <div className="py-12 text-center text-muted-foreground text-sm">{t('common:loading')}</div>
           ) : prospects.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground text-sm">
-              Nenhum prospecto encontrado
+              {t('admin:prospecting.empty')}
             </div>
           ) : (
             <div className="rounded-lg border border-border overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left p-3 font-medium text-foreground">Nome</th>
-                    <th className="text-left p-3 font-medium text-foreground">E-mail</th>
-                    <th className="text-left p-3 font-medium text-foreground">Estágio</th>
-                    <th className="text-left p-3 font-medium text-foreground">Potencial</th>
-                    <th className="text-right p-3 font-medium text-foreground">Patrimônio</th>
-                    <th className="text-right p-3 font-medium text-foreground">Engajamento</th>
+                    <th className="text-left p-3 font-medium text-foreground">{t('admin:prospecting.tableHeaders.name')}</th>
+                    <th className="text-left p-3 font-medium text-foreground">{t('admin:prospecting.tableHeaders.email')}</th>
+                    <th className="text-left p-3 font-medium text-foreground">{t('admin:prospecting.tableHeaders.stage')}</th>
+                    <th className="text-left p-3 font-medium text-foreground">{t('admin:prospecting.tableHeaders.potential')}</th>
+                    <th className="text-right p-3 font-medium text-foreground">{t('admin:prospecting.tableHeaders.netWorth')}</th>
+                    <th className="text-right p-3 font-medium text-foreground">{t('admin:prospecting.tableHeaders.engagement')}</th>
                     <th className="p-3 w-12" />
                   </tr>
                 </thead>
@@ -247,7 +257,7 @@ const DAMAProspecting = () => {
                       <td className="p-3">{getStageBadge(p.stage)}</td>
                       <td className="p-3">{getPotentialBadge(p.potential)}</td>
                       <td className="p-3 text-right tabular-nums">
-                        R$ {(p.netWorth ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        R$ {(p.netWorth ?? 0).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="p-3 text-right">{p.engagement ?? 0}%</td>
                       <td className="p-3">
@@ -258,7 +268,7 @@ const DAMAProspecting = () => {
                             setSelectedProspect(p);
                             setDetailOpen(true);
                           }}
-                          aria-label="Ver detalhes"
+                          aria-label={t('admin:prospecting.viewDetails')}
                         >
                           <ArrowRight className="h-4 w-4" />
                         </Button>
@@ -276,11 +286,15 @@ const DAMAProspecting = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-4">
                   <span className="text-sm text-muted-foreground">
-                    Mostrando {((page - 1) * pagination.limit) + 1}–{Math.min(page * pagination.limit, pagination.total)} de {pagination.total} prospecto{pagination.total !== 1 ? "s" : ""}
+                    {t('common:showingResults', {
+                      from: ((page - 1) * pagination.limit) + 1,
+                      to: Math.min(page * pagination.limit, pagination.total),
+                      total: pagination.total
+                    })}
                   </span>
                   <div className="flex items-center gap-2">
                     <label htmlFor="prospects-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
-                      Por página
+                      {t('common:perPage')}
                     </label>
                     <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
                       <SelectTrigger id="prospects-per-page" className="h-9 w-[110px]">
@@ -352,17 +366,17 @@ const DAMAProspecting = () => {
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Detalhes do prospecto</DialogTitle>
+            <DialogTitle>{t('admin:prospecting.detailDialog.title')}</DialogTitle>
           </DialogHeader>
           {selectedProspect && (
             <div className="space-y-3 text-sm">
-              <p><span className="text-muted-foreground">Nome:</span> {selectedProspect.name}</p>
-              <p><span className="text-muted-foreground">E-mail:</span> {selectedProspect.email}</p>
-              <p><span className="text-muted-foreground">Estágio:</span> {getStageBadge(selectedProspect.stage)}</p>
-              <p><span className="text-muted-foreground">Potencial:</span> {getPotentialBadge(selectedProspect.potential)}</p>
-              <p><span className="text-muted-foreground">Patrimônio:</span> R$ {(selectedProspect.netWorth ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-              <p><span className="text-muted-foreground">Engajamento:</span> {selectedProspect.engagement ?? 0}%</p>
-              <p><span className="text-muted-foreground">Última atividade:</span> {selectedProspect.lastActivity || "—"}</p>
+              <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.name')}:</span> {selectedProspect.name}</p>
+              <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.email')}:</span> {selectedProspect.email}</p>
+              <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.stage')}:</span> {getStageBadge(selectedProspect.stage)}</p>
+              <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.potential')}:</span> {getPotentialBadge(selectedProspect.potential)}</p>
+              <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.netWorth')}:</span> R$ {(selectedProspect.netWorth ?? 0).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</p>
+              <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.engagement')}:</span> {selectedProspect.engagement ?? 0}%</p>
+              <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.lastActivity')}:</span> {selectedProspect.lastActivity || "—"}</p>
             </div>
           )}
         </DialogContent>

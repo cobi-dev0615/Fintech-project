@@ -7,6 +7,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 import {
   Tooltip,
   TooltipContent,
@@ -40,7 +41,7 @@ const getYearOptions = () => {
 };
 
 /** Isolated chart – year change only refetches this chart; parent page does not re-render. */
-const UserGrowthChart = memo(function UserGrowthChart() {
+const UserGrowthChart = memo(function UserGrowthChart({ t }: { t: any }) {
   const [year, setYear] = useState(getCurrentYear());
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['admin', 'dashboard', 'userGrowth', year],
@@ -58,8 +59,8 @@ const UserGrowthChart = memo(function UserGrowthChart() {
 
   return (
     <ChartCard
-      title="Crescimento de Usuários"
-      subtitle="Evolução mensal"
+      title={t('admin:dashboard.userGrowth')}
+      subtitle={t('admin:dashboard.userGrowthSubtitle')}
       actions={
         <div className="flex items-center gap-2">
           <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
@@ -75,7 +76,7 @@ const UserGrowthChart = memo(function UserGrowthChart() {
                   <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Atualizar gráfico</TooltipContent>
+              <TooltipContent>{t('admin:dashboard.refreshChart')}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
@@ -98,7 +99,7 @@ const UserGrowthChart = memo(function UserGrowthChart() {
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">Sem dados disponíveis</div>
+          <div className="flex items-center justify-center h-full text-muted-foreground">{t('admin:dashboard.noDataAvailable')}</div>
         )}
       </div>
     </ChartCard>
@@ -106,7 +107,7 @@ const UserGrowthChart = memo(function UserGrowthChart() {
 });
 
 /** Isolated chart – year change only refetches this chart; parent page does not re-render. */
-const RevenueChart = memo(function RevenueChart() {
+const RevenueChart = memo(function RevenueChart({ t }: { t: any }) {
   const [year, setYear] = useState(getCurrentYear());
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['admin', 'dashboard', 'revenue', year],
@@ -124,8 +125,8 @@ const RevenueChart = memo(function RevenueChart() {
 
   return (
     <ChartCard
-      title="Receita Recorrente Mensal"
-      subtitle="MRR (R$)"
+      title={t('admin:dashboard.revenue')}
+      subtitle={t('admin:dashboard.revenueSubtitle')}
       actions={
         <div className="flex items-center gap-2">
           <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
@@ -141,7 +142,7 @@ const RevenueChart = memo(function RevenueChart() {
                   <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Atualizar gráfico</TooltipContent>
+              <TooltipContent>{t('admin:dashboard.refreshChart')}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
@@ -164,7 +165,7 @@ const RevenueChart = memo(function RevenueChart() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">Sem dados disponíveis</div>
+          <div className="flex items-center justify-center h-full text-muted-foreground">{t('admin:dashboard.noDataAvailable')}</div>
         )}
       </div>
     </ChartCard>
@@ -172,6 +173,7 @@ const RevenueChart = memo(function RevenueChart() {
 });
 
 const AdminDashboard = () => {
+  const { t } = useTranslation(['admin', 'common']);
   const queryClient = useQueryClient();
   const { data, isLoading, error, isFetching, refetch } = useQuery({
     queryKey: ['admin', 'dashboard', 'metrics'],
@@ -241,7 +243,7 @@ const AdminDashboard = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">{(error as any)?.error || "Erro ao carregar métricas"}</p>
+        <p className="text-destructive">{(error as any)?.error || t('common:errorLoading')}</p>
       </div>
     );
   }
@@ -250,9 +252,9 @@ const AdminDashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Painel Administrativo</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('admin:dashboard.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Visão geral da plataforma e métricas
+            {t('admin:dashboard.subtitle')}
           </p>
         </div>
         <TooltipProvider delayDuration={300}>
@@ -262,7 +264,7 @@ const AdminDashboard = () => {
                 <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Atualizar painel</TooltipContent>
+            <TooltipContent>{t('common:refresh')}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
@@ -270,25 +272,25 @@ const AdminDashboard = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <ProfessionalKpiCard
-          title="Usuários Ativos"
+          title={t('admin:dashboard.kpis.totalUsers')}
           value={kpiData.activeUsers.toLocaleString("pt-BR")}
-          change={`+${kpiData.newUsers} este mês`}
+          change={t('common:newThisMonth', { count: kpiData.newUsers })}
           changeType="positive"
           icon={Users}
           subtitle=""
         />
         <ProfessionalKpiCard
-          title="Receita Recorrente (MRR)"
+          title={t('admin:dashboard.kpis.monthlyRevenue')}
           value={`R$ ${kpiData.mrr.toLocaleString("pt-BR")}`}
           change="+2,1%"
           changeType="positive"
           icon={TrendingUp}
-          subtitle="mensal"
+          subtitle={t('common:monthly')}
         />
         <ProfessionalKpiCard
           title="Taxa de Churn"
           value={`${kpiData.churnRate}%`}
-          change="vs mês anterior"
+          change={t('common:vsPreviousMonth')}
           changeType="neutral"
           icon={Activity}
           subtitle=""
@@ -296,8 +298,8 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UserGrowthChart />
-        <RevenueChart />
+        <UserGrowthChart t={t} />
+        <RevenueChart t={t} />
       </div>
     </div>
   );

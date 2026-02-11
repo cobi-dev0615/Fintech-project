@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Search, TrendingUp, AlertCircle, CreditCard, User, Calendar, Package, DollarSign } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -61,6 +62,8 @@ interface SubscriptionDetail {
 const LIMIT_OPTIONS = [5, 10, 20];
 
 const Subscriptions = () => {
+  const { t, i18n } = useTranslation(['admin', 'common']);
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPlan, setFilterPlan] = useState<string>("all");
@@ -156,15 +159,16 @@ const Subscriptions = () => {
       past_due: "bg-destructive/10 text-destructive",
       trial: "bg-warning/10 text-warning",
     };
-    const labels = {
-      active: "Ativo",
-      canceled: "Cancelado",
-      past_due: "Atrasado",
-      trial: "Período de Teste",
+    const getStatusLabel = (s: string) => {
+      if (s === 'active') return t('admin:subscriptions.status.active');
+      if (s === 'canceled') return t('admin:subscriptions.status.cancelled');
+      if (s === 'past_due') return t('admin:subscriptions.status.expired');
+      if (s === 'trial') return t('admin:subscriptions.status.pending');
+      return s;
     };
     return (
       <Badge className={styles[status as keyof typeof styles]}>
-        {labels[status as keyof typeof labels]}
+        {getStatusLabel(status)}
       </Badge>
     );
   };
@@ -174,9 +178,9 @@ const Subscriptions = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Assinaturas</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('admin:subscriptions.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gerencie planos e pagamentos
+            {t('admin:subscriptions.subtitle')}
           </p>
         </div>
       </div>
@@ -184,25 +188,25 @@ const Subscriptions = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <ProfessionalKpiCard
-          title="Receita Recorrente (MRR)"
-          value={`R$ ${totalMRR.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+          title={t('admin:dashboard.kpis.monthlyRevenue')}
+          value={`R$ ${totalMRR.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`}
           change=""
           changeType="neutral"
           icon={TrendingUp}
-          subtitle="mensal"
+          subtitle={t('common:monthly')}
         />
         <ProfessionalKpiCard
-          title="Assinaturas Ativas"
+          title={t('admin:dashboard.kpis.activeSubscriptions')}
           value={activeSubscriptions.toString()}
           change=""
           changeType="neutral"
           icon={CreditCard}
-          subtitle="assinantes"
+          subtitle={t('common:subscribers')}
         />
         <ProfessionalKpiCard
-          title="Pagamentos Atrasados"
+          title={t('common:latePayments')}
           value={pastDueSubscriptions.toString()}
-          change="requerem atenção"
+          change={t('common:requireAttention')}
           changeType="neutral"
           icon={AlertCircle}
           subtitle=""
@@ -215,7 +219,7 @@ const Subscriptions = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar assinaturas..."
+              placeholder={t('common:searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -223,22 +227,22 @@ const Subscriptions = () => {
           </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger>
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t('common:status')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="active">Ativo</SelectItem>
-              <SelectItem value="past_due">Atrasado</SelectItem>
-              <SelectItem value="canceled">Cancelado</SelectItem>
-              <SelectItem value="trial">Período de Teste</SelectItem>
+              <SelectItem value="all">{t('common:allStatus')}</SelectItem>
+              <SelectItem value="active">{t('admin:subscriptions.status.active')}</SelectItem>
+              <SelectItem value="past_due">{t('admin:subscriptions.status.expired')}</SelectItem>
+              <SelectItem value="canceled">{t('admin:subscriptions.status.cancelled')}</SelectItem>
+              <SelectItem value="trial">{t('admin:subscriptions.status.pending')}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterPlan} onValueChange={setFilterPlan}>
             <SelectTrigger>
-              <SelectValue placeholder="Plano" />
+              <SelectValue placeholder={t('common:plan')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os planos</SelectItem>
+              <SelectItem value="all">{t('common:allPlans')}</SelectItem>
               <SelectItem value="Free">Free</SelectItem>
               <SelectItem value="Basic">Basic</SelectItem>
               <SelectItem value="Pro">Pro</SelectItem>
@@ -259,14 +263,14 @@ const Subscriptions = () => {
                 {dateRange.from ? (
                   dateRange.to ? (
                     <>
-                      {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
-                      {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                      {format(dateRange.from, "dd/MM/yyyy", { locale: dateLocale })} -{" "}
+                      {format(dateRange.to, "dd/MM/yyyy", { locale: dateLocale })}
                     </>
                   ) : (
-                    format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                    format(dateRange.from, "dd/MM/yyyy", { locale: dateLocale })
                   )
                 ) : (
-                  <span>Selecionar período</span>
+                  <span>{t('common:selectPeriod')}</span>
                 )}
               </Button>
             </PopoverTrigger>
@@ -293,7 +297,7 @@ const Subscriptions = () => {
                     setDateRange({ from: undefined, to: undefined });
                   }}
                 >
-                  Limpar
+                  {t('common:clear')}
                 </Button>
               </div>
             </PopoverContent>
@@ -302,10 +306,10 @@ const Subscriptions = () => {
       </ChartCard>
 
       {/* Subscriptions Table */}
-      <ChartCard title={`${pagination.total} Assinatura${pagination.total !== 1 ? "s" : ""}`}>
+      <ChartCard title={`${pagination.total} ${pagination.total === 1 ? t('admin:subscriptions.title').slice(0, -1) : t('admin:subscriptions.title')}`}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">Carregando assinaturas...</p>
+            <p className="text-muted-foreground">{t('admin:subscriptions.loading')}</p>
           </div>
         ) : (
           <>
@@ -314,22 +318,22 @@ const Subscriptions = () => {
             <thead className="bg-muted/50">
               <tr className="border-b border-border">
                 <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Assinante
+                  {t('admin:subscriptions.tableHeaders.user')}
                 </th>
                 <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Plano
+                  {t('admin:subscriptions.tableHeaders.plan')}
                 </th>
                 <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Status
+                  {t('admin:subscriptions.tableHeaders.status')}
                 </th>
                 <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Valor Mensal
+                  {t('admin:subscriptions.tableHeaders.value')}
                 </th>
                 <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Próxima Cobrança
+                  {t('common:nextBilling')}
                 </th>
                 <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Ações
+                  {t('admin:subscriptions.tableHeaders.actions')}
                 </th>
               </tr>
             </thead>
@@ -353,17 +357,17 @@ const Subscriptions = () => {
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className="text-sm font-medium text-foreground tabular-nums">
-                      R$ {sub.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      R$ {sub.amount.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-sm text-muted-foreground">
-                      {sub.nextBilling === "-" ? "-" : new Date(sub.nextBilling).toLocaleDateString("pt-BR")}
+                      {sub.nextBilling === "-" ? "-" : new Date(sub.nextBilling).toLocaleDateString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US')}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right">
                     <Button variant="outline" size="sm" onClick={() => handleDetailClick(sub.id)}>
-                      Detalhes
+                      {t('common:details')}
                     </Button>
                   </td>
                 </tr>
@@ -377,12 +381,16 @@ const Subscriptions = () => {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-sm text-muted-foreground">
-                Mostrando {((page - 1) * pagination.limit) + 1}–{Math.min(page * pagination.limit, pagination.total)} de {pagination.total}
+                {t('common:showingResults', {
+                  from: ((page - 1) * pagination.limit) + 1,
+                  to: Math.min(page * pagination.limit, pagination.total),
+                  total: pagination.total
+                })}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground whitespace-nowrap">Por página</span>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{t('common:perPage')}</span>
                 <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-                  <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
+                  <SelectTrigger className="h-8 w-[100px]" aria-label={t('common:perPage')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -403,7 +411,7 @@ const Subscriptions = () => {
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1 || loading}
                 >
-                  Anterior
+                  {t('common:previous')}
                 </Button>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
@@ -436,7 +444,7 @@ const Subscriptions = () => {
                   onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                   disabled={page === pagination.totalPages || loading}
                 >
-                  Próxima
+                  {t('common:next')}
                 </Button>
               </div>
             )}
@@ -444,9 +452,9 @@ const Subscriptions = () => {
         )}
         {pagination.total === 0 && pagination.totalPages <= 1 && (
           <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-border">
-            <span className="text-sm text-muted-foreground">Por página</span>
+            <span className="text-sm text-muted-foreground">{t('common:perPage')}</span>
             <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-              <SelectTrigger className="h-8 w-[100px]" aria-label="Itens por página">
+              <SelectTrigger className="h-8 w-[100px]" aria-label={t('common:perPage')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -467,9 +475,9 @@ const Subscriptions = () => {
       <Dialog open={selectedSubscriptionId !== null} onOpenChange={(open) => !open && setSelectedSubscriptionId(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhes da Assinatura</DialogTitle>
+            <DialogTitle>{t('common:subscriptionDetails')}</DialogTitle>
             <DialogDescription>
-              Informações completas da assinatura
+              {t('common:completeInformation')}
             </DialogDescription>
           </DialogHeader>
 
@@ -485,25 +493,25 @@ const Subscriptions = () => {
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Informações do Usuário
+                  {t('common:userInformation')}
                 </h3>
                 <div className="grid grid-cols-2 gap-4 p-4 rounded-lg border border-border bg-muted/30">
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Nome</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:name')}</p>
                     <p className="text-sm font-medium text-foreground">{subscriptionDetail.user.name}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Email</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:email')}</p>
                     <p className="text-sm font-medium text-foreground">{subscriptionDetail.user.email}</p>
                   </div>
                   {subscriptionDetail.user.phone && (
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Telefone</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t('common:phone')}</p>
                       <p className="text-sm font-medium text-foreground">{subscriptionDetail.user.phone}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">ID do Usuário</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:userId')}</p>
                     <p className="text-sm font-mono text-foreground">{subscriptionDetail.userId}</p>
                   </div>
                 </div>
@@ -513,35 +521,35 @@ const Subscriptions = () => {
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <Package className="h-4 w-4" />
-                  Informações do Plano
+                  {t('common:planInformation')}
                 </h3>
                 <div className="grid grid-cols-2 gap-4 p-4 rounded-lg border border-border bg-muted/30">
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Nome do Plano</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:planName')}</p>
                     <p className="text-sm font-medium text-foreground">{subscriptionDetail.plan.name}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Código</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:code')}</p>
                     <p className="text-sm font-medium text-foreground uppercase">{subscriptionDetail.plan.code}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                       <DollarSign className="h-3 w-3" />
-                      Preço Mensal
+                      {t('common:monthlyPrice')}
                     </p>
                     <p className="text-sm font-medium text-foreground">
-                      R$ {subscriptionDetail.plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      R$ {subscriptionDetail.plan.price.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Limite de Conexões</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:connectionLimit')}</p>
                     <p className="text-sm font-medium text-foreground">
-                      {subscriptionDetail.plan.connectionLimit === null ? "Ilimitado" : subscriptionDetail.plan.connectionLimit}
+                      {subscriptionDetail.plan.connectionLimit === null ? t('common:unlimited') : subscriptionDetail.plan.connectionLimit}
                     </p>
                   </div>
                   {subscriptionDetail.plan.features.length > 0 && (
                     <div className="col-span-2">
-                      <p className="text-xs text-muted-foreground mb-2">Features</p>
+                      <p className="text-xs text-muted-foreground mb-2">{t('common:features')}</p>
                       <div className="flex flex-wrap gap-2">
                         {subscriptionDetail.plan.features.map((feature, index) => (
                           <Badge key={index} variant="outline" className="text-xs">
@@ -558,47 +566,47 @@ const Subscriptions = () => {
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Detalhes da Assinatura
+                  {t('common:subscriptionDetails')}
                 </h3>
                 <div className="grid grid-cols-2 gap-4 p-4 rounded-lg border border-border bg-muted/30">
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Status</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:status')}</p>
                     {getStatusBadge(subscriptionDetail.status)}
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">ID da Assinatura</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:subscriptionId')}</p>
                     <p className="text-sm font-mono text-foreground">{subscriptionDetail.id}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Período Atual - Início</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:currentPeriodStart')}</p>
                     <p className="text-sm font-medium text-foreground">
-                      {new Date(subscriptionDetail.currentPeriodStart).toLocaleString("pt-BR")}
+                      {new Date(subscriptionDetail.currentPeriodStart).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US')}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Período Atual - Fim</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:currentPeriodEnd')}</p>
                     <p className="text-sm font-medium text-foreground">
-                      {new Date(subscriptionDetail.currentPeriodEnd).toLocaleString("pt-BR")}
+                      {new Date(subscriptionDetail.currentPeriodEnd).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US')}
                     </p>
                   </div>
                   {subscriptionDetail.canceledAt && (
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Cancelado em</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t('common:canceledAt')}</p>
                       <p className="text-sm font-medium text-foreground">
-                        {new Date(subscriptionDetail.canceledAt).toLocaleString("pt-BR")}
+                        {new Date(subscriptionDetail.canceledAt).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US')}
                       </p>
                     </div>
                   )}
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Criado em</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:createdAt')}</p>
                     <p className="text-sm font-medium text-foreground">
-                      {new Date(subscriptionDetail.createdAt).toLocaleString("pt-BR")}
+                      {new Date(subscriptionDetail.createdAt).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US')}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Atualizado em</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('common:updatedAt')}</p>
                     <p className="text-sm font-medium text-foreground">
-                      {new Date(subscriptionDetail.updatedAt).toLocaleString("pt-BR")}
+                      {new Date(subscriptionDetail.updatedAt).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US')}
                     </p>
                   </div>
                 </div>
@@ -606,7 +614,7 @@ const Subscriptions = () => {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Erro ao carregar detalhes da assinatura
+              {t('common:errorLoadingDetails')}
             </div>
           )}
         </DialogContent>

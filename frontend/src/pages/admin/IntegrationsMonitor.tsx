@@ -4,6 +4,7 @@ import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Badge } from "@/components/ui/badge";
 import { adminApi } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 interface Integration {
   id: string;
@@ -17,6 +18,7 @@ interface Integration {
 }
 
 const IntegrationsMonitor = () => {
+  const { t } = useTranslation(['admin', 'common']);
   const [loading, setLoading] = useState(true);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [stats, setStats] = useState({
@@ -55,7 +57,7 @@ const IntegrationsMonitor = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground">Carregando integrações...</p>
+          <p className="text-muted-foreground">{t('admin:integrations.loading')}</p>
         </div>
       </div>
     );
@@ -84,14 +86,15 @@ const IntegrationsMonitor = () => {
       degraded: "bg-warning/10 text-warning",
       down: "bg-destructive/10 text-destructive",
     };
-    const labels = {
-      healthy: "Operacional",
-      degraded: "Degradado",
-      down: "Fora do Ar",
+    const getStatusLabel = (s: string) => {
+      if (s === 'healthy') return t('admin:integrations.status.healthy');
+      if (s === 'degraded') return t('admin:integrations.status.degraded');
+      if (s === 'down') return t('admin:integrations.status.down');
+      return s;
     };
     return (
       <Badge className={styles[status as keyof typeof styles]}>
-        {labels[status as keyof typeof labels]}
+        {getStatusLabel(status)}
       </Badge>
     );
   };
@@ -100,32 +103,32 @@ const IntegrationsMonitor = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Monitoramento de Integrações</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('admin:integrations.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Status e saúde das APIs externas
+            {t('admin:integrations.subtitle')}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <ProfessionalKpiCard
-          title="Integrações Operacionais"
+          title={t('admin:integrations.kpis.operational')}
           value={healthyCount.toString()}
-          change={`de ${integrations.length} total`}
+          change={t('admin:integrations.kpis.ofTotal', { total: integrations.length })}
           changeType="neutral"
           icon={CheckCircle2}
           subtitle=""
         />
         <ProfessionalKpiCard
-          title="Status Degradado"
+          title={t('admin:integrations.kpis.degraded')}
           value={degradedCount.toString()}
-          change="requer atenção"
+          change={t('admin:integrations.kpis.requiresAttention')}
           changeType="negative"
           icon={Clock}
           subtitle=""
         />
         <ProfessionalKpiCard
-          title="Fora do Ar"
+          title={t('admin:integrations.kpis.down')}
           value={downCount.toString()}
           change=""
           changeType="neutral"
@@ -133,9 +136,9 @@ const IntegrationsMonitor = () => {
           subtitle=""
         />
         <ProfessionalKpiCard
-          title="Uptime Médio"
+          title={t('admin:integrations.kpis.avgUptime')}
           value={stats.avgUptime}
-          change="últimos 15 dias"
+          change={t('admin:integrations.kpis.last15Days')}
           changeType="positive"
           icon={Activity}
           subtitle=""
@@ -143,11 +146,11 @@ const IntegrationsMonitor = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Integrações" subtitle="Status por provedor">
+        <ChartCard title={t('admin:integrations.integrationsCard.title')} subtitle={t('admin:integrations.integrationsCard.subtitle')}>
           <div className="space-y-2">
             {integrations.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">
-                Nenhuma integração configurada
+                {t('admin:integrations.integrationsCard.empty')}
               </p>
             ) : (
               integrations.map((int) => (
@@ -169,11 +172,11 @@ const IntegrationsMonitor = () => {
           </div>
         </ChartCard>
 
-        <ChartCard title="Logs recentes" subtitle="Últimas atividades">
+        <ChartCard title={t('admin:integrations.logsCard.title')} subtitle={t('admin:integrations.logsCard.subtitle')}>
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
             {logs.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">
-                Nenhum log recente
+                {t('admin:integrations.logsCard.empty')}
               </p>
             ) : (
               logs.map((log, i) => (

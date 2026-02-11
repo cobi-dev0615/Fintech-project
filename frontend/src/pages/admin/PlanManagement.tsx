@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ interface Plan {
 }
 
 const PlanManagement = () => {
+  const { t, i18n } = useTranslation(['admin', 'common']);
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -81,8 +83,8 @@ const PlanManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'plans'] });
       toast({
-        title: "Sucesso",
-        description: `Plano excluído com sucesso!`,
+        title: t('common:success'),
+        description: t('admin:planManagement.deleteSuccess'),
         variant: "success",
       });
       setIsDeleteDialogOpen(false);
@@ -90,8 +92,8 @@ const PlanManagement = () => {
     },
     onError: (error: any) => {
       toast({
-        title: "Erro",
-        description: error?.error || error?.details || "Falha ao excluir plano",
+        title: t('common:error'),
+        description: error?.error || error?.details || t('admin:planManagement.deleteError'),
         variant: "destructive",
       });
     },
@@ -115,15 +117,15 @@ const PlanManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'plans'] });
       toast({
-        title: "Sucesso",
-        description: "Plano salvo com sucesso!",
+        title: t('common:success'),
+        description: t('admin:planManagement.updateSuccess'),
         variant: "success",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro",
-        description: error?.error || "Falha ao salvar plano",
+        title: t('common:error'),
+        description: error?.error || t('admin:planManagement.updateError'),
         variant: "destructive",
       });
     },
@@ -151,8 +153,8 @@ const PlanManagement = () => {
 
     if (!editingPlan.code || !editingPlan.name) {
       toast({
-        title: "Erro",
-        description: "Código e nome são obrigatórios",
+        title: t('common:error'),
+        description: t('common:requiredFields'),
         variant: "destructive",
       });
       return;
@@ -245,13 +247,13 @@ const PlanManagement = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('admin:planManagement.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gerencie planos e preços de assinatura
+            {t('admin:planManagement.subtitle')}
           </p>
         </div>
         <div className="flex items-center justify-center h-64">
-          <p className="text-destructive">{(error as any)?.error || "Erro ao carregar planos"}</p>
+          <p className="text-destructive">{(error as any)?.error || t('common:errorLoading')}</p>
         </div>
       </div>
     );
@@ -261,9 +263,9 @@ const PlanManagement = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Gestão de Planos</h1>
+        <h1 className="text-2xl font-bold text-foreground">{t('admin:planManagement.title')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Gerencie planos e preços de assinatura. Estes planos são utilizados por clientes e consultores.
+          {t('admin:planManagement.subtitle')}
         </p>
       </div>
 
@@ -285,7 +287,7 @@ const PlanManagement = () => {
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => handleEditPlan(plan)}
-                  title="Editar plano"
+                  title={t('admin:planManagement.editPlan')}
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
@@ -294,7 +296,7 @@ const PlanManagement = () => {
                   size="icon"
                   className="h-8 w-8 text-destructive hover:text-destructive"
                   onClick={() => handleDeleteClick(plan)}
-                  title="Excluir plano"
+                  title={t('common:delete')}
                   disabled={plan.code.toLowerCase() === 'free'}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -310,24 +312,24 @@ const PlanManagement = () => {
                 <div className="space-y-1">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-foreground">
-                      R$ {plan.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      R$ {plan.price.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
                     </span>
                     {!isFree && (
-                      <span className="text-sm text-muted-foreground">/mês</span>
+                      <span className="text-sm text-muted-foreground">/{t('common:month')}</span>
                     )}
                   </div>
                   {isFree && (
-                    <span className="text-sm text-muted-foreground">para sempre</span>
+                    <span className="text-sm text-muted-foreground">{t('common:forever')}</span>
                   )}
                 </div>
                 
                 {plan.connectionLimit !== null && (
                   <p className="text-sm text-muted-foreground">
-                    {plan.connectionLimit} conexão{plan.connectionLimit > 1 ? 'ões' : ''}
+                    {plan.connectionLimit} {plan.connectionLimit === 1 ? t('common:connection') : t('common:connections')}
                   </p>
                 )}
                 {plan.connectionLimit === null && (
-                  <p className="text-sm text-muted-foreground">Conexões ilimitadas</p>
+                  <p className="text-sm text-muted-foreground">{t('common:unlimitedConnections')}</p>
                 )}
                 
                 <ul className="space-y-2 mt-4 max-h-48 overflow-y-auto">
@@ -339,12 +341,12 @@ const PlanManagement = () => {
                   ))}
                   {plan.features.length > 5 && (
                     <li className="text-xs text-muted-foreground">
-                      +{plan.features.length - 5} mais
+                      +{plan.features.length - 5} {t('common:more')}
                     </li>
                   )}
                   {plan.features.length === 0 && (
                     <li className="text-xs text-muted-foreground italic">
-                      Nenhuma feature definida
+                      {t('common:noFeaturesDefined')}
                     </li>
                   )}
                 </ul>
@@ -352,7 +354,7 @@ const PlanManagement = () => {
                 {!plan.isActive && (
                   <div className="mt-2">
                     <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
-                      Inativo
+                      {t('common:inactive')}
                     </span>
                   </div>
                 )}
@@ -370,9 +372,9 @@ const PlanManagement = () => {
             <div className="rounded-full bg-primary/10 p-4 mb-4">
               <Plus className="h-8 w-8 text-primary" />
             </div>
-            <p className="text-sm font-medium text-foreground">Adicionar Plano</p>
+            <p className="text-sm font-medium text-foreground">{t('admin:planManagement.createPlan')}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Clique para criar um novo plano
+              {t('common:clickToCreate')}
             </p>
           </div>
         </div>
@@ -383,10 +385,10 @@ const PlanManagement = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingPlan?.id ? "Editar Plano" : "Adicionar Novo Plano"}
+              {editingPlan?.id ? t('admin:planManagement.editPlan') : t('admin:planManagement.createPlan')}
             </DialogTitle>
             <DialogDescription>
-              Configure os detalhes do plano. Este plano ficará disponível para clientes e consultores.
+              {t('common:configurePlanDetails')}
             </DialogDescription>
           </DialogHeader>
 
@@ -395,7 +397,7 @@ const PlanManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="planCode">
-                    Código * <span className="text-xs text-muted-foreground">(único)</span>
+                    {t('common:code')} * <span className="text-xs text-muted-foreground">({t('common:unique')})</span>
                   </Label>
                   <Input
                     id="planCode"
@@ -404,25 +406,25 @@ const PlanManagement = () => {
                       setEditingPlan({ ...editingPlan, code: e.target.value.toLowerCase().replace(/\s+/g, "-") })
                     }
                     disabled={!!editingPlan.id}
-                    placeholder="ex: free, basic, pro"
+                    placeholder={t('common:codePlaceholder')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="planName">Nome *</Label>
+                  <Label htmlFor="planName">{t('common:name')} *</Label>
                   <Input
                     id="planName"
                     value={editingPlan.name}
                     onChange={(e) =>
                       setEditingPlan({ ...editingPlan, name: e.target.value })
                     }
-                    placeholder="ex: Free, Basic, Pro"
+                    placeholder={t('common:namePlaceholder')}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="planPrice">Preço (R$/mês) *</Label>
+                  <Label htmlFor="planPrice">{t('common:pricePerMonth')} *</Label>
                   <Input
                     id="planPrice"
                     type="number"
@@ -438,7 +440,7 @@ const PlanManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="connectionLimit">Limite de Conexões</Label>
+                  <Label htmlFor="connectionLimit">{t('common:connectionLimit')}</Label>
                   <Input
                     id="connectionLimit"
                     type="number"
@@ -452,13 +454,13 @@ const PlanManagement = () => {
                           : null,
                       })
                     }
-                    placeholder="Deixe vazio para ilimitado"
+                    placeholder={t('common:leaveEmptyForUnlimited')}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Features do Plano</Label>
+                <Label>{t('common:planFeatures')}</Label>
                 <div className="space-y-2">
                   {editingPlan.features.map((feature, index) => (
                     <div key={index} className="flex items-center gap-2">
@@ -489,7 +491,7 @@ const PlanManagement = () => {
                           handleAddFeature();
                         }
                       }}
-                      placeholder="Adicionar nova feature"
+                      placeholder={t('common:addNewFeature')}
                     />
                     <Button variant="outline" onClick={handleAddFeature}>
                       <Plus className="h-4 w-4" />
@@ -509,7 +511,7 @@ const PlanManagement = () => {
                     }
                     className="rounded"
                   />
-                  <Label htmlFor="planActive">Plano ativo</Label>
+                  <Label htmlFor="planActive">{t('common:activePlan')}</Label>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -520,10 +522,10 @@ const PlanManagement = () => {
                       setNewFeature("");
                     }}
                   >
-                    Cancelar
+                    {t('common:cancel')}
                   </Button>
                   <Button onClick={handleSavePlan} disabled={savePlanMutation.isPending}>
-                    {savePlanMutation.isPending ? "Salvando..." : "Salvar"}
+                    {savePlanMutation.isPending ? t('common:saving') : t('common:save')}
                   </Button>
                 </div>
               </div>
@@ -536,32 +538,32 @@ const PlanManagement = () => {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>{t('common:confirmDelete')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o plano "{planToDelete?.name}"? Esta ação não pode ser desfeita.
+              {t('common:deletePlanConfirmation', { name: planToDelete?.name })}
               {planToDelete?.code.toLowerCase() === 'free' && (
                 <span className="block mt-2 text-destructive font-medium">
-                  O plano gratuito não pode ser excluído.
+                  {t('common:freePlanCannotBeDeleted')}
                 </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => {
                 setIsDeleteDialogOpen(false);
                 setPlanToDelete(null);
               }}
               disabled={deleting}
             >
-              Cancelar
+              {t('common:cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeletePlan}
               disabled={deleting || planToDelete?.code.toLowerCase() === 'free'}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? "Excluindo..." : "Excluir"}
+              {deleting ? t('common:deleting') : t('common:delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

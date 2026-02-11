@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +66,8 @@ interface SubscriptionHistory {
 const LIMIT_OPTIONS = [5, 10, 20];
 
 const PaymentHistory = () => {
+  const { t, i18n } = useTranslation(['admin', 'common']);
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
   const [activeTab, setActiveTab] = useState<"payments" | "subscriptions">("subscriptions");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -98,8 +101,8 @@ const PaymentHistory = () => {
     } catch (error: any) {
       console.error('Failed to fetch payment history:', error);
       toast({
-        title: "Erro",
-        description: "Erro ao carregar histórico de pagamentos",
+        title: t('common:error'),
+        description: t('admin:paymentHistory.errorLoading'),
         variant: "destructive",
       });
     } finally {
@@ -120,8 +123,8 @@ const PaymentHistory = () => {
     } catch (error: any) {
       console.error('Failed to fetch subscription history:', error);
       toast({
-        title: "Erro",
-        description: "Erro ao carregar histórico de assinaturas",
+        title: t('common:error'),
+        description: t('admin:paymentHistory.errorLoadingSubscriptions'),
         variant: "destructive",
       });
     } finally {
@@ -194,15 +197,16 @@ const PaymentHistory = () => {
       failed: "bg-destructive/10 text-destructive",
       refunded: "bg-muted text-muted-foreground",
     };
-    const labels = {
-      paid: "Pago",
-      pending: "Pendente",
-      failed: "Falhou",
-      refunded: "Reembolsado",
+    const getStatusLabel = (s: string) => {
+      if (s === 'paid') return t('admin:paymentHistory.status.paid');
+      if (s === 'pending') return t('admin:paymentHistory.status.pending');
+      if (s === 'failed') return t('admin:paymentHistory.status.failed');
+      if (s === 'refunded') return t('admin:paymentHistory.status.refunded');
+      return s;
     };
     return (
       <Badge className={styles[status as keyof typeof styles] || "bg-muted text-muted-foreground"}>
-        {labels[status as keyof typeof labels] || status}
+        {getStatusLabel(status)}
       </Badge>
     );
   };
@@ -232,8 +236,8 @@ const PaymentHistory = () => {
       await adminApi.deletePayment(paymentToDelete.id);
 
       toast({
-        title: "Sucesso",
-        description: "Pagamento excluído com sucesso",
+        title: t('common:success'),
+        description: t('admin:paymentHistory.deletePaymentSuccess'),
       });
 
       setIsDeleteDialogOpen(false);
@@ -244,8 +248,8 @@ const PaymentHistory = () => {
     } catch (err: any) {
       console.error('Error deleting payment:', err);
       toast({
-        title: "Erro",
-        description: err?.error || err?.response?.data?.error || "Erro ao excluir pagamento",
+        title: t('common:error'),
+        description: err?.error || err?.response?.data?.error || t('admin:paymentHistory.deletePaymentError'),
         variant: "destructive",
       });
     } finally {
@@ -261,8 +265,8 @@ const PaymentHistory = () => {
       await adminApi.deleteSubscription(subscriptionToDelete.id);
 
       toast({
-        title: "Sucesso",
-        description: "Assinatura excluída com sucesso",
+        title: t('common:success'),
+        description: t('admin:paymentHistory.deleteSubscriptionSuccess'),
       });
 
       setIsDeleteDialogOpen(false);
@@ -273,8 +277,8 @@ const PaymentHistory = () => {
     } catch (err: any) {
       console.error('Error deleting subscription:', err);
       toast({
-        title: "Erro",
-        description: err?.error || err?.response?.data?.error || "Erro ao excluir assinatura",
+        title: t('common:error'),
+        description: err?.error || err?.response?.data?.error || t('admin:paymentHistory.deleteSubscriptionError'),
         variant: "destructive",
       });
     } finally {
@@ -327,9 +331,9 @@ const PaymentHistory = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Histórico de Compras de Planos</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('admin:paymentHistory.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Visualize todas as compras de planos e pagamentos realizados na plataforma
+            {t('admin:paymentHistory.subtitle')}
           </p>
         </div>
       </div>
@@ -345,7 +349,7 @@ const PaymentHistory = () => {
           }`}
         >
           <Package className="inline h-4 w-4 mr-2" />
-          Histórico de Assinaturas
+          {t('admin:paymentHistory.tabs.subscriptions')}
         </button>
         <button
           onClick={() => setActiveTab("payments")}
@@ -356,43 +360,43 @@ const PaymentHistory = () => {
           }`}
         >
           <CreditCard className="inline h-4 w-4 mr-2" />
-          Histórico de Pagamentos
+          {t('admin:paymentHistory.tabs.payments')}
         </button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <ProfessionalKpiCard
-          title="Receita Total"
+          title={t('admin:paymentHistory.kpis.totalRevenue')}
           value={formatPrice(totalRevenue)}
           change=""
           changeType="neutral"
           icon={DollarSign}
-          subtitle="pagamentos aprovados"
+          subtitle={t('admin:paymentHistory.kpis.approvedPayments')}
         />
         <ProfessionalKpiCard
-          title="Pagamentos Aprovados"
+          title={t('admin:paymentHistory.kpis.paidPayments')}
           value={paidCount.toString()}
           change=""
           changeType="neutral"
           icon={CreditCard}
-          subtitle="concluídos"
+          subtitle={t('admin:paymentHistory.kpis.completed')}
         />
         <ProfessionalKpiCard
-          title="Pagamentos Pendentes"
+          title={t('admin:paymentHistory.kpis.pendingPayments')}
           value={pendingCount.toString()}
           change=""
           changeType="neutral"
           icon={CreditCard}
-          subtitle="aguardando"
+          subtitle={t('admin:paymentHistory.kpis.waiting')}
         />
         <ProfessionalKpiCard
-          title="Pagamentos Falhos"
+          title={t('admin:paymentHistory.kpis.failedPayments')}
           value={failedCount.toString()}
           change=""
           changeType="negative"
           icon={CreditCard}
-          subtitle="com erro"
+          subtitle={t('admin:paymentHistory.kpis.withError')}
         />
       </div>
 
@@ -402,7 +406,7 @@ const PaymentHistory = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={activeTab === "payments" ? "Buscar por usuário, email ou ID do pagamento..." : "Buscar por usuário, email ou nome do plano..."}
+              placeholder={activeTab === "payments" ? t('admin:paymentHistory.searchPayments') : t('admin:paymentHistory.searchSubscriptions')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -410,14 +414,14 @@ const PaymentHistory = () => {
           </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger>
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t('admin:paymentHistory.tableHeaders.status')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="paid">Pago</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
-              <SelectItem value="failed">Falhou</SelectItem>
-              <SelectItem value="refunded">Reembolsado</SelectItem>
+              <SelectItem value="all">{t('admin:paymentHistory.filters.allStatus')}</SelectItem>
+              <SelectItem value="paid">{t('admin:paymentHistory.status.paid')}</SelectItem>
+              <SelectItem value="pending">{t('admin:paymentHistory.status.pending')}</SelectItem>
+              <SelectItem value="failed">{t('admin:paymentHistory.status.failed')}</SelectItem>
+              <SelectItem value="refunded">{t('admin:paymentHistory.status.refunded')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -425,7 +429,7 @@ const PaymentHistory = () => {
 
       {/* Subscriptions Table */}
       {activeTab === "subscriptions" && (
-        <ChartCard title={`${pagination.total} Assinatura${pagination.total !== 1 ? "s" : ""}`}>
+        <ChartCard title={`${pagination.total} ${pagination.total === 1 ? t('admin:paymentHistory.subscription') : t('admin:paymentHistory.subscriptions')}`}>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -437,22 +441,22 @@ const PaymentHistory = () => {
                   <thead className="bg-muted/50">
                     <tr className="border-b border-border">
                       <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Data
+                        {t('admin:paymentHistory.tableHeaders.date')}
                       </th>
                       <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Usuário
+                        {t('admin:paymentHistory.tableHeaders.user')}
                       </th>
                       <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Plano
+                        {t('common:plan')}
                       </th>
                       <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Preço
+                        {t('admin:paymentHistory.tableHeaders.price')}
                       </th>
                       <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Status
+                        {t('admin:paymentHistory.tableHeaders.status')}
                       </th>
                       <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Ações
+                        {t('admin:paymentHistory.tableHeaders.actions')}
                       </th>
                     </tr>
                   </thead>
@@ -460,7 +464,7 @@ const PaymentHistory = () => {
                     {filteredSubscriptions.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="text-center py-8 text-muted-foreground">
-                          Nenhuma assinatura encontrada
+                          {t('admin:paymentHistory.noSubscriptions')}
                         </td>
                       </tr>
                     ) : (
@@ -471,10 +475,10 @@ const PaymentHistory = () => {
                         >
                           <td className="py-3 px-4 text-center">
                             <div className="text-sm text-foreground">
-                              {format(new Date(subscription.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                              {format(new Date(subscription.createdAt), "dd/MM/yyyy", { locale: dateLocale })}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {format(new Date(subscription.createdAt), "HH:mm:ss", { locale: ptBR })}
+                              {format(new Date(subscription.createdAt), "HH:mm:ss", { locale: dateLocale })}
                             </div>
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -499,11 +503,11 @@ const PaymentHistory = () => {
                               subscription.status === 'trialing' ? "bg-blue-500/10 text-blue-500" :
                               "bg-muted text-muted-foreground"
                             }>
-                              {subscription.status === 'active' ? 'Ativo' :
-                               subscription.status === 'past_due' ? 'Atrasado' :
-                               subscription.status === 'canceled' ? 'Cancelado' :
-                               subscription.status === 'trialing' ? 'Período de Teste' :
-                               subscription.status === 'paused' ? 'Pausado' :
+                              {subscription.status === 'active' ? t('admin:subscriptions.status.active') :
+                               subscription.status === 'past_due' ? t('admin:subscriptions.status.pastDue') :
+                               subscription.status === 'canceled' ? t('admin:subscriptions.status.cancelled') :
+                               subscription.status === 'trialing' ? t('admin:subscriptions.status.trial') :
+                               subscription.status === 'paused' ? t('admin:subscriptions.status.paused') :
                                subscription.status}
                             </Badge>
                           </td>
@@ -529,11 +533,15 @@ const PaymentHistory = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 pt-4 border-t border-border">
                   <div className="flex flex-wrap items-center gap-4">
                     <span className="text-sm text-muted-foreground">
-                      Mostrando {((page - 1) * pagination.limit) + 1}–{Math.min(page * pagination.limit, pagination.total)} de {pagination.total} assinatura{pagination.total !== 1 ? "s" : ""}
+                      {t('common:showingResults', {
+                        from: ((page - 1) * pagination.limit) + 1,
+                        to: Math.min(page * pagination.limit, pagination.total),
+                        total: pagination.total
+                      })}
                     </span>
                     <div className="flex items-center gap-2">
                       <label htmlFor="subs-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
-                        Por página
+                        {t('common:perPage')}
                       </label>
                       <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
                         <SelectTrigger id="subs-per-page" className="h-9 w-[110px]">
@@ -596,7 +604,7 @@ const PaymentHistory = () => {
 
       {/* Payments Table */}
       {activeTab === "payments" && (
-        <ChartCard title={`${pagination.total} Pagamento${pagination.total !== 1 ? "s" : ""}`}>
+        <ChartCard title={`${pagination.total} ${pagination.total === 1 ? t('admin:paymentHistory.payment') : t('admin:paymentHistory.payments')}`}>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -608,28 +616,28 @@ const PaymentHistory = () => {
                 <thead className="bg-muted/50">
                   <tr className="border-b border-border">
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Data
+                      {t('admin:paymentHistory.tableHeaders.date')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Usuário
+                      {t('admin:paymentHistory.tableHeaders.user')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Plano
+                      {t('common:plan')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Valor
+                      {t('admin:paymentHistory.tableHeaders.amount')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Status
+                      {t('admin:paymentHistory.tableHeaders.status')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Provedor
+                      {t('admin:paymentHistory.tableHeaders.provider')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      ID do Pagamento
+                      {t('admin:paymentHistory.tableHeaders.paymentId')}
                     </th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Ações
+                      {t('admin:paymentHistory.tableHeaders.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -637,7 +645,7 @@ const PaymentHistory = () => {
                   {filteredPayments.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="text-center py-8 text-muted-foreground">
-                        Nenhum pagamento encontrado
+                        {t('admin:paymentHistory.noPayments')}
                       </td>
                     </tr>
                   ) : (
@@ -648,10 +656,10 @@ const PaymentHistory = () => {
                       >
                         <td className="py-3 px-4 text-center">
                           <div className="text-sm text-foreground">
-                            {format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                            {format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: dateLocale })}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {format(new Date(payment.createdAt), "HH:mm:ss", { locale: ptBR })}
+                            {format(new Date(payment.createdAt), "HH:mm:ss", { locale: dateLocale })}
                           </div>
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -704,11 +712,15 @@ const PaymentHistory = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 pt-4 border-t border-border">
                 <div className="flex flex-wrap items-center gap-4">
                   <span className="text-sm text-muted-foreground">
-                    Mostrando {((page - 1) * pagination.limit) + 1}–{Math.min(page * pagination.limit, pagination.total)} de {pagination.total} pagamento{pagination.total !== 1 ? "s" : ""}
+                    {t('common:showingResults', {
+                      from: ((page - 1) * pagination.limit) + 1,
+                      to: Math.min(page * pagination.limit, pagination.total),
+                      total: pagination.total
+                    })}
                   </span>
                   <div className="flex items-center gap-2">
                     <label htmlFor="payments-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
-                      Por página
+                      {t('common:perPage')}
                     </label>
                     <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
                       <SelectTrigger id="payments-per-page" className="h-9 w-[110px]">
@@ -773,43 +785,43 @@ const PaymentHistory = () => {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin:paymentHistory.deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
               {paymentToDelete ? (
                 <>
-                  Tem certeza que deseja excluir o pagamento de <strong>{paymentToDelete.user.name}</strong>?
+                  {t('admin:paymentHistory.deleteDialog.confirmPayment', { name: paymentToDelete.user.name })}
                   <br />
                   <span className="text-sm text-muted-foreground mt-2 block">
-                    Valor: {formatPrice(paymentToDelete.amountCents)}
+                    {t('admin:paymentHistory.deleteDialog.amount')}: {formatPrice(paymentToDelete.amountCents)}
                     <br />
-                    Data: {format(new Date(paymentToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {t('admin:paymentHistory.deleteDialog.date')}: {format(new Date(paymentToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: dateLocale })}
                   </span>
                 </>
               ) : subscriptionToDelete ? (
                 <>
-                  Tem certeza que deseja excluir a assinatura de <strong>{subscriptionToDelete.user.name}</strong>?
+                  {t('admin:paymentHistory.deleteDialog.confirmSubscription', { name: subscriptionToDelete.user.name })}
                   <br />
                   <span className="text-sm text-muted-foreground mt-2 block">
-                    Plano: {subscriptionToDelete.planName}
+                    {t('common:plan')}: {subscriptionToDelete.planName}
                     <br />
-                    Preço: {formatPrice(subscriptionToDelete.priceCents)}
+                    {t('admin:paymentHistory.deleteDialog.price')}: {formatPrice(subscriptionToDelete.priceCents)}
                     <br />
-                    Data: {format(new Date(subscriptionToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {t('admin:paymentHistory.deleteDialog.date')}: {format(new Date(subscriptionToDelete.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: dateLocale })}
                   </span>
                 </>
               ) : null}
               <br />
-              Esta ação não pode ser desfeita.
+              {t('admin:paymentHistory.deleteDialog.warning')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={paymentToDelete ? handleDeletePayment : handleDeleteSubscription}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? "Excluindo..." : "Excluir"}
+              {deleting ? t('admin:paymentHistory.deleteDialog.deleting') : t('common:delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
