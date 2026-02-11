@@ -19,6 +19,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { reportsApi, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface Report {
   id: string;
@@ -39,6 +40,7 @@ const PAGE_SIZE_OPTIONS = [5, 10, 20] as const;
 const FILTER_ALL = "all";
 
 const ReportHistory = () => {
+  const { t } = useTranslation(['reports', 'common']);
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,6 +49,13 @@ const ReportHistory = () => {
   const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+
+  const reportTypeLabels: Record<string, string> = {
+    consolidated: t('history.typeLabels.consolidated'),
+    transactions: t('history.typeLabels.transactions'),
+    portfolio_analysis: t('history.typeLabels.portfolio_analysis'),
+    monthly: t('history.typeLabels.monthly'),
+  };
 
   const filteredReports = useMemo(() => {
     let list = reports;
@@ -64,13 +73,6 @@ const ReportHistory = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [typeFilter, pageSize]);
-
-  const reportTypeLabels: Record<string, string> = {
-    consolidated: "Relatório Consolidado",
-    transactions: "Extrato de Transações",
-    portfolio_analysis: "Evolução de Investimentos",
-    monthly: "Relatório Mensal",
-  };
 
   const fetchReports = async () => {
     try {
@@ -106,7 +108,7 @@ const ReportHistory = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Falha ao baixar");
+      if (!res.ok) throw new Error(t('history.downloadError'));
       const blob = await res.blob();
       const name =
         res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ??
@@ -116,11 +118,11 @@ const ReportHistory = () => {
       a.download = name;
       a.click();
       URL.revokeObjectURL(a.href);
-      toast({ title: "Download iniciado", description: "O PDF está sendo baixado.", variant: "success" });
+      toast({ title: t('history.downloadStarted'), description: t('history.downloadDesc'), variant: "success" });
     } catch (e) {
       toast({
-        title: "Erro",
-        description: "Não foi possível baixar o relatório.",
+        title: t('common:error'),
+        description: t('history.downloadError'),
         variant: "destructive",
       });
     }
@@ -133,11 +135,11 @@ const ReportHistory = () => {
       await reportsApi.delete(deleteReportId);
       setReports((prev) => prev.filter((r) => r.id !== deleteReportId));
       setDeleteReportId(null);
-      toast({ title: "Relatório removido", description: "O relatório foi excluído.", variant: "success" });
+      toast({ title: t('history.reportRemoved'), description: t('history.reportRemovedDesc'), variant: "success" });
     } catch (e: any) {
       toast({
-        title: "Erro",
-        description: e?.error ?? "Não foi possível remover o relatório.",
+        title: t('common:error'),
+        description: e?.error ?? t('history.removeError'),
         variant: "destructive",
       });
     } finally {
@@ -149,31 +151,31 @@ const ReportHistory = () => {
     <div className="space-y-6 min-w-0 overflow-x-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Histórico de Relatórios</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('history.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Relatórios gerados e disponíveis para download
+            {t('history.subtitle')}
           </p>
         </div>
         <Link to="/app/reports">
           <Button variant="outline" size="sm" className="shrink-0">
             <FilePlus className="h-4 w-4 mr-2" />
-            Gerar novo relatório
+            {t('generateNew')}
           </Button>
         </Link>
       </div>
 
       <ChartCard
-        title="Relatórios Gerados"
-        subtitle={!loading && filteredReports.length > 0 ? `${filteredReports.length} relatório(s)` : undefined}
+        title={t('history.generatedReports')}
+        subtitle={!loading && filteredReports.length > 0 ? t('history.reportCount', { count: filteredReports.length }) : undefined}
         className="min-w-0 overflow-hidden"
         actions={
           !loading && reports.length > 0 ? (
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-[180px] h-9">
-                <SelectValue placeholder="Filtrar por tipo" />
+                <SelectValue placeholder={t('history.filterByType')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={FILTER_ALL}>Todos os tipos</SelectItem>
+                <SelectItem value={FILTER_ALL}>{t('common:all')}</SelectItem>
                 {Object.entries(reportTypeLabels).map(([key, label]) => (
                   <SelectItem key={key} value={key}>
                     {label}
@@ -197,22 +199,22 @@ const ReportHistory = () => {
             <div className="rounded-full bg-muted/50 p-4 mb-4">
               <FileText className="h-10 w-10 text-muted-foreground" />
             </div>
-            <p className="font-medium text-foreground mb-1">Nenhum relatório gerado ainda</p>
+            <p className="font-medium text-foreground mb-1">{t('history.noReports')}</p>
             <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-              Gere seu primeiro relatório na página Relatórios e ele aparecerá aqui.
+              {t('history.noReportsDesc')}
             </p>
             <Link to="/app/reports">
               <Button className="gap-2">
                 <FilePlus className="h-4 w-4" />
-                Ir para Relatórios
+                {t('history.goToReports')}
               </Button>
             </Link>
           </div>
         ) : filteredReports.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">Nenhum relatório encontrado para o filtro selecionado.</p>
+            <p className="text-sm text-muted-foreground">{t('history.noFilterResults')}</p>
             <Button variant="outline" size="sm" className="mt-3" onClick={() => setTypeFilter(FILTER_ALL)}>
-              Limpar filtro
+              {t('common:clearFilter')}
             </Button>
           </div>
         ) : (
@@ -223,13 +225,13 @@ const ReportHistory = () => {
                 <thead>
                   <tr className="border-b border-border bg-muted/40">
                     <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Tipo
+                      {t('history.tableHeaders.type')}
                     </th>
                     <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Data
+                      {t('history.tableHeaders.date')}
                     </th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Ações
+                      {t('history.tableHeaders.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -248,7 +250,7 @@ const ReportHistory = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm text-muted-foreground">
-                        Gerado em {report.date}
+                        {t('history.generatedAt', { date: report.date })}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -264,7 +266,7 @@ const ReportHistory = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Baixar PDF</p>
+                              <p>{t('history.downloadPdf')}</p>
                             </TooltipContent>
                           </Tooltip>
                           <Tooltip>
@@ -279,7 +281,7 @@ const ReportHistory = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Remover relatório</p>
+                              <p>{t('history.removeReport')}</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -309,7 +311,7 @@ const ReportHistory = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => handleDownload(report.id)}
-                        aria-label="Baixar PDF"
+                        aria-label={t('history.downloadPdf')}
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -318,14 +320,14 @@ const ReportHistory = () => {
                         size="icon"
                         onClick={() => setDeleteReportId(report.id)}
                         className="text-muted-foreground hover:text-destructive"
-                        aria-label="Remover relatório"
+                        aria-label={t('history.removeReport')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Gerado em {report.date}
+                    {t('history.generatedAt', { date: report.date })}
                   </p>
                 </div>
               ))}
@@ -335,19 +337,19 @@ const ReportHistory = () => {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
                 <div className="flex flex-wrap items-center gap-3">
                   <p className="text-sm text-muted-foreground">
-                    Mostrando {startIndex + 1}–
-                    {Math.min(startIndex + pageSize, filteredReports.length)} de{" "}
+                    {t('common:showing')} {startIndex + 1}–
+                    {Math.min(startIndex + pageSize, filteredReports.length)} {t('common:of')}{" "}
                     {filteredReports.length}
                   </p>
                   <div className="flex items-center gap-2">
                     <label htmlFor="reports-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
-                      Por página
+                      {t('history.perPage')}
                     </label>
                     <Select
                       value={String(pageSize)}
                       onValueChange={(v) => setPageSize(Number(v))}
                     >
-                      <SelectTrigger id="reports-per-page" className="w-[4.5rem] h-9" aria-label="Relatórios por página">
+                      <SelectTrigger id="reports-per-page" className="w-[4.5rem] h-9" aria-label={t('history.perPage')}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -366,7 +368,7 @@ const ReportHistory = () => {
                     size="icon"
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    aria-label="Página anterior"
+                    aria-label={t('common:previousPage')}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -391,7 +393,7 @@ const ReportHistory = () => {
                       setCurrentPage((p) => Math.min(totalPages, p + 1))
                     }
                     disabled={currentPage === totalPages}
-                    aria-label="Próxima página"
+                    aria-label={t('common:nextPage')}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -405,19 +407,19 @@ const ReportHistory = () => {
       <AlertDialog open={!!deleteReportId} onOpenChange={(open) => !open && setDeleteReportId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir relatório?</AlertDialogTitle>
+            <AlertDialogTitle>{t('history.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Este relatório será removido permanentemente do servidor e não poderá ser recuperado.
+              {t('history.deleteDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteReport}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? "Removendo..." : "Excluir"}
+              {deleting ? t('history.deleting') : t('common:delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

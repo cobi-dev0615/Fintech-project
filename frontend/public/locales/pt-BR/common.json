@@ -16,6 +16,7 @@
   "syncComplete": "Sincronização concluída",
   "syncError": "Erro na sincronização",
   "syncErrorDesc": "Não foi possível sincronizar.",
+  "generateError": "Erro ao gerar relatório",
   "tryAgain": "Tentar novamente",
   "perPage": "por página",
   "itemsPerPage": "Itens por página:",

@@ -4,7 +4,11 @@
     "subtitle": "Conecte bancos e corretoras para sincronizar contas e transações",
     "connect": "Conectar",
     "connecting": "Conectando…",
+    "syncing": "Sincronizando…",
+    "update": "Atualizar",
+    "loading": "Carregando...",
     "syncSuccess": "Dados sincronizados com sucesso.",
+    "syncError": "Erro ao sincronizar.",
     "chartTitle": "Bancos e corretoras conectados",
     "institutionCount_one": "{{count}} instituição",
     "institutionCount_other": "{{count}} instituição(ões)",
@@ -18,7 +22,22 @@
     "connectError": "Erro ao conectar. Tente novamente.",
     "widgetError": "Widget Pluggy não carregado. Atualize a página.",
     "invalidToken": "Token de conexão inválido.",
-    "errorLoading": "Erro ao carregar conexões"
+    "errorLoading": "Erro ao carregar conexões",
+    "itemIdError": "Item ID não recebido da Pluggy.",
+    "connectionErrorGeneric": "Erro ao conectar",
+    "institution": "Instituição",
+    "bank": "Banco",
+    "broker": "Corretora",
+    "account": "Conta",
+    "status": {
+      "connected": "Conectado",
+      "pending": "Pendente",
+      "expired": "Expirado",
+      "error": "Erro",
+      "disconnected": "Desconectado",
+      "failed": "Falha",
+      "revoked": "Revogado"
+    }
   },
   "b3": {
     "title": "B3",

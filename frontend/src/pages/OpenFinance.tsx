@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { connectionsApi, financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface Connection {
   id: string;
@@ -15,6 +16,7 @@ interface Connection {
 }
 
 const OpenFinance = () => {
+  const { t, i18n } = useTranslation(['connections', 'common']);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [expandedConnectionIds, setExpandedConnectionIds] = useState<Set<string>>(new Set());
@@ -51,9 +53,17 @@ const OpenFinance = () => {
 
       setAccounts(accountsData.accounts || []);
 
+      // Map i18next language codes to Intl locale codes
+      const localeMap: Record<string, string> = {
+        'pt-BR': 'pt-BR',
+        'en': 'en-US',
+        'pt': 'pt-BR',
+      };
+      const intlLocale = localeMap[i18n.language] || i18n.language;
+
       const mapped: Connection[] = connectionsData.connections.map((conn: any) => ({
         id: conn.id,
-        name: conn.institution_name || conn.provider || "Instituição",
+        name: conn.institution_name || conn.provider || t('connections:openFinance.institution'),
         type: conn.provider === "b3" ? "b3" : "bank",
         status:
           conn.status === "connected"
@@ -67,7 +77,7 @@ const OpenFinance = () => {
                   : conn.status === "revoked"
                     ? "disconnected"
                     : "disconnected",
-        lastSync: conn.last_sync_at ? new Date(conn.last_sync_at).toLocaleString("pt-BR") : undefined,
+        lastSync: conn.last_sync_at ? new Date(conn.last_sync_at).toLocaleString(intlLocale) : undefined,
         institutionId: conn.institution_id,
       }));
       setConnections(mapped);
@@ -75,7 +85,7 @@ const OpenFinance = () => {
     } catch (err: any) {
       setAccounts([]);
       if (abortController.signal.aborted) return;
-      setError(err?.error || "Erro ao carregar conexões");
+      setError(err?.error || t('connections:openFinance.errorLoading'));
       console.error("Error fetching connections:", err);
     } finally {
       if (!abortController.signal.aborted) setLoading(false);
@@ -97,7 +107,7 @@ const OpenFinance = () => {
       const tokenResponse = await connectionsApi.getConnectToken();
       const token = tokenResponse?.connectToken;
       if (!token || typeof token !== "string") {
-        throw new Error("Token de conexão inválido.");
+        throw new Error(t('connections:openFinance.invalidToken'));
       }
 
       if (typeof window !== "undefined" && (window as any).PluggyConnect) {
@@ -108,29 +118,29 @@ const OpenFinance = () => {
             try {
               let itemId: string | null =
                 itemData?.id ?? itemData?.itemId ?? itemData?.item?.id ?? itemData?.item?.itemId ?? (typeof itemData === "string" ? itemData : null);
-              if (!itemId) throw new Error("Item ID não recebido da Pluggy.");
+              if (!itemId) throw new Error(t('connections:openFinance.itemIdError'));
               await connectionsApi.create({ itemId });
-              toast({ title: "Sucesso", description: "Conexão criada com sucesso. Dados sendo sincronizados...", variant: "success" });
+              toast({ title: t('common:success'), description: t('connections:openFinance.connectionCreated'), variant: "success" });
               await fetchConnections();
             } catch (err: any) {
-              toast({ title: "Erro", description: err?.error || "Erro ao salvar conexão", variant: "destructive" });
+              toast({ title: t('common:error'), description: err?.error || t('connections:openFinance.connectionError'), variant: "destructive" });
             } finally {
               setCreating(false);
             }
           },
           onError: () => {
-            toast({ title: "Erro", description: "Erro ao conectar. Tente novamente.", variant: "destructive" });
+            toast({ title: t('common:error'), description: t('connections:openFinance.connectError'), variant: "destructive" });
             setCreating(false);
           },
           onClose: () => setCreating(false),
         });
         pluggyConnect.init();
       } else {
-        throw new Error("Widget Pluggy não carregado. Atualize a página.");
+        throw new Error(t('connections:openFinance.widgetError'));
       }
     } catch (err: any) {
-      const msg = err?.error || err?.message || "Erro ao conectar";
-      toast({ title: "Erro", description: msg, variant: "destructive" });
+      const msg = err?.error || err?.message || t('connections:openFinance.connectionErrorGeneric');
+      toast({ title: t('common:error'), description: msg, variant: "destructive" });
       setCreating(false);
     }
   };
@@ -139,29 +149,19 @@ const OpenFinance = () => {
     try {
       setCreating(true);
       await financeApi.sync();
-      toast({ title: "Sucesso", description: "Dados sincronizados com sucesso.", variant: "success" });
+      toast({ title: t('common:success'), description: t('connections:openFinance.syncSuccess'), variant: "success" });
       await fetchConnections();
     } catch (err: any) {
-      toast({ title: "Erro", description: err?.error || "Erro ao sincronizar.", variant: "destructive" });
+      toast({ title: t('common:error'), description: err?.error || t('connections:openFinance.syncError'), variant: "destructive" });
     } finally {
       setCreating(false);
     }
   };
 
-  const statusLabel: Record<string, string> = {
-    connected: "Conectado",
-    pending: "Pendente",
-    expired: "Expirado",
-    error: "Erro",
-    disconnected: "Desconectado",
-    failed: "Falha",
-    revoked: "Revogado",
-  };
-
   if (loading && connections.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
-        <p className="text-muted-foreground">Carregando...</p>
+        <p className="text-muted-foreground">{t('connections:openFinance.loading')}</p>
       </div>
     );
   }
@@ -178,36 +178,39 @@ const OpenFinance = () => {
     <div className="space-y-6 min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Open Finance</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('connections:openFinance.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Conecte bancos e corretoras para sincronizar contas e transações
+            {t('connections:openFinance.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={creating}>
             <RefreshCw className={`h-4 w-4 mr-2 ${creating ? "animate-spin" : ""}`} />
-            {creating ? "Sincronizando…" : "Atualizar"}
+            {creating ? t('connections:openFinance.syncing') : t('connections:openFinance.update')}
           </Button>
           <Button onClick={handlePluggyConnection} disabled={creating} size="default">
             <Link2 className="h-4 w-4 mr-2" />
-            {creating ? "Conectando…" : "Conectar"}
+            {creating ? t('connections:openFinance.connecting') : t('connections:openFinance.connect')}
           </Button>
         </div>
       </div>
 
-      <ChartCard title="Bancos e corretoras conectados" subtitle={connections.length > 0 ? `${connections.length} instituição(ões)` : undefined}>
+      <ChartCard
+        title={t('connections:openFinance.chartTitle')}
+        subtitle={connections.length > 0 ? t('connections:openFinance.institutionCount', { count: connections.length }) : undefined}
+      >
         {connections.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center">
             <div className="rounded-full bg-muted/50 p-5 mb-4">
               <Building2 className="h-12 w-12 text-muted-foreground" />
             </div>
-            <p className="font-medium text-foreground">Nenhuma instituição conectada</p>
+            <p className="font-medium text-foreground">{t('connections:openFinance.noInstitutions')}</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              Clique em Conectar para vincular seu banco ou corretora e sincronizar contas e transações.
+              {t('connections:openFinance.noInstitutionsDesc')}
             </p>
             <Button onClick={handlePluggyConnection} disabled={creating} className="mt-5">
               <Link2 className="h-4 w-4 mr-2" />
-              Conectar instituição
+              {t('connections:openFinance.connectInstitution')}
             </Button>
           </div>
         ) : (
@@ -238,8 +241,8 @@ const OpenFinance = () => {
                       <div className="min-w-0">
                         <p className="font-medium text-foreground truncate">{conn.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {conn.type === "b3" ? "Corretora" : "Banco"}
-                          {conn.lastSync && ` • Última sync: ${conn.lastSync}`}
+                          {conn.type === "b3" ? t('connections:openFinance.broker') : t('connections:openFinance.bank')}
+                          {conn.lastSync && ` • ${t('connections:openFinance.lastSync', { date: conn.lastSync })}`}
                         </p>
                       </div>
                     </div>
@@ -247,23 +250,23 @@ const OpenFinance = () => {
                       {conn.status === "connected" && (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
                           <CheckCircle2 className="h-4 w-4" />
-                          Conectado
+                          {t('connections:openFinance.status.connected')}
                         </span>
                       )}
                       {conn.status === "pending" && (
                         <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                           <Clock className="h-4 w-4" />
-                          Pendente
+                          {t('connections:openFinance.status.pending')}
                         </span>
                       )}
                       {(conn.status === "expired" || conn.status === "error" || conn.status === "failed") && (
                         <span className="inline-flex items-center gap-1 text-xs text-destructive">
                           <AlertCircle className="h-4 w-4" />
-                          {statusLabel[conn.status] || conn.status}
+                          {t(`connections:openFinance.status.${conn.status}`)}
                         </span>
                       )}
                       {(conn.status === "disconnected" || conn.status === "revoked") && (
-                        <span className="text-xs text-muted-foreground">{statusLabel[conn.status] || conn.status}</span>
+                        <span className="text-xs text-muted-foreground">{t(`connections:openFinance.status.${conn.status}`)}</span>
                       )}
                     </div>
                   </button>
@@ -271,7 +274,7 @@ const OpenFinance = () => {
                     <div className="border-t border-border bg-muted/10">
                       {connectionAccounts.length === 0 ? (
                         <div className="px-4 py-3 pl-14 text-sm text-muted-foreground">
-                          Nenhuma conta sincronizada para esta instituição. Use Atualizar para sincronizar.
+                          {t('connections:openFinance.noAccountsSynced')}
                         </div>
                       ) : (
                         <ul className="py-2">
@@ -282,7 +285,7 @@ const OpenFinance = () => {
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm truncate text-foreground">{acc.name || "Conta"}</span>
+                                <span className="text-sm truncate text-foreground">{acc.name || t('connections:openFinance.account')}</span>
                               </div>
                               <span className="text-sm font-medium tabular-nums shrink-0">
                                 R$ {parseFloat(acc.current_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}

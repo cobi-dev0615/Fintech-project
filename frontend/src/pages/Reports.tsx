@@ -7,6 +7,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { reportsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const CARD_ACCENTS = [
   { border: "border-blue-500/70", shadow: "hover:shadow-blue-500/5", icon: "text-blue-600 dark:text-blue-400" },
@@ -15,10 +16,12 @@ const CARD_ACCENTS = [
 ] as const;
 
 const Reports = () => {
+  const { t } = useTranslation(['reports', 'common']);
+
   const reportTypes = [
-    { id: "customer-portfolio", value: "portfolio_analysis", label: "Portfólio do Cliente", icon: PieChart, description: "Todos os ativos obtidos via open finance" },
-    { id: "investment-report", value: "portfolio_analysis", label: "Relatório de Investimentos", icon: TrendingUp, description: "Análise de investimentos e composição da carteira" },
-    { id: "transaction-report", value: "transactions", label: "Relatório de Transações", icon: FileText, description: "Histórico de transações por período" },
+    { id: "customer-portfolio", value: "portfolio_analysis", label: t('reportTypes.portfolio'), icon: PieChart, description: t('reportTypes.portfolioDesc') },
+    { id: "investment-report", value: "portfolio_analysis", label: t('reportTypes.investment'), icon: TrendingUp, description: t('reportTypes.investmentDesc') },
+    { id: "transaction-report", value: "transactions", label: t('reportTypes.transaction'), icon: FileText, description: t('reportTypes.transactionDesc') },
   ];
   const [selectedId, setSelectedId] = useState<string>("");
   const [dateRange, setDateRange] = useState<string>("");
@@ -30,8 +33,8 @@ const Reports = () => {
   const handleGenerate = async () => {
     if (!reportType) {
       toast({
-        title: "Erro",
-        description: "Selecione um tipo de relatório",
+        title: t('common:error'),
+        description: t('generateForm.selectReportType'),
         variant: "destructive",
       });
       return;
@@ -46,12 +49,12 @@ const Reports = () => {
         params: { reportLabel: selectedLabel },
       });
       toast({
-        title: "Sucesso",
+        title: t('common:success'),
         description: (
           <>
             {result.message}{" "}
             <a href="/app/reports/history" className="underline font-medium">
-              Ver no histórico
+              {t('generateForm.viewInHistory')}
             </a>
           </>
         ),
@@ -61,8 +64,8 @@ const Reports = () => {
       setDateRange("");
     } catch (err: any) {
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao gerar relatório",
+        title: t('common:error'),
+        description: err?.error || t('common:generateError'),
         variant: "destructive",
       });
       console.error("Error generating report:", err);
@@ -80,15 +83,15 @@ const Reports = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Relatórios</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">{t('title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gere e baixe relatórios financeiros detalhados
+            {t('subtitle')}
           </p>
         </div>
         <Link to="/app/reports/history">
           <Button variant="outline" size="sm" className="shrink-0">
             <History className="h-4 w-4 mr-2" />
-            Ver histórico
+            {t('viewHistory')}
           </Button>
         </Link>
       </div>
@@ -141,14 +144,14 @@ const Reports = () => {
       </div>
 
       {/* Generate form */}
-      <ChartCard title="Gerar Novo Relatório" subtitle="Escolha o tipo acima e o período, depois gere o PDF">
+      <ChartCard title={t('generateForm.title')} subtitle={t('generateForm.subtitle')}>
         <div ref={formRef} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Tipo de Relatório</label>
+              <label className="text-sm font-medium text-foreground">{t('generateForm.reportType')}</label>
               <Select value={selectedId} onValueChange={setSelectedId}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione o tipo" />
+                  <SelectValue placeholder={t('generateForm.selectType')} />
                 </SelectTrigger>
                 <SelectContent>
                   {reportTypes.map((type) => (
@@ -160,18 +163,18 @@ const Reports = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Período</label>
+              <label className="text-sm font-medium text-foreground">{t('generateForm.period')}</label>
               <Select value={dateRange} onValueChange={setDateRange}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione o período (opcional)" />
+                  <SelectValue placeholder={t('generateForm.selectPeriod')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="current-month">Mês Atual</SelectItem>
-                  <SelectItem value="last-month">Mês Anterior</SelectItem>
-                  <SelectItem value="last-3-months">Últimos 3 Meses</SelectItem>
-                  <SelectItem value="last-6-months">Últimos 6 Meses</SelectItem>
-                  <SelectItem value="last-year">Último Ano</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
+                  <SelectItem value="current-month">{t('generateForm.currentMonth')}</SelectItem>
+                  <SelectItem value="last-month">{t('generateForm.lastMonth')}</SelectItem>
+                  <SelectItem value="last-3-months">{t('generateForm.last3Months')}</SelectItem>
+                  <SelectItem value="last-6-months">{t('generateForm.last6Months')}</SelectItem>
+                  <SelectItem value="last-year">{t('generateForm.lastYear')}</SelectItem>
+                  <SelectItem value="custom">{t('generateForm.custom')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -182,7 +185,7 @@ const Reports = () => {
             className="w-full sm:w-auto min-w-[200px]"
           >
             <FileText className={cn("h-4 w-4 mr-2", generating && "animate-pulse")} />
-            {generating ? "Gerando PDF…" : "Gerar Relatório PDF"}
+            {generating ? t('generateForm.generating') : t('generateForm.generate')}
           </Button>
         </div>
       </ChartCard>

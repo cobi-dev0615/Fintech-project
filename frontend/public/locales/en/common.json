@@ -16,6 +16,7 @@
   "syncComplete": "Sync complete",
   "syncError": "Sync error",
   "syncErrorDesc": "Could not sync.",
+  "generateError": "Error generating report",
   "tryAgain": "Try again",
   "perPage": "per page",
   "itemsPerPage": "Items per page:",
