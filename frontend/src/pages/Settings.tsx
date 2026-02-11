@@ -597,7 +597,7 @@ const Settings = () => {
                   </div>
                 ) : (
                 <>
-                <div className="w-full min-w-0 overflow-x-auto rounded-lg border border-border">
+                <div className="w-full min-w-0 overflow-x-auto rounded-lg border border-border comments-table-scrollbar">
                 <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow className="bg-muted/40">

@@ -302,4 +302,33 @@
   .transactions-scrollbar::-webkit-scrollbar-corner {
     background: transparent;
   }
+
+  /* Comments table scrollbar - emerald theme to match card border */
+  .comments-table-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(142 76% 36% / 0.5) transparent;
+  }
+  .comments-table-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .comments-table-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 4px;
+  }
+  .comments-table-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(142 76% 36% / 0.5);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .comments-table-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(142 76% 36% / 0.7);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .comments-table-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
