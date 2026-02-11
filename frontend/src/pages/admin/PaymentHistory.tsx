@@ -62,6 +62,8 @@ interface SubscriptionHistory {
   };
 }
 
+const LIMIT_OPTIONS = [5, 10, 20];
+
 const PaymentHistory = () => {
   const [activeTab, setActiveTab] = useState<"payments" | "subscriptions">("subscriptions");
   const [searchQuery, setSearchQuery] = useState("");
@@ -70,9 +72,10 @@ const PaymentHistory = () => {
   const [subscriptions, setSubscriptions] = useState<SubscriptionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 50,
+    limit: 10,
     total: 0,
     totalPages: 0,
   });
@@ -88,7 +91,7 @@ const PaymentHistory = () => {
       const response = await adminApi.getPaymentHistory({
         status: filterStatus !== "all" ? filterStatus : undefined,
         page,
-        limit: 50,
+        limit: pageSize,
       });
       setPayments(response.payments);
       setPagination(response.pagination);
@@ -110,7 +113,7 @@ const PaymentHistory = () => {
       const response = await adminApi.getSubscriptionHistory({
         status: filterStatus !== "all" ? filterStatus : undefined,
         page,
-        limit: 50,
+        limit: pageSize,
       });
       setSubscriptions(response.history);
       setPagination(response.pagination);
@@ -126,11 +129,24 @@ const PaymentHistory = () => {
     }
   };
 
+  // Reset to page 1 when filters or search change
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus, searchQuery]);
+
+  // Reset to page 1 when page size changes
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
+
+  // Reset page when switching tabs
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab]);
+
+  // Debounced fetch on any relevant change
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (filterStatus !== "all" || searchQuery) {
-        setPage(1);
-      }
       if (activeTab === "payments") {
         fetchPayments();
       } else {
@@ -139,12 +155,7 @@ const PaymentHistory = () => {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [filterStatus, page, searchQuery, activeTab]);
-
-  // Reset page when switching tabs
-  useEffect(() => {
-    setPage(1);
-  }, [activeTab]);
+  }, [filterStatus, page, pageSize, searchQuery, activeTab]);
 
   const filteredPayments = payments.filter((payment) => {
     if (!searchQuery) return true;
@@ -513,47 +524,69 @@ const PaymentHistory = () => {
                 </table>
               </div>
 
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
-                  <div className="text-sm text-muted-foreground">
-                    Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
+              {/* Pagination + page size */}
+              {filteredSubscriptions.length > 0 && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 pt-4 border-t border-border">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <span className="text-sm text-muted-foreground">
+                      Mostrando {((page - 1) * pagination.limit) + 1}–{Math.min(page * pagination.limit, pagination.total)} de {pagination.total} assinatura{pagination.total !== 1 ? "s" : ""}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <label htmlFor="subs-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
+                        Por página
+                      </label>
+                      <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                        <SelectTrigger id="subs-per-page" className="h-9 w-[110px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LIMIT_OPTIONS.map((n) => (
+                            <SelectItem key={n} value={String(n)}>
+                              {n}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={pagination.page === 1}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    {getPageNumbers().map((pageNum, idx) => (
-                      pageNum === '...' ? (
-                        <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
-                      ) : (
-                        <Button
-                          key={pageNum}
-                          variant={pagination.page === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setPage(pageNum as number)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {pageNum}
-                        </Button>
-                      )
-                    ))}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                      disabled={pagination.page === pagination.totalPages}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {pagination.totalPages > 1 && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page <= 1 || loading}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      {getPageNumbers().map((pageNum, idx) => (
+                        pageNum === '...' ? (
+                          <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+                        ) : (
+                          <Button
+                            key={pageNum}
+                            variant={page === (pageNum as number) ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setPage(pageNum as number)}
+                            disabled={loading}
+                            className="h-8 w-8 p-0"
+                          >
+                            {pageNum}
+                          </Button>
+                        )
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                        disabled={page >= pagination.totalPages || loading}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -666,47 +699,69 @@ const PaymentHistory = () => {
               </table>
             </div>
 
-            {/* Enhanced Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-border">
-                <div className="text-sm text-muted-foreground">
-                  Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
+            {/* Pagination + page size */}
+            {filteredPayments.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 pt-4 border-t border-border">
+                <div className="flex flex-wrap items-center gap-4">
+                  <span className="text-sm text-muted-foreground">
+                    Mostrando {((page - 1) * pagination.limit) + 1}–{Math.min(page * pagination.limit, pagination.total)} de {pagination.total} pagamento{pagination.total !== 1 ? "s" : ""}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="payments-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
+                      Por página
+                    </label>
+                    <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                      <SelectTrigger id="payments-per-page" className="h-9 w-[110px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LIMIT_OPTIONS.map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={pagination.page === 1}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {getPageNumbers().map((pageNum, idx) => (
-                    pageNum === '...' ? (
-                      <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
-                    ) : (
-                      <Button
-                        key={pageNum}
-                        variant={pagination.page === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setPage(pageNum as number)}
-                        className="h-8 w-8 p-0"
-                      >
-                        {pageNum}
-                      </Button>
-                    )
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                    disabled={pagination.page === pagination.totalPages}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+                {pagination.totalPages > 1 && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page <= 1 || loading}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    {getPageNumbers().map((pageNum, idx) => (
+                      pageNum === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+                      ) : (
+                        <Button
+                          key={pageNum}
+                          variant={page === (pageNum as number) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPage(pageNum as number)}
+                          disabled={loading}
+                          className="h-8 w-8 p-0"
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                      disabled={page >= pagination.totalPages || loading}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </>
