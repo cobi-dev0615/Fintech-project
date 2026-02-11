@@ -5,10 +5,18 @@ import { financeApi, dashboardApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 
 const NetWorthChart = () => {
-  const { t } = useTranslation('dashboard');
+  const { t } = useTranslation(['dashboard', 'common']);
   const [timeRange, setTimeRange] = useState<"7M" | "1A" | "all">("7M");
   const [data, setData] = useState<Array<{ month: string; value: number }>>([]);
   const [loading, setLoading] = useState(true);
+
+  const locale = t('common:locale');
+
+  const formatCompact = (value: number) =>
+    new Intl.NumberFormat(locale, { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 0 }).format(value);
+
+  const formatFull = (value: number) =>
+    new Intl.NumberFormat(locale, { style: 'currency', currency: 'BRL' }).format(value);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,18 +44,18 @@ const NetWorthChart = () => {
       title={t('chart.title')}
       subtitle={t('chart.subtitle')}
       actions={
-        <div className="flex items-center gap-1 rounded-lg p-0.5 bg-muted/50 border border-border/50">
+        <div className="flex items-center gap-0.5 rounded-lg p-0.5 bg-muted/40 border border-border/40">
           {(["7M", "1A", "all"] as const).map((range) => (
             <button
               key={range}
               type="button"
               onClick={() => setTimeRange(range)}
               className={`
-                min-h-[32px] min-w-[40px] px-3 py-1.5 text-xs font-medium rounded-md transition-all touch-manipulation
+                min-h-[28px] min-w-[36px] px-2.5 py-1 text-xs font-medium rounded-md transition-all touch-manipulation
                 ${
                   timeRange === range
                     ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                 }
               `}
             >
@@ -71,11 +79,11 @@ const NetWorthChart = () => {
             <AreaChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
             <defs>
               <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />
-                <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.15} />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
             <XAxis
               dataKey="month"
               axisLine={false}
@@ -87,21 +95,22 @@ const NetWorthChart = () => {
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-              width={50}
+              tickFormatter={formatCompact}
+              width={65}
             />
             <Tooltip
               contentStyle={{
                 backgroundColor: "hsl(var(--card))",
                 border: "1px solid hsl(var(--border))",
-                borderRadius: "6px",
-                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.3)",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
                 color: "hsl(var(--foreground))",
                 fontSize: "12px",
+                padding: "8px 12px",
               }}
-              labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, marginBottom: "4px" }}
+              labelStyle={{ color: "hsl(var(--muted-foreground))", fontWeight: 500, marginBottom: "4px", fontSize: "11px" }}
               formatter={(value: number) => [
-                `R$ ${value.toLocaleString("pt-BR")}`,
+                formatFull(value),
                 t('chart.tooltipLabel'),
               ]}
             />
@@ -109,7 +118,7 @@ const NetWorthChart = () => {
               type="monotone"
               dataKey="value"
               stroke="#3b82f6"
-              strokeWidth={1.5}
+              strokeWidth={2}
               fill="url(#netWorthGradient)"
             />
           </AreaChart>

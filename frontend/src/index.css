@@ -141,18 +141,18 @@
 @layer components {
   /* Professional KPI Card styles */
   .kpi-card {
-    @apply bg-card rounded-lg p-4 border border-border transition-all duration-200;
+    @apply bg-card rounded-xl p-5 border border-border/60 transition-all duration-200;
     box-shadow: var(--shadow-card);
   }
-  
+
   .kpi-card:hover {
-    box-shadow: var(--shadow-card-hover);
+    box-shadow: var(--shadow-md);
     border-color: hsl(var(--border));
   }
-  
+
   /* Chart Card */
   .chart-card {
-    @apply bg-card rounded-lg p-6 border border-border;
+    @apply bg-card rounded-xl p-5 sm:p-6 border border-border/60;
     box-shadow: var(--shadow-card);
   }
   

@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(ls:*)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "Bash(for file in \"h:\\\\work\\\\20260113_fintech project\\\\Fintech-project\\\\frontend\\\\src\\\\components\\\\dashboard\\\\AlertList.tsx\" \"h:\\\\work\\\\20260113_fintech project\\\\Fintech-project\\\\frontend\\\\src\\\\components\\\\dashboard\\\\AlertsCard.tsx\" \"h:\\\\work\\\\20260113_fintech project\\\\Fintech-project\\\\frontend\\\\src\\\\components\\\\dashboard\\\\KpiCard.tsx\" \"h:\\\\work\\\\20260113_fintech project\\\\Fintech-project\\\\frontend\\\\src\\\\components\\\\dashboard\\\\RecentTransactions.tsx\")",
+      "Bash(do wc -l \"$file\")",
+      "Bash(done)"
     ]
   }
 }
