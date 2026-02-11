@@ -1,0 +1,119 @@
+{
+  "title": "Meu Perfil",
+  "subtitle": "Gerencie suas preferências e informações pessoais",
+  "tabs": {
+    "profile": "Perfil",
+    "notifications": "Notificações",
+    "password": "Senha",
+    "history": "Histórico de Planos",
+    "comments": "Comentários"
+  },
+  "ariaLabel": "Seções do perfil",
+  "profile": {
+    "title": "Informações Pessoais",
+    "fullName": "Nome Completo",
+    "namePlaceholder": "Seu nome",
+    "email": "E-mail",
+    "emailHint": "Alterações de e-mail podem ser feitas pelo suporte.",
+    "phone": "Telefone",
+    "phonePlaceholder": "+55 (XX) XXXXX-XXXX",
+    "phoneError": "Por favor, insira um telefone brasileiro válido",
+    "birthDate": "Data de Nascimento",
+    "riskProfile": "Perfil de Risco",
+    "riskProfilePlaceholder": "Selecione seu perfil",
+    "riskProfileHint": "Usado para sugestões de investimento.",
+    "riskOptions": {
+      "none": "Não informado",
+      "conservative": "Conservador",
+      "moderate": "Moderado",
+      "aggressive": "Arrojado"
+    },
+    "saving": "Salvando...",
+    "saveProfile": "Salvar Perfil",
+    "saveSuccess": "Perfil atualizado com sucesso",
+    "saveError": "Erro ao atualizar perfil"
+  },
+  "notifications": {
+    "title": "Preferências de Notificação",
+    "labels": {
+      "emailNotifications": "Notificações por e-mail",
+      "transactionAlerts": "Alertas de transações",
+      "goalReminders": "Lembretes de metas",
+      "weeklySummary": "Resumo semanal",
+      "marketingEmails": "E-mails de marketing"
+    },
+    "saving": "Salvando...",
+    "saveNotifications": "Salvar Notificações",
+    "saveSuccess": "Notificações atualizadas",
+    "saveError": "Erro ao atualizar notificações"
+  },
+  "password": {
+    "title": "Alterar Senha",
+    "currentPassword": "Senha Atual",
+    "newPassword": "Nova Senha",
+    "newPasswordHint": "Mínimo 8 caracteres.",
+    "confirmPassword": "Confirmar Nova Senha",
+    "fillAllFields": "Preencha todos os campos",
+    "passwordsMismatch": "As senhas não coincidem",
+    "changing": "Alterando...",
+    "changePassword": "Alterar Senha",
+    "changeSuccess": "Senha alterada com sucesso",
+    "changeError": "Erro ao alterar senha"
+  },
+  "history": {
+    "title": "Histórico de Compras",
+    "noPurchases": "Nenhuma compra encontrada",
+    "noPurchasesDesc": "Suas assinaturas de planos aparecerão aqui.",
+    "tableHeaders": {
+      "plan": "Plano",
+      "price": "Preço",
+      "date": "Data",
+      "status": "Status"
+    }
+  },
+  "comments": {
+    "title": "Comentários e Feedback",
+    "refresh": "Atualizar",
+    "newComment": "Novo Comentário",
+    "noComments": "Nenhum comentário enviado",
+    "noCommentsDesc": "Envie dúvidas ou sugestões usando o botão acima.",
+    "createDialog": {
+      "title": "Novo Comentário",
+      "description": "Envie sua dúvida, sugestão ou feedback para nossa equipe.",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ex: Dúvida sobre plano",
+      "contentLabel": "Conteúdo",
+      "contentPlaceholder": "Digite aqui sua mensagem...",
+      "sending": "Enviando...",
+      "send": "Enviar Comentário"
+    },
+    "sendSuccess": "Comentário enviado ao administrador",
+    "sendError": "Erro ao enviar comentário",
+    "deleteConfirm": "Tem certeza que deseja excluir este comentário?",
+    "deleteSuccess": "Comentário excluído",
+    "deleteError": "Erro ao excluir comentário",
+    "tableHeaders": {
+      "number": "No",
+      "title": "Título",
+      "content": "Conteúdo",
+      "status": "Status",
+      "process": "Processo",
+      "createdAt": "Criado em",
+      "processedAt": "Processado em",
+      "actions": "Ações"
+    },
+    "noTitle": "Sem título",
+    "statusReplied": "Respondido",
+    "statusPending": "Pendente",
+    "processFinished": "Finalizado",
+    "processAnalysis": "Em análise",
+    "detail": {
+      "title": "Detalhes do Comentário",
+      "yourMessage": "Sua Mensagem",
+      "sentAt": "Enviado em:",
+      "adminReply": "Resposta do Administrador",
+      "repliedAt": "Respondido em:",
+      "waitingReply": "Aguardando resposta da nossa equipe..."
+    }
+  }
+}

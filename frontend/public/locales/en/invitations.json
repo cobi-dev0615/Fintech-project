@@ -1,0 +1,80 @@
+{
+  "title": "Consultant Invitations",
+  "subtitle": "Manage your financial consultant invitations",
+  "consultantsSection": {
+    "title": "Consultant(s) who invited you",
+    "noConsultant": "No consultant has invited you yet",
+    "whenConsultant": "When a financial consultant sends you an invitation, it will appear here.",
+    "awaitingResponse": "Awaiting your response",
+    "connected": "Connected",
+    "shareWallet": "Share portfolio",
+    "disconnect": "Disconnect"
+  },
+  "referral": {
+    "title": "Invite friends",
+    "subtitle": "Share your link and get 20% off your monthly subscription by inviting 10+ people",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied!",
+    "linkCopiedDesc": "The invitation link has been copied to your clipboard.",
+    "discountEarned": "You are entitled to 20% off your monthly subscription!",
+    "progressText": "<strong>{{count}}</strong> of {{total}} invitations — <strong>{{remaining}}</strong> more for the discount",
+    "invitedPeople": "People you invited ({{count}})",
+    "noInvitedYet": "No one invited yet",
+    "noInvitedDesc": "Share your link above to invite friends. Once 10 sign up, you get 20% off.",
+    "statusRegistered": "Registered",
+    "statusPendingApproval": "Pending approval",
+    "statusInactive": "Inactive"
+  },
+  "expiredAlert": "You have expired invitations. They will be removed automatically.",
+  "pendingSection": {
+    "title": "Pending Invitations",
+    "subtitle_one": "{{count}} invitation awaiting response",
+    "subtitle_other": "{{count}} invitations awaiting response",
+    "errorLoading": "Error loading invitations",
+    "noPending": "No pending invitations",
+    "noPendingDesc": "When a consultant sends an invitation, it will appear here for you to accept or decline.",
+    "tableHeaders": {
+      "consultant": "Consultant",
+      "email": "Email",
+      "sentAt": "Sent at",
+      "statusExpires": "Status / Expires",
+      "actions": "Actions"
+    },
+    "expired": "Expired",
+    "expiresIn": "Expires {{time}}",
+    "decline": "Decline",
+    "accept": "Accept"
+  },
+  "aboutSection": {
+    "title": "About Invitations",
+    "whatAre": "What are invitations?",
+    "whatAreDesc": "Financial consultants can invite you to connect on the platform. By accepting, they will have access to your financial data to provide personalized guidance.",
+    "validity": "Validity",
+    "validityDesc": "Invitations expire after 15 days. Make sure to respond before the deadline.",
+    "privacy": "Privacy",
+    "privacyDesc": "You can revoke a consultant's access at any time in settings."
+  },
+  "dialogs": {
+    "declineTitle": "Decline invitation?",
+    "declineDesc": "Are you sure you want to decline the invitation from <strong>{{name}}</strong>? This action cannot be undone.",
+    "disconnectTitle": "Disconnect from consultant?",
+    "disconnectDesc": "Are you sure you want to disconnect from <strong>{{name}}</strong>? The consultant will no longer be able to access your information.",
+    "disconnecting": "Disconnecting..."
+  },
+  "toast": {
+    "accepted": "Invitation accepted",
+    "acceptedDesc": "You are now connected with {{name}}",
+    "acceptError": "Error accepting invitation",
+    "declined": "Invitation declined",
+    "declinedDesc": "The invitation has been removed",
+    "declineError": "Error declining invitation",
+    "disconnected": "Disconnected",
+    "disconnectedDesc": "You have been disconnected from the consultant.",
+    "disconnectError": "Error disconnecting",
+    "walletShared": "Portfolio shared",
+    "walletUnshared": "Sharing disabled",
+    "walletSharedDesc": "The consultant can see your portfolio information.",
+    "walletUnsharedDesc": "The consultant can no longer see your portfolio information.",
+    "walletError": "Error updating permission"
+  }
+}

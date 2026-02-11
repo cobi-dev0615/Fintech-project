@@ -1,0 +1,37 @@
+{
+  "title": "Escolha seu Plano",
+  "subtitle": "Selecione o plano que melhor se adapta às suas necessidades. Você pode alterar a qualquer momento.",
+  "billing": "Faturamento:",
+  "monthly": "Mensal",
+  "annual": "Anual",
+  "perMonth": "mês",
+  "perYear": "ano",
+  "perMonthShort": "/mês",
+  "mostPopular": "Mais Popular",
+  "currentPlan": "Atual",
+  "activePlan": "Plano Ativo",
+  "alreadyActive": "Plano já ativo",
+  "alreadyActiveDesc": "Você já possui este plano ativo.",
+  "processing": "Processando...",
+  "startFree": "Começar Grátis",
+  "subscribe": "Assinar",
+  "noPlans": "Nenhum plano disponível",
+  "noPlansDesc": "Os planos não estão disponíveis no momento. Tente novamente mais tarde.",
+  "loadError": "Falha ao carregar planos",
+  "connections_one": "{{count}} conexão",
+  "connections_other": "{{count}} conexões",
+  "connectionsUnlimited": "Conexões ilimitadas",
+  "planUntil": "Até",
+  "currentPlanReplaced": "Seu plano atual será substituído.",
+  "subtitles": {
+    "free": "Ideal para começar",
+    "basic": "Para quem quer mais",
+    "pro": "Controle total",
+    "consultant": "Para profissionais",
+    "enterprise": "Solução completa"
+  },
+  "confirmDialog": {
+    "title": "Confirmar Assinatura",
+    "description": "Você está prestes a assinar o plano <strong>{{name}}</strong> por <strong>{{price}}/{{period}}</strong>."
+  }
+}

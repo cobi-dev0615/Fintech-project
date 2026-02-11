@@ -1,0 +1,58 @@
+{
+  "title": "Notificações",
+  "unreadCount_one": "{{count}} não lida",
+  "unreadCount_other": "{{count}} não lidas",
+  "allRead": "Todas as notificações foram lidas",
+  "markAllRead": "Marcar todas como lidas",
+  "markAllReadSuccess": "Todas as notificações foram marcadas como lidas.",
+  "markReadError": "Não foi possível marcar a notificação como lida.",
+  "markAllReadError": "Não foi possível marcar todas as notificações como lidas.",
+  "deleteSuccess": "A notificação foi removida com sucesso.",
+  "deleteError": "Não foi possível remover a notificação.",
+  "loadError": "Não foi possível carregar as notificações.",
+  "timeoutError": "O servidor demorou para responder. Tente novamente em instantes.",
+  "loadFailed": "Falha ao carregar notificações",
+  "noNotifications": "Nenhuma notificação",
+  "noNotificationsDesc": "Novas notificações aparecerão aqui quando você receber convites, mensagens ou alertas.",
+  "noNotificationsMobileDesc": "Novas notificações aparecerão aqui quando você receber convites ou alertas.",
+  "severity": {
+    "info": "Informação",
+    "warning": "Aviso",
+    "critical": "Crítico"
+  },
+  "tableHeaders": {
+    "number": "#",
+    "type": "Tipo",
+    "content": "Conteúdo",
+    "date": "Data",
+    "actions": "Ações"
+  },
+  "viewDetails": "Ver detalhes",
+  "detail": {
+    "title": "Detalhes da Notificação",
+    "subtitle": "Informações completas da notificação",
+    "type": "Tipo:",
+    "statusLabel": "Status:",
+    "read": "Lida",
+    "unread": "Não lida",
+    "message": "Mensagem:",
+    "additionalInfo": "Informações Adicionais:",
+    "viewMetadata": "Ver metadados completos",
+    "createdAt": "Data de Criação:",
+    "goToLink": "Ir para Link"
+  },
+  "deleteDialog": {
+    "title": "Remover notificação",
+    "description": "Tem certeza que deseja remover esta notificação? Esta ação não pode ser desfeita."
+  },
+  "notifications": "notificações",
+  "dropdown": {
+    "title": "Notificações",
+    "viewAll": "Ver todas",
+    "loading": "Carregando...",
+    "empty": "Nenhuma notificação",
+    "removed": "Notificação removida",
+    "removedDesc": "A notificação foi removida com sucesso.",
+    "removeError": "Não foi possível remover a notificação."
+  }
+}

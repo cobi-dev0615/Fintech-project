@@ -1,0 +1,67 @@
+{
+  "topbar": {
+    "searchPlaceholder": "Buscar transações, contas...",
+    "openAccountMenu": "Abrir menu da conta",
+    "accountFallback": "Conta",
+    "myProfile": "Meu Perfil",
+    "logout": "Sair"
+  },
+  "sidebar": {
+    "expandMenu": "Expandir menu",
+    "collapseMenu": "Recolher menu",
+    "comingSoon": "Funcionalidade em breve",
+    "clickToSeeOptions": "Clique para ver opções",
+    "sections": {
+      "principal": "Principal",
+      "financeiro": "Financeiro",
+      "relatorios": "Relatórios",
+      "ferramentas": "Ferramentas",
+      "clientes": "Clientes",
+      "gestao": "Gestão",
+      "sistema": "Sistema"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "notifications": "Notificações",
+      "invitations": "Convites",
+      "messages": "Mensagens",
+      "plans": "Planos",
+      "assets": "Ativos",
+      "connections": "Conexões",
+      "openFinance": "Open Finance",
+      "b3": "B3",
+      "accounts": "Contas",
+      "transactions": "Transações",
+      "cards": "Cartões",
+      "investments": "Investimentos",
+      "reports": "Relatórios",
+      "generateReport": "Gerar Relatório",
+      "history": "Histórico",
+      "goals": "Metas",
+      "calculators": "Calculadoras",
+      "fire": "FIRE",
+      "compoundInterest": "Juros Compostos",
+      "usufruct": "Usufruto",
+      "itcmd": "ITCMD",
+      "profitability": "Rentabilidade",
+      "clients": "Clientes",
+      "pipeline": "Pipeline",
+      "sendInvitations": "Enviar Convites",
+      "simulator": "Simulador",
+      "users": "Usuários",
+      "financial": "Financeiro",
+      "integrations": "Integrações",
+      "comments": "Comentários",
+      "prospecting": "Prospecção",
+      "paymentHistory": "Histórico de Pagamentos",
+      "loginHistory": "Histórico de Login"
+    }
+  },
+  "bottomNav": {
+    "home": "Início",
+    "accounts": "Contas",
+    "cards": "Cartões",
+    "invest": "Investir",
+    "more": "Mais"
+  }
+}

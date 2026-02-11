@@ -1,0 +1,11 @@
+{
+  "title": "Dashboard",
+  "subtitle": "Consolidated view of your financial life",
+  "lastSync": "Last sync: just now",
+  "netWorth": "Net Worth",
+  "totalCash": "Total Cash",
+  "investments": "Investments",
+  "transactions": "Transactions",
+  "available": "available",
+  "inPortfolio": "in portfolio"
+}

@@ -1,0 +1,50 @@
+{
+  "title": "Metas",
+  "subtitle": "Defina e acompanhe suas metas financeiras",
+  "newGoal": "Nova meta",
+  "errorLoading": "Erro ao carregar metas",
+  "noGoals": "Nenhuma meta",
+  "noGoalsDesc": "Crie uma meta para acompanhar seus objetivos financeiros.",
+  "createFirst": "Criar primeira meta",
+  "editGoal": "Editar meta",
+  "deleteGoal": "Excluir meta",
+  "deadline": "Prazo: {{date}}",
+  "dialog": {
+    "createTitle": "Nova meta",
+    "editTitle": "Editar meta",
+    "name": "Nome",
+    "namePlaceholder": "Ex: Reserva de emergência",
+    "nameRequired": "Nome obrigatório",
+    "targetValue": "Valor alvo (R$)",
+    "targetHint": "Valor que você quer atingir",
+    "currentValue": "Valor atual (R$)",
+    "currentHint": "Quanto você já tem guardado",
+    "deadlineLabel": "Prazo (opcional)",
+    "category": "Categoria (opcional)",
+    "categoryPlaceholder": "Selecione ou deixe em branco",
+    "categoryNone": "Nenhuma",
+    "save": "Salvar",
+    "create": "Criar"
+  },
+  "deleteDialog": {
+    "title": "Excluir meta?",
+    "description": "Esta ação não pode ser desfeita."
+  },
+  "toast": {
+    "created": "Meta criada",
+    "updated": "Meta atualizada",
+    "deleted": "Meta removida",
+    "createError": "Erro ao criar meta",
+    "updateError": "Erro ao atualizar meta",
+    "deleteError": "Erro ao remover meta"
+  },
+  "categories": {
+    "general": "Geral",
+    "emergency": "Emergência",
+    "car": "Carro",
+    "travel": "Viagem",
+    "house": "Casa",
+    "education": "Educação",
+    "other": "Outros"
+  }
+}

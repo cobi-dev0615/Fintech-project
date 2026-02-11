@@ -1,0 +1,19 @@
+{
+  "title": "Transaction History",
+  "subtitle": "Transactions synced via Open Finance",
+  "syncSuccess": "Transactions updated via Open Finance.",
+  "errorLoading": "Error loading transactions.",
+  "chartTitle": "Transactions",
+  "transactionCount_one": "{{count}} transaction",
+  "transactionCount_other": "{{count}} transactions",
+  "loadingTransactions": "Loading transactions...",
+  "noTransactions": "No transactions found",
+  "noTransactionsDesc": "Adjust filters or connect accounts in Connections → Open Finance and click Sync.",
+  "period": "Period",
+  "days7": "7 days",
+  "days30": "30 days",
+  "days90": "90 days",
+  "dateFrom": "From",
+  "dateTo": "to",
+  "transaction": "Transaction"
+}

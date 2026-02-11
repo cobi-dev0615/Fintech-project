@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, Menu, UserCircle, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NotificationDropdown from "@/components/notifications/NotificationDropdown";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 import { useAuth } from "@/hooks/useAuth";
 
 interface TopBarProps {
@@ -23,6 +25,7 @@ interface TopBarProps {
 const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: TopBarProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('layout');
 
   // Get abbreviated name (First name or First + Last Initial)
   const getAbbreviatedName = () => {
@@ -80,7 +83,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Buscar transações, contas..."
+            placeholder={t('topbar.searchPlaceholder')}
             className="border-0 bg-transparent h-auto p-0 focus-visible:ring-0 w-64 text-foreground placeholder:text-muted-foreground"
           />
         </div>
@@ -88,6 +91,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
       </div>
       
       <div className="flex items-center gap-3">
+        <LanguageSwitcher />
         <NotificationDropdown />
         {user && (
           <DropdownMenu>
@@ -95,7 +99,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
               <button
                 type="button"
                 className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-lg border border-border bg-transparent text-foreground hover:bg-muted/80 hover:border-muted-foreground/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                aria-label="Abrir menu da conta"
+                aria-label={t('topbar.openAccountMenu')}
               >
                 <Avatar className="h-7 w-7 rounded-full border border-border">
                   <AvatarImage src={undefined} alt="" />
@@ -104,7 +108,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium text-foreground hidden sm:inline max-w-[120px] truncate">
-                  {getAbbreviatedName() || 'Conta'}
+                  {getAbbreviatedName() || t('topbar.accountFallback')}
                 </span>
               </button>
             </DropdownMenuTrigger>
@@ -116,12 +120,12 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => navigate(getSettingsPath())}>
                 <UserCircle className="h-4 w-4 mr-2" />
-                Meu Perfil
+                {t('topbar.myProfile')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                 <LogOut className="h-4 w-4 mr-2" />
-                Sair
+                {t('topbar.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

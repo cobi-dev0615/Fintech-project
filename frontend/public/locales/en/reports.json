@@ -1,0 +1,68 @@
+{
+  "title": "Reports",
+  "subtitle": "Generate and download detailed financial reports",
+  "viewHistory": "View history",
+  "generateNew": "Generate new report",
+  "reportTypes": {
+    "portfolio": "Client Portfolio",
+    "portfolioDesc": "All assets obtained via Open Finance",
+    "investment": "Investment Report",
+    "investmentDesc": "Investment analysis and portfolio composition",
+    "transaction": "Transaction Report",
+    "transactionDesc": "Transaction history by period"
+  },
+  "generateForm": {
+    "title": "Generate New Report",
+    "subtitle": "Choose the type above and the period, then generate the PDF",
+    "reportType": "Report Type",
+    "selectType": "Select type",
+    "period": "Period",
+    "selectPeriod": "Select period (optional)",
+    "currentMonth": "Current Month",
+    "lastMonth": "Last Month",
+    "last3Months": "Last 3 Months",
+    "last6Months": "Last 6 Months",
+    "lastYear": "Last Year",
+    "custom": "Custom",
+    "generating": "Generating PDF...",
+    "generate": "Generate PDF Report",
+    "selectReportType": "Select a report type",
+    "viewInHistory": "View in history"
+  },
+  "history": {
+    "title": "Report History",
+    "subtitle": "Generated reports available for download",
+    "generatedReports": "Generated Reports",
+    "reportCount_one": "{{count}} report",
+    "reportCount_other": "{{count}} reports",
+    "filterByType": "Filter by type",
+    "noReports": "No reports generated yet",
+    "noReportsDesc": "Generate your first report on the Reports page and it will appear here.",
+    "goToReports": "Go to Reports",
+    "noFilterResults": "No reports found for the selected filter.",
+    "generatedAt": "Generated on {{date}}",
+    "downloadPdf": "Download PDF",
+    "removeReport": "Remove report",
+    "deleteTitle": "Delete report?",
+    "deleteDescription": "This report will be permanently removed from the server and cannot be recovered.",
+    "deleting": "Removing...",
+    "downloadStarted": "Download started",
+    "downloadDesc": "The PDF is being downloaded.",
+    "downloadError": "Could not download the report.",
+    "reportRemoved": "Report removed",
+    "reportRemovedDesc": "The report has been deleted.",
+    "removeError": "Could not remove the report.",
+    "typeLabels": {
+      "consolidated": "Consolidated Report",
+      "transactions": "Transaction Statement",
+      "portfolio_analysis": "Investment Evolution",
+      "monthly": "Monthly Report"
+    },
+    "perPage": "Per page",
+    "tableHeaders": {
+      "type": "Type",
+      "date": "Date",
+      "actions": "Actions"
+    }
+  }
+}

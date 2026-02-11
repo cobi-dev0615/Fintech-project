@@ -1,0 +1,67 @@
+{
+  "topbar": {
+    "searchPlaceholder": "Search transactions, accounts...",
+    "openAccountMenu": "Open account menu",
+    "accountFallback": "Account",
+    "myProfile": "My Profile",
+    "logout": "Log Out"
+  },
+  "sidebar": {
+    "expandMenu": "Expand menu",
+    "collapseMenu": "Collapse menu",
+    "comingSoon": "Coming soon",
+    "clickToSeeOptions": "Click to see options",
+    "sections": {
+      "principal": "Main",
+      "financeiro": "Financial",
+      "relatorios": "Reports",
+      "ferramentas": "Tools",
+      "clientes": "Clients",
+      "gestao": "Management",
+      "sistema": "System"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "notifications": "Notifications",
+      "invitations": "Invitations",
+      "messages": "Messages",
+      "plans": "Plans",
+      "assets": "Assets",
+      "connections": "Connections",
+      "openFinance": "Open Finance",
+      "b3": "B3",
+      "accounts": "Accounts",
+      "transactions": "Transactions",
+      "cards": "Cards",
+      "investments": "Investments",
+      "reports": "Reports",
+      "generateReport": "Generate Report",
+      "history": "History",
+      "goals": "Goals",
+      "calculators": "Calculators",
+      "fire": "FIRE",
+      "compoundInterest": "Compound Interest",
+      "usufruct": "Usufruct",
+      "itcmd": "ITCMD",
+      "profitability": "Profitability",
+      "clients": "Clients",
+      "pipeline": "Pipeline",
+      "sendInvitations": "Send Invitations",
+      "simulator": "Simulator",
+      "users": "Users",
+      "financial": "Financial",
+      "integrations": "Integrations",
+      "comments": "Comments",
+      "prospecting": "Prospecting",
+      "paymentHistory": "Payment History",
+      "loginHistory": "Login History"
+    }
+  },
+  "bottomNav": {
+    "home": "Home",
+    "accounts": "Accounts",
+    "cards": "Cards",
+    "invest": "Invest",
+    "more": "More"
+  }
+}

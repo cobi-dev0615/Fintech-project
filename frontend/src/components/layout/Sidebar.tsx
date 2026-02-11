@@ -45,6 +45,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -69,105 +70,111 @@ interface NavSubItem {
 interface NavItem {
   icon: any;
   label: string;
+  id?: string; // Stable identifier for expand tracking (used instead of label which changes with i18n)
   href?: string; // Optional if it has subitems
   enabled?: boolean; // Whether this menu item is enabled/active
   subItems?: NavSubItem[]; // Submenu items
   section?: string; // Optional section label for grouping (shown when sidebar expanded)
 }
 
-// Customer navigation items - all enabled, with sections for clearer hierarchy
-const customerNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/app/dashboard", enabled: true, section: "Principal" },
-  { icon: Bell, label: "Notificações", href: "/app/notifications", enabled: true, section: "Principal" },
-  { icon: UserPlus, label: "Convites", href: "/app/invitations", enabled: true, section: "Principal" },
-  { icon: MessageSquare, label: "Mensagens", href: "/app/messages", enabled: true, section: "Principal" },
-  { icon: Package, label: "Planos", href: "/app/plans", enabled: true, section: "Principal" },
-  { icon: PieChart, label: "Ativos", href: "/app/assets", enabled: true, section: "Financeiro" },
-  {
-    icon: Link2,
-    label: "Conexões",
-    enabled: true,
-    section: "Financeiro",
-    subItems: [
-      { label: "Open Finance", href: "/app/connections/open-finance", enabled: true, icon: Globe },
-      { label: "B3", href: "/app/connections/b3", enabled: true, icon: BarChart2 },
-    ],
-  },
-  { icon: Wallet, label: "Contas", href: "/app/accounts", enabled: true, section: "Financeiro" },
-  { icon: Receipt, label: "Transações", href: "/app/transactions", enabled: true, section: "Financeiro" },
-  { icon: CreditCard, label: "Cartões", href: "/app/cards", enabled: true, section: "Financeiro" },
-  { icon: TrendingUp, label: "Investimentos", href: "/app/investments", enabled: true, section: "Financeiro" },
-  {
-    icon: FileText,
-    label: "Relatórios",
-    enabled: true,
-    section: "Relatórios",
-    subItems: [
-      { label: "Gerar Relatório", href: "/app/reports", enabled: true, icon: FilePlus },
-      { label: "Histórico", href: "/app/reports/history", enabled: true, icon: History },
-    ],
-  },
-  { icon: Target, label: "Metas", href: "/app/goals", enabled: true, section: "Relatórios" },
-  {
-    icon: Calculator,
-    label: "Calculadoras",
-    enabled: true,
-    section: "Ferramentas",
-    subItems: [
-      { label: "FIRE", href: "/app/calculators/fire", enabled: true, icon: TrendingUp },
-      { label: "Juros Compostos", href: "/app/calculators/compound", enabled: true, icon: Calculator },
-      { label: "Usufruto", href: "/app/calculators/usufruct", enabled: true, icon: Home },
-      { label: "ITCMD", href: "/app/calculators/itcmd", enabled: true, icon: Coins },
-      { label: "Rentabilidade", href: "/app/calculators/profitability", enabled: true, icon: Percent },
-    ],
-  },
-];
-
-// Consultant navigation items - all enabled
-const consultantNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/consultant/dashboard", enabled: true, section: "Principal" },
-  { icon: Bell, label: "Notificações", href: "/consultant/notifications", enabled: true, section: "Principal" },
-  { icon: Package, label: "Planos", href: "/consultant/plans", enabled: true, section: "Principal" },
-  { icon: Users, label: "Clientes", href: "/consultant/clients", enabled: true, section: "Clientes" },
-  { icon: GitBranch, label: "Pipeline", href: "/consultant/pipeline", enabled: true, section: "Clientes" },
-  { icon: UserPlus, label: "Enviar Convites", href: "/consultant/invitations", enabled: true, section: "Clientes" },
-  { icon: MessageSquare, label: "Mensagens", href: "/consultant/messages", enabled: true, section: "Clientes" },
-  { icon: FileText, label: "Relatórios", href: "/consultant/reports", enabled: true, section: "Relatórios" },
-  {
-    icon: Calculator,
-    label: "Calculadoras",
-    enabled: true,
-    section: "Ferramentas",
-    subItems: [
-      { label: "FIRE", href: "/consultant/calculators/fire", enabled: true, icon: TrendingUp },
-      { label: "Juros Compostos", href: "/consultant/calculators/compound", enabled: true, icon: Calculator },
-      { label: "Usufruto", href: "/consultant/calculators/usufruct", enabled: true, icon: Home },
-      { label: "ITCMD", href: "/consultant/calculators/itcmd", enabled: true, icon: Coins },
-      { label: "Rentabilidade", href: "/consultant/calculators/profitability", enabled: true, icon: Percent },
-    ],
-  },
-  { icon: TrendingUp, label: "Simulador", href: "/consultant/simulator", enabled: true, section: "Ferramentas" },
-];
-
-// Admin navigation items - all enabled
-const adminNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard", enabled: true, section: "Principal" },
-  { icon: Bell, label: "Notificações", href: "/admin/notifications", enabled: true, section: "Principal" },
-  { icon: Shield, label: "Usuários", href: "/admin/users", enabled: true, section: "Gestão" },
-  { icon: Package, label: "Planos", href: "/admin/plans", enabled: true, section: "Gestão" },
-  { icon: DollarSign, label: "Financeiro", href: "/admin/financial", enabled: true, section: "Gestão" },
-  { icon: Activity, label: "Integrações", href: "/admin/integrations", enabled: true, section: "Sistema" },
-  { icon: MessageSquare, label: "Comentários", href: "/admin/comments", enabled: true, section: "Sistema" },
-  { icon: Search, label: "Prospecção", href: "/admin/prospecting", enabled: true, section: "Sistema" },
-  { icon: Receipt, label: "Histórico de Pagamentos", href: "/admin/payments", enabled: true, section: "Sistema" },
-  { icon: Clock, label: "Histórico de Login", href: "/admin/login-history", enabled: true, section: "Sistema" },
-];
-
 const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOpenChange }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const { t } = useTranslation('layout');
+
+  // Customer navigation items - all enabled, with sections for clearer hierarchy
+  const customerNavItems: NavItem[] = [
+    { icon: LayoutDashboard, label: t('sidebar.nav.dashboard'), href: "/app/dashboard", enabled: true, section: t('sidebar.sections.principal') },
+    { icon: Bell, label: t('sidebar.nav.notifications'), href: "/app/notifications", enabled: true, section: t('sidebar.sections.principal') },
+    { icon: UserPlus, label: t('sidebar.nav.invitations'), href: "/app/invitations", enabled: true, section: t('sidebar.sections.principal') },
+    { icon: MessageSquare, label: t('sidebar.nav.messages'), href: "/app/messages", enabled: true, section: t('sidebar.sections.principal') },
+    { icon: Package, label: t('sidebar.nav.plans'), href: "/app/plans", enabled: true, section: t('sidebar.sections.principal') },
+    { icon: PieChart, label: t('sidebar.nav.assets'), href: "/app/assets", enabled: true, section: t('sidebar.sections.financeiro') },
+    {
+      icon: Link2,
+      label: t('sidebar.nav.connections'),
+      id: "connections",
+      enabled: true,
+      section: t('sidebar.sections.financeiro'),
+      subItems: [
+        { label: t('sidebar.nav.openFinance'), href: "/app/connections/open-finance", enabled: true, icon: Globe },
+        { label: t('sidebar.nav.b3'), href: "/app/connections/b3", enabled: true, icon: BarChart2 },
+      ],
+    },
+    { icon: Wallet, label: t('sidebar.nav.accounts'), href: "/app/accounts", enabled: true, section: t('sidebar.sections.financeiro') },
+    { icon: Receipt, label: t('sidebar.nav.transactions'), href: "/app/transactions", enabled: true, section: t('sidebar.sections.financeiro') },
+    { icon: CreditCard, label: t('sidebar.nav.cards'), href: "/app/cards", enabled: true, section: t('sidebar.sections.financeiro') },
+    { icon: TrendingUp, label: t('sidebar.nav.investments'), href: "/app/investments", enabled: true, section: t('sidebar.sections.financeiro') },
+    {
+      icon: FileText,
+      label: t('sidebar.nav.reports'),
+      id: "reports",
+      enabled: true,
+      section: t('sidebar.sections.relatorios'),
+      subItems: [
+        { label: t('sidebar.nav.generateReport'), href: "/app/reports", enabled: true, icon: FilePlus },
+        { label: t('sidebar.nav.history'), href: "/app/reports/history", enabled: true, icon: History },
+      ],
+    },
+    { icon: Target, label: t('sidebar.nav.goals'), href: "/app/goals", enabled: true, section: t('sidebar.sections.relatorios') },
+    {
+      icon: Calculator,
+      label: t('sidebar.nav.calculators'),
+      id: "calculators",
+      enabled: true,
+      section: t('sidebar.sections.ferramentas'),
+      subItems: [
+        { label: t('sidebar.nav.fire'), href: "/app/calculators/fire", enabled: true, icon: TrendingUp },
+        { label: t('sidebar.nav.compoundInterest'), href: "/app/calculators/compound", enabled: true, icon: Calculator },
+        { label: t('sidebar.nav.usufruct'), href: "/app/calculators/usufruct", enabled: true, icon: Home },
+        { label: t('sidebar.nav.itcmd'), href: "/app/calculators/itcmd", enabled: true, icon: Coins },
+        { label: t('sidebar.nav.profitability'), href: "/app/calculators/profitability", enabled: true, icon: Percent },
+      ],
+    },
+  ];
+
+  // Consultant navigation items - all enabled
+  const consultantNavItems: NavItem[] = [
+    { icon: LayoutDashboard, label: t('sidebar.nav.dashboard'), href: "/consultant/dashboard", enabled: true, section: t('sidebar.sections.principal') },
+    { icon: Bell, label: t('sidebar.nav.notifications'), href: "/consultant/notifications", enabled: true, section: t('sidebar.sections.principal') },
+    { icon: Package, label: t('sidebar.nav.plans'), href: "/consultant/plans", enabled: true, section: t('sidebar.sections.principal') },
+    { icon: Users, label: t('sidebar.nav.clients'), href: "/consultant/clients", enabled: true, section: t('sidebar.sections.clientes') },
+    { icon: GitBranch, label: t('sidebar.nav.pipeline'), href: "/consultant/pipeline", enabled: true, section: t('sidebar.sections.clientes') },
+    { icon: UserPlus, label: t('sidebar.nav.sendInvitations'), href: "/consultant/invitations", enabled: true, section: t('sidebar.sections.clientes') },
+    { icon: MessageSquare, label: t('sidebar.nav.messages'), href: "/consultant/messages", enabled: true, section: t('sidebar.sections.clientes') },
+    { icon: FileText, label: t('sidebar.nav.reports'), href: "/consultant/reports", enabled: true, section: t('sidebar.sections.relatorios') },
+    {
+      icon: Calculator,
+      label: t('sidebar.nav.calculators'),
+      id: "calculators",
+      enabled: true,
+      section: t('sidebar.sections.ferramentas'),
+      subItems: [
+        { label: t('sidebar.nav.fire'), href: "/consultant/calculators/fire", enabled: true, icon: TrendingUp },
+        { label: t('sidebar.nav.compoundInterest'), href: "/consultant/calculators/compound", enabled: true, icon: Calculator },
+        { label: t('sidebar.nav.usufruct'), href: "/consultant/calculators/usufruct", enabled: true, icon: Home },
+        { label: t('sidebar.nav.itcmd'), href: "/consultant/calculators/itcmd", enabled: true, icon: Coins },
+        { label: t('sidebar.nav.profitability'), href: "/consultant/calculators/profitability", enabled: true, icon: Percent },
+      ],
+    },
+    { icon: TrendingUp, label: t('sidebar.nav.simulator'), href: "/consultant/simulator", enabled: true, section: t('sidebar.sections.ferramentas') },
+  ];
+
+  // Admin navigation items - all enabled
+  const adminNavItems: NavItem[] = [
+    { icon: LayoutDashboard, label: t('sidebar.nav.dashboard'), href: "/admin/dashboard", enabled: true, section: t('sidebar.sections.principal') },
+    { icon: Bell, label: t('sidebar.nav.notifications'), href: "/admin/notifications", enabled: true, section: t('sidebar.sections.principal') },
+    { icon: Shield, label: t('sidebar.nav.users'), href: "/admin/users", enabled: true, section: t('sidebar.sections.gestao') },
+    { icon: Package, label: t('sidebar.nav.plans'), href: "/admin/plans", enabled: true, section: t('sidebar.sections.gestao') },
+    { icon: DollarSign, label: t('sidebar.nav.financial'), href: "/admin/financial", enabled: true, section: t('sidebar.sections.gestao') },
+    { icon: Activity, label: t('sidebar.nav.integrations'), href: "/admin/integrations", enabled: true, section: t('sidebar.sections.sistema') },
+    { icon: MessageSquare, label: t('sidebar.nav.comments'), href: "/admin/comments", enabled: true, section: t('sidebar.sections.sistema') },
+    { icon: Search, label: t('sidebar.nav.prospecting'), href: "/admin/prospecting", enabled: true, section: t('sidebar.sections.sistema') },
+    { icon: Receipt, label: t('sidebar.nav.paymentHistory'), href: "/admin/payments", enabled: true, section: t('sidebar.sections.sistema') },
+    { icon: Clock, label: t('sidebar.nav.loginHistory'), href: "/admin/login-history", enabled: true, section: t('sidebar.sections.sistema') },
+  ];
 
   // Get navigation items based on user role
   const getNavItems = () => {
@@ -207,13 +214,13 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
   };
 
   // Toggle expanded state for items with submenus
-  const toggleExpanded = (label: string) => {
+  const toggleExpanded = (key: string) => {
     setExpandedItems(prev => {
       const next = new Set(prev);
-      if (next.has(label)) {
-        next.delete(label);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(label);
+        next.add(key);
       }
       return next;
     });
@@ -223,7 +230,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
   useEffect(() => {
     navItems.forEach(item => {
       if (item.subItems && isSubItemActive(item.subItems)) {
-        setExpandedItems(prev => new Set(prev).add(item.label));
+        setExpandedItems(prev => new Set(prev).add(item.id || item.label));
       }
     });
   }, [location.pathname, navItems]);
@@ -258,7 +265,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
               "h-8 w-8 shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors",
               !showLabels && "absolute right-1 top-1/2 -translate-y-1/2"
             )}
-            aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+            aria-label={collapsed ? t('sidebar.expandMenu') : t('sidebar.collapseMenu')}
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
@@ -272,7 +279,8 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
           const showSectionLabel = showLabels && item.section && (index === 0 || navItems[index - 1]?.section !== item.section);
           const isEnabled = item.enabled !== false; // Default to true if not specified
           const hasSubItems = item.subItems && item.subItems.length > 0;
-          const isExpanded = expandedItems.has(item.label);
+          const itemKey = item.id || item.label;
+          const isExpanded = expandedItems.has(itemKey);
           const isSubActive = isSubItemActive(item.subItems);
           const isActive = item.href ? location.pathname === item.href : isSubActive;
           
@@ -292,7 +300,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
                     "flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-not-allowed opacity-50",
                     showLabels ? "px-3" : "px-2 justify-center"
                   )}
-                  title="Funcionalidade em breve"
+                  title={t('sidebar.comingSoon')}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
                   {showLabels && <span>{item.label}</span>}
@@ -313,7 +321,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
                         ? "bg-sidebar-accent text-sidebar-primary border border-sidebar-primary/30"
                         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     )}
-                    title={`${item.label} — Clique para ver opções`}
+                    title={`${item.label} — ${t('sidebar.clickToSeeOptions')}`}
                     aria-label={`${item.label}, submenu`}
                   >
                     <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-sidebar-primary")} />
@@ -360,7 +368,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
             return (
               <div key={item.label}>
                 <button
-                  onClick={() => toggleExpanded(item.label)}
+                  onClick={() => toggleExpanded(itemKey)}
                   className={cn(
                     "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                     isActive

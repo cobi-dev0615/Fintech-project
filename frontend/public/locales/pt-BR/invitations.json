@@ -1,0 +1,80 @@
+{
+  "title": "Convites de Consultores",
+  "subtitle": "Gerencie seus convites de consultores financeiros",
+  "consultantsSection": {
+    "title": "Consultor(es) que te convidaram",
+    "noConsultant": "Nenhum consultor te convidou ainda",
+    "whenConsultant": "Quando um consultor financeiro enviar um convite para você, ele aparecerá aqui.",
+    "awaitingResponse": "Aguardando sua resposta",
+    "connected": "Conectado",
+    "shareWallet": "Compartilhar carteira",
+    "disconnect": "Desconectar"
+  },
+  "referral": {
+    "title": "Convidar amigos",
+    "subtitle": "Compartilhe seu link e ganhe 20% de desconto na assinatura mensal ao convidar 10+ pessoas",
+    "copyLink": "Copiar link",
+    "linkCopied": "Link copiado!",
+    "linkCopiedDesc": "O link de convite foi copiado para a área de transferência.",
+    "discountEarned": "Você tem direito a 20% de desconto na assinatura mensal!",
+    "progressText": "<strong>{{count}}</strong> de {{total}} convites — faltam <strong>{{remaining}}</strong> para o desconto",
+    "invitedPeople": "Pessoas que você convidou ({{count}})",
+    "noInvitedYet": "Nenhuma pessoa convidada ainda",
+    "noInvitedDesc": "Compartilhe seu link acima para convidar amigos. Ao atingir 10 cadastros, você ganha 20% de desconto.",
+    "statusRegistered": "Cadastrado",
+    "statusPendingApproval": "Aguardando aprovação",
+    "statusInactive": "Inativo"
+  },
+  "expiredAlert": "Você tem convites expirados. Eles serão removidos automaticamente.",
+  "pendingSection": {
+    "title": "Convites Pendentes",
+    "subtitle_one": "{{count}} convite aguardando resposta",
+    "subtitle_other": "{{count}} convite(s) aguardando resposta",
+    "errorLoading": "Erro ao carregar convites",
+    "noPending": "Nenhum convite pendente",
+    "noPendingDesc": "Quando um consultor enviar um convite, ele aparecerá aqui para você aceitar ou recusar.",
+    "tableHeaders": {
+      "consultant": "Consultor",
+      "email": "E-mail",
+      "sentAt": "Enviado em",
+      "statusExpires": "Status / Expira",
+      "actions": "Ações"
+    },
+    "expired": "Expirado",
+    "expiresIn": "Expira {{time}}",
+    "decline": "Recusar",
+    "accept": "Aceitar"
+  },
+  "aboutSection": {
+    "title": "Sobre Convites",
+    "whatAre": "O que são convites?",
+    "whatAreDesc": "Consultores financeiros podem convidá-lo para conectar-se na plataforma. Ao aceitar, eles terão acesso aos seus dados financeiros para fornecer orientação personalizada.",
+    "validity": "Validade",
+    "validityDesc": "Os convites expiram após 15 dias. Certifique-se de responder antes do prazo.",
+    "privacy": "Privacidade",
+    "privacyDesc": "Você pode revogar o acesso de um consultor a qualquer momento nas configurações."
+  },
+  "dialogs": {
+    "declineTitle": "Recusar convite?",
+    "declineDesc": "Tem certeza que deseja recusar o convite de <strong>{{name}}</strong>? Esta ação não pode ser desfeita.",
+    "disconnectTitle": "Desconectar do consultor?",
+    "disconnectDesc": "Tem certeza que deseja desconectar de <strong>{{name}}</strong>? O consultor não poderá mais acessar suas informações.",
+    "disconnecting": "Desconectando..."
+  },
+  "toast": {
+    "accepted": "Convite aceito",
+    "acceptedDesc": "Você agora está conectado com {{name}}",
+    "acceptError": "Erro ao aceitar convite",
+    "declined": "Convite recusado",
+    "declinedDesc": "O convite foi removido",
+    "declineError": "Erro ao recusar convite",
+    "disconnected": "Desconectado",
+    "disconnectedDesc": "Você foi desconectado do consultor.",
+    "disconnectError": "Erro ao desconectar",
+    "walletShared": "Carteira compartilhada",
+    "walletUnshared": "Compartilhamento desativado",
+    "walletSharedDesc": "O consultor pode ver suas informações de carteira.",
+    "walletUnsharedDesc": "O consultor não pode mais ver suas informações de carteira.",
+    "walletError": "Erro ao atualizar permissão"
+  }
+}

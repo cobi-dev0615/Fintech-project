@@ -1,0 +1,29 @@
+{
+  "openFinance": {
+    "title": "Open Finance",
+    "subtitle": "Connect banks and brokers to sync accounts and transactions",
+    "connect": "Connect",
+    "connecting": "Connecting...",
+    "syncSuccess": "Data synced successfully.",
+    "chartTitle": "Connected banks and brokers",
+    "institutionCount_one": "{{count}} institution",
+    "institutionCount_other": "{{count}} institutions",
+    "noInstitutions": "No institutions connected",
+    "noInstitutionsDesc": "Click Connect to link your bank or broker and sync accounts and transactions.",
+    "connectInstitution": "Connect institution",
+    "lastSync": "Last sync: {{date}}",
+    "noAccountsSynced": "No accounts synced for this institution. Use Sync to update.",
+    "connectionCreated": "Connection created successfully. Data is being synced...",
+    "connectionError": "Error saving connection",
+    "connectError": "Error connecting. Please try again.",
+    "widgetError": "Pluggy widget not loaded. Please refresh the page.",
+    "invalidToken": "Invalid connection token.",
+    "errorLoading": "Error loading connections"
+  },
+  "b3": {
+    "title": "B3",
+    "subtitle": "Connect your B3 account to view your investments",
+    "comingSoon": "B3 integration coming soon",
+    "comingSoonDesc": "This feature will be available soon"
+  }
+}

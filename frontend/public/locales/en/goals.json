@@ -1,0 +1,50 @@
+{
+  "title": "Goals",
+  "subtitle": "Set and track your financial goals",
+  "newGoal": "New goal",
+  "errorLoading": "Error loading goals",
+  "noGoals": "No goals",
+  "noGoalsDesc": "Create a goal to track your financial objectives.",
+  "createFirst": "Create first goal",
+  "editGoal": "Edit goal",
+  "deleteGoal": "Delete goal",
+  "deadline": "Deadline: {{date}}",
+  "dialog": {
+    "createTitle": "New goal",
+    "editTitle": "Edit goal",
+    "name": "Name",
+    "namePlaceholder": "E.g.: Emergency fund",
+    "nameRequired": "Name is required",
+    "targetValue": "Target value (R$)",
+    "targetHint": "Amount you want to reach",
+    "currentValue": "Current value (R$)",
+    "currentHint": "How much you already have saved",
+    "deadlineLabel": "Deadline (optional)",
+    "category": "Category (optional)",
+    "categoryPlaceholder": "Select or leave blank",
+    "categoryNone": "None",
+    "save": "Save",
+    "create": "Create"
+  },
+  "deleteDialog": {
+    "title": "Delete goal?",
+    "description": "This action cannot be undone."
+  },
+  "toast": {
+    "created": "Goal created",
+    "updated": "Goal updated",
+    "deleted": "Goal removed",
+    "createError": "Error creating goal",
+    "updateError": "Error updating goal",
+    "deleteError": "Error removing goal"
+  },
+  "categories": {
+    "general": "General",
+    "emergency": "Emergency",
+    "car": "Car",
+    "travel": "Travel",
+    "house": "House",
+    "education": "Education",
+    "other": "Other"
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "title": "My Profile",
+  "subtitle": "Manage your preferences and personal information",
+  "tabs": {
+    "profile": "Profile",
+    "notifications": "Notifications",
+    "password": "Password",
+    "history": "Plan History",
+    "comments": "Comments"
+  },
+  "ariaLabel": "Profile sections",
+  "profile": {
+    "title": "Personal Information",
+    "fullName": "Full Name",
+    "namePlaceholder": "Your name",
+    "email": "Email",
+    "emailHint": "Email changes can be made through support.",
+    "phone": "Phone",
+    "phonePlaceholder": "+55 (XX) XXXXX-XXXX",
+    "phoneError": "Please enter a valid Brazilian phone number",
+    "birthDate": "Date of Birth",
+    "riskProfile": "Risk Profile",
+    "riskProfilePlaceholder": "Select your profile",
+    "riskProfileHint": "Used for investment suggestions.",
+    "riskOptions": {
+      "none": "Not specified",
+      "conservative": "Conservative",
+      "moderate": "Moderate",
+      "aggressive": "Aggressive"
+    },
+    "saving": "Saving...",
+    "saveProfile": "Save Profile",
+    "saveSuccess": "Profile updated successfully",
+    "saveError": "Error updating profile"
+  },
+  "notifications": {
+    "title": "Notification Preferences",
+    "labels": {
+      "emailNotifications": "Email notifications",
+      "transactionAlerts": "Transaction alerts",
+      "goalReminders": "Goal reminders",
+      "weeklySummary": "Weekly summary",
+      "marketingEmails": "Marketing emails"
+    },
+    "saving": "Saving...",
+    "saveNotifications": "Save Notifications",
+    "saveSuccess": "Notifications updated",
+    "saveError": "Error updating notifications"
+  },
+  "password": {
+    "title": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "newPasswordHint": "Minimum 8 characters.",
+    "confirmPassword": "Confirm New Password",
+    "fillAllFields": "Please fill in all fields",
+    "passwordsMismatch": "Passwords do not match",
+    "changing": "Changing...",
+    "changePassword": "Change Password",
+    "changeSuccess": "Password changed successfully",
+    "changeError": "Error changing password"
+  },
+  "history": {
+    "title": "Purchase History",
+    "noPurchases": "No purchases found",
+    "noPurchasesDesc": "Your plan subscriptions will appear here.",
+    "tableHeaders": {
+      "plan": "Plan",
+      "price": "Price",
+      "date": "Date",
+      "status": "Status"
+    }
+  },
+  "comments": {
+    "title": "Comments & Feedback",
+    "refresh": "Refresh",
+    "newComment": "New Comment",
+    "noComments": "No comments submitted",
+    "noCommentsDesc": "Submit questions or suggestions using the button above.",
+    "createDialog": {
+      "title": "New Comment",
+      "description": "Submit your question, suggestion or feedback to our team.",
+      "titleLabel": "Title",
+      "titlePlaceholder": "E.g.: Question about plan",
+      "contentLabel": "Content",
+      "contentPlaceholder": "Type your message here...",
+      "sending": "Sending...",
+      "send": "Submit Comment"
+    },
+    "sendSuccess": "Comment sent to administrator",
+    "sendError": "Error sending comment",
+    "deleteConfirm": "Are you sure you want to delete this comment?",
+    "deleteSuccess": "Comment deleted",
+    "deleteError": "Error deleting comment",
+    "tableHeaders": {
+      "number": "No",
+      "title": "Title",
+      "content": "Content",
+      "status": "Status",
+      "process": "Process",
+      "createdAt": "Created at",
+      "processedAt": "Processed at",
+      "actions": "Actions"
+    },
+    "noTitle": "No title",
+    "statusReplied": "Replied",
+    "statusPending": "Pending",
+    "processFinished": "Finished",
+    "processAnalysis": "Under review",
+    "detail": {
+      "title": "Comment Details",
+      "yourMessage": "Your Message",
+      "sentAt": "Sent at:",
+      "adminReply": "Administrator Reply",
+      "repliedAt": "Replied at:",
+      "waitingReply": "Waiting for a reply from our team..."
+    }
+  }
+}

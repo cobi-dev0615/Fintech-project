@@ -1,0 +1,68 @@
+{
+  "title": "Relatórios",
+  "subtitle": "Gere e baixe relatórios financeiros detalhados",
+  "viewHistory": "Ver histórico",
+  "generateNew": "Gerar novo relatório",
+  "reportTypes": {
+    "portfolio": "Portfólio do Cliente",
+    "portfolioDesc": "Todos os ativos obtidos via open finance",
+    "investment": "Relatório de Investimentos",
+    "investmentDesc": "Análise de investimentos e composição da carteira",
+    "transaction": "Relatório de Transações",
+    "transactionDesc": "Histórico de transações por período"
+  },
+  "generateForm": {
+    "title": "Gerar Novo Relatório",
+    "subtitle": "Escolha o tipo acima e o período, depois gere o PDF",
+    "reportType": "Tipo de Relatório",
+    "selectType": "Selecione o tipo",
+    "period": "Período",
+    "selectPeriod": "Selecione o período (opcional)",
+    "currentMonth": "Mês Atual",
+    "lastMonth": "Mês Anterior",
+    "last3Months": "Últimos 3 Meses",
+    "last6Months": "Últimos 6 Meses",
+    "lastYear": "Último Ano",
+    "custom": "Personalizado",
+    "generating": "Gerando PDF…",
+    "generate": "Gerar Relatório PDF",
+    "selectReportType": "Selecione um tipo de relatório",
+    "viewInHistory": "Ver no histórico"
+  },
+  "history": {
+    "title": "Histórico de Relatórios",
+    "subtitle": "Relatórios gerados e disponíveis para download",
+    "generatedReports": "Relatórios Gerados",
+    "reportCount_one": "{{count}} relatório",
+    "reportCount_other": "{{count}} relatório(s)",
+    "filterByType": "Filtrar por tipo",
+    "noReports": "Nenhum relatório gerado ainda",
+    "noReportsDesc": "Gere seu primeiro relatório na página Relatórios e ele aparecerá aqui.",
+    "goToReports": "Ir para Relatórios",
+    "noFilterResults": "Nenhum relatório encontrado para o filtro selecionado.",
+    "generatedAt": "Gerado em {{date}}",
+    "downloadPdf": "Baixar PDF",
+    "removeReport": "Remover relatório",
+    "deleteTitle": "Excluir relatório?",
+    "deleteDescription": "Este relatório será removido permanentemente do servidor e não poderá ser recuperado.",
+    "deleting": "Removendo...",
+    "downloadStarted": "Download iniciado",
+    "downloadDesc": "O PDF está sendo baixado.",
+    "downloadError": "Não foi possível baixar o relatório.",
+    "reportRemoved": "Relatório removido",
+    "reportRemovedDesc": "O relatório foi excluído.",
+    "removeError": "Não foi possível remover o relatório.",
+    "typeLabels": {
+      "consolidated": "Relatório Consolidado",
+      "transactions": "Extrato de Transações",
+      "portfolio_analysis": "Evolução de Investimentos",
+      "monthly": "Relatório Mensal"
+    },
+    "perPage": "Por página",
+    "tableHeaders": {
+      "type": "Tipo",
+      "date": "Data",
+      "actions": "Ações"
+    }
+  }
+}

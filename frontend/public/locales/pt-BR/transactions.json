@@ -1,0 +1,19 @@
+{
+  "title": "Histórico de Transações",
+  "subtitle": "Transações sincronizadas via Open Finance",
+  "syncSuccess": "Transações atualizadas via Open Finance.",
+  "errorLoading": "Erro ao carregar transações.",
+  "chartTitle": "Transações",
+  "transactionCount_one": "{{count}} transação",
+  "transactionCount_other": "{{count}} transação(ões)",
+  "loadingTransactions": "Carregando transações...",
+  "noTransactions": "Nenhuma transação encontrada",
+  "noTransactionsDesc": "Ajuste os filtros ou conecte contas em Conexões → Open Finance e clique em Atualizar para sincronizar.",
+  "period": "Período",
+  "days7": "7 dias",
+  "days30": "30 dias",
+  "days90": "90 dias",
+  "dateFrom": "De",
+  "dateTo": "até",
+  "transaction": "Transação"
+}

@@ -1,0 +1,58 @@
+{
+  "title": "Notifications",
+  "unreadCount_one": "{{count}} unread",
+  "unreadCount_other": "{{count}} unread",
+  "allRead": "All notifications have been read",
+  "markAllRead": "Mark all as read",
+  "markAllReadSuccess": "All notifications have been marked as read.",
+  "markReadError": "Could not mark notification as read.",
+  "markAllReadError": "Could not mark all notifications as read.",
+  "deleteSuccess": "Notification has been removed successfully.",
+  "deleteError": "Could not remove notification.",
+  "loadError": "Could not load notifications.",
+  "timeoutError": "Server took too long to respond. Please try again shortly.",
+  "loadFailed": "Failed to load notifications",
+  "noNotifications": "No notifications",
+  "noNotificationsDesc": "New notifications will appear here when you receive invitations, messages or alerts.",
+  "noNotificationsMobileDesc": "New notifications will appear here when you receive invitations or alerts.",
+  "severity": {
+    "info": "Information",
+    "warning": "Warning",
+    "critical": "Critical"
+  },
+  "tableHeaders": {
+    "number": "#",
+    "type": "Type",
+    "content": "Content",
+    "date": "Date",
+    "actions": "Actions"
+  },
+  "viewDetails": "View details",
+  "detail": {
+    "title": "Notification Details",
+    "subtitle": "Complete notification information",
+    "type": "Type:",
+    "statusLabel": "Status:",
+    "read": "Read",
+    "unread": "Unread",
+    "message": "Message:",
+    "additionalInfo": "Additional Information:",
+    "viewMetadata": "View full metadata",
+    "createdAt": "Created at:",
+    "goToLink": "Go to Link"
+  },
+  "deleteDialog": {
+    "title": "Remove notification",
+    "description": "Are you sure you want to remove this notification? This action cannot be undone."
+  },
+  "notifications": "notifications",
+  "dropdown": {
+    "title": "Notifications",
+    "viewAll": "View all",
+    "loading": "Loading...",
+    "empty": "No notifications",
+    "removed": "Notification removed",
+    "removedDesc": "Notification has been removed successfully.",
+    "removeError": "Could not remove notification."
+  }
+}

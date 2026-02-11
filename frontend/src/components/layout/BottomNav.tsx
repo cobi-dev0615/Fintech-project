@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
   Wallet,
@@ -8,16 +9,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { icon: LayoutDashboard, label: "Início", href: "/app/dashboard" },
-  { icon: Wallet, label: "Contas", href: "/app/accounts" },
-  { icon: CreditCard, label: "Cartões", href: "/app/cards" },
-  { icon: TrendingUp, label: "Investir", href: "/app/investments" },
-  { icon: MoreHorizontal, label: "Mais", href: "/app/more" },
-];
-
 const BottomNav = () => {
   const location = useLocation();
+  const { t } = useTranslation('layout');
+
+  const navItems = [
+    { icon: LayoutDashboard, label: t('bottomNav.home'), href: "/app/dashboard" },
+    { icon: Wallet, label: t('bottomNav.accounts'), href: "/app/accounts" },
+    { icon: CreditCard, label: t('bottomNav.cards'), href: "/app/cards" },
+    { icon: TrendingUp, label: t('bottomNav.invest'), href: "/app/investments" },
+    { icon: MoreHorizontal, label: t('bottomNav.more'), href: "/app/more" },
+  ];
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border">

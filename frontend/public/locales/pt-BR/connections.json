@@ -1,0 +1,29 @@
+{
+  "openFinance": {
+    "title": "Open Finance",
+    "subtitle": "Conecte bancos e corretoras para sincronizar contas e transações",
+    "connect": "Conectar",
+    "connecting": "Conectando…",
+    "syncSuccess": "Dados sincronizados com sucesso.",
+    "chartTitle": "Bancos e corretoras conectados",
+    "institutionCount_one": "{{count}} instituição",
+    "institutionCount_other": "{{count}} instituição(ões)",
+    "noInstitutions": "Nenhuma instituição conectada",
+    "noInstitutionsDesc": "Clique em Conectar para vincular seu banco ou corretora e sincronizar contas e transações.",
+    "connectInstitution": "Conectar instituição",
+    "lastSync": "Última sync: {{date}}",
+    "noAccountsSynced": "Nenhuma conta sincronizada para esta instituição. Use Atualizar para sincronizar.",
+    "connectionCreated": "Conexão criada com sucesso. Dados sendo sincronizados...",
+    "connectionError": "Erro ao salvar conexão",
+    "connectError": "Erro ao conectar. Tente novamente.",
+    "widgetError": "Widget Pluggy não carregado. Atualize a página.",
+    "invalidToken": "Token de conexão inválido.",
+    "errorLoading": "Erro ao carregar conexões"
+  },
+  "b3": {
+    "title": "B3",
+    "subtitle": "Conecte sua conta da B3 para visualizar seus investimentos",
+    "comingSoon": "Integração B3 em breve",
+    "comingSoonDesc": "Esta funcionalidade estará disponível em breve"
+  }
+}

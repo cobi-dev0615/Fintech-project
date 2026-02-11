@@ -1,0 +1,37 @@
+{
+  "title": "Choose Your Plan",
+  "subtitle": "Select the plan that best suits your needs. You can change anytime.",
+  "billing": "Billing:",
+  "monthly": "Monthly",
+  "annual": "Annual",
+  "perMonth": "month",
+  "perYear": "year",
+  "perMonthShort": "/mo",
+  "mostPopular": "Most Popular",
+  "currentPlan": "Current",
+  "activePlan": "Active Plan",
+  "alreadyActive": "Plan already active",
+  "alreadyActiveDesc": "You already have this plan active.",
+  "processing": "Processing...",
+  "startFree": "Start Free",
+  "subscribe": "Subscribe",
+  "noPlans": "No plans available",
+  "noPlansDesc": "Plans are not available at the moment. Please try again later.",
+  "loadError": "Failed to load plans",
+  "connections_one": "{{count}} connection",
+  "connections_other": "{{count}} connections",
+  "connectionsUnlimited": "Unlimited connections",
+  "planUntil": "Until",
+  "currentPlanReplaced": "Your current plan will be replaced.",
+  "subtitles": {
+    "free": "Ideal to get started",
+    "basic": "For those who want more",
+    "pro": "Full control",
+    "consultant": "For professionals",
+    "enterprise": "Complete solution"
+  },
+  "confirmDialog": {
+    "title": "Confirm Subscription",
+    "description": "You are about to subscribe to the <strong>{{name}}</strong> plan for <strong>{{price}}/{{period}}</strong>."
+  }
+}
