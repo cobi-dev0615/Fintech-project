@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { notificationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -92,6 +93,7 @@ const getNotificationContent = (notification: Notification): string | null => {
 };
 
 const Notifications = () => {
+  const { t } = useTranslation(['notifications', 'common']);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -103,6 +105,11 @@ const Notifications = () => {
   const [total, setTotal] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const { toast } = useToast();
+
+  // Function to get translated notification type label
+  const getNotificationTypeLabel = (severity: 'info' | 'warning' | 'critical') => {
+    return t(`notifications:severity.${severity}`);
+  };
 
   const fetchNotifications = async (pageNum: number = 1) => {
     try {
@@ -117,11 +124,11 @@ const Notifications = () => {
       const status = error?.response?.status ?? error?.status;
       const isTimeout = status === 504 || status === 408 || /timeout|timed out/i.test(String(error?.message ?? ""));
       const message = isTimeout
-        ? "O servidor demorou para responder. Tente novamente em instantes."
-        : "Não foi possível carregar as notificações.";
+        ? t('notifications:timeoutError')
+        : t('notifications:loadError');
       setLoadError(message);
       toast({
-        title: "Erro",
+        title: t('common:error'),
         description: message,
         variant: "destructive",
       });
@@ -148,8 +155,8 @@ const Notifications = () => {
       );
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: "Não foi possível marcar a notificação como lida.",
+        title: t('common:error'),
+        description: t('notifications:markReadError'),
         variant: "destructive",
       });
     }
@@ -160,14 +167,14 @@ const Notifications = () => {
       await notificationsApi.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       toast({
-        title: "Sucesso",
-        description: "Todas as notificações foram marcadas como lidas.",
+        title: t('common:success'),
+        description: t('notifications:markAllReadSuccess'),
         variant: "success",
       });
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: "Não foi possível marcar todas as notificações como lidas.",
+        title: t('common:error'),
+        description: t('notifications:markAllReadError'),
         variant: "destructive",
       });
     }
@@ -189,14 +196,14 @@ const Notifications = () => {
       }
       
       toast({
-        title: "Notificação removida",
-        description: "A notificação foi removida com sucesso.",
+        title: t('notifications:dropdown.removed'),
+        description: t('notifications:deleteSuccess'),
         variant: "success",
       });
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: "Não foi possível remover a notificação.",
+        title: t('common:error'),
+        description: t('notifications:deleteError'),
         variant: "destructive",
       });
     }
@@ -224,19 +231,6 @@ const Notifications = () => {
       });
     } catch {
       return '';
-    }
-  };
-
-  const getNotificationTypeLabel = (severity: 'info' | 'warning' | 'critical') => {
-    switch (severity) {
-      case 'info':
-        return 'Informação';
-      case 'warning':
-        return 'Aviso';
-      case 'critical':
-        return 'Crítico';
-      default:
-        return 'Informação';
     }
   };
 
@@ -329,11 +323,11 @@ const Notifications = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Notificações</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('notifications:title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {unreadCount > 0
-              ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}`
-              : 'Todas as notificações foram lidas'}
+              ? t('notifications:unreadCount', { count: unreadCount })
+              : t('notifications:allRead')}
           </p>
         </div>
         {unreadCount > 0 && (
@@ -343,7 +337,7 @@ const Notifications = () => {
             className="flex items-center gap-2 shrink-0"
           >
             <CheckCheck className="h-4 w-4" />
-            Marcar todas como lidas
+            {t('notifications:markAllRead')}
           </Button>
         )}
       </div>
@@ -352,14 +346,14 @@ const Notifications = () => {
       {loadError && !loading && (
         <div className="rounded-xl border-2 border-destructive/30 bg-card p-8 text-center max-w-md mx-auto">
           <Bell className="h-12 w-12 text-destructive/70 mx-auto mb-4" />
-          <p className="text-sm font-medium text-foreground mb-1">Falha ao carregar notificações</p>
+          <p className="text-sm font-medium text-foreground mb-1">{t('notifications:loadFailed')}</p>
           <p className="text-sm text-muted-foreground mb-4">{loadError}</p>
           <Button
             variant="outline"
             size="sm"
             onClick={() => fetchNotifications(currentPage)}
           >
-            Tentar novamente
+            {t('notifications:retry')}
           </Button>
         </div>
       )}
@@ -386,11 +380,11 @@ const Notifications = () => {
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/40 hover:bg-muted/40">
-              <TableHead className="w-14 text-center text-muted-foreground font-medium">#</TableHead>
-              <TableHead className="text-muted-foreground font-medium">Tipo</TableHead>
-              <TableHead className="text-muted-foreground font-medium">Conteúdo</TableHead>
-              <TableHead className="w-40 text-muted-foreground font-medium">Data</TableHead>
-              <TableHead className="w-40 text-right text-muted-foreground font-medium">Ações</TableHead>
+              <TableHead className="w-14 text-center text-muted-foreground font-medium">{t('notifications:tableHeaders.number')}</TableHead>
+              <TableHead className="text-muted-foreground font-medium">{t('notifications:tableHeaders.type')}</TableHead>
+              <TableHead className="text-muted-foreground font-medium">{t('notifications:tableHeaders.content')}</TableHead>
+              <TableHead className="w-40 text-muted-foreground font-medium">{t('notifications:tableHeaders.date')}</TableHead>
+              <TableHead className="w-40 text-right text-muted-foreground font-medium">{t('notifications:tableHeaders.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -399,9 +393,9 @@ const Notifications = () => {
                 <TableCell colSpan={5} className="p-0 border-0">
                   <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                     <Bell className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                    <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
+                    <p className="text-sm font-medium text-foreground">{t('notifications:noNotifications')}</p>
                     <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                      Novas notificações aparecerão aqui quando você receber convites, mensagens ou alertas.
+                      {t('notifications:noNotificationsDesc')}
                     </p>
                   </div>
                 </TableCell>
@@ -455,7 +449,7 @@ const Notifications = () => {
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         onClick={(e) => handleViewDetail(notification, e)}
-                        title="Ver detalhes"
+                        title={t('notifications:viewDetails')}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -498,9 +492,9 @@ const Notifications = () => {
         ) : notifications.length === 0 ? (
           <div className="rounded-xl border-2 border-blue-500/70 bg-card p-8 flex flex-col items-center justify-center text-center">
             <Bell className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
+            <p className="text-sm font-medium text-foreground">{t('notifications:noNotifications')}</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
-              Novas notificações aparecerão aqui quando você receber convites ou alertas.
+              {t('notifications:noNotificationsMobileDesc')}
             </p>
           </div>
         ) : (
@@ -541,7 +535,7 @@ const Notifications = () => {
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-foreground"
                     onClick={(e) => handleViewDetail(notification, e)}
-                    aria-label="Ver detalhes"
+                    aria-label={t('notifications:viewDetails')}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -553,7 +547,7 @@ const Notifications = () => {
                       e.stopPropagation();
                       setDeletingId(notification.id);
                     }}
-                    aria-label="Remover"
+                    aria-label={t('notifications:remove')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -568,11 +562,11 @@ const Notifications = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-border min-w-0">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 min-w-0">
           <p className="text-sm text-muted-foreground min-w-0 break-words" aria-live="polite">
-            Mostrando {notifications.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} a {Math.min(currentPage * itemsPerPage, total)} de {total} notificações
+            {t('notifications:showing')} {notifications.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} {t('notifications:to')} {Math.min(currentPage * itemsPerPage, total)} {t('notifications:of')} {total} {t('notifications:notifications')}
           </p>
           <div className="flex items-center gap-2">
             <label htmlFor="items-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
-              Itens por página:
+              {t('notifications:itemsPerPage')}
             </label>
             <Select
               value={itemsPerPage.toString()}
@@ -581,7 +575,7 @@ const Notifications = () => {
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger id="items-per-page" className="w-[4.5rem] h-9" aria-label="Itens por página">
+              <SelectTrigger id="items-per-page" className="w-[4.5rem] h-9" aria-label={t('notifications:itemsPerPage')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -636,16 +630,16 @@ const Notifications = () => {
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{selectedNotification?.title || "Detalhes da Notificação"}</DialogTitle>
+            <DialogTitle>{selectedNotification?.title || t('notifications:detail.title')}</DialogTitle>
             <DialogDescription>
-              Informações completas da notificação
+              {t('notifications:detail.subtitle')}
             </DialogDescription>
           </DialogHeader>
           {selectedNotification && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground">Tipo:</span>
+                  <span className="text-sm font-medium text-muted-foreground">{t('notifications:detail.type')}</span>
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getNotificationTypeBadgeColor(selectedNotification.severity)}`}
                   >
@@ -653,14 +647,14 @@ const Notifications = () => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground">Status:</span>
+                  <span className="text-sm font-medium text-muted-foreground">{t('notifications:detail.statusLabel')}</span>
                   <span className={`text-sm ${selectedNotification.isRead ? 'text-success' : 'text-warning'}`}>
-                    {selectedNotification.isRead ? 'Lida' : 'Não lida'}
+                    {selectedNotification.isRead ? t('notifications:detail.read') : t('notifications:detail.unread')}
                   </span>
                 </div>
               </div>
               <div className="space-y-2">
-                <span className="text-sm font-medium text-muted-foreground">Mensagem:</span>
+                <span className="text-sm font-medium text-muted-foreground">{t('notifications:detail.message')}</span>
                 <div className="p-4 bg-muted/30 rounded-lg border border-border/50 text-sm whitespace-pre-wrap">
                   {getNotificationType(selectedNotification)}
                 </div>
@@ -668,19 +662,19 @@ const Notifications = () => {
               {(() => {
                 const content = getNotificationContent(selectedNotification);
                 const hasMetadata = selectedNotification.metadata && Object.keys(selectedNotification.metadata).length > 0;
-                
+
                 // Only show "Informações Adicionais" if there's actual content
                 if (content && content.trim() !== '') {
                   return (
                     <div className="space-y-2">
-                      <span className="text-sm font-medium text-muted-foreground">Informações Adicionais:</span>
+                      <span className="text-sm font-medium text-muted-foreground">{t('notifications:detail.additionalInfo')}</span>
                       <div className="p-4 bg-muted/30 rounded-lg border border-border/50 text-sm whitespace-pre-wrap">
                         {content}
                       </div>
                       {hasMetadata && Object.keys(selectedNotification.metadata).filter(k => k !== 'content' && k !== 'title').length > 0 && (
                         <details className="mt-2">
                           <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                            Ver metadados completos
+                            {t('notifications:detail.viewMetadata')}
                           </summary>
                           <pre className="text-xs text-foreground overflow-auto mt-2 p-2 bg-muted/20 rounded">
                             {JSON.stringify(selectedNotification.metadata, null, 2)}
@@ -694,7 +688,7 @@ const Notifications = () => {
                 return null;
               })()}
               <div className="space-y-2">
-                <span className="text-sm font-medium text-muted-foreground">Data de Criação:</span>
+                <span className="text-sm font-medium text-muted-foreground">{t('notifications:detail.createdAt')}</span>
                 <div className="text-sm text-foreground">
                   <div>{formatDate(selectedNotification.createdAt)}</div>
                   <div className="text-xs text-muted-foreground mt-1">
@@ -706,11 +700,11 @@ const Notifications = () => {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={handleCloseDetail}>
-              Fechar
+              {t('common:close')}
             </Button>
             {selectedNotification?.linkUrl && (
               <Button onClick={handleNavigateToLink}>
-                Ir para Link
+                {t('notifications:detail.goToLink')}
               </Button>
             )}
           </DialogFooter>
@@ -721,14 +715,14 @@ const Notifications = () => {
       <AlertDialog open={deletingId !== null} onOpenChange={(open) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover notificação</AlertDialogTitle>
+            <AlertDialogTitle>{t('notifications:deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover esta notificação? Esta ação não pode ser desfeita.
+              {t('notifications:deleteDialog.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Remover</AlertDialogAction>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('notifications:remove')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

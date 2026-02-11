@@ -3,6 +3,7 @@ import { Target, Plus, Pencil, Trash2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { goalsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -41,10 +42,19 @@ const CARD_ACCENTS = [
   { border: "border-violet-500/70", shadow: "hover:shadow-violet-500/5" },
 ] as const;
 
-const CATEGORY_OPTIONS = ["Geral", "Emergência", "Carro", "Viagem", "Casa", "Educação", "Outros"];
-
 const Goals = () => {
+  const { t } = useTranslation(['goals', 'common']);
   const { toast } = useToast();
+
+  const CATEGORY_OPTIONS = [
+    { value: "general", label: t('goals:categories.general') },
+    { value: "emergency", label: t('goals:categories.emergency') },
+    { value: "car", label: t('goals:categories.car') },
+    { value: "travel", label: t('goals:categories.travel') },
+    { value: "house", label: t('goals:categories.house') },
+    { value: "education", label: t('goals:categories.education') },
+    { value: "other", label: t('goals:categories.other') },
+  ];
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +81,7 @@ const Goals = () => {
       setGoals(res.goals || []);
       setError(null);
     } catch (err: unknown) {
-      setError((err as { error?: string })?.error || "Erro ao carregar metas");
+      setError((err as { error?: string })?.error || t('goals:errorLoading'));
       setGoals([]);
     } finally {
       setLoading(false);
@@ -105,7 +115,7 @@ const Goals = () => {
   const handleCreate = async () => {
     const targetNum = newTarget === "" ? 0 : newTarget;
     if (!newName.trim()) {
-      toast({ title: "Nome obrigatório", variant: "destructive" });
+      toast({ title: t('goals:dialog.nameRequired'), variant: "destructive" });
       return;
     }
     try {
@@ -115,12 +125,12 @@ const Goals = () => {
         deadline: newDeadline || undefined,
         category: newCategory || undefined,
       });
-      toast({ title: "Meta criada", variant: "success" });
+      toast({ title: t('goals:toast.created'), variant: "success" });
       setDialogOpen(false);
       fetchGoals();
     } catch (err: unknown) {
       toast({
-        title: "Erro ao criar meta",
+        title: t('goals:toast.createError'),
         description: (err as { error?: string })?.error,
         variant: "destructive",
       });
@@ -132,7 +142,7 @@ const Goals = () => {
     const targetNum = editTarget === "" ? undefined : editTarget;
     const currentNum = editCurrent === "" ? undefined : editCurrent;
     if (!editName.trim()) {
-      toast({ title: "Nome obrigatório", variant: "destructive" });
+      toast({ title: t('goals:dialog.nameRequired'), variant: "destructive" });
       return;
     }
     try {
@@ -143,13 +153,13 @@ const Goals = () => {
         deadline: editDeadline || undefined,
         category: editCategory || undefined,
       });
-      toast({ title: "Meta atualizada", variant: "success" });
+      toast({ title: t('goals:toast.updated'), variant: "success" });
       setDialogOpen(false);
       setEditingId(null);
       fetchGoals();
     } catch (err: unknown) {
       toast({
-        title: "Erro ao atualizar meta",
+        title: t('goals:toast.updateError'),
         description: (err as { error?: string })?.error,
         variant: "destructive",
       });
@@ -160,12 +170,12 @@ const Goals = () => {
     if (!deleteId) return;
     try {
       await goalsApi.delete(deleteId);
-      toast({ title: "Meta removida", variant: "success" });
+      toast({ title: t('goals:toast.deleted'), variant: "success" });
       setDeleteId(null);
       fetchGoals();
     } catch (err: unknown) {
       toast({
-        title: "Erro ao remover meta",
+        title: t('goals:toast.deleteError'),
         variant: "destructive",
       });
     }
@@ -180,14 +190,14 @@ const Goals = () => {
     <div className="space-y-6 min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Metas</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('goals:title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Defina e acompanhe suas metas financeiras
+            {t('goals:subtitle')}
           </p>
         </div>
         <Button onClick={openCreate} size="sm" className="shrink-0">
           <Plus className="h-4 w-4 mr-2" />
-          Nova meta
+          {t('goals:newGoal')}
         </Button>
       </div>
 
@@ -206,13 +216,13 @@ const Goals = () => {
           <div className="rounded-full bg-primary/10 p-4 mb-4">
             <Target className="h-10 w-10 text-primary" />
           </div>
-          <p className="font-medium text-foreground">Nenhuma meta</p>
+          <p className="font-medium text-foreground">{t('goals:noGoals')}</p>
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-            Crie uma meta para acompanhar seus objetivos financeiros.
+            {t('goals:noGoalsDesc')}
           </p>
           <Button onClick={openCreate} className="mt-6">
             <Plus className="h-4 w-4 mr-2" />
-            Criar primeira meta
+            {t('goals:createFirst')}
           </Button>
         </div>
       ) : (
@@ -253,7 +263,7 @@ const Goals = () => {
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => openEdit(g)}
-                      aria-label="Editar meta"
+                      aria-label={t('goals:editGoal')}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -262,7 +272,7 @@ const Goals = () => {
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => setDeleteId(g.id)}
-                      aria-label="Excluir meta"
+                      aria-label={t('goals:deleteGoal')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -296,7 +306,7 @@ const Goals = () => {
                 {g.deadline && (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
                     <Calendar className="h-3.5 w-3.5 shrink-0" />
-                    Prazo: {new Date(g.deadline).toLocaleDateString("pt-BR")}
+                    {t('goals:deadline', { date: new Date(g.deadline).toLocaleDateString("pt-BR") })}
                   </p>
                 )}
               </div>
@@ -308,20 +318,20 @@ const Goals = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{isEdit ? "Editar meta" : "Nova meta"}</DialogTitle>
+            <DialogTitle>{isEdit ? t('goals:dialog.editTitle') : t('goals:dialog.createTitle')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Nome</Label>
+              <Label htmlFor="name">{t('goals:dialog.name')}</Label>
               <Input
                 id="name"
                 value={isEdit ? editName : newName}
                 onChange={(e) => (isEdit ? setEditName(e.target.value) : setNewName(e.target.value))}
-                placeholder="Ex: Reserva de emergência"
+                placeholder={t('goals:dialog.namePlaceholder')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="target">Valor alvo (R$)</Label>
+              <Label htmlFor="target">{t('goals:dialog.targetValue')}</Label>
               <Input
                 id="target"
                 type="number"
@@ -334,11 +344,11 @@ const Goals = () => {
                 }}
                 placeholder="0"
               />
-              <p className="text-xs text-muted-foreground">Valor que você quer atingir</p>
+              <p className="text-xs text-muted-foreground">{t('goals:dialog.targetHint')}</p>
             </div>
             {isEdit && (
               <div className="grid gap-2">
-                <Label htmlFor="current">Valor atual (R$)</Label>
+                <Label htmlFor="current">{t('goals:dialog.currentValue')}</Label>
                 <Input
                   id="current"
                   type="number"
@@ -350,11 +360,11 @@ const Goals = () => {
                   }
                   placeholder="0"
                 />
-                <p className="text-xs text-muted-foreground">Quanto você já tem guardado</p>
+                <p className="text-xs text-muted-foreground">{t('goals:dialog.currentHint')}</p>
               </div>
             )}
             <div className="grid gap-2">
-              <Label htmlFor="deadline">Prazo (opcional)</Label>
+              <Label htmlFor="deadline">{t('goals:dialog.deadlineLabel')}</Label>
               <Input
                 id="deadline"
                 type="date"
@@ -363,23 +373,23 @@ const Goals = () => {
               />
             </div>
             <div className="grid gap-2">
-              <Label>Categoria (opcional)</Label>
+              <Label>{t('goals:dialog.category')}</Label>
               <Select
                 value={(isEdit ? editCategory : newCategory) || "none"}
                 onValueChange={(v) => (isEdit ? setEditCategory(v === "none" ? "" : v) : setNewCategory(v === "none" ? "" : v))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione ou deixe em branco" />
+                  <SelectValue placeholder={t('goals:dialog.categoryPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
+                  <SelectItem value="none">{t('goals:dialog.categoryNone')}</SelectItem>
                   {CATEGORY_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt}>
-                      {opt}
+                    <SelectItem key={opt.value} value={opt.label}>
+                      {opt.label}
                     </SelectItem>
                   ))}
                   {(isEdit ? editCategory : newCategory) &&
-                    !CATEGORY_OPTIONS.includes(isEdit ? editCategory : newCategory) && (
+                    !CATEGORY_OPTIONS.map(o => o.label).includes(isEdit ? editCategory : newCategory) && (
                       <SelectItem value={isEdit ? editCategory : newCategory}>
                         {(isEdit ? editCategory : newCategory)}
                       </SelectItem>
@@ -390,10 +400,10 @@ const Goals = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
+              {t('common:cancel')}
             </Button>
             <Button onClick={isEdit ? handleUpdate : handleCreate}>
-              {isEdit ? "Salvar" : "Criar"}
+              {isEdit ? t('goals:dialog.save') : t('goals:dialog.create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -402,15 +412,15 @@ const Goals = () => {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir meta?</AlertDialogTitle>
+            <AlertDialogTitle>{t('goals:deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita.
+              {t('goals:deleteDialog.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
+              {t('common:delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

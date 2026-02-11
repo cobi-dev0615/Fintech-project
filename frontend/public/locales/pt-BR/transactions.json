@@ -15,5 +15,15 @@
   "days90": "90 dias",
   "dateFrom": "De",
   "dateTo": "até",
-  "transaction": "Transação"
+  "transaction": "Transação",
+  "searchPlaceholder": "Buscar...",
+  "account": "Conta",
+  "allAccounts": "Todas as contas",
+  "perPage": "por página",
+  "all": "Tudo",
+  "others": "Outros",
+  "page": "Página",
+  "of": "de",
+  "previous": "Anterior",
+  "next": "Próxima"
 }

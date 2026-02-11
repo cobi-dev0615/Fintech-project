@@ -12,8 +12,10 @@ import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 const Cards = () => {
+  const { t } = useTranslation(['cards', 'common']);
   const { toast } = useToast();
   const [cards, setCards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ const Cards = () => {
       setCards(data.cards || []);
       setError(null);
     } catch (err: any) {
-      setError(err?.error || "Erro ao carregar cartões");
+      setError(err?.error || t('cards:errorLoading'));
       console.error("Error fetching cards:", err);
     } finally {
       setLoading(false);
@@ -45,14 +47,14 @@ const Cards = () => {
       await financeApi.sync();
       await fetchData();
       toast({
-        title: "Sincronização concluída",
-        description: "Seus cartões foram atualizados.",
+        title: t('common:syncComplete'),
+        description: t('cards:syncSuccess'),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro na sincronização",
-        description: err?.error || "Não foi possível sincronizar.",
+        title: t('common:syncError'),
+        description: err?.error || t('common:syncErrorDesc'),
         variant: "destructive",
       });
     } finally {
@@ -68,14 +70,14 @@ const Cards = () => {
       await financeApi.sync(itemId);
       await fetchData();
       toast({
-        title: "Cartão atualizado",
-        description: `${card.institution_name || "Cartão"} sincronizado.`,
+        title: t('cards:cardUpdated'),
+        description: t('cards:cardSynced', { name: card.institution_name || t('cards:title') }),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro ao sincronizar cartão",
-        description: err?.error || "Tente novamente.",
+        title: t('cards:cardSyncError'),
+        description: err?.error || t('cards:cardSyncErrorDesc'),
         variant: "destructive",
       });
     } finally {
@@ -91,9 +93,9 @@ const Cards = () => {
     <div className="w-full min-w-0 overflow-x-hidden space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 min-w-0">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">Cartões de Crédito</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">{t('cards:title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Cartões conectados via Open Finance
+            {t('cards:subtitle')}
           </p>
         </div>
         <TooltipProvider>
@@ -106,11 +108,11 @@ const Cards = () => {
                 disabled={syncing || loading}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-                {syncing ? "Sincronizando…" : "Sincronizar todos"}
+                {syncing ? t('common:syncing') : t('cards:syncAll')}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Atualizar dados de todos os cartões conectados</p>
+              <p>{t('cards:syncAllTooltip')}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -119,7 +121,7 @@ const Cards = () => {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-3" />
-          <p className="text-sm text-muted-foreground">Carregando cartões...</p>
+          <p className="text-sm text-muted-foreground">{t('cards:loadingCards')}</p>
         </div>
       ) : error ? (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -131,52 +133,52 @@ const Cards = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
               <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
                 <ProfessionalKpiCard
-                  title="Limite total"
+                  title={t('cards:totalLimit')}
                   value={`R$ ${totalLimit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                   change=""
                   changeType="neutral"
                   icon={Wallet}
                   iconClassName="text-blue-600 dark:text-blue-400"
-                  subtitle={`${cards.length} cartão(ões)`}
+                  subtitle={t('common:cardCount', { count: cards.length })}
                 />
               </div>
               <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow">
                 <ProfessionalKpiCard
-                  title="Disponível"
+                  title={t('cards:availableLimit')}
                   value={`R$ ${totalAvailable.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                   change=""
                   changeType="positive"
                   icon={Banknote}
                   iconClassName="text-emerald-600 dark:text-emerald-400"
-                  subtitle="Limite disponível"
+                  subtitle={t('cards:availableLimitSubtitle')}
                 />
               </div>
               <div className="rounded-xl border-2 border-amber-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-shadow">
                 <ProfessionalKpiCard
-                  title="Faturas em aberto"
+                  title={t('cards:openInvoices')}
                   value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                   change=""
                   changeType="neutral"
                   icon={FileText}
                   iconClassName="text-amber-600 dark:text-amber-400"
-                  subtitle="Saldo devedor"
+                  subtitle={t('cards:outstandingBalance')}
                 />
               </div>
             </div>
           )}
 
           <ChartCard
-            title="Cartões (Open Finance)"
-            subtitle={cards.length > 0 ? `${cards.length} cartão(ões)` : undefined}
+            title={t('cards:chartTitle')}
+            subtitle={cards.length > 0 ? t('common:cardCount', { count: cards.length }) : undefined}
           >
             {cards.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-14 text-center">
                 <div className="rounded-full bg-muted/50 p-5 mb-4">
                   <CreditCard className="h-12 w-12 text-muted-foreground" />
                 </div>
-                <p className="font-medium text-foreground">Nenhum cartão conectado</p>
+                <p className="font-medium text-foreground">{t('cards:noCards')}</p>
                 <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                  Conecte suas contas em Conexões → Open Finance para sincronizar seus cartões de crédito aqui.
+                  {t('cards:noCardsDesc')}
                 </p>
               </div>
             ) : (
@@ -209,12 +211,12 @@ const Cards = () => {
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <p className="font-medium truncate">{card.institution_name || "Cartão"}</p>
+                                <p className="font-medium truncate">{card.institution_name || t('cards:title')}</p>
                                 <Badge
                                   variant="outline"
                                   className="shrink-0 text-[10px] px-1.5 py-0 font-normal"
                                 >
-                                  {isBroker ? "Corretora" : "Banco"}
+                                  {isBroker ? t('common:broker') : t('common:bank')}
                                 </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground truncate">
@@ -230,7 +232,7 @@ const Cards = () => {
                                 className="h-8 w-8 shrink-0"
                                 onClick={() => handleSyncCard(card)}
                                 disabled={isSyncingThis || syncing || !card.item_id}
-                                aria-label={isSyncingThis ? "Sincronizando…" : "Sincronizar este cartão"}
+                                aria-label={isSyncingThis ? t('common:syncing') : t('cards:syncThisCard')}
                               >
                                 <RefreshCw
                                   className={`h-4 w-4 ${isSyncingThis ? "animate-spin" : ""}`}
@@ -238,26 +240,26 @@ const Cards = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>{isSyncingThis ? "Sincronizando…" : "Sincronizar este cartão"}</p>
+                              <p>{isSyncingThis ? t('common:syncing') : t('cards:syncThisCard')}</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
                         {/* Limite, Disponível e Fatura agrupados */}
                         <div className="grid grid-cols-3 gap-x-3 gap-y-2 text-sm min-w-0">
                           <div>
-                            <p className="text-xs text-muted-foreground">Limite</p>
+                            <p className="text-xs text-muted-foreground">{t('cards:limit')}</p>
                             <p className="font-medium tabular-nums text-foreground">
                               R$ {limit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Disponível</p>
+                            <p className="text-xs text-muted-foreground">{t('cards:available')}</p>
                             <p className="font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
                               R$ {available.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Fatura atual</p>
+                            <p className="text-xs text-muted-foreground">{t('cards:currentInvoice')}</p>
                             <p className="font-medium tabular-nums text-foreground">
                               R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </p>
@@ -267,7 +269,7 @@ const Cards = () => {
                           <div className="flex items-center gap-2 text-sm">
                             <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                             <div className="min-w-0">
-                              <p className="text-xs text-muted-foreground">Vencimento</p>
+                              <p className="text-xs text-muted-foreground">{t('cards:dueDate')}</p>
                               <p className="font-medium">{dueDate}</p>
                             </div>
                           </div>
@@ -275,7 +277,7 @@ const Cards = () => {
                         {limit > 0 && (
                           <div className="space-y-1 pt-0.5">
                             <div className="flex justify-between text-xs">
-                              <span className="text-muted-foreground">Uso do limite</span>
+                              <span className="text-muted-foreground">{t('cards:limitUsage')}</span>
                               <span className={`font-medium tabular-nums ${
                                 usage > 80 ? "text-destructive" : usage > 60 ? "text-amber-600 dark:text-amber-400" : "text-foreground"
                               }`}>

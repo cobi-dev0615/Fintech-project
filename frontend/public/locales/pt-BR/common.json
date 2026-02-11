@@ -51,5 +51,6 @@
     "active": "Ativo"
   },
   "broker": "Corretora",
-  "bank": "Banco"
+  "bank": "Banco",
+  "sessionExpired": "Sua sessão expirou por inatividade. Por favor, faça login novamente."
 }

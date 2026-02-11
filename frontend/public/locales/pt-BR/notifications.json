@@ -54,5 +54,11 @@
     "removed": "Notificação removida",
     "removedDesc": "A notificação foi removida com sucesso.",
     "removeError": "Não foi possível remover a notificação."
-  }
+  },
+  "retry": "Tentar novamente",
+  "showing": "Mostrando",
+  "to": "a",
+  "of": "de",
+  "itemsPerPage": "Itens por página:",
+  "remove": "Remover"
 }

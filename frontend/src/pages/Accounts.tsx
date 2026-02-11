@@ -5,8 +5,10 @@ import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 const Accounts = () => {
+  const { t } = useTranslation(['accounts', 'common']);
   const { toast } = useToast();
   const [accounts, setAccounts] = useState<any[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
@@ -18,7 +20,7 @@ const Accounts = () => {
   const accountsByBank = useMemo(() => {
     const map = new Map<string, { accounts: any[]; total: number }>();
     accounts.forEach((acc: any) => {
-      const bank = acc.institution_name || "Outros";
+      const bank = acc.institution_name || t('common:others');
       if (!map.has(bank)) map.set(bank, { accounts: [], total: 0 });
       const entry = map.get(bank)!;
       entry.accounts.push(acc);
@@ -47,7 +49,7 @@ const Accounts = () => {
       setTotalBalance(typeof accountsData.total === "number" ? accountsData.total : 0);
       setError(null);
     } catch (err: any) {
-      setError(err?.error || "Erro ao carregar contas");
+      setError(err?.error || t('accounts:errorLoading'));
       console.error("Error fetching accounts:", err);
     } finally {
       setLoading(false);
@@ -64,14 +66,14 @@ const Accounts = () => {
       await financeApi.sync();
       await fetchData();
       toast({
-        title: "Sincronização concluída",
-        description: "Suas contas foram atualizadas.",
+        title: t('common:syncComplete'),
+        description: t('accounts:syncSuccess'),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro na sincronização",
-        description: err?.error || "Não foi possível sincronizar.",
+        title: t('common:syncError'),
+        description: err?.error || t('common:syncErrorDesc'),
         variant: "destructive",
       });
     } finally {
@@ -83,9 +85,9 @@ const Accounts = () => {
     <div className="space-y-6 min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Contas</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('accounts:title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Contas bancárias conectadas via Open Finance
+            {t('accounts:subtitle')}
           </p>
         </div>
         <Button
@@ -96,7 +98,7 @@ const Accounts = () => {
           className="shrink-0"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Sincronizando…" : "Atualizar"}
+          {syncing ? t('common:syncing') : t('common:sync')}
         </Button>
       </div>
 
@@ -112,25 +114,25 @@ const Accounts = () => {
         <>
           <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
             <ProfessionalKpiCard
-              title="Saldo total"
+              title={t('accounts:totalBalance')}
               value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
               change=""
               changeType="neutral"
               icon={Wallet}
               iconClassName="text-blue-600 dark:text-blue-400"
-              subtitle={`${accounts.length} conta(s)`}
+              subtitle={t('common:accountCount', { count: accounts.length })}
             />
           </div>
 
-          <ChartCard title="Contas (Open Finance)" subtitle={accounts.length > 0 ? `${accounts.length} conta(s)` : undefined}>
+          <ChartCard title={t('accounts:chartTitle')} subtitle={accounts.length > 0 ? t('common:accountCount', { count: accounts.length }) : undefined}>
             {accounts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-14 text-center">
                 <div className="rounded-full bg-muted/50 p-5 mb-4">
                   <Building2 className="h-12 w-12 text-muted-foreground" />
                 </div>
-                <p className="font-medium text-foreground">Nenhuma conta conectada</p>
+                <p className="font-medium text-foreground">{t('accounts:noAccounts')}</p>
                 <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                  Conecte suas contas em Conexões → Open Finance para ver os saldos aqui.
+                  {t('accounts:noAccountsDesc')}
                 </p>
               </div>
             ) : (
@@ -155,7 +157,7 @@ const Accounts = () => {
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium text-foreground truncate">{bankName}</p>
-                            <p className="text-xs text-muted-foreground">{bankAccounts.length} conta(s)</p>
+                            <p className="text-xs text-muted-foreground">{t('common:accountCount', { count: bankAccounts.length })}</p>
                           </div>
                         </div>
                         <p className="font-semibold tabular-nums shrink-0">
@@ -170,7 +172,7 @@ const Accounts = () => {
                               className="flex items-center justify-between gap-2 px-4 py-2.5 pl-14 hover:bg-muted/10 min-w-0"
                             >
                               <span className="text-sm truncate text-foreground">
-                                {acc.name || acc.type || "Conta"}
+                                {acc.name || acc.type || t('common:account')}
                               </span>
                               <span className="text-sm font-medium tabular-nums shrink-0">
                                 R$ {parseFloat(acc.current_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}

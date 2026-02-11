@@ -5,6 +5,7 @@ import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { cn } from "@/lib/utils";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
+import { useTranslation } from "react-i18next";
 
 const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour of inactivity
 
@@ -12,6 +13,7 @@ const isProtectedPath = (pathname: string) =>
   pathname.startsWith("/app") || pathname.startsWith("/consultant") || pathname.startsWith("/admin");
 
 const AppLayout = () => {
+  const { t } = useTranslation('common');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
@@ -33,7 +35,7 @@ const AppLayout = () => {
     timeoutMs: SESSION_TIMEOUT_MS,
     onTimeout: () => {
       window.dispatchEvent(new CustomEvent('auth:unauthorized', {
-        detail: { message: 'Sua sessão expirou por inatividade. Por favor, faça login novamente.' },
+        detail: { message: t('sessionExpired') },
       }));
     },
   });

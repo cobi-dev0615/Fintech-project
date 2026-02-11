@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import {
   PieChart as RechartsPieChart,
   Pie,
@@ -17,17 +18,6 @@ import {
   Legend,
   Label,
 } from "recharts";
-
-const TYPE_LABELS: Record<string, string> = {
-  fund: "Fundos",
-  cdb: "CDB",
-  lci: "LCI",
-  lca: "LCA",
-  stock: "Ações",
-  etf: "ETFs",
-  reit: "FIIs",
-  other: "Outros",
-};
 
 const TYPE_COLORS: Record<string, string> = {
   fund: "#8b5cf6",
@@ -41,7 +31,22 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 const Investments = () => {
+  const { t } = useTranslation(['investments', 'common']);
   const { toast } = useToast();
+
+  const getTypeLabel = (type: string) => {
+    const typeMap: Record<string, string> = {
+      fund: t('investments:typeLabels.fund'),
+      cdb: t('investments:typeLabels.cdb'),
+      lci: t('investments:typeLabels.lci'),
+      lca: t('investments:typeLabels.lca'),
+      stock: t('investments:typeLabels.stock'),
+      etf: t('investments:typeLabels.etf'),
+      reit: t('investments:typeLabels.reit'),
+      other: t('investments:typeLabels.other'),
+    };
+    return typeMap[type] || type;
+  };
   const [investments, setInvestments] = useState<any[]>([]);
   const [totalValue, setTotalValue] = useState(0);
   const [breakdown, setBreakdown] = useState<any[]>([]);
@@ -61,7 +66,7 @@ const Investments = () => {
       setBreakdown(data.breakdown || []);
       setError(null);
     } catch (err: any) {
-      setError(err?.error || "Erro ao carregar investimentos");
+      setError(err?.error || t('investments:errorLoading'));
       console.error("Error fetching investments:", err);
     } finally {
       setLoading(false);
@@ -78,13 +83,13 @@ const Investments = () => {
       await financeApi.sync();
       await fetchData();
       toast({
-        title: "Sincronização concluída",
-        description: "Seus investimentos foram atualizados.",
+        title: t('common:syncComplete'),
+        description: t('investments:syncSuccess'),
       });
     } catch (err: any) {
       toast({
-        title: "Erro na sincronização",
-        description: err?.error || "Não foi possível sincronizar.",
+        title: t('common:syncError'),
+        description: err?.error || t('common:syncErrorDesc'),
         variant: "destructive",
       });
     } finally {
@@ -95,7 +100,7 @@ const Investments = () => {
   const allocationData = breakdown
     .filter((b) => b.total > 0)
     .map((b) => ({
-      name: TYPE_LABELS[b.type] || b.type,
+      name: getTypeLabel(b.type),
       value: parseFloat(b.total) || 0,
       color: TYPE_COLORS[b.type] || TYPE_COLORS.other,
     }));
@@ -105,9 +110,9 @@ const Investments = () => {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Investimentos</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">{t('investments:title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Dados do Open Finance — portfólio consolidado
+            {t('investments:subtitle')}
           </p>
         </div>
         <Button
@@ -118,7 +123,7 @@ const Investments = () => {
           className="shrink-0"
         >
           <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
-          {syncing ? "Sincronizando…" : "Atualizar"}
+          {syncing ? t('common:syncing') : t('common:sync')}
         </Button>
       </div>
 
@@ -135,7 +140,7 @@ const Investments = () => {
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
           <p className="text-destructive font-medium">{error}</p>
           <Button variant="outline" size="sm" className="mt-3" onClick={() => fetchData()}>
-            Tentar novamente
+            {t('common:tryAgain')}
           </Button>
         </div>
       ) : (
@@ -143,7 +148,7 @@ const Investments = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
             <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
               <ProfessionalKpiCard
-                title="Valor total"
+                title={t('investments:totalValue')}
                 value={`R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                 change=""
                 changeType="neutral"
@@ -154,30 +159,30 @@ const Investments = () => {
             </div>
             <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow">
               <ProfessionalKpiCard
-                title="Posições"
+                title={t('investments:positions')}
                 value={investments.length.toString()}
                 change=""
                 changeType="neutral"
                 icon={PieChartIcon}
                 iconClassName="text-emerald-600 dark:text-emerald-400"
-                subtitle="ativos"
+                subtitle={t('investments:positionsSubtitle')}
               />
             </div>
             <div className="rounded-xl border-2 border-violet-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow">
               <ProfessionalKpiCard
-                title="Tipos"
+                title={t('investments:types')}
                 value={breakdown.length.toString()}
                 change=""
                 changeType="neutral"
                 icon={TrendingUp}
                 iconClassName="text-violet-600 dark:text-violet-400"
-                subtitle="categorias"
+                subtitle={t('investments:typesSubtitle')}
               />
             </div>
           </div>
 
           {allocationData.length > 0 && (
-            <ChartCard title="Alocação por tipo" subtitle="Distribuição do portfólio (Open Finance)">
+            <ChartCard title={t('investments:allocationByType')} subtitle={t('investments:allocationSubtitle')}>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPieChart>
@@ -211,7 +216,7 @@ const Investments = () => {
                           return (
                             <g>
                               <text x={cx} y={cy - 6} textAnchor="middle" fill="white" className="text-sm font-medium">
-                                Total
+                                {t('common:total')}
                               </text>
                               <text x={cx} y={cy + 10} textAnchor="middle" fill="white" className="text-sm font-bold">
                                 R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -256,25 +261,25 @@ const Investments = () => {
             </ChartCard>
           )}
 
-          <ChartCard title="Posições (Open Finance)" subtitle={investments.length > 0 ? `${investments.length} posição(ões)` : undefined}>
+          <ChartCard title={t('investments:positionsOpenFinance')} subtitle={investments.length > 0 ? t('investments:positionCount', { count: investments.length }) : undefined}>
             {investments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 sm:py-16">
                 <div className="rounded-full bg-primary/10 p-4 mb-4">
                   <TrendingUp className="h-10 w-10 sm:h-12 sm:w-12 text-primary" aria-hidden />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-1">Nenhum investimento encontrado</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-1">{t('investments:noInvestments')}</h3>
                 <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-                  Conecte suas contas pelo Open Finance para ver ativos, fundos e rentabilidade aqui.
+                  {t('investments:noInvestmentsDesc')}
                 </p>
                 <Link to="/app/connections/open-finance">
                   <Button className="gap-2">
                     <Link2 className="h-4 w-4" />
-                    Ir para Conexões
+                    {t('investments:goToConnections')}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
                 <p className="text-xs text-muted-foreground mt-4">
-                  Menu lateral → Conexões → Open Finance
+                  {t('investments:sidebarTip')}
                 </p>
               </div>
             ) : (
@@ -283,22 +288,22 @@ const Investments = () => {
                   <thead>
                     <tr className="border-b border-border bg-muted/40">
                       <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Ativo
+                        {t('investments:tableHeaders.asset')}
                       </th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Tipo
+                        {t('investments:tableHeaders.type')}
                       </th>
                       <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Quantidade
+                        {t('investments:tableHeaders.quantity')}
                       </th>
                       <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Preço unit.
+                        {t('investments:tableHeaders.unitPrice')}
                       </th>
                       <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Valor atual
+                        {t('investments:tableHeaders.currentValue')}
                       </th>
                       <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Rentab.
+                        {t('investments:tableHeaders.profitability')}
                       </th>
                     </tr>
                   </thead>
@@ -328,7 +333,7 @@ const Investments = () => {
                           </td>
                           <td className="py-3 px-4">
                             <span className="text-sm text-muted-foreground">
-                              {TYPE_LABELS[inv.type] || inv.type || "—"}
+                              {getTypeLabel(inv.type) || "—"}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-right text-sm tabular-nums">

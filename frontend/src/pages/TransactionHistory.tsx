@@ -12,6 +12,7 @@ import {
 import ChartCard from "@/components/dashboard/ChartCard";
 import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 const LIMIT_OPTIONS = [10, 20, 50, 100];
 
@@ -37,6 +38,7 @@ const formatDateLabel = (dateStr: string) => {
 };
 
 const TransactionHistory = () => {
+  const { t } = useTranslation(['transactions', 'common']);
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ const TransactionHistory = () => {
       setTotalPages(pages);
     } catch (err: any) {
       console.error("Error fetching transactions:", err);
-      setError(err?.message ?? err?.error ?? "Erro ao carregar transações.");
+      setError(err?.message ?? err?.error ?? t('transactions:errorLoading'));
       setTransactions([]);
       setTotal(0);
       setTotalPages(1);
@@ -130,14 +132,14 @@ const TransactionHistory = () => {
       await financeApi.sync();
       await fetchTransactions();
       toast({
-        title: "Sincronização concluída",
-        description: "Transações atualizadas via Open Finance.",
+        title: t('common:sync'),
+        description: t('transactions:syncSuccess'),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro na sincronização",
-        description: err?.error ?? "Não foi possível sincronizar.",
+        title: t('common:error'),
+        description: err?.error ?? t('common:syncError'),
         variant: "destructive",
       });
     } finally {
@@ -161,9 +163,9 @@ const TransactionHistory = () => {
     <div className="w-full min-w-0 overflow-x-hidden space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 min-w-0">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">Histórico de Transações</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">{t('transactions:title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Transações sincronizadas via Open Finance
+            {t('transactions:subtitle')}
           </p>
         </div>
         <Button
@@ -174,13 +176,13 @@ const TransactionHistory = () => {
           className="shrink-0"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Sincronizando…" : "Atualizar"}
+          {syncing ? t('common:syncing') : t('common:sync')}
         </Button>
       </div>
 
       <ChartCard
-        title="Transações"
-        subtitle={total > 0 ? `${total} transação(ões)` : undefined}
+        title={t('transactions:chartTitle')}
+        subtitle={total > 0 ? t('transactions:transactionCount', { count: total }) : undefined}
         className="min-w-0"
       >
         {error && (
@@ -196,7 +198,7 @@ const TransactionHistory = () => {
             <div className="relative flex-1 min-w-0 sm:max-w-[180px]">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground shrink-0" />
               <Input
-                placeholder="Buscar..."
+                placeholder={t('transactions:searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8 h-9 w-full min-w-0 text-sm"
@@ -204,10 +206,10 @@ const TransactionHistory = () => {
             </div>
             <Select value={accountId || "all"} onValueChange={(v) => setAccountId(v === "all" ? "" : v)}>
               <SelectTrigger className="h-9 w-full sm:w-[160px] min-w-0 shrink-0 text-sm">
-                <SelectValue placeholder="Conta" />
+                <SelectValue placeholder={t('transactions:account')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas as contas</SelectItem>
+                <SelectItem value="all">{t('transactions:allAccounts')}</SelectItem>
                 {accountOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label.length > 28 ? opt.label.slice(0, 25) + "…" : opt.label}
@@ -222,7 +224,7 @@ const TransactionHistory = () => {
               <SelectContent>
                 {LIMIT_OPTIONS.map((n) => (
                   <SelectItem key={n} value={n.toString()}>
-                    {n} por página
+                    {n} {t('transactions:perPage')}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -231,12 +233,12 @@ const TransactionHistory = () => {
 
           {/* Row 2: period presets + date range (one row on md+, wraps on small) */}
           <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <span className="text-xs font-medium text-muted-foreground shrink-0 py-1.5">Período</span>
+            <span className="text-xs font-medium text-muted-foreground shrink-0 py-1.5">{t('transactions:period')}</span>
             {[
-              { label: "7 dias", days: 7 },
-              { label: "30 dias", days: 30 },
-              { label: "90 dias", days: 90 },
-              { label: "Tudo", days: null },
+              { label: t('transactions:days7'), days: 7 },
+              { label: t('transactions:days30'), days: 30 },
+              { label: t('transactions:days90'), days: 90 },
+              { label: t('transactions:all'), days: null },
             ].map(({ label, days }) => (
               <Button
                 key={label}
@@ -249,23 +251,23 @@ const TransactionHistory = () => {
               </Button>
             ))}
             <span className="hidden sm:inline text-muted-foreground text-xs shrink-0">|</span>
-            <label htmlFor="tx-date-from" className="text-xs text-muted-foreground shrink-0">De</label>
+            <label htmlFor="tx-date-from" className="text-xs text-muted-foreground shrink-0">{t('transactions:dateFrom')}</label>
             <Input
               id="tx-date-from"
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="h-8 min-w-[8.5rem] w-[8.5rem] shrink-0 text-xs [&::-webkit-calendar-picker-indicator]:opacity-100"
-              title="Data inicial"
+              title={t('transactions:dateFrom')}
             />
-            <span className="text-muted-foreground text-xs shrink-0">até</span>
+            <span className="text-muted-foreground text-xs shrink-0">{t('transactions:dateTo')}</span>
             <Input
               id="tx-date-to"
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               className="h-8 min-w-[8.5rem] w-[8.5rem] shrink-0 text-xs [&::-webkit-calendar-picker-indicator]:opacity-100"
-              title="Data final"
+              title={t('transactions:dateTo')}
             />
           </div>
 
@@ -279,16 +281,16 @@ const TransactionHistory = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-3" />
-            <p className="text-sm text-muted-foreground">Carregando transações...</p>
+            <p className="text-sm text-muted-foreground">{t('transactions:loadingTransactions')}</p>
           </div>
         ) : transactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 text-center">
             <div className="rounded-full bg-muted/50 p-5 mb-4">
               <Receipt className="h-12 w-12 text-muted-foreground" />
             </div>
-            <p className="font-medium text-foreground">Nenhuma transação encontrada</p>
+            <p className="font-medium text-foreground">{t('transactions:noTransactions')}</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              Ajuste os filtros ou conecte contas em Conexões → Open Finance e clique em Atualizar para sincronizar.
+              {t('transactions:noTransactionsDesc')}
             </p>
           </div>
         ) : (
@@ -326,7 +328,7 @@ const TransactionHistory = () => {
                             </span>
                           </div>
                           <p className="text-sm font-medium text-foreground break-words min-w-0">
-                            {tx.description || tx.merchant || "Transação"}
+                            {tx.description || tx.merchant || t('transactions:transaction')}
                           </p>
                           <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                             {tx.account_name && (
@@ -335,7 +337,7 @@ const TransactionHistory = () => {
                               </span>
                             )}
                             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
-                              {tx.category || "Outros"}
+                              {tx.category || t('transactions:others')}
                             </span>
                           </div>
                         </li>
@@ -349,7 +351,7 @@ const TransactionHistory = () => {
             {totalPages > 1 && (
               <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-border min-w-0">
                 <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
-                  Página {page} de {totalPages}
+                  {t('transactions:page')} {page} {t('transactions:of')} {totalPages}
                 </p>
                 <div className="flex items-center justify-center gap-1 min-w-0 flex-wrap">
                   <Button
@@ -358,10 +360,10 @@ const TransactionHistory = () => {
                     className="shrink-0 gap-1"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    aria-label="Página anterior"
+                    aria-label={t('transactions:previous')}
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    <span className="hidden xs:inline">Anterior</span>
+                    <span className="hidden xs:inline">{t('transactions:previous')}</span>
                   </Button>
                   <div className="flex items-center gap-0.5 sm:gap-1">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -389,9 +391,9 @@ const TransactionHistory = () => {
                     className="shrink-0 gap-1"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    aria-label="Próxima página"
+                    aria-label={t('transactions:next')}
                   >
-                    <span className="hidden sm:inline">Próxima</span>
+                    <span className="hidden sm:inline">{t('transactions:next')}</span>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>

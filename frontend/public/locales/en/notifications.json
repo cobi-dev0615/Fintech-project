@@ -54,5 +54,11 @@
     "removed": "Notification removed",
     "removedDesc": "Notification has been removed successfully.",
     "removeError": "Could not remove notification."
-  }
+  },
+  "retry": "Try again",
+  "showing": "Showing",
+  "to": "to",
+  "of": "of",
+  "itemsPerPage": "Items per page:",
+  "remove": "Remove"
 }

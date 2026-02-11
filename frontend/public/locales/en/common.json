@@ -51,5 +51,6 @@
     "active": "Active"
   },
   "broker": "Broker",
-  "bank": "Bank"
+  "bank": "Bank",
+  "sessionExpired": "Your session has expired due to inactivity. Please log in again."
 }

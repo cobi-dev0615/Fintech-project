@@ -6,8 +6,10 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { financeApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 const Dashboard = () => {
+  const { t } = useTranslation(['dashboard', 'common']);
   const [openFinanceData, setOpenFinanceData] = useState<{
     accounts: any[];
     groupedAccounts: any[];
@@ -63,14 +65,14 @@ const Dashboard = () => {
       await financeApi.sync();
       await fetchOpenFinanceData();
       toast({
-        title: "Sincronização concluída",
-        description: "Seus dados foram atualizados com sucesso.",
+        title: t('dashboard:sync.success'),
+        description: t('dashboard:sync.successDesc'),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro na sincronização",
-        description: err?.error || "Não foi possível sincronizar os dados.",
+        title: t('dashboard:sync.error'),
+        description: err?.error || t('dashboard:sync.errorDesc'),
         variant: "destructive",
       });
     } finally {
@@ -100,9 +102,9 @@ const Dashboard = () => {
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div className="flex-shrink-0 flex flex-col md:flex-row md:items-center md:justify-between gap-2 py-2 pb-3">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Painel</h1>
+          <h1 className="text-xl font-bold text-foreground">{t('dashboard:title')}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Visão consolidada da sua vida financeira
+            {t('dashboard:subtitle')}
           </p>
         </div>
       </div>
@@ -110,7 +112,7 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 py-2 pb-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Clock className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">Última sincronização: agora</span>
+          <span className="truncate">{t('dashboard:lastSync')}</span>
         </div>
         <Button
           variant="outline"
@@ -120,53 +122,53 @@ const Dashboard = () => {
           className="shrink-0 touch-manipulation"
         >
           <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Sincronizando..." : "Atualizar"}
+          {syncing ? t('common:syncing') : t('common:sync')}
         </Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="rounded-xl border-2 border-emerald-500/80 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all">
           <ProfessionalKpiCard
-            title="Patrimônio Líquido"
+            title={t('dashboard:netWorth')}
             value={`R$ ${netWorth.toLocaleString("pt-BR")}`}
             change=""
             changeType="neutral"
             icon={PiggyBank}
             iconClassName="text-emerald-500"
-            subtitle="total"
+            subtitle={t('common:total')}
           />
         </div>
         <div className="rounded-xl border-2 border-blue-500/80 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-all">
           <ProfessionalKpiCard
-            title="Caixa Total"
+            title={t('dashboard:totalCash')}
             value={`R$ ${cashBalance.toLocaleString("pt-BR")}`}
             change=""
             changeType="neutral"
             icon={Wallet}
             iconClassName="text-blue-500"
-            subtitle="disponível"
+            subtitle={t('dashboard:available')}
           />
         </div>
         <div className="rounded-xl border-2 border-violet-500/80 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-all">
           <ProfessionalKpiCard
-            title="Investimentos"
+            title={t('dashboard:investments')}
             value={`R$ ${investmentValue.toLocaleString("pt-BR")}`}
             change=""
             changeType="neutral"
             icon={TrendingUp}
             iconClassName="text-violet-500"
-            subtitle="em carteira"
+            subtitle={t('dashboard:inPortfolio')}
           />
         </div>
         <div className="rounded-xl border-2 border-amber-500/80 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-all">
           <ProfessionalKpiCard
-            title="Transações"
+            title={t('dashboard:transactions')}
             value={openFinanceData.totalTransactions.toString()}
-            change="total"
+            change={t('common:total')}
             changeType="neutral"
             icon={BarChart3}
             iconClassName="text-amber-500"
-            subtitle={`${openFinanceData.cards.length} cartão(ões)`}
+            subtitle={t('common:cardCount', { count: openFinanceData.cards.length })}
           />
         </div>
       </div>

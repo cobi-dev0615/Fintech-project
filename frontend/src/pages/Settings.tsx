@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { userApi, authApi, subscriptionsApi, commentsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -62,6 +63,7 @@ interface ProfileState {
 }
 
 const Settings = () => {
+  const { t } = useTranslation(['settings', 'common']);
   const [activeStep, setActiveStep] = useState<string>("profile");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -133,11 +135,11 @@ const Settings = () => {
   const [newComment, setNewComment] = useState({ title: "", content: "" });
 
   const steps = [
-    { id: "profile", label: "Perfil", icon: User },
-    { id: "notifications", label: "Notificações", icon: Bell },
-    { id: "password", label: "Senha", icon: Lock },
-    { id: "history", label: "Histórico de Planos", icon: History },
-    { id: "comments", label: "Comentários", icon: MessageSquare },
+    { id: "profile", label: t('settings:tabs.profile'), icon: User },
+    { id: "notifications", label: t('settings:tabs.notifications'), icon: Bell },
+    { id: "password", label: t('settings:tabs.password'), icon: Lock },
+    { id: "history", label: t('settings:tabs.history'), icon: History },
+    { id: "comments", label: t('settings:tabs.comments'), icon: MessageSquare },
   ];
 
   // Load user data on mount
@@ -214,7 +216,7 @@ const Settings = () => {
 
   const handleSaveProfile = async () => {
     if (profile.phone && !validatePhone(profile.phone)) {
-      toast({ title: "Erro", description: "Por favor, insira um telefone brasileiro válido", variant: "destructive" });
+      toast({ title: t('common:error'), description: t('settings:profile.phoneError'), variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -226,9 +228,9 @@ const Settings = () => {
         risk_profile: profile.riskProfile || undefined,
       });
       localStorage.setItem("userCountryCode", profile.countryCode);
-      toast({ title: "Sucesso", description: "Perfil atualizado com sucesso", variant: "success" });
+      toast({ title: t('common:success'), description: t('settings:profile.saveSuccess'), variant: "success" });
     } catch (error: any) {
-      toast({ title: "Erro", description: error?.error || "Erro ao atualizar perfil", variant: "destructive" });
+      toast({ title: t('common:error'), description: error?.error || t('settings:profile.saveError'), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -238,9 +240,9 @@ const Settings = () => {
     setSaving(true);
     try {
       localStorage.setItem("userNotifications", JSON.stringify(notifications));
-      toast({ title: "Sucesso", description: "Notificações atualizadas", variant: "success" });
+      toast({ title: t('common:success'), description: t('settings:notifications.saveSuccess'), variant: "success" });
     } catch (error: any) {
-      toast({ title: "Erro", description: "Erro ao atualizar notificações", variant: "destructive" });
+      toast({ title: t('common:error'), description: t('settings:notifications.saveError'), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -249,11 +251,11 @@ const Settings = () => {
   const handleChangePassword = async () => {
     setPasswordError("");
     if (!password.currentPassword || !password.newPassword) {
-      setPasswordError("Preencha todos os campos");
+      setPasswordError(t('settings:password.fillAllFields'));
       return;
     }
     if (password.newPassword !== password.confirmPassword) {
-      setPasswordError("As senhas não coincidem");
+      setPasswordError(t('settings:password.passwordsMismatch'));
       return;
     }
     setSaving(true);
@@ -262,10 +264,10 @@ const Settings = () => {
         currentPassword: password.currentPassword,
         newPassword: password.newPassword,
       });
-      toast({ title: "Sucesso", description: "Senha alterada com sucesso", variant: "success" });
+      toast({ title: t('common:success'), description: t('settings:password.changeSuccess'), variant: "success" });
       setPassword({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error: any) {
-      setPasswordError(error?.error || "Erro ao alterar senha");
+      setPasswordError(error?.error || t('settings:password.changeError'));
     } finally {
       setSaving(false);
     }
@@ -276,25 +278,25 @@ const Settings = () => {
     setSaving(true);
     try {
       await commentsApi.create(newComment);
-      toast({ title: "Sucesso", description: "Comentário enviado ao administrador", variant: "success" });
+      toast({ title: t('common:success'), description: t('settings:comments.sendSuccess'), variant: "success" });
       setNewComment({ title: "", content: "" });
       setIsCreateModalOpen(false);
       fetchComments(1);
     } catch (error: any) {
-      toast({ title: "Erro", description: "Erro ao enviar comentário", variant: "destructive" });
+      toast({ title: t('common:error'), description: t('settings:comments.sendError'), variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteComment = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este comentário?")) return;
+    if (!confirm(t('settings:comments.deleteConfirm'))) return;
     try {
       await commentsApi.delete(id);
-      toast({ title: "Sucesso", description: "Comentário excluído", variant: "success" });
+      toast({ title: t('common:success'), description: t('settings:comments.deleteSuccess'), variant: "success" });
       fetchComments(commentsPagination.page);
     } catch (error: any) {
-      toast({ title: "Erro", description: "Erro ao excluir comentário", variant: "destructive" });
+      toast({ title: t('common:error'), description: t('settings:comments.deleteError'), variant: "destructive" });
     }
   };
 
@@ -307,31 +309,31 @@ const Settings = () => {
   }
 
   const notificationLabels: Record<string, string> = {
-    emailNotifications: "Notificações por e-mail",
-    transactionAlerts: "Alertas de transações",
-    goalReminders: "Lembretes de metas",
-    weeklySummary: "Resumo semanal",
-    marketingEmails: "E-mails de marketing",
+    emailNotifications: t('settings:notifications.labels.emailNotifications'),
+    transactionAlerts: t('settings:notifications.labels.transactionAlerts'),
+    goalReminders: t('settings:notifications.labels.goalReminders'),
+    weeklySummary: t('settings:notifications.labels.weeklySummary'),
+    marketingEmails: t('settings:notifications.labels.marketingEmails'),
   };
 
   const riskProfileOptions = [
-    { value: "", label: "Não informado" },
-    { value: "conservador", label: "Conservador" },
-    { value: "moderado", label: "Moderado" },
-    { value: "arrojado", label: "Arrojado" },
+    { value: "", label: t('settings:profile.riskOptions.none') },
+    { value: "conservador", label: t('settings:profile.riskOptions.conservative') },
+    { value: "moderado", label: t('settings:profile.riskOptions.moderate') },
+    { value: "arrojado", label: t('settings:profile.riskOptions.aggressive') },
   ];
 
   return (
     <div className="space-y-6 min-w-0 max-w-full overflow-x-hidden">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Meu Perfil</h1>
-        <p className="text-sm text-muted-foreground mt-1">Gerencie suas preferências e informações pessoais</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('settings:title')}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t('settings:subtitle')}</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 min-w-0">
         {/* Tab navigation */}
         <div className="w-full lg:w-56 shrink-0">
-          <nav className="flex flex-row lg:flex-col gap-2 lg:gap-1 relative overflow-x-auto pb-2 lg:pb-0" aria-label="Seções do perfil">
+          <nav className="flex flex-row lg:flex-col gap-2 lg:gap-1 relative overflow-x-auto pb-2 lg:pb-0" aria-label={t('settings:ariaLabel')}>
             {/* Vertical line: inside nav so length = first to last step only; centered on icons; top/bottom = center of first/last (py-2.5 + half h-9 = 1.1875rem) */}
             <div className="absolute left-[1.875rem] top-[1.1875rem] bottom-[1.1875rem] w-px bg-border hidden lg:block z-0 pointer-events-none" />
             {steps.map((step, index) => {
@@ -364,35 +366,35 @@ const Settings = () => {
         <div className="flex-1 min-w-0">
           {activeStep === "profile" && (
             <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Informações Pessoais</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-4">{t('settings:profile.title')}</h2>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome Completo</Label>
-                  <Input id="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} placeholder="Seu nome" />
+                  <Label htmlFor="name">{t('settings:profile.fullName')}</Label>
+                  <Input id="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} placeholder={t('settings:profile.namePlaceholder')} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
+                  <Label htmlFor="email">{t('settings:profile.email')}</Label>
                   <Input id="email" value={profile.email} disabled className="bg-muted" />
-                  <p className="text-xs text-muted-foreground">Alterações de e-mail podem ser feitas pelo suporte.</p>
+                  <p className="text-xs text-muted-foreground">{t('settings:profile.emailHint')}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone</Label>
+                  <Label htmlFor="phone">{t('settings:profile.phone')}</Label>
                   <Input
                     id="phone"
                     value={profile.phone}
                     onChange={(e) => setProfile({ ...profile, phone: formatPhone(e.target.value) })}
-                    placeholder="+55 (XX) XXXXX-XXXX"
+                    placeholder={t('settings:profile.phonePlaceholder')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="birthDate">Data de Nascimento</Label>
+                  <Label htmlFor="birthDate">{t('settings:profile.birthDate')}</Label>
                   <Input id="birthDate" type="date" value={profile.birthDate} onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Perfil de Risco</Label>
+                  <Label>{t('settings:profile.riskProfile')}</Label>
                   <Select value={profile.riskProfile || "none"} onValueChange={(v) => setProfile({ ...profile, riskProfile: v === "none" ? "" : v })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione seu perfil" />
+                      <SelectValue placeholder={t('settings:profile.riskProfilePlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {riskProfileOptions.map((opt) => (
@@ -400,12 +402,12 @@ const Settings = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">Usado para sugestões de investimento.</p>
+                  <p className="text-xs text-muted-foreground">{t('settings:profile.riskProfileHint')}</p>
                 </div>
                 <div className="pt-2">
                   <Button onClick={handleSaveProfile} disabled={saving} className="w-full sm:w-auto">
                     <Save className="h-4 w-4 mr-2" />
-                    {saving ? "Salvando..." : "Salvar Perfil"}
+                    {saving ? t('settings:profile.saving') : t('settings:profile.saveProfile')}
                   </Button>
                 </div>
               </div>
@@ -414,7 +416,7 @@ const Settings = () => {
 
           {activeStep === "notifications" && (
             <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Preferências de Notificação</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-4">{t('settings:notifications.title')}</h2>
               <div className="space-y-5 py-2">
                 {Object.entries(notifications).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between gap-4">
@@ -433,7 +435,7 @@ const Settings = () => {
               <div className="pt-4">
                 <Button onClick={handleSaveNotifications} disabled={saving} className="w-full sm:w-auto">
                   <Save className="h-4 w-4 mr-2" />
-                  {saving ? "Salvando..." : "Salvar Notificações"}
+                  {saving ? t('settings:notifications.saving') : t('settings:notifications.saveNotifications')}
                 </Button>
               </div>
             </div>
@@ -441,26 +443,26 @@ const Settings = () => {
 
           {activeStep === "password" && (
             <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Alterar Senha</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-4">{t('settings:password.title')}</h2>
               <div className="space-y-4 max-w-md">
                 {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Senha Atual</Label>
+                  <Label htmlFor="currentPassword">{t('settings:password.currentPassword')}</Label>
                   <Input id="currentPassword" type="password" value={password.currentPassword} onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })} placeholder="••••••••" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">Nova Senha</Label>
+                  <Label htmlFor="newPassword">{t('settings:password.newPassword')}</Label>
                   <Input id="newPassword" type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} placeholder="••••••••" />
-                  <p className="text-xs text-muted-foreground">Mínimo 8 caracteres.</p>
+                  <p className="text-xs text-muted-foreground">{t('settings:password.newPasswordHint')}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                  <Label htmlFor="confirmPassword">{t('settings:password.confirmPassword')}</Label>
                   <Input id="confirmPassword" type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} placeholder="••••••••" />
                 </div>
                 <div className="pt-2">
                   <Button onClick={handleChangePassword} disabled={saving} className="w-full sm:w-auto">
                     <Lock className="h-4 w-4 mr-2" />
-                    {saving ? "Alterando..." : "Alterar Senha"}
+                    {saving ? t('settings:password.changing') : t('settings:password.changePassword')}
                   </Button>
                 </div>
               </div>
@@ -469,7 +471,7 @@ const Settings = () => {
 
           {activeStep === "history" && (
             <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow">
-              <h2 className="text-sm font-semibold text-foreground mb-4">Histórico de Compras</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-4">{t('settings:history.title')}</h2>
               {historyLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -477,8 +479,8 @@ const Settings = () => {
               ) : history.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <ShoppingBag className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                  <p className="text-sm font-medium text-foreground">Nenhuma compra encontrada</p>
-                  <p className="text-xs text-muted-foreground mt-1">Suas assinaturas de planos aparecerão aqui.</p>
+                  <p className="text-sm font-medium text-foreground">{t('settings:history.noPurchases')}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('settings:history.noPurchasesDesc')}</p>
                 </div>
               ) : (
                 <>
@@ -486,10 +488,10 @@ const Settings = () => {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/40">
-                          <TableHead>Plano</TableHead>
-                          <TableHead>Preço</TableHead>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead>{t('settings:history.tableHeaders.plan')}</TableHead>
+                          <TableHead>{t('settings:history.tableHeaders.price')}</TableHead>
+                          <TableHead>{t('settings:history.tableHeaders.date')}</TableHead>
+                          <TableHead>{t('settings:history.tableHeaders.status')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -500,7 +502,7 @@ const Settings = () => {
                             <TableCell>{format(new Date(item.createdAt), "dd/MM/yyyy")}</TableCell>
                             <TableCell>
                               <Badge variant={item.status === "active" ? "default" : "secondary"} className={cn(item.status === "active" && "bg-success/10 text-success border-0")}>
-                                {item.status === "active" ? "Ativo" : item.status}
+                                {item.status === "active" ? t('common:active') : item.status}
                               </Badge>
                             </TableCell>
                           </TableRow>
@@ -526,7 +528,7 @@ const Settings = () => {
           {activeStep === "comments" && (
             <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-w-0 overflow-hidden">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                <h2 className="text-sm font-semibold text-foreground">Comentários e Feedback</h2>
+                <h2 className="text-sm font-semibold text-foreground">{t('settings:comments.title')}</h2>
                 <div className="flex gap-2">
                   <Button
                     size="sm"
@@ -535,47 +537,47 @@ const Settings = () => {
                     disabled={commentsLoading}
                   >
                     <RefreshCw className={cn("h-4 w-4 mr-2", commentsLoading && "animate-spin")} />
-                    Atualizar
+                    {t('settings:comments.refresh')}
                   </Button>
                   <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                     <DialogTrigger asChild>
                       <Button size="sm">
                         <Plus className="h-4 w-4 mr-2" />
-                        Novo Comentário
+                        {t('settings:comments.newComment')}
                       </Button>
                     </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Novo Comentário</DialogTitle>
+                      <DialogTitle>{t('settings:comments.createDialog.title')}</DialogTitle>
                       <DialogDescription>
-                        Envie sua dúvida, sugestão ou feedback para nossa equipe.
+                        {t('settings:comments.createDialog.description')}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="title">Título</Label>
-                        <Input 
-                          id="title" 
-                          value={newComment.title} 
-                          onChange={(e) => setNewComment({ ...newComment, title: e.target.value })} 
-                          placeholder="Ex: Dúvida sobre plano"
+                        <Label htmlFor="title">{t('settings:comments.createDialog.titleLabel')}</Label>
+                        <Input
+                          id="title"
+                          value={newComment.title}
+                          onChange={(e) => setNewComment({ ...newComment, title: e.target.value })}
+                          placeholder={t('settings:comments.createDialog.titlePlaceholder')}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="content">Conteúdo</Label>
-                        <Textarea 
-                          id="content" 
-                          value={newComment.content} 
-                          onChange={(e) => setNewComment({ ...newComment, content: e.target.value })} 
-                          placeholder="Digite aqui sua mensagem..."
+                        <Label htmlFor="content">{t('settings:comments.createDialog.contentLabel')}</Label>
+                        <Textarea
+                          id="content"
+                          value={newComment.content}
+                          onChange={(e) => setNewComment({ ...newComment, content: e.target.value })}
+                          placeholder={t('settings:comments.createDialog.contentPlaceholder')}
                           className="min-h-[150px]"
                         />
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancelar</Button>
+                      <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>{t('common:cancel')}</Button>
                       <Button onClick={handleAddComment} disabled={saving || !newComment.content.trim()}>
-                        {saving ? "Enviando..." : "Enviar Comentário"}
+                        {saving ? t('settings:comments.createDialog.sending') : t('settings:comments.createDialog.send')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -590,8 +592,8 @@ const Settings = () => {
                 ) : comments.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                    <p className="text-sm font-medium text-foreground">Nenhum comentário enviado</p>
-                    <p className="text-xs text-muted-foreground mt-1">Envie dúvidas ou sugestões usando o botão acima.</p>
+                    <p className="text-sm font-medium text-foreground">{t('settings:comments.noComments')}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('settings:comments.noCommentsDesc')}</p>
                   </div>
                 ) : (
                 <>
@@ -599,14 +601,14 @@ const Settings = () => {
                 <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow className="bg-muted/40">
-                      <TableHead className="w-[50px]">No</TableHead>
-                      <TableHead>Título</TableHead>
-                      <TableHead>Conteúdo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Processo</TableHead>
-                      <TableHead>Criado em</TableHead>
-                      <TableHead>Processado em</TableHead>
-                      <TableHead>Ações</TableHead>
+                      <TableHead className="w-[50px]">{t('settings:comments.tableHeaders.number')}</TableHead>
+                      <TableHead>{t('settings:comments.tableHeaders.title')}</TableHead>
+                      <TableHead>{t('settings:comments.tableHeaders.content')}</TableHead>
+                      <TableHead>{t('settings:comments.tableHeaders.status')}</TableHead>
+                      <TableHead>{t('settings:comments.tableHeaders.process')}</TableHead>
+                      <TableHead>{t('settings:comments.tableHeaders.createdAt')}</TableHead>
+                      <TableHead>{t('settings:comments.tableHeaders.processedAt')}</TableHead>
+                      <TableHead>{t('settings:comments.tableHeaders.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -614,15 +616,15 @@ const Settings = () => {
                       return (
                         <TableRow key={c.id}>
                           <TableCell>{(commentsPagination.page - 1) * 10 + index + 1}</TableCell>
-                          <TableCell className="font-medium">{c.title || "Sem título"}</TableCell>
+                          <TableCell className="font-medium">{c.title || t('settings:comments.noTitle')}</TableCell>
                           <TableCell className="max-w-[200px] truncate">{c.content}</TableCell>
                           <TableCell>
                             <Badge variant={c.status === 'replied' ? 'success' : 'secondary'} className={cn(c.status === 'replied' ? "bg-success/10 text-success border-success/20" : "")}>
-                              {c.status === 'replied' ? 'Respondido' : 'Pendente'}
+                              {c.status === 'replied' ? t('settings:comments.statusReplied') : t('settings:comments.statusPending')}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {c.status === 'replied' ? 'Finalizado' : 'Em análise'}
+                            {c.status === 'replied' ? t('settings:comments.processFinished') : t('settings:comments.processAnalysis')}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">{format(new Date(c.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
                           <TableCell className="whitespace-nowrap">
@@ -684,39 +686,39 @@ const Settings = () => {
                 <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle>{selectedComment?.title || "Detalhes do Comentário"}</DialogTitle>
+                      <DialogTitle>{selectedComment?.title || t('settings:comments.detail.title')}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-6 py-4">
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Sua Mensagem</Label>
+                        <Label className="text-muted-foreground">{t('settings:comments.detail.yourMessage')}</Label>
                         <div className="p-4 bg-muted/30 rounded-lg border border-border/50 text-sm whitespace-pre-wrap">
                           {selectedComment?.content}
                         </div>
                         <p className="text-[10px] text-muted-foreground text-right italic">
-                          Enviado em: {selectedComment && format(new Date(selectedComment.created_at), "dd/MM/yyyy HH:mm")}
+                          {t('settings:comments.detail.sentAt')} {selectedComment && format(new Date(selectedComment.created_at), "dd/MM/yyyy HH:mm")}
                         </p>
                       </div>
 
                       {selectedComment?.reply && (
                         <div className="space-y-2">
-                          <Label className="text-success font-semibold">Resposta do Administrador</Label>
+                          <Label className="text-success font-semibold">{t('settings:comments.detail.adminReply')}</Label>
                           <div className="p-4 bg-success/5 rounded-lg border border-success/20 text-sm whitespace-pre-wrap">
                             {selectedComment.reply}
                           </div>
                           <p className="text-[10px] text-muted-foreground text-right italic">
-                            Respondido em: {selectedComment.processed_at && format(new Date(selectedComment.processed_at), "dd/MM/yyyy HH:mm")}
+                            {t('settings:comments.detail.repliedAt')} {selectedComment.processed_at && format(new Date(selectedComment.processed_at), "dd/MM/yyyy HH:mm")}
                           </p>
                         </div>
                       )}
 
                       {!selectedComment?.reply && (
                         <div className="p-4 bg-muted/20 rounded-lg border border-dashed border-border text-center text-sm text-muted-foreground italic">
-                          Aguardando resposta da nossa equipe...
+                          {t('settings:comments.detail.waitingReply')}
                         </div>
                       )}
                     </div>
                     <DialogFooter>
-                      <Button onClick={() => setIsDetailModalOpen(false)}>Fechar</Button>
+                      <Button onClick={() => setIsDetailModalOpen(false)}>{t('common:close')}</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>

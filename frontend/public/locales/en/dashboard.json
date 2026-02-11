@@ -7,5 +7,11 @@
   "investments": "Investments",
   "transactions": "Transactions",
   "available": "available",
-  "inPortfolio": "in portfolio"
+  "inPortfolio": "in portfolio",
+  "sync": {
+    "success": "Sync complete",
+    "successDesc": "Your data has been successfully updated.",
+    "error": "Sync error",
+    "errorDesc": "Could not synchronize data."
+  }
 }

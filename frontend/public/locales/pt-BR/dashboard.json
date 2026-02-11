@@ -7,5 +7,11 @@
   "investments": "Investimentos",
   "transactions": "Transações",
   "available": "disponível",
-  "inPortfolio": "em carteira"
+  "inPortfolio": "em carteira",
+  "sync": {
+    "success": "Sincronização concluída",
+    "successDesc": "Seus dados foram atualizados com sucesso.",
+    "error": "Erro na sincronização",
+    "errorDesc": "Não foi possível sincronizar os dados."
+  }
 }
