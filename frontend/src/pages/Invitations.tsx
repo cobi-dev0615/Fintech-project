@@ -32,7 +32,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDistanceToNow, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 
 interface Invitation {
   id: string;
@@ -53,6 +54,7 @@ interface InvitedUser {
 }
 
 const Invitations = () => {
+  const { t, i18n } = useTranslation(['invitations', 'common']);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [declineDialogOpen, setDeclineDialogOpen] = useState(false);
@@ -64,6 +66,9 @@ const Invitations = () => {
   const [referralLink, setReferralLink] = useState<string>("");
   const [invitedUsers, setInvitedUsers] = useState<InvitedUser[]>([]);
   const [referralLoading, setReferralLoading] = useState(true);
+
+  // Get date-fns locale based on current language
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
 
   useEffect(() => {
     const loadReferral = async () => {
@@ -88,7 +93,7 @@ const Invitations = () => {
   const copyReferralLink = () => {
     if (!referralLink) return;
     navigator.clipboard.writeText(referralLink);
-    toast({ title: "Link copiado!", description: "O link de convite foi copiado para a área de transferência.", variant: "success" });
+    toast({ title: t('referral.linkCopied'), description: t('referral.linkCopiedDesc'), variant: "success" });
   };
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -126,14 +131,14 @@ const Invitations = () => {
       queryClient.invalidateQueries({ queryKey: ['customer', 'invitations'] });
       queryClient.invalidateQueries({ queryKey: ['customer', 'consultants'] });
       toast({
-        title: "Convite aceito",
-        description: `Você agora está conectado com ${invitation.consultantName}`,
+        title: t('toast.accepted'),
+        description: t('toast.acceptedDesc', { name: invitation.consultantName }),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao aceitar convite",
+        title: t('common:error'),
+        description: err?.error || t('toast.acceptError'),
         variant: getToastVariantForApiError(err),
       });
     }
@@ -148,13 +153,13 @@ const Invitations = () => {
       setDeclineDialogOpen(false);
       setSelectedInvitation(null);
       toast({
-        title: "Convite recusado",
-        description: "O convite foi removido",
+        title: t('toast.declined'),
+        description: t('toast.declinedDesc'),
       });
     } catch (err: any) {
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao recusar convite",
+        title: t('common:error'),
+        description: err?.error || t('toast.declineError'),
         variant: getToastVariantForApiError(err),
       });
     }
@@ -170,7 +175,7 @@ const Invitations = () => {
     const expires = new Date(expiresAt);
     const now = new Date();
     if (expires < now) return null;
-    return formatDistanceToNow(expires, { addSuffix: true, locale: ptBR });
+    return formatDistanceToNow(expires, { addSuffix: true, locale: dateLocale });
   };
 
   const handleDisconnect = async () => {
@@ -182,9 +187,9 @@ const Invitations = () => {
       queryClient.invalidateQueries({ queryKey: ['customer', 'invitations'] });
       setDisconnectDialogOpen(false);
       setConsultantToDisconnect(null);
-      toast({ title: "Desconectado", description: "Você foi desconectado do consultor.", variant: "success" });
+      toast({ title: t('toast.disconnected'), description: t('toast.disconnectedDesc'), variant: "success" });
     } catch (err: any) {
-      toast({ title: "Erro", description: err?.error || "Erro ao desconectar", variant: getToastVariantForApiError(err) });
+      toast({ title: t('common:error'), description: err?.error || t('toast.disconnectError'), variant: getToastVariantForApiError(err) });
     } finally {
       setDisconnecting(false);
     }
@@ -196,12 +201,12 @@ const Invitations = () => {
       await customerApi.updateConsultantWalletShare(linkId, !currentValue);
       queryClient.invalidateQueries({ queryKey: ['customer', 'consultants'] });
       toast({
-        title: !currentValue ? "Carteira compartilhada" : "Compartilhamento desativado",
-        description: !currentValue ? "O consultor pode ver suas informações de carteira." : "O consultor não pode mais ver suas informações de carteira.",
+        title: !currentValue ? t('toast.walletShared') : t('toast.walletUnshared'),
+        description: !currentValue ? t('toast.walletSharedDesc') : t('toast.walletUnsharedDesc'),
         variant: "success",
       });
     } catch (err: any) {
-      toast({ title: "Erro", description: err?.error || "Erro ao atualizar permissão", variant: getToastVariantForApiError(err) });
+      toast({ title: t('common:error'), description: err?.error || t('toast.walletError'), variant: getToastVariantForApiError(err) });
     } finally {
       setTogglingShare(null);
     }
@@ -211,20 +216,26 @@ const Invitations = () => {
   const referralProgress = Math.min(invitedUsers.length, REFERRAL_DISCOUNT_THRESHOLD);
   const referralProgressPct = (referralProgress / REFERRAL_DISCOUNT_THRESHOLD) * 100;
 
+  const getStatusLabel = (status: string) => {
+    if (status === "registered") return t('referral.statusRegistered');
+    if (status === "pending_approval") return t('referral.statusPendingApproval');
+    return t('referral.statusInactive');
+  };
+
   return (
     <div className="space-y-6 min-w-0">
       {/* Page Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Convites de Consultores</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('title')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Gerencie seus convites de consultores financeiros
+          {t('subtitle')}
         </p>
       </div>
 
       {/* Consultant(s) who invited me */}
       <ChartCard
-        title="Consultor(es) que te convidaram"
-        subtitle={hasConsultantWhoInvitedMe ? undefined : "Nenhum consultor te convidou ainda"}
+        title={t('consultantsSection.title')}
+        subtitle={hasConsultantWhoInvitedMe ? undefined : t('consultantsSection.noConsultant')}
       >
         {isLoading ? (
           <div className="space-y-2">
@@ -233,7 +244,7 @@ const Invitations = () => {
           </div>
         ) : !hasConsultantWhoInvitedMe ? (
           <p className="text-sm text-muted-foreground py-2">
-            Quando um consultor financeiro enviar um convite para você, ele aparecerá aqui.
+            {t('consultantsSection.whenConsultant')}
           </p>
         ) : (
           <ul className="space-y-3">
@@ -246,7 +257,7 @@ const Invitations = () => {
                     <span className="text-muted-foreground text-sm ml-2 truncate block sm:inline">{inv.consultantEmail}</span>
                   </div>
                 </div>
-                <Badge variant="secondary" className="shrink-0">Aguardando sua resposta</Badge>
+                <Badge variant="secondary" className="shrink-0">{t('consultantsSection.awaitingResponse')}</Badge>
               </li>
             ))}
             {acceptedConsultants.map((c) => (
@@ -259,7 +270,7 @@ const Invitations = () => {
                     <p className="font-medium text-foreground">{c.name}</p>
                     <p className="text-sm text-muted-foreground truncate">{c.email}</p>
                   </div>
-                  <Badge variant="default" className="shrink-0 hidden sm:inline-flex">Conectado</Badge>
+                  <Badge variant="default" className="shrink-0 hidden sm:inline-flex">{t('consultantsSection.connected')}</Badge>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 pl-11 sm:pl-0">
                   <div className="flex items-center gap-2">
@@ -270,7 +281,7 @@ const Invitations = () => {
                       onCheckedChange={() => handleToggleWalletShare(c.id, c.canViewAll !== false)}
                     />
                     <Label htmlFor={`share-${c.id}`} className="text-sm cursor-pointer">
-                      Compartilhar carteira
+                      {t('consultantsSection.shareWallet')}
                     </Label>
                   </div>
                   <Button
@@ -280,9 +291,9 @@ const Invitations = () => {
                     onClick={() => { setConsultantToDisconnect({ id: c.id, name: c.name }); setDisconnectDialogOpen(true); }}
                   >
                     <Unlink className="h-4 w-4 sm:mr-1" />
-                    <span className="hidden sm:inline">Desconectar</span>
+                    <span className="hidden sm:inline">{t('consultantsSection.disconnect')}</span>
                   </Button>
-                  <Badge className="sm:hidden shrink-0">Conectado</Badge>
+                  <Badge className="sm:hidden shrink-0">{t('consultantsSection.connected')}</Badge>
                 </div>
               </li>
             ))}
@@ -292,8 +303,8 @@ const Invitations = () => {
 
       {/* Convidar amigos (referral) */}
       <ChartCard
-        title="Convidar amigos"
-        subtitle="Compartilhe seu link e ganhe 20% de desconto na assinatura mensal ao convidar 10+ pessoas"
+        title={t('referral.title')}
+        subtitle={t('referral.subtitle')}
       >
         {referralLoading ? (
           <div className="space-y-3">
@@ -312,24 +323,28 @@ const Invitations = () => {
                 onClick={copyReferralLink}
                 disabled={!referralLink}
                 className="shrink-0"
-                title="Copiar link"
+                title={t('referral.copyLink')}
               >
                 <Copy className="h-4 w-4 sm:mr-2" />
-                Copiar link
+                {t('referral.copyLink')}
               </Button>
             </div>
             {invitedUsers.length >= REFERRAL_DISCOUNT_THRESHOLD && (
               <div className="flex items-center gap-2 rounded-lg bg-green-500/15 border border-green-500/30 text-green-700 dark:text-green-400 px-3 py-2.5 text-sm">
                 <Percent className="h-4 w-4 shrink-0" />
-                <span>Você tem direito a 20% de desconto na assinatura mensal!</span>
+                <span>{t('referral.discountEarned')}</span>
               </div>
             )}
             {invitedUsers.length > 0 && invitedUsers.length < REFERRAL_DISCOUNT_THRESHOLD && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    <strong className="text-foreground">{invitedUsers.length}</strong> de {REFERRAL_DISCOUNT_THRESHOLD} convites — faltam <strong>{REFERRAL_DISCOUNT_THRESHOLD - invitedUsers.length}</strong> para o desconto
-                  </span>
+                  <span className="text-muted-foreground" dangerouslySetInnerHTML={{
+                    __html: t('referral.progressText', {
+                      count: invitedUsers.length,
+                      total: REFERRAL_DISCOUNT_THRESHOLD,
+                      remaining: REFERRAL_DISCOUNT_THRESHOLD - invitedUsers.length
+                    })
+                  }} />
                 </div>
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div
@@ -342,14 +357,14 @@ const Invitations = () => {
             <div>
               <h4 className="font-medium flex items-center gap-2 mb-2 text-foreground">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                Pessoas que você convidou ({invitedUsers.length})
+                {t('referral.invitedPeople', { count: invitedUsers.length })}
               </h4>
               {invitedUsers.length === 0 ? (
                 <div className="py-8 px-4 rounded-lg border border-border bg-muted/20 text-center">
                   <Users className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-70" />
-                  <p className="text-sm font-medium text-foreground">Nenhuma pessoa convidada ainda</p>
+                  <p className="text-sm font-medium text-foreground">{t('referral.noInvitedYet')}</p>
                   <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                    Compartilhe seu link acima para convidar amigos. Ao atingir 10 cadastros, você ganha 20% de desconto.
+                    {t('referral.noInvitedDesc')}
                   </p>
                 </div>
               ) : (
@@ -362,9 +377,9 @@ const Invitations = () => {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <Badge variant={u.status === "registered" ? "default" : "secondary"}>
-                          {u.status === "registered" ? "Cadastrado" : u.status === "pending_approval" ? "Aguardando aprovação" : "Inativo"}
+                          {getStatusLabel(u.status)}
                         </Badge>
-                        <span className="text-muted-foreground text-xs">{format(new Date(u.registeredAt), "dd/MM/yyyy", { locale: ptBR })}</span>
+                        <span className="text-muted-foreground text-xs">{format(new Date(u.registeredAt), "dd/MM/yyyy", { locale: dateLocale })}</span>
                       </div>
                     </li>
                   ))}
@@ -380,15 +395,15 @@ const Invitations = () => {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Você tem convites expirados. Eles serão removidos automaticamente.
+            {t('expiredAlert')}
           </AlertDescription>
         </Alert>
       )}
 
       {/* Pending Invitations */}
-      <ChartCard 
-        title="Convites Pendentes" 
-        subtitle={pendingInvitations.length > 0 ? `${pendingInvitations.length} convite(s) aguardando resposta` : undefined}
+      <ChartCard
+        title={t('pendingSection.title')}
+        subtitle={pendingInvitations.length > 0 ? t('pendingSection.subtitle', { count: pendingInvitations.length }) : undefined}
       >
         {isLoading ? (
           <div className="space-y-3">
@@ -398,9 +413,9 @@ const Invitations = () => {
           </div>
         ) : error ? (
           <div className="text-center py-8">
-            <p className="text-destructive">{(error as any)?.error || "Erro ao carregar convites"}</p>
+            <p className="text-destructive">{(error as any)?.error || t('pendingSection.errorLoading')}</p>
             <Button variant="outline" className="mt-4" onClick={() => refetch()}>
-              Tentar novamente
+              {t('common:tryAgain')}
             </Button>
           </div>
         ) : pendingInvitations.length === 0 ? (
@@ -408,20 +423,20 @@ const Invitations = () => {
             <div className="rounded-full bg-muted/50 p-5 mb-4">
               <UserPlus className="h-12 w-12 text-muted-foreground" />
             </div>
-            <p className="font-medium text-foreground">Nenhum convite pendente</p>
+            <p className="font-medium text-foreground">{t('pendingSection.noPending')}</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              Quando um consultor enviar um convite, ele aparecerá aqui para você aceitar ou recusar.
+              {t('pendingSection.noPendingDesc')}
             </p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-left">Consultor</TableHead>
-                <TableHead className="text-left">E-mail</TableHead>
-                <TableHead className="text-left">Enviado em</TableHead>
-                <TableHead className="text-left">Status / Expira</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="text-left">{t('pendingSection.tableHeaders.consultant')}</TableHead>
+                <TableHead className="text-left">{t('pendingSection.tableHeaders.email')}</TableHead>
+                <TableHead className="text-left">{t('pendingSection.tableHeaders.sentAt')}</TableHead>
+                <TableHead className="text-left">{t('pendingSection.tableHeaders.statusExpires')}</TableHead>
+                <TableHead className="text-right">{t('pendingSection.tableHeaders.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -436,18 +451,18 @@ const Invitations = () => {
                     <TableCell className="font-medium">{invitation.consultantName}</TableCell>
                     <TableCell className="text-muted-foreground">{invitation.consultantEmail}</TableCell>
                     <TableCell className="text-muted-foreground text-xs">
-                      {format(new Date(invitation.sentAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      {format(new Date(invitation.sentAt), "dd/MM/yyyy HH:mm", { locale: dateLocale })}
                     </TableCell>
                     <TableCell>
                       {expired ? (
-                        <Badge variant="destructive" className="text-xs">Expirado</Badge>
+                        <Badge variant="destructive" className="text-xs">{t('pendingSection.expired')}</Badge>
                       ) : timeRemaining ? (
                         <span className="text-muted-foreground text-xs flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          Expira {timeRemaining}
+                          {t('pendingSection.expiresIn', { time: timeRemaining })}
                         </span>
                       ) : (
-                        <Badge variant="secondary">Pendente</Badge>
+                        <Badge variant="secondary">{t('common:status.pending')}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -459,11 +474,11 @@ const Invitations = () => {
                             onClick={() => setSelectedInvitation(invitation)}
                           >
                             <XCircle className="h-4 w-4 mr-1" />
-                            Recusar
+                            {t('pendingSection.decline')}
                           </Button>
                           <Button size="sm" onClick={() => handleAccept(invitation)}>
                             <CheckCircle2 className="h-4 w-4 mr-1" />
-                            Aceitar
+                            {t('pendingSection.accept')}
                           </Button>
                         </div>
                       ) : (
@@ -472,7 +487,7 @@ const Invitations = () => {
                           size="sm"
                           onClick={() => setSelectedInvitation(invitation)}
                         >
-                          Remover
+                          {t('common:remove')}
                         </Button>
                       )}
                     </TableCell>
@@ -485,34 +500,27 @@ const Invitations = () => {
       </ChartCard>
 
       {/* Information Card */}
-      <ChartCard title="Sobre Convites">
+      <ChartCard title={t('aboutSection.title')}>
         <div className="space-y-3 text-sm text-muted-foreground">
           <div className="flex items-start gap-3">
             <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
             <div>
-              <div className="font-semibold text-foreground mb-1">O que são convites?</div>
-              <p>
-                Consultores financeiros podem convidá-lo para conectar-se na plataforma. 
-                Ao aceitar, eles terão acesso aos seus dados financeiros para fornecer orientação personalizada.
-              </p>
+              <div className="font-semibold text-foreground mb-1">{t('aboutSection.whatAre')}</div>
+              <p>{t('aboutSection.whatAreDesc')}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <Clock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <div className="font-semibold text-foreground mb-1">Validade</div>
-              <p>
-                Os convites expiram após 15 dias. Certifique-se de responder antes do prazo.
-              </p>
+              <div className="font-semibold text-foreground mb-1">{t('aboutSection.validity')}</div>
+              <p>{t('aboutSection.validityDesc')}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
             <div>
-              <div className="font-semibold text-foreground mb-1">Privacidade</div>
-              <p>
-                Você pode revogar o acesso de um consultor a qualquer momento nas configurações.
-              </p>
+              <div className="font-semibold text-foreground mb-1">{t('aboutSection.privacy')}</div>
+              <p>{t('aboutSection.privacyDesc')}</p>
             </div>
           </div>
         </div>
@@ -522,22 +530,20 @@ const Invitations = () => {
       <AlertDialog open={declineDialogOpen} onOpenChange={setDeclineDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Recusar convite?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja recusar o convite de{" "}
-              <strong>{selectedInvitation?.consultantName}</strong>?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('dialogs.declineTitle')}</AlertDialogTitle>
+            <AlertDialogDescription dangerouslySetInnerHTML={{
+              __html: t('dialogs.declineDesc', { name: selectedInvitation?.consultantName })
+            }} />
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setSelectedInvitation(null)}>
-              Cancelar
+              {t('common:cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDecline}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Recusar
+              {t('pendingSection.decline')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -547,22 +553,21 @@ const Invitations = () => {
       <AlertDialog open={disconnectDialogOpen} onOpenChange={setDisconnectDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Desconectar do consultor?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja desconectar de <strong>{consultantToDisconnect?.name}</strong>?
-              O consultor não poderá mais acessar suas informações.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('dialogs.disconnectTitle')}</AlertDialogTitle>
+            <AlertDialogDescription dangerouslySetInnerHTML={{
+              __html: t('dialogs.disconnectDesc', { name: consultantToDisconnect?.name })
+            }} />
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setConsultantToDisconnect(null)}>
-              Cancelar
+              {t('common:cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDisconnect}
               disabled={disconnecting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {disconnecting ? "Desconectando..." : "Desconectar"}
+              {disconnecting ? t('dialogs.disconnecting') : t('consultantsSection.disconnect')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

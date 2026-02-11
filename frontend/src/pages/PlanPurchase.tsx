@@ -11,7 +11,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +49,7 @@ interface CurrentSubscription {
 }
 
 const PlanPurchase = () => {
+  const { t, i18n } = useTranslation(['plans', 'common']);
   const { user } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<CurrentSubscription | null>(null);
@@ -61,13 +63,16 @@ const PlanPurchase = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Get date-fns locale based on current language
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
+
   // Initial data fetch (subscription)
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         setInitialLoading(true);
         const subscriptionResponse = await subscriptionsApi.getMySubscription().catch(() => ({ subscription: null }));
-        
+
         if (subscriptionResponse.subscription) {
           setCurrentSubscription({
             id: subscriptionResponse.subscription.id,
@@ -103,8 +108,8 @@ const PlanPurchase = () => {
     } catch (error: any) {
       console.error('Failed to fetch plans:', error);
       toast({
-        title: "Erro",
-        description: error?.error || 'Falha ao carregar planos',
+        title: t('common:error'),
+        description: error?.error || t('loadError'),
         variant: "destructive",
       });
     } finally {
@@ -120,8 +125,8 @@ const PlanPurchase = () => {
     // Don't allow purchasing the same plan
     if (currentSubscription?.plan.id === planId && currentSubscription.status === 'active') {
       toast({
-        title: "Plano já ativo",
-        description: "Você já possui este plano ativo.",
+        title: t('alreadyActive'),
+        description: t('alreadyActiveDesc'),
         variant: "default",
       });
       return;
@@ -147,7 +152,7 @@ const PlanPurchase = () => {
   };
 
   const formatPrice = (cents: number) => {
-    if (cents === 0) return 'Grátis';
+    if (cents === 0) return t('common:free');
     const reais = cents / 100;
     return `R$ ${reais.toFixed(2).replace('.', ',')}`;
   };
@@ -206,14 +211,8 @@ const PlanPurchase = () => {
   };
 
   const getSubtitle = (code: string) => {
-    switch (code.toLowerCase()) {
-      case 'free': return 'Ideal para começar';
-      case 'basic': return 'Para quem quer mais';
-      case 'pro': return 'Controle total';
-      case 'consultant': return 'Para profissionais';
-      case 'enterprise': return 'Solução completa';
-      default: return '';
-    }
+    const key = code.toLowerCase();
+    return t(`subtitles.${key}`, { defaultValue: '' });
   };
 
   const isCurrentPlan = (planId: string) => {
@@ -262,22 +261,22 @@ const PlanPurchase = () => {
   return (
     <div className="space-y-6 min-w-0">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Escolha seu Plano</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('title')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Selecione o plano que melhor se adapta às suas necessidades. Você pode alterar a qualquer momento.
+          {t('subtitle')}
         </p>
       </div>
 
       {/* Billing Period Toggle */}
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <span className="text-sm text-muted-foreground">Faturamento:</span>
+        <span className="text-sm text-muted-foreground">{t('billing')}</span>
         <Tabs value={billingPeriod} onValueChange={(value) => setBillingPeriod(value as 'monthly' | 'annual')} className="w-full sm:w-auto">
           <TabsList className="grid w-full grid-cols-2 sm:inline-grid sm:w-auto sm:min-w-[220px] h-10 p-1 rounded-xl bg-muted/80 border border-border">
             <TabsTrigger value="monthly" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-              Mensal
+              {t('monthly')}
             </TabsTrigger>
             <TabsTrigger value="annual" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-              Anual
+              {t('annual')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -293,9 +292,9 @@ const PlanPurchase = () => {
         {!plansLoading && plans.length === 0 ? (
           <div className="rounded-xl border-2 border-blue-500/70 bg-card p-12 flex flex-col items-center justify-center text-center shadow-sm">
             <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <p className="text-sm font-medium text-foreground">Nenhum plano disponível</p>
+            <p className="text-sm font-medium text-foreground">{t('noPlans')}</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-              Os planos não estão disponíveis no momento. Tente novamente mais tarde.
+              {t('noPlansDesc')}
             </p>
           </div>
         ) : (
@@ -311,7 +310,7 @@ const PlanPurchase = () => {
             const colors = getPlanCardColor(plan.code);
             const currentPrice = billingPeriod === 'annual' ? plan.annualPriceCents : plan.monthlyPriceCents;
             const monthlyEquivalent = billingPeriod === 'annual' ? Math.round(plan.annualPriceCents / 12) : plan.monthlyPriceCents;
-            const savings = billingPeriod === 'annual' && plan.annualPriceCents > 0 
+            const savings = billingPeriod === 'annual' && plan.annualPriceCents > 0
               ? Math.round(((plan.monthlyPriceCents * 12 - plan.annualPriceCents) / (plan.monthlyPriceCents * 12)) * 100)
               : 0;
 
@@ -330,7 +329,7 @@ const PlanPurchase = () => {
                     "absolute -top-2.5 left-1/2 -translate-x-1/2 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-sm",
                     colors.badge
                   )}>
-                    Mais Popular
+                    {t('mostPopular')}
                   </div>
                 )}
 
@@ -346,7 +345,7 @@ const PlanPurchase = () => {
                   <div className="absolute top-2 left-2">
                     <Badge variant="default" className={colors.badge}>
                       <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Atual
+                      {t('currentPlan')}
                     </Badge>
                   </div>
                 )}
@@ -363,9 +362,9 @@ const PlanPurchase = () => {
                       <div className="flex items-center gap-1 mt-1">
                         <Calendar className="h-3 w-3" />
                         <span>
-                          Até{" "}
+                          {t('planUntil')}{" "}
                           <strong className="text-foreground">
-                            {format(parseISO(currentSubscription.currentPeriodEnd), "dd/MM/yyyy", { locale: ptBR })}
+                            {format(parseISO(currentSubscription.currentPeriodEnd), "dd/MM/yyyy", { locale: dateLocale })}
                           </strong>
                         </span>
                       </div>
@@ -380,19 +379,19 @@ const PlanPurchase = () => {
                       </span>
                       {!isFree && (
                         <span className="text-xs text-muted-foreground">
-                          /{billingPeriod === 'annual' ? 'ano' : 'mês'}
+                          /{t(billingPeriod === 'annual' ? 'perYear' : 'perMonth')}
                         </span>
                       )}
                     </div>
                     {billingPeriod === 'annual' && !isFree && (
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {formatPrice(monthlyEquivalent)}/mês
+                        {formatPrice(monthlyEquivalent)}{t('perMonthShort')}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      {plan.connectionLimit !== null 
-                        ? `${plan.connectionLimit} ${plan.connectionLimit === 1 ? 'conexão' : 'conexões'}`
-                        : 'Conexões ilimitadas'
+                      {plan.connectionLimit !== null
+                        ? t('connections', { count: plan.connectionLimit })
+                        : t('connectionsUnlimited')
                       }
                     </p>
                   </div>
@@ -421,19 +420,19 @@ const PlanPurchase = () => {
                     {purchasing === plan.id ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Processando...
+                        {t('processing')}
                       </>
                     ) : isCurrent ? (
                       <>
                         <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Plano Ativo
+                        {t('activePlan')}
                       </>
                     ) : isFree ? (
-                      "Começar Grátis"
+                      t('startFree')
                     ) : (
                       <>
                         <CreditCard className="h-4 w-4 mr-2" />
-                        Assinar
+                        {t('subscribe')}
                       </>
                     )}
                   </Button>
@@ -448,35 +447,28 @@ const PlanPurchase = () => {
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent className="gap-6 p-6 sm:p-7">
           <AlertDialogHeader className="space-y-3">
-            <AlertDialogTitle>Confirmar Assinatura</AlertDialogTitle>
+            <AlertDialogTitle>{t('confirmDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription className="leading-relaxed">
               {selectedPlanId && (
                 <>
-                  Você está prestes a assinar o plano{" "}
-                  <strong>
-                    {plans.find((p) => p.id === selectedPlanId)?.name}
-                  </strong>
-                  {plans.find((p) => p.id === selectedPlanId)?.priceCents !== 0 && (
-                    <>
-                      {" "}
-                      por{" "}
-                      <strong>
-                        {formatPrice(
-                          billingPeriod === 'annual'
-                            ? plans.find((p) => p.id === selectedPlanId)?.annualPriceCents || 0
-                            : plans.find((p) => p.id === selectedPlanId)?.monthlyPriceCents || 0
-                        )}
-                        /{billingPeriod === 'annual' ? 'ano' : 'mês'}
-                      </strong>
-                    </>
-                  )}
-                  . {currentSubscription && "Seu plano atual será substituído."}
+                  <span dangerouslySetInnerHTML={{
+                    __html: t('confirmDialog.description', {
+                      name: plans.find((p) => p.id === selectedPlanId)?.name || '',
+                      price: formatPrice(
+                        billingPeriod === 'annual'
+                          ? plans.find((p) => p.id === selectedPlanId)?.annualPriceCents || 0
+                          : plans.find((p) => p.id === selectedPlanId)?.monthlyPriceCents || 0
+                      ),
+                      period: t(billingPeriod === 'annual' ? 'perYear' : 'perMonth')
+                    })
+                  }} />
+                  {currentSubscription && ` ${t('currentPlanReplaced')}`}
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-1 gap-2 sm:gap-3">
-            <AlertDialogCancel disabled={purchasing !== null}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={purchasing !== null}>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmPurchase}
               disabled={purchasing !== null}
@@ -484,10 +476,10 @@ const PlanPurchase = () => {
               {purchasing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processando...
+                  {t('processing')}
                 </>
               ) : (
-                "Confirmar"
+                t('common:confirm')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

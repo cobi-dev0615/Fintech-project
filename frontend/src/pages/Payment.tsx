@@ -9,6 +9,7 @@ import { publicApi, subscriptionsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 interface Plan {
   id: string;
@@ -29,11 +30,12 @@ interface PaymentFormData {
 }
 
 const Payment = () => {
+  const { t } = useTranslation(['payment', 'common']);
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -54,11 +56,11 @@ const Payment = () => {
     const planId = location.state?.planId || new URLSearchParams(location.search).get('planId');
     const billing = location.state?.billingPeriod || 'monthly';
     setBillingPeriod(billing);
-    
+
     if (!planId) {
       toast({
-        title: "Erro",
-        description: "Plano não selecionado. Redirecionando...",
+        title: t('common:error'),
+        description: t('planNotSelected'),
         variant: "destructive",
       });
       setTimeout(() => {
@@ -77,11 +79,11 @@ const Payment = () => {
       const userRole = user?.role || (location.pathname.startsWith('/consultant') ? 'consultant' : 'customer');
       const response = await publicApi.getPlans(userRole as 'customer' | 'consultant', billing);
       const foundPlan = response.plans.find(p => p.id === planId);
-      
+
       if (!foundPlan) {
         toast({
-          title: "Erro",
-          description: "Plano não encontrado",
+          title: t('common:error'),
+          description: t('planNotFoundDesc'),
           variant: "destructive",
         });
         const basePath = location.pathname.startsWith('/consultant') ? '/consultant' : '/app';
@@ -98,8 +100,8 @@ const Payment = () => {
     } catch (error: any) {
       console.error('Failed to fetch plan:', error);
       toast({
-        title: "Erro",
-        description: error?.error || 'Falha ao carregar plano',
+        title: t('common:error'),
+        description: error?.error || t('planLoadError'),
         variant: "destructive",
       });
     } finally {
@@ -137,7 +139,7 @@ const Payment = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!plan) return;
 
     // Validate billing information (card validation removed - Mercado Pago handles payment method)
@@ -165,13 +167,13 @@ const Payment = () => {
         // Store planId and billingPeriod in localStorage for failure redirect
         localStorage.setItem('lastSelectedPlanId', plan.id);
         localStorage.setItem('lastBillingPeriod', billingPeriod);
-        
+
         toast({
-          title: "Redirecionando...",
-          description: "Você será redirecionado para o Mercado Pago para finalizar o pagamento.",
+          title: t('redirecting'),
+          description: t('redirectingDesc'),
           variant: "default",
         });
-        
+
         // Redirect to Mercado Pago checkout
         window.location.href = response.payment.checkoutUrl;
         return;
@@ -179,8 +181,8 @@ const Payment = () => {
 
       // If no checkout URL (free plan or error), show success
       toast({
-        title: "Sucesso!",
-        description: `Plano ${response.subscription.plan.name} ativado com sucesso!`,
+        title: t('successTitle'),
+        description: t('successDesc', { name: response.subscription.plan.name }),
         variant: "default",
       });
 
@@ -191,8 +193,8 @@ const Payment = () => {
     } catch (error: any) {
       console.error('Failed to process payment:', error);
       toast({
-        title: "Erro",
-        description: error?.error || 'Falha ao processar pagamento',
+        title: t('common:error'),
+        description: error?.error || t('paymentError'),
         variant: "destructive",
       });
     } finally {
@@ -201,7 +203,7 @@ const Payment = () => {
   };
 
   const formatPrice = (cents: number) => {
-    if (cents === 0) return 'Grátis';
+    if (cents === 0) return t('common:free');
     const reais = cents / 100;
     return `R$ ${reais.toFixed(2).replace('.', ',')}`;
   };
@@ -219,13 +221,13 @@ const Payment = () => {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
           <CardHeader>
-            <CardTitle>Plano não encontrado</CardTitle>
-            <CardDescription>O plano selecionado não foi encontrado.</CardDescription>
+            <CardTitle>{t('planNotFound')}</CardTitle>
+            <CardDescription>{t('planNotFoundDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild>
               <Link to={location.pathname.startsWith('/consultant') ? '/consultant/plans' : '/app/plans'}>
-                Voltar para Planos
+                {t('goToPlans')}
               </Link>
             </Button>
           </CardContent>
@@ -244,7 +246,7 @@ const Payment = () => {
         className="mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Voltar
+        {t('backToPlans')}
       </Button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -254,26 +256,26 @@ const Payment = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                Informações de Pagamento - Mercado Pago
+                {t('title')}
               </CardTitle>
               <CardDescription>
-                Você será redirecionado para o Mercado Pago para finalizar o pagamento de forma segura
+                {t('subtitle')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Payment Method */}
                 <div className="space-y-2">
-                  <Label>Método de Pagamento</Label>
+                  <Label>{t('paymentMethod')}</Label>
                   <div className="flex items-center gap-2 p-4 border rounded-lg bg-muted/50">
                     <Lock className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="font-semibold">Mercado Pago</p>
-                      <p className="text-sm text-muted-foreground">Pagamento seguro - Cartão, PIX, Boleto e mais</p>
+                      <p className="font-semibold">{t('mercadoPago')}</p>
+                      <p className="text-sm text-muted-foreground">{t('mercadoPagoDesc')}</p>
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Você será redirecionado para o Mercado Pago onde poderá escolher a forma de pagamento desejada.
+                    {t('mercadoPagoRedirect')}
                   </p>
                 </div>
 
@@ -281,10 +283,10 @@ const Payment = () => {
 
                 {/* Billing Information */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Dados de Cobrança</h3>
-                  
+                  <h3 className="font-semibold text-lg">{t('billingInfo')}</h3>
+
                   <div className="space-y-2">
-                    <Label htmlFor="billingName">Nome Completo *</Label>
+                    <Label htmlFor="billingName">{t('fullName')}</Label>
                     <Input
                       id="billingName"
                       value={formData.billingName}
@@ -295,7 +297,7 @@ const Payment = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="billingEmail">E-mail *</Label>
+                      <Label htmlFor="billingEmail">{t('emailLabel')}</Label>
                       <Input
                         id="billingEmail"
                         type="email"
@@ -306,7 +308,7 @@ const Payment = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="billingPhone">Telefone *</Label>
+                      <Label htmlFor="billingPhone">{t('phoneLabel')}</Label>
                       <Input
                         id="billingPhone"
                         placeholder="(00) 00000-0000"
@@ -322,7 +324,7 @@ const Payment = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="billingDocument">CPF/CNPJ *</Label>
+                    <Label htmlFor="billingDocument">{t('document')}</Label>
                     <Input
                       id="billingDocument"
                       placeholder="000.000.000-00"
@@ -336,7 +338,7 @@ const Payment = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="billingZipCode">CEP *</Label>
+                    <Label htmlFor="billingZipCode">{t('zipCode')}</Label>
                     <Input
                       id="billingZipCode"
                       placeholder="00000-000"
@@ -351,10 +353,10 @@ const Payment = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="billingAddress">Endereço *</Label>
+                    <Label htmlFor="billingAddress">{t('address')}</Label>
                     <Input
                       id="billingAddress"
-                      placeholder="Rua, número, complemento"
+                      placeholder={t('addressPlaceholder')}
                       value={formData.billingAddress}
                       onChange={(e) => setFormData({ ...formData, billingAddress: e.target.value })}
                       required
@@ -363,7 +365,7 @@ const Payment = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="billingCity">Cidade *</Label>
+                      <Label htmlFor="billingCity">{t('city')}</Label>
                       <Input
                         id="billingCity"
                         value={formData.billingCity}
@@ -373,7 +375,7 @@ const Payment = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="billingState">Estado *</Label>
+                      <Label htmlFor="billingState">{t('state')}</Label>
                       <Input
                         id="billingState"
                         placeholder="SP"
@@ -395,12 +397,12 @@ const Payment = () => {
                   {processing ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Processando pagamento...
+                      {t('processing')}
                     </>
                   ) : (
                     <>
                       <Lock className="h-4 w-4 mr-2" />
-                      Finalizar Pagamento
+                      {t('finalize')}
                     </>
                   )}
                 </Button>
@@ -413,11 +415,11 @@ const Payment = () => {
         <div className="lg:col-span-1">
           <Card className="sticky top-4">
             <CardHeader>
-              <CardTitle>Resumo do Pedido</CardTitle>
+              <CardTitle>{t('orderSummary')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground">Plano</p>
+                <p className="text-sm text-muted-foreground">{t('planLabel')}</p>
                 <p className="font-semibold">{plan.name}</p>
               </div>
 
@@ -425,16 +427,16 @@ const Payment = () => {
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">{t('subtotal')}</span>
                   <span>{formatPrice(plan.priceCents)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Taxa</span>
+                  <span className="text-muted-foreground">{t('fee')}</span>
                   <span>R$ 0,00</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
+                  <span>{t('totalLabel')}</span>
                   <span>{formatPrice(plan.priceCents)}</span>
                 </div>
               </div>
@@ -442,11 +444,11 @@ const Payment = () => {
               <div className="pt-4 space-y-2 text-xs text-muted-foreground">
                 <div className="flex items-start gap-2">
                   <Lock className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <p>Seus dados estão protegidos com criptografia SSL</p>
+                  <p>{t('sslProtection')}</p>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <p>Cancelamento a qualquer momento</p>
+                  <p>{t('cancelAnytime')}</p>
                 </div>
               </div>
             </CardContent>
