@@ -427,7 +427,7 @@ const Settings = () => {
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.planName}</TableCell>
                         <TableCell>{format(new Date(item.createdAt), "dd/MM/yyyy", { locale: dateLocale })}</TableCell>
-                        <TableCell><span className={cn("px-2 py-1 rounded-full text-xs font-medium", item.status === 'active' ? "bg-success/10 text-success" : "bg-muted text-muted-foreground")}>{item.status}</span></TableCell>
+                        <TableCell><span className={cn("px-2 py-1 rounded-full text-xs font-medium", item.status === 'active' ? "bg-success/10 text-success" : "bg-muted text-muted-foreground")}>{t(`common:status.${item.status}`, { defaultValue: item.status })}</span></TableCell>
                       </TableRow>
                     ))
                   )}

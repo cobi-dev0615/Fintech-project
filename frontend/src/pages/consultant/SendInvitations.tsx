@@ -217,10 +217,10 @@ const SendInvitations = () => {
     totalInvitations === 0 ? 0 : Math.min(startIndex + paginatedInvitations.length, totalInvitations);
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return t('common:notAvailable');
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString("pt-BR");
+      return date.toLocaleDateString(t('common:locale', { defaultValue: 'pt-BR' }));
     } catch {
       return dateString;
     }

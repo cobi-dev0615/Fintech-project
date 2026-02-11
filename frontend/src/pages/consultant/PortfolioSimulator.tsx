@@ -40,38 +40,41 @@ const PortfolioSimulator = () => {
   };
 
   // Helper function for allocation labels
-  const getAllocationLabel = (type: string) => {
-    const typeMap: Record<string, string> = {
-      "Renda Fixa": "fixedIncome",
-      "Ações": "stocks",
-      "FIIs": "reits"
-    };
-    const key = typeMap[type];
-    return key ? t(`consultant:simulator.allocation.${key}`, { defaultValue: type }) : type;
+  const getAllocationLabel = (key: string) => {
+    return t(`consultant:simulator.allocation.${key}`, { defaultValue: key });
+  };
+
+  const formatCurrency = (value: number, fractionDigits = 2) => {
+    return new Intl.NumberFormat(t('common:locale', { defaultValue: 'pt-BR' }), {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    }).format(value);
   };
 
   const scenarioConfig = {
     conservative: {
       allocation: [
-        { name: "Renda Fixa", value: 70, color: "#10b981" },
-        { name: "Ações", value: 20, color: "#3b82f6" },
-        { name: "FIIs", value: 10, color: "#8b5cf6" },
+        { name: "fixedIncome", value: 70, color: "#10b981" },
+        { name: "stocks", value: 20, color: "#3b82f6" },
+        { name: "reits", value: 10, color: "#8b5cf6" },
       ],
       expectedReturn: 7,
     },
     moderate: {
       allocation: [
-        { name: "Renda Fixa", value: 50, color: "#10b981" },
-        { name: "Ações", value: 30, color: "#3b82f6" },
-        { name: "FIIs", value: 20, color: "#8b5cf6" },
+        { name: "fixedIncome", value: 50, color: "#10b981" },
+        { name: "stocks", value: 30, color: "#3b82f6" },
+        { name: "reits", value: 20, color: "#8b5cf6" },
       ],
       expectedReturn: 10,
     },
     bold: {
       allocation: [
-        { name: "Renda Fixa", value: 30, color: "#10b981" },
-        { name: "Ações", value: 50, color: "#3b82f6" },
-        { name: "FIIs", value: 20, color: "#8b5cf6" },
+        { name: "fixedIncome", value: 30, color: "#10b981" },
+        { name: "stocks", value: 50, color: "#3b82f6" },
+        { name: "reits", value: 20, color: "#8b5cf6" },
       ],
       expectedReturn: 13,
     },
@@ -250,7 +253,7 @@ const PortfolioSimulator = () => {
                 <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                     <div className="text-xs sm:text-sm text-muted-foreground mb-1">{t('consultant:simulator.results.finalValue')}</div>
                   <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary break-words">
-                      R$ {results.finalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(results.finalValue)}
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
@@ -262,7 +265,7 @@ const PortfolioSimulator = () => {
                   <div className="p-4 rounded-lg bg-muted border border-border">
                     <div className="text-xs sm:text-sm text-muted-foreground mb-1">{t('consultant:simulator.results.currentValue')}</div>
                   <div className="text-lg sm:text-xl md:text-2xl font-bold break-words">
-                      R$ {results.currentValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(results.currentValue)}
                   </div>
                   </div>
                 </div>
@@ -275,7 +278,7 @@ const PortfolioSimulator = () => {
                       <XAxis dataKey="year" />
                       <YAxis />
                       <Tooltip
-                        formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`}
+                        formatter={(value: number) => formatCurrency(value, 0)}
                       />
                       <Legend />
                       <Line

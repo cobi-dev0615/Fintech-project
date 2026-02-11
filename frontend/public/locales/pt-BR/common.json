@@ -53,5 +53,7 @@
   },
   "broker": "Corretora",
   "bank": "Banco",
+  "locale": "pt-BR",
+  "notAvailable": "N/D",
   "sessionExpired": "Sua sessão expirou por inatividade. Por favor, faça login novamente."
 }

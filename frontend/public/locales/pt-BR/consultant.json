@@ -487,7 +487,9 @@
       "typeRequired": "Selecione um tipo de relatório",
       "downloadFailed": "Falha ao baixar"
     },
-    "yesterday": "Ontem"
+    "yesterday": "Ontem",
+    "dateTimeFormat": "dd/MM/yyyy 'às' HH:mm",
+    "downloadFilename": "relatorio-{{id}}.pdf"
   },
   "settings": {
     "title": "Configurações do Consultor",

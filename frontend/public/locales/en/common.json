@@ -53,5 +53,7 @@
   },
   "broker": "Broker",
   "bank": "Bank",
+  "locale": "en-US",
+  "notAvailable": "N/A",
   "sessionExpired": "Your session has expired due to inactivity. Please log in again."
 }

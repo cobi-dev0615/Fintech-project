@@ -487,7 +487,9 @@
       "typeRequired": "Select a report type",
       "downloadFailed": "Failed to download"
     },
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "dateTimeFormat": "MM/dd/yyyy 'at' hh:mm a",
+    "downloadFilename": "report-{{id}}.pdf"
   },
   "settings": {
     "title": "Consultant Settings",

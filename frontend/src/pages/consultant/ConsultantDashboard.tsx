@@ -94,7 +94,7 @@ const ConsultantDashboard = () => {
         <div className="rounded-xl border-2 border-emerald-500/70 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all duration-200">
           <ProfessionalKpiCard
             title={t('consultant:dashboard.kpis.totalNetWorth')}
-            value={`R$ ${(metrics?.kpis?.totalNetWorth / 1000000).toFixed(1)}M`}
+            value={`${new Intl.NumberFormat(t('common:locale', { defaultValue: 'pt-BR' }), { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 1 }).format(metrics?.kpis?.totalNetWorth || 0)}`}
             change=""
             changeType="neutral"
             icon={TrendingUp}

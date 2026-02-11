@@ -125,7 +125,11 @@ const ClientProfile = () => {
   }, [id, clientData]);
 
   const formatCurrency = (val: number | string) =>
-    `R$ ${Number(val || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    new Intl.NumberFormat(t('common:locale', { defaultValue: 'pt-BR' }), {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+    }).format(Number(val || 0));
 
   const handleAddNote = async () => {
     if (!newNote.trim() || !id) return;
@@ -234,7 +238,7 @@ const ClientProfile = () => {
         <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-all min-h-[88px] flex flex-col justify-center">
           <ProfessionalKpiCard
             title={t('consultant:clientProfile.kpis.netWorth')}
-            value={`R$ ${financial.netWorth.toLocaleString("pt-BR")}`}
+            value={formatCurrency(financial.netWorth)}
             change=""
             changeType="neutral"
             icon={TrendingUp}
@@ -245,7 +249,7 @@ const ClientProfile = () => {
         <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all min-h-[88px] flex flex-col justify-center">
           <ProfessionalKpiCard
             title={t('consultant:clientProfile.kpis.cash')}
-            value={`R$ ${financial.cash.toLocaleString("pt-BR")}`}
+            value={formatCurrency(financial.cash)}
             change=""
             changeType="neutral"
             icon={DollarSign}
@@ -256,7 +260,7 @@ const ClientProfile = () => {
         <div className="rounded-xl border-2 border-violet-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-all min-h-[88px] flex flex-col justify-center">
           <ProfessionalKpiCard
             title={t('consultant:clientProfile.kpis.investments')}
-            value={`R$ ${financial.investments.toLocaleString("pt-BR")}`}
+            value={formatCurrency(financial.investments)}
             change=""
             changeType="neutral"
             icon={TrendingUp}
@@ -267,7 +271,7 @@ const ClientProfile = () => {
         <div className="rounded-xl border-2 border-amber-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-all min-h-[88px] flex flex-col justify-center">
           <ProfessionalKpiCard
             title={t('consultant:clientProfile.kpis.debts')}
-            value={`R$ ${financial.debt.toLocaleString("pt-BR")}`}
+            value={formatCurrency(financial.debt)}
             change=""
             changeType="neutral"
             icon={CreditCard}
@@ -342,7 +346,7 @@ const ClientProfile = () => {
                               <Building2 className="h-5 w-5 text-muted-foreground" />
                             )}
                             <span className="text-sm font-medium truncate">{c.institution_name || t('consultant:clientProfile.institution')}</span>
-                            <span className="text-xs text-muted-foreground">({c.status})</span>
+                            <span className="text-xs text-muted-foreground">({t(`common:status.${c.status}`, { defaultValue: c.status })})</span>
                           </div>
                         ))}
                       </div>

@@ -129,7 +129,7 @@ const ProfessionalReports = () => {
       const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {}, credentials: "include" });
       if (!res.ok) throw new Error(t('consultant:reports.toast.downloadFailed'));
       const blob = await res.blob();
-      const name = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ?? `relatorio-${reportId}.pdf`;
+      const name = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ?? t('consultant:reports.downloadFilename', { id: reportId });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = name;
@@ -181,7 +181,7 @@ const ProfessionalReports = () => {
       } else if (diffInHours < 48) {
         return `${t('consultant:reports.yesterday')} ${format(date, 'HH:mm', { locale: dateLocale })}`;
       } else {
-        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: dateLocale });
+        return format(date, t('consultant:reports.dateTimeFormat'), { locale: dateLocale });
       }
     } catch {
       return dateString;
