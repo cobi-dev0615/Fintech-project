@@ -8,10 +8,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { notificationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { useAuth } from "@/hooks/useAuth";
 import { getToastVariantForApiError } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface Notification {
   id: string;
@@ -25,6 +26,7 @@ interface Notification {
 }
 
 const NotificationDropdown = () => {
+  const { t, i18n } = useTranslation('notifications');
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -33,7 +35,10 @@ const NotificationDropdown = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  
+
+  // Dynamic date locale based on language
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
+
   // Check if current user is admin
   const isAdmin = user?.role === 'admin';
 
@@ -61,10 +66,14 @@ const NotificationDropdown = () => {
       }
       // Show toast notification
       toast({
-        title: message.type === 'new_comment' ? 'Novo Comentário' : 'Comentário Respondido',
-        description: message.type === 'new_comment' 
-          ? `${message.userName || 'Usuário'} enviou um novo comentário`
-          : 'Seu comentário foi respondido pelo administrador',
+        title: message.type === 'new_comment'
+          ? t('websocket.newComment')
+          : t('websocket.commentReplied'),
+        description: message.type === 'new_comment'
+          ? (message.userName
+              ? t('websocket.newCommentDesc', { userName: message.userName })
+              : t('websocket.newCommentDescFallback'))
+          : t('websocket.commentRepliedDesc'),
       });
     } else if (message.type === 'new_registration') {
       // Refresh unread count for admins when new registration arrives
@@ -73,8 +82,13 @@ const NotificationDropdown = () => {
         fetchNotifications();
       }
       toast({
-        title: 'Nova Solicitação de Registro',
-        description: `${message.userName || 'Usuário'} solicitou registro como ${message.userRole || 'usuário'}`,
+        title: t('websocket.newRegistration'),
+        description: message.userName && message.userRole
+          ? t('websocket.newRegistrationDesc', {
+              userName: message.userName,
+              userRole: message.userRole
+            })
+          : t('websocket.newRegistrationDescFallback'),
       });
     } else if (message.type === 'account_approved') {
       // Refresh unread count when account is approved
@@ -83,8 +97,8 @@ const NotificationDropdown = () => {
         fetchNotifications();
       }
       toast({
-        title: 'Conta Aprovada',
-        description: 'Sua solicitação de registro foi aprovada. Você já pode fazer login.',
+        title: t('websocket.accountApproved'),
+        description: t('websocket.accountApprovedDesc'),
       });
     } else if (message.type === 'account_rejected') {
       // Refresh unread count when account is rejected
@@ -93,10 +107,10 @@ const NotificationDropdown = () => {
         fetchNotifications();
       }
       toast({
-        title: 'Solicitação Rejeitada',
-        description: message.reason 
-          ? `Sua solicitação foi rejeitada. Motivo: ${message.reason}`
-          : 'Sua solicitação de registro foi rejeitada. Entre em contato com o suporte.',
+        title: t('websocket.accountRejected'),
+        description: message.reason
+          ? t('websocket.accountRejectedWithReason', { reason: message.reason })
+          : t('websocket.accountRejectedDesc'),
         variant: 'warning',
       });
     } else if (message.type === 'consultant_invitation') {
@@ -106,10 +120,10 @@ const NotificationDropdown = () => {
         fetchNotifications();
       }
       toast({
-        title: 'Novo Convite de Consultor',
-        description: message.consultantName 
-          ? `${message.consultantName} enviou um convite para você`
-          : 'Você recebeu um convite de um consultor',
+        title: t('websocket.consultantInvitation'),
+        description: message.consultantName
+          ? t('websocket.consultantInvitationDesc', { consultantName: message.consultantName })
+          : t('websocket.consultantInvitationDescFallback'),
       });
     } else if (message.type === 'invitation_accepted') {
       // Refresh unread count when customer accepts invitation
@@ -118,10 +132,10 @@ const NotificationDropdown = () => {
         fetchNotifications();
       }
       toast({
-        title: 'Convite Aceito',
-        description: message.customerName 
-          ? `${message.customerName} aceitou seu convite`
-          : 'Um cliente aceitou seu convite',
+        title: t('websocket.invitationAccepted'),
+        description: message.customerName
+          ? t('websocket.invitationAcceptedDesc', { customerName: message.customerName })
+          : t('websocket.invitationAcceptedDescFallback'),
       });
     } else if (message.type === 'invitation_declined') {
       // Refresh unread count when customer declines invitation
@@ -130,10 +144,10 @@ const NotificationDropdown = () => {
         fetchNotifications();
       }
       toast({
-        title: 'Convite Recusado',
-        description: message.customerName 
-          ? `${message.customerName} recusou seu convite`
-          : message.message || 'Um cliente recusou seu convite',
+        title: t('websocket.invitationDeclined'),
+        description: message.customerName
+          ? t('websocket.invitationDeclinedDesc', { customerName: message.customerName })
+          : message.message || t('websocket.invitationDeclinedDescFallback'),
         variant: 'warning',
       });
     } else if (message.type === 'wallet_shared_updated') {
@@ -142,12 +156,14 @@ const NotificationDropdown = () => {
         fetchNotifications();
       }
       toast({
-        title: message.canViewAll ? 'Carteira compartilhada' : 'Compartilhamento desativado',
+        title: message.canViewAll ? t('websocket.walletShared') : t('websocket.walletUnshared'),
         description: message.message || (message.customerName
           ? (message.canViewAll
-            ? `${message.customerName} ativou o compartilhamento da carteira com você.`
-            : `${message.customerName} desativou o compartilhamento da carteira.`)
-          : (message.canViewAll ? 'O cliente ativou o compartilhamento da carteira.' : 'O cliente desativou o compartilhamento da carteira.')),
+            ? t('websocket.walletSharedDesc', { customerName: message.customerName })
+            : t('websocket.walletUnsharedDesc', { customerName: message.customerName }))
+          : (message.canViewAll
+              ? t('websocket.walletSharedDescFallback')
+              : t('websocket.walletUnsharedDescFallback'))),
       });
     }
   });
@@ -157,11 +173,11 @@ const NotificationDropdown = () => {
       setLoading(true);
       const response = await notificationsApi.getAll(1, 10);
       // Filter notifications: only show registration-related notifications to admins
-      const filteredNotifications = isAdmin 
-        ? response.notifications 
+      const filteredNotifications = isAdmin
+        ? response.notifications
         : response.notifications.filter(
-            (n: Notification) => 
-              !n.title.includes('Solicitação de Registro') && 
+            (n: Notification) =>
+              !n.title.includes('Solicitação de Registro') &&
               !n.title.includes('Registro') &&
               !(n.metadata?.userRole && n.title.includes('solicitou registro'))
           );
@@ -195,8 +211,8 @@ const NotificationDropdown = () => {
       setUnreadCount((prev: number) => Math.max(0, prev - 1));
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: "Não foi possível marcar a notificação como lida.",
+        title: t('dropdown.error'),
+        description: t('markReadError'),
         variant: getToastVariantForApiError(error),
       });
     }
@@ -212,14 +228,14 @@ const NotificationDropdown = () => {
       }
       setNotifications(prev => prev.filter(n => n.id !== id));
       toast({
-        title: "Notificação removida",
-        description: "A notificação foi removida com sucesso.",
+        title: t('dropdown.removed'),
+        description: t('dropdown.removedDesc'),
         variant: "success",
       });
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: "Não foi possível remover a notificação.",
+        title: t('dropdown.error'),
+        description: t('dropdown.removeError'),
         variant: getToastVariantForApiError(error),
       });
     }
@@ -233,7 +249,7 @@ const NotificationDropdown = () => {
     try {
       return formatDistanceToNow(new Date(dateString), {
         addSuffix: true,
-        locale: ptBR,
+        locale: dateLocale,
       });
     } catch {
       return '';
@@ -245,14 +261,14 @@ const NotificationDropdown = () => {
       handleMarkAsRead(notification.id);
     }
     setOpen(false);
-    
+
     // Navigate to the notifications page based on current route
-    const notificationsPath = location.pathname.startsWith('/admin') 
-      ? '/admin/notifications' 
+    const notificationsPath = location.pathname.startsWith('/admin')
+      ? '/admin/notifications'
       : location.pathname.startsWith('/consultant')
       ? '/consultant/notifications'
       : '/app/notifications';
-    
+
     navigate(notificationsPath);
   };
 
@@ -276,17 +292,17 @@ const NotificationDropdown = () => {
         <div className="flex flex-col h-[300px]">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h3 className="font-semibold text-foreground">Notificações</h3>
+            <h3 className="font-semibold text-foreground">{t('dropdown.title')}</h3>
             <Link
-              to={location.pathname.startsWith('/admin') 
-                ? '/admin/notifications' 
+              to={location.pathname.startsWith('/admin')
+                ? '/admin/notifications'
                 : location.pathname.startsWith('/consultant')
                 ? '/consultant/notifications'
                 : '/app/notifications'}
               onClick={handleViewAll}
               className="text-sm text-primary hover:underline"
             >
-              Ver todas
+              {t('dropdown.viewAll')}
             </Link>
           </div>
 
@@ -295,11 +311,11 @@ const NotificationDropdown = () => {
             <div>
               {loading ? (
                 <div className="p-4 text-center text-muted-foreground">
-                  Carregando...
+                  {t('dropdown.loading')}
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
-                  Nenhuma notificação
+                  {t('dropdown.empty')}
                 </div>
               ) : (
                 <div className="divide-y divide-border">
