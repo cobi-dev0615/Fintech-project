@@ -275,7 +275,6 @@ const PortfolioSimulator = () => {
                 </div>
               </div>
               </div>
-              </div>
 
               <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow")}>
                 <div className="flex items-center gap-3 mb-5">
