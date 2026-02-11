@@ -44,7 +44,8 @@ import { cn } from "@/lib/utils";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 
 interface ConversationItem {
   id: string;
@@ -79,6 +80,8 @@ interface Client {
 }
 
 const Messages = () => {
+  const { t, i18n } = useTranslation(['consultant', 'common']);
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
   const navigate = useNavigate();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
@@ -174,15 +177,15 @@ const Messages = () => {
       setIsCreateDialogOpen(false);
       setSelectedClientId("");
       toast({
-        title: "Conversa criada",
-        description: `Conversa iniciada com ${data.conversation.clientName}`,
+        title: t('consultant:messages.conversationCreated'),
+        description: t('consultant:messages.conversationCreatedDesc', { clientName: data.conversation.clientName }),
         variant: "success",
       });
     },
     onError: (err: any) => {
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao criar conversa",
+        title: t('common:error'),
+        description: err?.error || t('consultant:messages.createError'),
         variant: "destructive",
       });
     },
@@ -207,8 +210,8 @@ const Messages = () => {
     },
     onError: (err: any) => {
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao enviar mensagem",
+        title: t('common:error'),
+        description: err?.error || t('consultant:messages.sendError'),
         variant: "destructive",
       });
     },
@@ -220,10 +223,18 @@ const Messages = () => {
       queryClient.invalidateQueries({ queryKey: ['consultant', 'conversation', selectedConversation] });
       queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
       setClearHistoryDialogOpen(false);
-      toast({ title: "Histórico limpo", description: "Todas as mensagens foram removidas.", variant: "success" });
+      toast({
+        title: t('consultant:messages.historyCleared'),
+        description: t('consultant:messages.historyClearedDesc'),
+        variant: "success"
+      });
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err?.error || "Erro ao limpar histórico", variant: "destructive" });
+      toast({
+        title: t('common:error'),
+        description: err?.error || t('consultant:messages.clearError'),
+        variant: "destructive"
+      });
     },
   });
 
@@ -233,10 +244,18 @@ const Messages = () => {
       setSelectedConversation(null);
       queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
       setDeleteChatDialogOpen(false);
-      toast({ title: "Conversa excluída", description: "A conversa foi removida.", variant: "success" });
+      toast({
+        title: t('consultant:messages.conversationDeleted'),
+        description: t('consultant:messages.conversationDeletedDesc'),
+        variant: "success"
+      });
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err?.error || "Erro ao excluir conversa", variant: "destructive" });
+      toast({
+        title: t('common:error'),
+        description: err?.error || t('consultant:messages.deleteError'),
+        variant: "destructive"
+      });
     },
   });
 
@@ -256,11 +275,19 @@ const Messages = () => {
     const allowed = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'csv'];
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!ext || !allowed.includes(ext)) {
-      toast({ title: "Tipo não permitido", description: "Use: pdf, doc, docx, xls, xlsx, jpg, png, gif, txt, csv", variant: "destructive" });
+      toast({
+        title: t('consultant:messages.fileTypeNotAllowed'),
+        description: t('consultant:messages.fileTypeNotAllowedDesc'),
+        variant: "destructive"
+      });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast({ title: "Arquivo grande", description: "Máximo 10MB", variant: "destructive" });
+      toast({
+        title: t('consultant:messages.fileTooLarge'),
+        description: t('consultant:messages.fileTooLargeDesc'),
+        variant: "destructive"
+      });
       return;
     }
     setUploadingFile(true);
@@ -277,7 +304,11 @@ const Messages = () => {
       const res = await consultantApi.uploadMessageFile(base64, file.name);
       setPendingAttachment({ url: res.url, filename: res.filename });
     } catch (err: any) {
-      toast({ title: "Erro", description: err?.error || "Falha ao enviar arquivo", variant: "destructive" });
+      toast({
+        title: t('common:error'),
+        description: err?.error || t('consultant:messages.uploadError'),
+        variant: "destructive"
+      });
     } finally {
       setUploadingFile(false);
       e.target.value = '';
@@ -287,8 +318,8 @@ const Messages = () => {
   const handleCreateConversation = () => {
     if (!selectedClientId) {
       toast({
-        title: "Erro",
-        description: "Por favor, selecione um cliente",
+        title: t('common:error'),
+        description: t('consultant:messages.selectClientError'),
         variant: "destructive",
       });
       return;
@@ -303,11 +334,11 @@ const Messages = () => {
       const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
       if (diffInHours < 24) {
-        return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+        return formatDistanceToNow(date, { addSuffix: true, locale: dateLocale });
       } else if (diffInHours < 48) {
-        return `Ontem ${format(date, 'HH:mm', { locale: ptBR })}`;
+        return `${t('consultant:messages.yesterday')} ${format(date, 'HH:mm', { locale: dateLocale })}`;
       } else {
-        return format(date, 'dd/MM/yyyy HH:mm', { locale: ptBR });
+        return format(date, 'dd/MM/yyyy HH:mm', { locale: dateLocale });
       }
     } catch {
       return timestamp;
@@ -316,17 +347,17 @@ const Messages = () => {
 
   const formatConversationTime = (timestamp: string) => {
     try {
-      if (timestamp === 'Nunca') return 'Nunca';
+      if (timestamp === 'Nunca') return t('consultant:messages.never');
       const date = new Date(timestamp);
       const now = new Date();
       const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
       if (diffInHours < 1) {
-        return 'Agora';
+        return t('consultant:messages.now');
       } else if (diffInHours < 24) {
-        return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+        return formatDistanceToNow(date, { addSuffix: true, locale: dateLocale });
       } else {
-        return format(date, 'dd/MM/yyyy', { locale: ptBR });
+        return format(date, 'dd/MM/yyyy', { locale: dateLocale });
       }
     } catch {
       return timestamp;
@@ -338,19 +369,19 @@ const Messages = () => {
       {/* Page Header */}
       <div className="flex-shrink-0 flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Mensagens</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('consultant:messages.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
-            Comunique-se com seus clientes pela plataforma
+            {t('consultant:messages.subtitle')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate('/consultant/invitations')}>
             <UserPlus className="h-4 w-4 mr-2 shrink-0" />
-            Enviar Convite
+            {t('consultant:messages.sendInvite')}
           </Button>
           <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2 shrink-0" />
-            Nova Conversa
+            {t('consultant:messages.newConversation')}
           </Button>
         </div>
       </div>
@@ -363,19 +394,19 @@ const Messages = () => {
               <MessageSquare className="h-5 w-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-sm font-semibold text-foreground">Conversas</h2>
-              <p className="text-xs text-muted-foreground truncate">Selecione para abrir</p>
+              <h2 className="text-sm font-semibold text-foreground">{t('consultant:messages.conversations')}</h2>
+              <p className="text-xs text-muted-foreground truncate">{t('consultant:messages.selectToOpen')}</p>
             </div>
           </div>
           <div className="p-3 border-b border-border shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Buscar conversas..."
+                placeholder={t('consultant:messages.searchPlaceholder')}
                 className="pl-9 h-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Buscar conversas"
+                aria-label={t('consultant:messages.searchLabel')}
               />
             </div>
           </div>
@@ -391,15 +422,15 @@ const Messages = () => {
                 <div className="flex flex-col items-center justify-center py-10 text-center px-4 rounded-lg border border-dashed border-border bg-muted/20 min-h-[160px]">
                   <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-3" />
                   <p className="text-sm font-medium text-foreground">
-                    {searchQuery ? "Nenhuma conversa encontrada" : "Nenhuma conversa ainda"}
+                    {searchQuery ? t('consultant:messages.noConversationsFound') : t('consultant:messages.noConversations')}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {searchQuery ? "Tente outro termo" : "Inicie uma conversa com um cliente"}
+                    {searchQuery ? t('consultant:messages.tryDifferentSearch') : t('consultant:messages.startConversation')}
                   </p>
                   {!searchQuery && (
                     <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" size="sm" className="mt-3">
                       <Plus className="h-4 w-4 mr-2" />
-                      Nova Conversa
+                      {t('consultant:messages.newConversation')}
                     </Button>
                   )}
                 </div>
@@ -474,7 +505,7 @@ const Messages = () => {
                       <p className="font-semibold text-foreground truncate">
                         {currentConversation?.clientName}
                       </p>
-                      <p className="text-xs text-muted-foreground">Cliente</p>
+                      <p className="text-xs text-muted-foreground">{t('consultant:messages.client')}</p>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -485,14 +516,14 @@ const Messages = () => {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => setClearHistoryDialogOpen(true)}>
                           <History className="h-4 w-4 mr-2" />
-                          Limpar histórico
+                          {t('consultant:messages.clearHistory')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setDeleteChatDialogOpen(true)}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir conversa
+                          {t('consultant:messages.deleteConversation')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -511,8 +542,8 @@ const Messages = () => {
                         <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground mb-3">
                           <MessageSquare className="h-6 w-6" />
                         </div>
-                        <p className="text-sm font-medium text-foreground">Nenhuma mensagem ainda</p>
-                        <p className="text-xs text-muted-foreground mt-1">Envie a primeira mensagem para começar</p>
+                        <p className="text-sm font-medium text-foreground">{t('consultant:messages.noMessages')}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t('consultant:messages.sendFirstMessage')}</p>
                       </div>
                     ) : (
                       currentConversation?.messages?.map((message: Message) => (
@@ -537,7 +568,7 @@ const Messages = () => {
                                 <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline truncate flex-1 min-w-0">
                                   {message.attachmentName}
                                 </a>
-                                <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} download={message.attachmentName} rel="noopener noreferrer" className="flex-shrink-0 p-1.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10" title="Baixar arquivo" aria-label="Baixar arquivo">
+                                <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} download={message.attachmentName} rel="noopener noreferrer" className="flex-shrink-0 p-1.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10" title={t('consultant:messages.downloadFile')} aria-label={t('consultant:messages.downloadFile')}>
                                   <Download className="h-4 w-4" />
                                 </a>
                               </div>
@@ -583,7 +614,7 @@ const Messages = () => {
                       className="flex-shrink-0"
                       disabled={uploadingFile || sendMessageMutation.isPending}
                       onClick={() => fileInputRef.current?.click()}
-                      aria-label="Anexar arquivo"
+                      aria-label={t('consultant:messages.attachFile')}
                     >
                       {uploadingFile ? (
                         <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -592,7 +623,7 @@ const Messages = () => {
                       )}
                     </Button>
                     <Textarea
-                      placeholder="Digite sua mensagem..."
+                      placeholder={t('consultant:messages.messagePlaceholder')}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       className="min-h-[60px] resize-none"
@@ -604,10 +635,10 @@ const Messages = () => {
                       }}
                       disabled={sendMessageMutation.isPending}
                     />
-                    <Button 
-                      onClick={handleSendMessage} 
-                      size="icon" 
-                      className="flex-shrink-0" 
+                    <Button
+                      onClick={handleSendMessage}
+                      size="icon"
+                      className="flex-shrink-0"
                       disabled={sendMessageMutation.isPending || (!newMessage.trim() && !pendingAttachment)}
                     >
                       {sendMessageMutation.isPending ? (
@@ -628,14 +659,14 @@ const Messages = () => {
                     </div>
                   </div>
                   <p className="font-medium text-foreground mb-1">
-                    Selecione uma conversa
+                    {t('consultant:messages.selectConversation')}
                   </p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Escolha uma conversa na lista ao lado ou inicie uma nova com um cliente
+                    {t('consultant:messages.selectConversationDesc')}
                   </p>
                   <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline">
                     <Plus className="h-4 w-4 mr-2" />
-                    Nova Conversa
+                    {t('consultant:messages.newConversation')}
                   </Button>
                 </div>
               </div>
@@ -647,22 +678,22 @@ const Messages = () => {
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="gap-6 sm:max-w-md">
           <DialogHeader className="space-y-2">
-            <DialogTitle>Nova Conversa</DialogTitle>
+            <DialogTitle>{t('consultant:messages.newConversation')}</DialogTitle>
             <DialogDescription>
-              Selecione um cliente para iniciar uma conversa
+              {t('consultant:messages.selectClientToStart')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
               <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecione um cliente" />
+                <SelectValue placeholder={t('consultant:messages.selectClient')} />
               </SelectTrigger>
               <SelectContent>
                 {availableClients.length === 0 ? (
                   <div className="p-6 text-center text-sm text-muted-foreground">
                     {clients.length === 0
-                      ? "Nenhum cliente ativo encontrado"
-                      : "Todos os seus clientes já possuem conversa ativa"}
+                      ? t('consultant:messages.noActiveClients')
+                      : t('consultant:messages.allClientsHaveConversation')}
                   </div>
                 ) : (
                   availableClients.map((client) => (
@@ -677,7 +708,7 @@ const Messages = () => {
               <p className="text-xs text-muted-foreground">
                 {clients.length === 0 ? (
                   <>
-                    Você precisa ter clientes ativos para iniciar conversas.{" "}
+                    {t('consultant:messages.needActiveClients')}{" "}
                     <button
                       onClick={() => {
                         setIsCreateDialogOpen(false);
@@ -685,24 +716,24 @@ const Messages = () => {
                       }}
                       className="text-primary hover:underline"
                     >
-                      Envie um convite
+                      {t('consultant:messages.sendInvite')}
                     </button>
                   </>
                 ) : (
-                  "Abra uma conversa existente na lista ao lado ou aguarde novos clientes."
+                  t('consultant:messages.openExistingOrWait')
                 )}
               </p>
             )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              Cancelar
+              {t('common:cancel')}
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateConversation}
               disabled={!selectedClientId || createConversationMutation.isPending}
             >
-              {createConversationMutation.isPending ? "Criando..." : "Iniciar Conversa"}
+              {createConversationMutation.isPending ? t('consultant:messages.creating') : t('consultant:messages.startConversation')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -711,19 +742,19 @@ const Messages = () => {
       <AlertDialog open={clearHistoryDialogOpen} onOpenChange={setClearHistoryDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Limpar histórico?</AlertDialogTitle>
+            <AlertDialogTitle>{t('consultant:messages.clearHistoryConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Todas as mensagens desta conversa serão removidas. Esta ação não pode ser desfeita.
+              {t('consultant:messages.clearHistoryConfirmDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={clearHistoryMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={clearHistoryMutation.isPending}>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedConversation && clearHistoryMutation.mutate(selectedConversation)}
               disabled={clearHistoryMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {clearHistoryMutation.isPending ? "Limpando..." : "Limpar"}
+              {clearHistoryMutation.isPending ? t('consultant:messages.clearing') : t('consultant:messages.clear')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -732,19 +763,19 @@ const Messages = () => {
       <AlertDialog open={deleteChatDialogOpen} onOpenChange={setDeleteChatDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir conversa?</AlertDialogTitle>
+            <AlertDialogTitle>{t('consultant:messages.deleteConversationConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
-              A conversa inteira será excluída permanentemente. Esta ação não pode ser desfeita.
+              {t('consultant:messages.deleteConversationConfirmDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteConversationMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteConversationMutation.isPending}>{t('common:cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedConversation && deleteConversationMutation.mutate(selectedConversation)}
               disabled={deleteConversationMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteConversationMutation.isPending ? "Excluindo..." : "Excluir"}
+              {deleteConversationMutation.isPending ? t('consultant:messages.deleting') : t('common:delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

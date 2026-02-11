@@ -33,6 +33,7 @@ import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn, getToastVariantForApiError } from "@/lib/utils";
 import { useWebSocket } from "@/contexts/WebSocketContext";
+import { useTranslation } from "react-i18next";
 
 interface Invitation {
   id: string;
@@ -50,6 +51,7 @@ interface AvailableCustomer {
 }
 
 const SendInvitations = () => {
+  const { t } = useTranslation(['consultant', 'common']);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
@@ -128,8 +130,8 @@ const SendInvitations = () => {
   const handleSendInvitation = async () => {
     if (!email.trim()) {
       toast({
-        title: "Erro",
-        description: "Por favor, insira um email válido",
+        title: t('common:error'),
+        description: t('consultant:invitations.validation.emailRequired'),
         variant: "destructive",
       });
       return;
@@ -143,14 +145,14 @@ const SendInvitations = () => {
       setName("");
       setMessage("");
       toast({
-        title: "Sucesso",
-        description: `Convite enviado para ${email}`,
+        title: t('common:success'),
+        description: t('consultant:invitations.toast.sent', { email }),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao enviar convite",
+        title: t('common:error'),
+        description: err?.error || t('consultant:invitations.sendError'),
         variant: getToastVariantForApiError(err),
       });
       console.error("Error sending invitation:", err);
@@ -168,14 +170,14 @@ const SendInvitations = () => {
       setInvitations(invitations.filter((inv) => inv.id !== invitationId));
       setDeleteTarget(null);
       toast({
-        title: "Sucesso",
-        description: "Convite excluído com sucesso",
+        title: t('common:success'),
+        description: t('consultant:invitations.toast.deleteSuccess'),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao excluir convite",
+        title: t('common:error'),
+        description: err?.error || t('consultant:invitations.toast.deleteError'),
         variant: getToastVariantForApiError(err),
       });
       console.error("Error deleting invitation:", err);
@@ -186,10 +188,10 @@ const SendInvitations = () => {
 
   const getStatusConfig = (status: string) => {
     const config = {
-      pending: { icon: Clock, label: "Pendente", className: "bg-yellow-500/10 text-yellow-500" },
-      sent: { icon: Mail, label: "Enviado", className: "bg-blue-500/10 text-blue-500" },
-      accepted: { icon: CheckCircle2, label: "Aceito", className: "bg-success/10 text-success" },
-      expired: { icon: XCircle, label: "Expirado", className: "bg-destructive/10 text-destructive" },
+      pending: { icon: Clock, label: t('consultant:invitations.history.status.pending'), className: "bg-yellow-500/10 text-yellow-500" },
+      sent: { icon: Mail, label: t('consultant:invitations.history.status.sent'), className: "bg-blue-500/10 text-blue-500" },
+      accepted: { icon: CheckCircle2, label: t('consultant:invitations.history.status.accepted'), className: "bg-success/10 text-success" },
+      expired: { icon: XCircle, label: t('consultant:invitations.history.status.expired'), className: "bg-destructive/10 text-destructive" },
     };
     return config[status as keyof typeof config] ?? config.pending;
   };
@@ -229,9 +231,9 @@ const SendInvitations = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Enviar Convites</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('consultant:invitations.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
-            Convide clientes para conectar-se com você na plataforma zurT
+            {t('consultant:invitations.subtitle')}
           </p>
         </div>
       </div>
@@ -244,32 +246,32 @@ const SendInvitations = () => {
               <MailPlus className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Enviar Novo Convite</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Preencha o email e opcionalmente personalize a mensagem</p>
+              <h2 className="text-sm font-semibold text-foreground">{t('consultant:invitations.form.title')}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t('consultant:invitations.form.description')}</p>
             </div>
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="invite-email">Email do Cliente *</Label>
+              <Label htmlFor="invite-email">{t('consultant:invitations.form.clientEmail')}</Label>
               <div className="flex gap-2">
                 <Input
                   id="invite-email"
                   type="email"
-                  placeholder="exemplo@email.com"
+                  placeholder={t('consultant:invitations.form.clientEmailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="flex-1 min-w-0"
                 />
                 <Popover open={emailOpen} onOpenChange={handleOpenChange}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="icon" type="button" aria-label="Buscar cliente" title="Buscar cliente na lista">
+                    <Button variant="outline" size="icon" type="button" aria-label={t('consultant:invitations.form.searchCustomer')} title={t('consultant:invitations.form.searchCustomer')}>
                       <ChevronsUpDown className="h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[min(100vw-2rem,320px)] p-0" align="end">
                     <Command shouldFilter={false}>
                       <CommandInput
-                        placeholder="Buscar por nome ou email..."
+                        placeholder={t('consultant:invitations.form.searchPlaceholder')}
                         value={searchQuery}
                         onValueChange={setSearchQuery}
                       />
@@ -280,7 +282,7 @@ const SendInvitations = () => {
                               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                             </div>
                           ) : (
-                            "Nenhum cliente disponível. Digite o email ao lado."
+                            t('consultant:invitations.form.noCustomersAvailable')
                           )}
                         </CommandEmpty>
                         <CommandGroup>
@@ -311,26 +313,26 @@ const SendInvitations = () => {
                 </Popover>
               </div>
               <p className="text-xs text-muted-foreground">
-                Digite o email ou use o ícone ao lado para buscar clientes já registrados.
+                {t('consultant:invitations.form.searchHelpText')}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Nome do Cliente (opcional)</Label>
+              <Label htmlFor="name">{t('consultant:invitations.form.name')}</Label>
               <Input
                 id="name"
                 type="text"
-                placeholder="Preenchido ao selecionar um cliente da lista"
+                placeholder={t('consultant:invitations.form.namePlaceholder')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message">Mensagem Personalizada (opcional)</Label>
+              <Label htmlFor="message">{t('consultant:invitations.form.message')}</Label>
               <Textarea
                 id="message"
-                placeholder="Olá! Gostaria de convidá-lo para usar a plataforma zurT..."
+                placeholder={t('consultant:invitations.form.messagePlaceholder')}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 className="min-h-[100px] resize-none"
@@ -339,7 +341,7 @@ const SendInvitations = () => {
 
             <Button onClick={handleSendInvitation} className="w-full" size="lg" disabled={sending}>
               {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-              {sending ? "Enviando..." : "Enviar Convite por Email"}
+              {sending ? t('consultant:invitations.form.sending') : t('consultant:invitations.form.sendButton')}
             </Button>
           </div>
         </div>
@@ -351,8 +353,8 @@ const SendInvitations = () => {
               <History className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Histórico de Convites</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Acompanhe o status dos convites enviados</p>
+              <h2 className="text-sm font-semibold text-foreground">{t('consultant:invitations.history.title')}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t('consultant:invitations.history.subtitle')}</p>
             </div>
           </div>
           <div className="space-y-3">
@@ -365,8 +367,8 @@ const SendInvitations = () => {
             ) : invitations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center rounded-lg border border-dashed border-border bg-muted/20">
                 <Mail className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-sm font-medium text-foreground">Nenhum convite enviado ainda</p>
-                <p className="text-xs text-muted-foreground mt-1 max-w-sm">Envie um convite pelo formulário ao lado para começar.</p>
+                <p className="text-sm font-medium text-foreground">{t('consultant:invitations.history.empty')}</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm">{t('consultant:invitations.history.emptyDesc')}</p>
               </div>
             ) : (
               paginatedInvitations.map((invitation) => (
@@ -388,8 +390,8 @@ const SendInvitations = () => {
                           className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => setDeleteTarget({ id: invitation.id, email: invitation.email })}
                           disabled={deleting === invitation.id}
-                          title="Excluir convite"
-                          aria-label="Excluir convite"
+                          title={t('consultant:invitations.history.deleteLabel')}
+                          aria-label={t('consultant:invitations.history.deleteLabel')}
                         >
                           {deleting === invitation.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
@@ -397,8 +399,8 @@ const SendInvitations = () => {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground pt-3 border-t border-border">
-                    <span>Enviado: {formatDate(invitation.sentAt)}</span>
-                    <span>Expira: {formatDate(invitation.expiresAt)}</span>
+                    <span>{t('consultant:invitations.history.sent')}: {formatDate(invitation.sentAt)}</span>
+                    <span>{t('consultant:invitations.history.expires')}: {formatDate(invitation.expiresAt)}</span>
                   </div>
                 </div>
               ))
@@ -407,7 +409,7 @@ const SendInvitations = () => {
           {totalInvitations > 0 && (
             <div className="flex flex-col gap-3 pt-4 mt-4 border-t border-border text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <p className="tabular-nums">
-                Mostrando {showingFrom}-{showingTo} de {totalInvitations} convites
+                {t('consultant:invitations.history.showing', { from: showingFrom, to: showingTo, total: totalInvitations })}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -416,7 +418,7 @@ const SendInvitations = () => {
                   className="h-8 w-8"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  aria-label="Página anterior"
+                  aria-label={t('consultant:invitations.history.previousPage')}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -427,7 +429,7 @@ const SendInvitations = () => {
                   className="h-8 w-8"
                   disabled={currentPage === totalPages || totalInvitations === 0}
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  aria-label="Próxima página"
+                  aria-label={t('consultant:invitations.history.nextPage')}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -443,21 +445,21 @@ const SendInvitations = () => {
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
             <Lightbulb className="h-5 w-5" />
           </div>
-          <h2 className="text-sm font-semibold text-foreground">Dicas para Convites</h2>
+          <h2 className="text-sm font-semibold text-foreground">{t('consultant:invitations.tips.title')}</h2>
         </div>
         <div className="space-y-4 text-sm text-muted-foreground">
           <div className="flex items-start gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
             <div>
-              <p className="font-semibold text-foreground mb-0.5">Personalize sua mensagem</p>
-              <p>Uma mensagem personalizada aumenta as chances de aceitação do convite.</p>
+              <p className="font-semibold text-foreground mb-0.5">{t('consultant:invitations.tips.tip1Title')}</p>
+              <p>{t('consultant:invitations.tips.tip1Desc')}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</span>
             <div>
-              <p className="font-semibold text-foreground mb-0.5">Acompanhe o status</p>
-              <p>Veja no histórico quais convites foram aceitos, pendentes ou expirados.</p>
+              <p className="font-semibold text-foreground mb-0.5">{t('consultant:invitations.tips.tip2Title')}</p>
+              <p>{t('consultant:invitations.tips.tip2Desc')}</p>
             </div>
           </div>
         </div>
@@ -467,20 +469,22 @@ const SendInvitations = () => {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir convite?</AlertDialogTitle>
+            <AlertDialogTitle>{t('consultant:invitations.deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o convite para{" "}
-              <strong>{deleteTarget?.email}</strong>? Esta ação não pode ser desfeita.
+              {t('consultant:invitations.deleteDialog.description', {
+                email: deleteTarget?.email,
+                interpolation: { escapeValue: false }
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={!!deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={!!deleting}>{t('consultant:invitations.deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteInvitation}
               disabled={!!deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? "Excluindo..." : "Excluir"}
+              {deleting ? t('consultant:invitations.deleteDialog.deleting') : t('consultant:invitations.deleteDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

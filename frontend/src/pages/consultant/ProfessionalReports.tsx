@@ -28,7 +28,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { format, formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 
 const REPORTS_PAGE_SIZE = 6;
 
@@ -43,6 +44,9 @@ interface Report {
 }
 
 const ProfessionalReports = () => {
+  const { t, i18n } = useTranslation(['consultant', 'common']);
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
+
   const [selectedClient, setSelectedClient] = useState("all");
   const [reportType, setReportType] = useState("");
   const [includeWatermark, setIncludeWatermark] = useState(true);
@@ -58,17 +62,13 @@ const ProfessionalReports = () => {
     "monthly",
   ];
 
-  const reportTypeLabels: Record<string, string> = {
-    portfolio_analysis: "Análise de Portfólio",
-    financial_planning: "Planejamento Financeiro",
-    monthly: "Relatório Mensal",
+  // Helper functions for dynamic labels
+  const getReportTypeLabel = (type: string) => {
+    return t(`consultant:reports.types.${type}`, { defaultValue: type });
   };
 
-  const reportTypeDescriptions: Record<string, string> = {
-    consolidated: "Visão única do cliente: resumo (patrimônio, rentabilidade, saldo em contas, dívida), contas bancárias, cartões de crédito, investimentos e histórico de transações dos últimos 3 meses.",
-    portfolio_analysis: "Análise de portfólio do cliente: resumo financeiro, contas, cartões, composição de investimentos e histórico de transações e investimentos.",
-    financial_planning: "Portfólio completo do cliente mais uma seção de planejamento com objetivos e recomendações para uso em reuniões de acompanhamento.",
-    monthly: "Relatório mensal com resumo do período (receitas, despesas, saldo) e tabela de movimentações para o intervalo selecionado.",
+  const getReportTypeDescription = (type: string) => {
+    return t(`consultant:reports.typeDescriptions.${type}`, { defaultValue: "" });
   };
 
   // Fetch reports and clients in parallel with caching
@@ -102,8 +102,8 @@ const ProfessionalReports = () => {
       // Invalidate and refetch reports
       queryClient.invalidateQueries({ queryKey: ['consultant', 'reports'] });
       toast({
-        title: "Sucesso",
-        description: result.message || "Relatório iniciado. Estará disponível em breve.",
+        title: t('common:success'),
+        description: result.message || t('consultant:reports.toast.generateSuccess'),
         variant: "success",
       });
       setSelectedClient("all");
@@ -113,8 +113,8 @@ const ProfessionalReports = () => {
     },
     onError: (err: any) => {
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao gerar relatório",
+        title: t('common:error'),
+        description: err?.error || t('consultant:reports.toast.generateError'),
         variant: "destructive",
       });
     },
@@ -127,7 +127,7 @@ const ProfessionalReports = () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
     try {
       const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {}, credentials: "include" });
-      if (!res.ok) throw new Error("Falha ao baixar");
+      if (!res.ok) throw new Error(t('consultant:reports.toast.downloadFailed'));
       const blob = await res.blob();
       const name = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ?? `relatorio-${reportId}.pdf`;
       const a = document.createElement("a");
@@ -136,7 +136,7 @@ const ProfessionalReports = () => {
       a.click();
       URL.revokeObjectURL(a.href);
     } catch (e) {
-      toast({ title: "Erro", description: "Não foi possível baixar o relatório.", variant: "destructive" });
+      toast({ title: t('common:error'), description: t('consultant:reports.toast.downloadError'), variant: "destructive" });
     }
   };
 
@@ -145,18 +145,18 @@ const ProfessionalReports = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consultant', 'reports'] });
       setDeleteReportId(null);
-      toast({ title: "Relatório removido", description: "O relatório foi excluído.", variant: "success" });
+      toast({ title: t('consultant:reports.toast.deleteSuccess'), description: t('consultant:reports.toast.deleteSuccessDesc'), variant: "success" });
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err?.error || "Erro ao excluir relatório", variant: "destructive" });
+      toast({ title: t('common:error'), description: err?.error || t('consultant:reports.toast.deleteError'), variant: "destructive" });
     },
   });
 
   const handleGenerateReport = async () => {
     if (!reportType) {
       toast({
-        title: "Erro",
-        description: "Selecione um tipo de relatório",
+        title: t('common:error'),
+        description: t('consultant:reports.toast.typeRequired'),
         variant: "destructive",
       });
       return;
@@ -177,11 +177,11 @@ const ProfessionalReports = () => {
       const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
       if (diffInHours < 24) {
-        return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+        return formatDistanceToNow(date, { addSuffix: true, locale: dateLocale });
       } else if (diffInHours < 48) {
-        return `Ontem ${format(date, 'HH:mm', { locale: ptBR })}`;
+        return `${t('consultant:reports.yesterday')} ${format(date, 'HH:mm', { locale: dateLocale })}`;
       } else {
-        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: dateLocale });
       }
     } catch {
       return dateString;
@@ -213,9 +213,9 @@ const ProfessionalReports = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-1">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Relatórios Profissionais</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('consultant:reports.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
-            Crie e gerencie relatórios personalizados para seus clientes
+            {t('consultant:reports.subtitle')}
           </p>
         </div>
       </div>
@@ -229,24 +229,24 @@ const ProfessionalReports = () => {
             <FilePlus className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Gerar Novo Relatório</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Escolha o cliente, tipo e opções e gere o PDF</p>
+            <h2 className="text-sm font-semibold text-foreground">{t('consultant:reports.generator.title')}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{t('consultant:reports.generator.subtitle')}</p>
           </div>
         </div>
         <div className="space-y-5 md:space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="client" className="text-sm font-medium">Cliente</Label>
+              <Label htmlFor="client" className="text-sm font-medium">{t('consultant:reports.generator.client')}</Label>
               <Select value={selectedClient} onValueChange={setSelectedClient}>
                 <SelectTrigger id="client" className="h-11 min-h-11 touch-manipulation">
-                  <SelectValue placeholder="Selecione um cliente" />
+                  <SelectValue placeholder={t('consultant:reports.generator.clientPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Geral (sem cliente específico)</SelectItem>
+                  <SelectItem value="all">{t('consultant:reports.generator.general')}</SelectItem>
                   {clientsLoading ? (
-                    <SelectItem value="loading" disabled>Carregando clientes...</SelectItem>
+                    <SelectItem value="loading" disabled>{t('consultant:reports.generator.loadingClients')}</SelectItem>
                   ) : clients.length === 0 ? (
-                    <SelectItem value="none" disabled>Nenhum cliente ativo</SelectItem>
+                    <SelectItem value="none" disabled>{t('consultant:reports.generator.noActiveClients')}</SelectItem>
                   ) : (
                     clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
@@ -259,22 +259,22 @@ const ProfessionalReports = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type" className="text-sm font-medium">Tipo de Relatório</Label>
+              <Label htmlFor="type" className="text-sm font-medium">{t('consultant:reports.generator.reportType')}</Label>
               <Select value={reportType} onValueChange={setReportType}>
                 <SelectTrigger id="type" className="h-11 min-h-11 touch-manipulation">
-                  <SelectValue placeholder="Selecione o tipo" />
+                  <SelectValue placeholder={t('consultant:reports.generator.reportTypePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {reportTypes.map((type) => (
                     <SelectItem key={type} value={type}>
-                      {reportTypeLabels[type] || type}
+                      {getReportTypeLabel(type)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {reportType && reportTypeDescriptions[reportType] && (
+              {reportType && getReportTypeDescription(reportType) && (
                 <p className="text-xs text-muted-foreground mt-1.5 pl-0.5">
-                  {reportTypeDescriptions[reportType]}
+                  {getReportTypeDescription(reportType)}
                 </p>
               )}
             </div>
@@ -289,7 +289,7 @@ const ProfessionalReports = () => {
                 className="h-5 w-5 rounded border-2 data-[state=checked]:bg-primary"
               />
               <Label htmlFor="watermark" className="cursor-pointer text-sm flex-1 py-2">
-                Incluir marca d'água do consultor
+                {t('consultant:reports.generator.includeWatermark')}
               </Label>
             </div>
 
@@ -301,22 +301,22 @@ const ProfessionalReports = () => {
                 className="h-5 w-5 rounded border-2 data-[state=checked]:bg-primary"
               />
               <Label htmlFor="branding" className="cursor-pointer text-sm flex-1 py-2">
-                Incluir logotipo e identidade visual personalizada
+                {t('consultant:reports.generator.customBranding')}
               </Label>
             </div>
           </div>
 
-          <Button 
-            className="w-full md:w-auto min-h-11 touch-manipulation text-base font-medium" 
-            disabled={!reportType || generateMutation.isPending || clients.length === 0} 
+          <Button
+            className="w-full md:w-auto min-h-11 touch-manipulation text-base font-medium"
+            disabled={!reportType || generateMutation.isPending || clients.length === 0}
             onClick={handleGenerateReport}
           >
             {generateMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" /> : <FileText className="h-4 w-4 mr-2 shrink-0" />}
-            {generateMutation.isPending ? "Gerando..." : "Gerar Relatório PDF"}
+            {generateMutation.isPending ? t('consultant:reports.generator.generating') : t('consultant:reports.generator.generateButton')}
           </Button>
           {clients.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              Você precisa ter clientes ativos para gerar relatórios.
+              {t('consultant:reports.generator.needActiveClients')}
             </p>
           )}
         </div>
@@ -329,13 +329,13 @@ const ProfessionalReports = () => {
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Relatórios Gerados</h2>
+            <h2 className="text-sm font-semibold text-foreground">{t('consultant:reports.history.title')}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               {reportsTotal > 0
                 ? reportsTotalPages > 1
-                  ? `${reportsStart + 1}–${reportsEnd} de ${reportsTotal} relatório(s)`
-                  : `${reportsTotal} relatório(s)`
-                : "Histórico de relatórios"}
+                  ? t('consultant:reports.history.showing', { start: reportsStart + 1, end: reportsEnd, total: reportsTotal })
+                  : t('consultant:reports.history.total', { total: reportsTotal })
+                : t('consultant:reports.history.historyLabel')}
             </p>
           </div>
         </div>
@@ -349,19 +349,19 @@ const ProfessionalReports = () => {
           ) : reportsError ? (
             <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-6 text-center">
               <FileText className="h-12 w-12 mx-auto mb-3 text-destructive/70" />
-              <p className="text-sm font-medium text-foreground">Erro ao carregar relatórios</p>
+              <p className="text-sm font-medium text-foreground">{t('consultant:reports.history.loadError')}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {(reportsError as any)?.error || "Tente novamente mais tarde"}
+                {(reportsError as any)?.error || t('consultant:reports.history.tryAgain')}
               </p>
             </div>
           ) : filteredReports.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center rounded-lg border border-dashed border-border bg-muted/20 min-h-[140px]">
               <FileText className="h-12 w-12 text-muted-foreground/50 mb-3" />
               <p className="text-sm font-medium text-foreground">
-                {selectedClient !== "all" ? "Nenhum relatório para este cliente" : "Nenhum relatório gerado ainda"}
+                {selectedClient !== "all" ? t('consultant:reports.history.noReportsClient') : t('consultant:reports.history.noReports')}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {selectedClient !== "all" ? "Altere o filtro de cliente acima ou gere um novo relatório" : "Gere seu primeiro relatório no formulário acima"}
+                {selectedClient !== "all" ? t('consultant:reports.history.noReportsClientDesc') : t('consultant:reports.history.noReportsDesc')}
               </p>
             </div>
           ) : (
@@ -381,15 +381,15 @@ const ProfessionalReports = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1.5">
                       <h3 className="font-semibold text-foreground text-sm sm:text-base">
-                        {reportTypeLabels[report.type] || report.type}
+                        {getReportTypeLabel(report.type)}
                       </h3>
                       <Badge className="text-xs shrink-0 hidden sm:inline-flex bg-emerald-600 hover:bg-emerald-600/90 text-white border-0">
-                        Gerado
+                        {t('consultant:reports.history.statusGenerated')}
                       </Badge>
                       {report.hasWatermark && (
                         <Badge variant="secondary" className="text-xs shrink-0">
                           <User className="h-3 w-3 mr-1" />
-                          Marca d'água
+                          {t('consultant:reports.history.watermark')}
                         </Badge>
                       )}
                     </div>
@@ -409,7 +409,7 @@ const ProfessionalReports = () => {
                 {/* Mobile: status + time + buttons in one line. Desktop: buttons only */}
                 <div className="flex items-center gap-2 sm:gap-2 shrink-0 border-t border-border pt-3 sm:pt-0 sm:border-t-0 flex-wrap">
                   <Badge className="text-xs shrink-0 sm:hidden bg-emerald-600 hover:bg-emerald-600/90 text-white border-0">
-                    Gerado
+                    {t('consultant:reports.history.statusGenerated')}
                   </Badge>
                   <span className="flex items-center gap-1 text-sm text-muted-foreground sm:hidden shrink-0">
                     <Calendar className="h-3.5 w-3.5 shrink-0" />
@@ -421,7 +421,7 @@ const ProfessionalReports = () => {
                       size="sm"
                       onClick={() => handleDownload(report.id)}
                       className="min-h-10 min-w-10 touch-manipulation p-2"
-                      aria-label="Baixar"
+                      aria-label={t('consultant:reports.history.download')}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -430,7 +430,7 @@ const ProfessionalReports = () => {
                       size="sm"
                       className="text-destructive hover:text-destructive min-h-10 min-w-10 touch-manipulation p-2"
                       onClick={() => setDeleteReportId(report.id)}
-                      aria-label="Excluir relatório"
+                      aria-label={t('consultant:reports.history.delete')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -441,7 +441,7 @@ const ProfessionalReports = () => {
             {reportsTotalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
                 <p className="text-xs text-muted-foreground order-2 sm:order-1">
-                  Página {safePage} de {reportsTotalPages}
+                  {t('consultant:reports.history.page', { current: safePage, total: reportsTotalPages })}
                 </p>
                 <Pagination className="order-1 sm:order-2">
                   <PaginationContent>
@@ -470,19 +470,19 @@ const ProfessionalReports = () => {
       <AlertDialog open={!!deleteReportId} onOpenChange={(open) => !open && setDeleteReportId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir relatório?</AlertDialogTitle>
+            <AlertDialogTitle>{t('consultant:reports.deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O relatório será removido permanentemente.
+              {t('consultant:reports.deleteDialog.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteReportMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteReportMutation.isPending}>{t('consultant:reports.deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteReportId && deleteReportMutation.mutate(deleteReportId)}
               disabled={deleteReportMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteReportMutation.isPending ? "Excluindo..." : "Excluir"}
+              {deleteReportMutation.isPending ? t('consultant:reports.deleteDialog.deleting') : t('consultant:reports.deleteDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

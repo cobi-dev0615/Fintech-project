@@ -40,6 +40,7 @@ import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface Prospect {
   id: string;
@@ -51,14 +52,6 @@ interface Prospect {
 }
 
 const stageOrder = ['lead', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
-const stageLabels: Record<string, string> = {
-  'lead': 'Contato Inicial',
-  'contacted': 'Contatado',
-  'meeting': 'Reunião',
-  'proposal': 'Proposta',
-  'won': 'Fechamento',
-  'lost': 'Perdido',
-};
 
 const stageStyles: Record<string, { border: string; icon: string }> = {
   lead: { border: 'border-blue-500/70', icon: 'text-blue-500' },
@@ -86,9 +79,14 @@ function formatPhoneInput(value: string): string {
 }
 
 const Pipeline = () => {
-
+  const { t } = useTranslation(['consultant', 'common']);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Helper function for stage labels
+  const getStageLabel = (stage: string) => {
+    return t(`consultant:stages.${stage}`, { defaultValue: stage });
+  };
 
   // Dialog states
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -186,18 +184,18 @@ const Pipeline = () => {
   const handleCreateProspect = async () => {
     if (!formData.email.trim()) {
       toast({
-        title: "Erro",
-        description: "Email é obrigatório",
+        title: t('common:error'),
+        description: t('consultant:pipeline.validation.emailRequired'),
         variant: "destructive",
       });
       return;
     }
     const phoneTrimmed = formData.phone.trim();
     if (phoneTrimmed && !validatePhone(phoneTrimmed)) {
-      setPhoneError("Use 10 ou 11 dígitos. Ex: (11) 99999-9999 ou (11) 3333-4444");
+      setPhoneError(t('consultant:pipeline.validation.phoneError'));
       toast({
-        title: "Telefone inválido",
-        description: "Use o formato (DDD) número, ex: (11) 99999-9999",
+        title: t('consultant:pipeline.validation.phoneInvalidTitle'),
+        description: t('consultant:pipeline.validation.phoneInvalidDesc'),
         variant: "destructive",
       });
       return;
@@ -218,14 +216,14 @@ const Pipeline = () => {
       setIsCreateDialogOpen(false);
       resetForm();
       toast({
-        title: "Sucesso",
-        description: "Prospecto criado com sucesso",
+        title: t('common:success'),
+        description: t('consultant:pipeline.toast.createSuccess'),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao criar prospecto",
+        title: t('common:error'),
+        description: err?.error || t('consultant:pipeline.toast.createError'),
         variant: "destructive",
       });
     }
@@ -236,18 +234,18 @@ const Pipeline = () => {
 
     if (!formData.email.trim()) {
       toast({
-        title: "Erro",
-        description: "Email é obrigatório",
+        title: t('common:error'),
+        description: t('consultant:pipeline.validation.emailRequired'),
         variant: "destructive",
       });
       return;
     }
     const phoneTrimmed = formData.phone.trim();
     if (phoneTrimmed && !validatePhone(phoneTrimmed)) {
-      setPhoneError("Use 10 ou 11 dígitos. Ex: (11) 99999-9999 ou (11) 3333-4444");
+      setPhoneError(t('consultant:pipeline.validation.phoneError'));
       toast({
-        title: "Telefone inválido",
-        description: "Use o formato (DDD) número, ex: (11) 99999-9999",
+        title: t('consultant:pipeline.validation.phoneInvalidTitle'),
+        description: t('consultant:pipeline.validation.phoneInvalidDesc'),
         variant: "destructive",
       });
       return;
@@ -268,14 +266,14 @@ const Pipeline = () => {
       setIsEditDialogOpen(false);
       resetForm();
       toast({
-        title: "Sucesso",
-        description: "Prospecto atualizado com sucesso",
+        title: t('common:success'),
+        description: t('consultant:pipeline.toast.updateSuccess'),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao atualizar prospecto",
+        title: t('common:error'),
+        description: err?.error || t('consultant:pipeline.toast.updateError'),
         variant: "destructive",
       });
     }
@@ -299,16 +297,16 @@ const Pipeline = () => {
       setSelectedProspect(null);
       setDeletingId(null);
       toast({
-        title: "Sucesso",
-        description: "Prospecto movido para Perdido",
+        title: t('common:success'),
+        description: t('consultant:pipeline.toast.moveSuccess'),
         variant: "success",
       });
     } catch (err: any) {
       queryClient.invalidateQueries({ queryKey: ['consultant', 'pipeline'] });
       setDeletingId(null);
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao mover prospecto",
+        title: t('common:error'),
+        description: err?.error || t('consultant:pipeline.toast.moveError'),
         variant: "destructive",
       });
     }
@@ -356,8 +354,8 @@ const Pipeline = () => {
       console.error("Error updating prospect stage:", err);
       queryClient.invalidateQueries({ queryKey: ['consultant', 'pipeline'] });
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao atualizar estágio",
+        title: t('common:error'),
+        description: err?.error || t('consultant:pipeline.toast.stageError'),
         variant: "destructive",
       });
     }
@@ -373,14 +371,14 @@ const Pipeline = () => {
       <div
         className="fixed right-3 top-[33vh] z-50 flex flex-col gap-2 md:hidden"
         style={{ transform: "translateY(-50%)" }}
-        aria-label="Ações rápidas"
+        aria-label={t('consultant:pipeline.quickActions')}
       >
         <Button
           size="icon"
           onClick={handleOpenCreateDialog}
           className="h-11 w-11 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90"
-          title="Novo prospecto"
-          aria-label="Novo prospecto"
+          title={t('consultant:pipeline.newProspect')}
+          aria-label={t('consultant:pipeline.newProspect')}
         >
           <Plus className="h-5 w-5" />
         </Button>
@@ -389,14 +387,14 @@ const Pipeline = () => {
       {/* Page Header - compact on mobile; hide main CTA on mobile (use fixed icon instead) */}
       <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between min-w-0">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Pipeline de Prospecção</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('consultant:pipeline.title')}</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-            Gerencie seus prospectos por estágio e avance oportunidades
+            {t('consultant:pipeline.subtitle')}
           </p>
         </div>
         <Button onClick={handleOpenCreateDialog} size="sm" className="hidden md:inline-flex shrink-0">
           <Plus className="h-4 w-4 mr-2" />
-          Novo Prospecto
+          {t('consultant:pipeline.newProspect')}
         </Button>
       </div>
 
@@ -409,8 +407,8 @@ const Pipeline = () => {
       ) : error ? (
         <div className="rounded-xl border border-destructive/50 bg-destructive/5 p-6 text-center">
           <GitBranch className="h-12 w-12 text-destructive/70 mx-auto mb-3" />
-          <p className="text-sm font-medium text-foreground">Erro ao carregar pipeline</p>
-          <p className="text-xs text-muted-foreground mt-1 px-2">{(error as any)?.error || "Tente novamente mais tarde."}</p>
+          <p className="text-sm font-medium text-foreground">{t('consultant:pipeline.loadError')}</p>
+          <p className="text-xs text-muted-foreground mt-1 px-2">{(error as any)?.error || t('consultant:pipeline.tryAgain')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4 min-w-0">
@@ -428,7 +426,7 @@ const Pipeline = () => {
                 <div className="flex items-center justify-between gap-2 p-3 sm:p-4 border-b border-border shrink-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <GitBranch className={cn("h-4 w-4 shrink-0", style.icon)} />
-                    <h3 className="text-sm font-semibold text-foreground truncate">{stageLabels[stage] || stage}</h3>
+                    <h3 className="text-sm font-semibold text-foreground truncate">{getStageLabel(stage)}</h3>
                   </div>
                   <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
                     {stageProspects.length}
@@ -438,8 +436,8 @@ const Pipeline = () => {
                   {stageProspects.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-6 sm:py-8 text-center px-3 rounded-lg border border-dashed border-border bg-muted/20 min-h-[120px]">
                       <UserPlus className="h-10 w-10 text-muted-foreground/50 mb-2" />
-                      <p className="text-xs sm:text-sm font-medium text-foreground">Nenhum prospecto</p>
-                      <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Adicione ou mova um prospecto para este estágio</p>
+                      <p className="text-xs sm:text-sm font-medium text-foreground">{t('consultant:pipeline.emptyStage')}</p>
+                      <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">{t('consultant:pipeline.emptyStageDesc')}</p>
                     </div>
                   ) : (
                       stageProspects.map((prospect) => (
@@ -450,7 +448,7 @@ const Pipeline = () => {
                           <div className="flex items-start justify-between gap-2 mb-2 min-w-0">
                             <div className="flex-1 min-w-0 overflow-hidden">
                               <h4 className="text-sm font-semibold text-foreground truncate">
-                                {prospect.name || 'Sem nome'}
+                                {prospect.name || t('consultant:pipeline.noName')}
                               </h4>
                               {prospect.notes && (
                                 <p className="text-xs text-muted-foreground line-clamp-2 break-words overflow-hidden mt-0.5">
@@ -460,21 +458,21 @@ const Pipeline = () => {
                             </div>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Abrir menu">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={t('consultant:pipeline.openMenu')}>
                                   <span className="text-muted-foreground text-lg leading-none">⋯</span>
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => handleOpenEditDialog(prospect)}>
                                   <Edit className="h-4 w-4 mr-2" />
-                                  Editar
+                                  {t('consultant:pipeline.edit')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-destructive"
                                   onClick={() => handleOpenDeleteDialog(prospect)}
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
-                                  Mover para Perdido
+                                  {t('consultant:pipeline.moveToLost')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -510,7 +508,7 @@ const Pipeline = () => {
                                 onClick={() => moveProspect(prospect.id, "left")}
                               >
                                 <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
-                                Anterior
+                                {t('consultant:pipeline.previous')}
                               </Button>
                             )}
                             {stageOrder.indexOf(stage) < stageOrder.length - 1 && stage !== 'won' && stage !== 'lost' && (
@@ -519,7 +517,7 @@ const Pipeline = () => {
                                 className="flex-1 text-xs h-8 min-w-0 gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
                                 onClick={() => moveProspect(prospect.id, "right")}
                               >
-                                Próximo
+                                {t('consultant:pipeline.next')}
                                 <ChevronRight className="h-3.5 w-3.5 shrink-0" />
                               </Button>
                             )}
@@ -538,40 +536,40 @@ const Pipeline = () => {
       <Dialog open={isCreateDialogOpen} onOpenChange={handleCloseCreateDialog}>
         <DialogContent className="max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6 w-[calc(100%-2rem)] sm:w-[calc(100%-3rem)] max-w-lg mx-auto my-4 sm:my-0">
           <DialogHeader className="shrink-0">
-            <DialogTitle className="text-lg sm:text-xl">Novo Prospecto</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">{t('consultant:pipeline.createDialog.title')}</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
-              Adicione um novo prospecto ao seu pipeline
+              {t('consultant:pipeline.createDialog.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 sm:space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
             <div className="space-y-2">
-              <Label htmlFor="create-name">Nome</Label>
+              <Label htmlFor="create-name">{t('consultant:pipeline.form.name')}</Label>
               <Input
                 id="create-name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nome completo"
+                placeholder={t('consultant:pipeline.form.namePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-email">Email *</Label>
+              <Label htmlFor="create-email">{t('consultant:pipeline.form.email')} *</Label>
               <Input
                 id="create-email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@exemplo.com"
+                placeholder={t('consultant:pipeline.form.emailPlaceholder')}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-phone">Telefone</Label>
+              <Label htmlFor="create-phone">{t('consultant:pipeline.form.phone')}</Label>
               <Input
                 id="create-phone"
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => { setFormData({ ...formData, phone: e.target.value }); if (phoneError) setPhoneError(null); }}
-                placeholder="(11) 99999-9999"
+                placeholder={t('consultant:pipeline.form.phonePlaceholder')}
                 className={cn(phoneError && "border-destructive focus-visible:ring-destructive")}
                 aria-invalid={!!phoneError}
                 aria-describedby={phoneError ? "create-phone-error" : undefined}
@@ -579,7 +577,7 @@ const Pipeline = () => {
               {phoneError && <p id="create-phone-error" className="text-xs text-destructive">{phoneError}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-stage">Estágio</Label>
+              <Label htmlFor="create-stage">{t('consultant:pipeline.form.stage')}</Label>
               {isCreateDialogOpen && (
                 <Select
                   key={`create-${isCreateDialogOpen}`}
@@ -589,12 +587,12 @@ const Pipeline = () => {
                   onOpenChange={setCreateSelectOpen}
                 >
                   <SelectTrigger id="create-stage">
-                    <SelectValue placeholder="Selecione o estágio" />
+                    <SelectValue placeholder={t('consultant:pipeline.form.stagePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {stageOrder.map((stage) => (
                       <SelectItem key={stage} value={stage}>
-                        {stageLabels[stage]}
+                        {getStageLabel(stage)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -602,12 +600,12 @@ const Pipeline = () => {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-notes" className="text-xs sm:text-sm">Notas</Label>
+              <Label htmlFor="create-notes" className="text-xs sm:text-sm">{t('consultant:pipeline.form.notes')}</Label>
               <Textarea
                 id="create-notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Anotações sobre o prospecto..."
+                placeholder={t('consultant:pipeline.form.notesPlaceholder')}
                 rows={2}
                 className="min-h-0 text-sm resize-none"
               />
@@ -615,10 +613,10 @@ const Pipeline = () => {
           </div>
           <DialogFooter className="shrink-0 gap-2 pt-2 border-t border-border">
             <Button variant="outline" onClick={() => handleCloseCreateDialog(false)}>
-              Cancelar
+              {t('consultant:pipeline.form.cancel')}
             </Button>
             <Button onClick={handleCreateProspect}>
-              Criar
+              {t('consultant:pipeline.form.create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -628,44 +626,44 @@ const Pipeline = () => {
       <Dialog open={isEditDialogOpen} onOpenChange={handleCloseEditDialog}>
         <DialogContent className="max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6 w-[calc(100%-2rem)] sm:w-[calc(100%-3rem)] max-w-lg mx-auto my-4 sm:my-0">
           <DialogHeader className="shrink-0">
-            <DialogTitle className="text-lg sm:text-xl">Editar Prospecto</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">{t('consultant:pipeline.editDialog.title')}</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
-              Atualize as informações do prospecto.
+              {t('consultant:pipeline.editDialog.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 sm:space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Nome</Label>
+              <Label htmlFor="edit-name">{t('consultant:pipeline.form.name')}</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nome completo"
+                placeholder={t('consultant:pipeline.form.namePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-email">Email *</Label>
+              <Label htmlFor="edit-email">{t('consultant:pipeline.form.email')} *</Label>
               <Input
                 id="edit-email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@exemplo.com"
+                placeholder={t('consultant:pipeline.form.emailPlaceholder')}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-phone">Telefone</Label>
+              <Label htmlFor="edit-phone">{t('consultant:pipeline.form.phone')}</Label>
               <Input
                 id="edit-phone"
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(00) 00000-0000"
+                placeholder={t('consultant:pipeline.form.phonePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-stage">Estágio</Label>
+              <Label htmlFor="edit-stage">{t('consultant:pipeline.form.stage')}</Label>
               {isEditDialogOpen && (
                 <Select
                   key={`edit-${isEditDialogOpen}-${selectedProspect?.id}`}
@@ -675,12 +673,12 @@ const Pipeline = () => {
                   onOpenChange={setEditSelectOpen}
                 >
                   <SelectTrigger id="edit-stage">
-                    <SelectValue placeholder="Selecione o estágio" />
+                    <SelectValue placeholder={t('consultant:pipeline.form.stagePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {stageOrder.map((stage) => (
                       <SelectItem key={stage} value={stage}>
-                        {stageLabels[stage]}
+                        {getStageLabel(stage)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -688,12 +686,12 @@ const Pipeline = () => {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-notes" className="text-xs sm:text-sm">Notas</Label>
+              <Label htmlFor="edit-notes" className="text-xs sm:text-sm">{t('consultant:pipeline.form.notes')}</Label>
               <Textarea
                 id="edit-notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Anotações sobre o prospecto..."
+                placeholder={t('consultant:pipeline.form.notesPlaceholder')}
                 rows={2}
                 className="min-h-0 text-sm resize-none"
               />
@@ -701,10 +699,10 @@ const Pipeline = () => {
           </div>
           <DialogFooter className="shrink-0 gap-2 pt-2 border-t border-border">
             <Button variant="outline" onClick={() => handleCloseEditDialog(false)}>
-              Cancelar
+              {t('consultant:pipeline.form.cancel')}
             </Button>
             <Button onClick={handleUpdateProspect}>
-              Salvar
+              {t('consultant:pipeline.form.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -714,21 +712,22 @@ const Pipeline = () => {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Mover para Perdido</AlertDialogTitle>
+            <AlertDialogTitle>{t('consultant:pipeline.deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Mover o prospecto{" "}
-              <strong>{selectedProspect?.name || selectedProspect?.email}</strong>{" "}
-              para o estágio Perdido? Ele continuará visível na coluna Perdido e você pode editá-lo depois para alterar o estágio.
+              {t('consultant:pipeline.deleteDialog.description', {
+                name: selectedProspect?.name || selectedProspect?.email,
+                interpolation: { escapeValue: false }
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={!!deletingId}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={!!deletingId}>{t('consultant:pipeline.deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleMoveToLost}
               disabled={!!deletingId}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deletingId ? "Movendo..." : "Mover para Perdido"}
+              {deletingId ? t('consultant:pipeline.deleteDialog.moving') : t('consultant:pipeline.deleteDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

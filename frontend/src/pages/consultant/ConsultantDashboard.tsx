@@ -5,23 +5,27 @@ import { Link } from "react-router-dom";
 import { consultantApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-
-const STAGE_LABELS: Record<string, string> = {
-  lead: "Contato Inicial",
-  contacted: "Contatado",
-  meeting: "Reunião",
-  proposal: "Proposta",
-  won: "Fechado",
-  lost: "Perdido",
-};
+import { useTranslation } from "react-i18next";
 
 const ConsultantDashboard = () => {
+  const { t } = useTranslation(['consultant', 'common']);
+
   const { data: metrics, isLoading, error, refetch } = useQuery({
     queryKey: ['consultant', 'dashboard', 'metrics'],
     queryFn: () => consultantApi.getDashboardMetrics(),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
   });
+
+  // Get stage label from translations
+  const getStageLabel = (stage: string) => {
+    return t(`consultant:stages.${stage}`, { defaultValue: stage });
+  };
+
+  // Get priority label from translations
+  const getPriorityLabel = (priority: string) => {
+    return t(`consultant:priority.${priority}`, { defaultValue: priority });
+  };
 
   if (isLoading) {
     return (
@@ -49,10 +53,10 @@ const ConsultantDashboard = () => {
     return (
       <div className="rounded-xl border-2 border-destructive/30 bg-card p-8 max-w-md mx-auto text-center">
         <AlertCircle className="h-12 w-12 text-destructive/80 mx-auto mb-4" />
-        <p className="text-sm font-medium text-foreground mb-1">Erro ao carregar o painel</p>
-        <p className="text-xs text-muted-foreground mb-4">{(error as any)?.error || "Tente novamente em instantes."}</p>
+        <p className="text-sm font-medium text-foreground mb-1">{t('consultant:dashboard.loadError')}</p>
+        <p className="text-xs text-muted-foreground mb-4">{(error as any)?.error || t('consultant:dashboard.tryAgain')}</p>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
-          Tentar novamente
+          {t('common:tryAgain')}
         </Button>
       </div>
     );
@@ -67,9 +71,9 @@ const ConsultantDashboard = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Painel do Consultor</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('consultant:dashboard.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Visão geral de clientes e tarefas
+            {t('consultant:dashboard.subtitle')}
           </p>
         </div>
       </div>
@@ -78,9 +82,9 @@ const ConsultantDashboard = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-xl border-2 border-blue-500/70 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-all duration-200">
           <ProfessionalKpiCard
-            title="Total de Clientes"
+            title={t('consultant:dashboard.kpis.totalClients')}
             value={metrics?.kpis?.totalClients?.toString() || "0"}
-            change={metrics?.kpis?.newClients > 0 ? `+${metrics.kpis.newClients} este mês` : ""}
+            change={metrics?.kpis?.newClients > 0 ? t('consultant:dashboard.kpis.newThisMonth', { count: metrics.kpis.newClients }) : ""}
             changeType={metrics?.kpis?.newClients > 0 ? "positive" : "neutral"}
             icon={Users}
             iconClassName="text-blue-500"
@@ -89,35 +93,35 @@ const ConsultantDashboard = () => {
         </div>
         <div className="rounded-xl border-2 border-emerald-500/70 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all duration-200">
           <ProfessionalKpiCard
-            title="Patrimônio Total"
+            title={t('consultant:dashboard.kpis.totalNetWorth')}
             value={`R$ ${(metrics?.kpis?.totalNetWorth / 1000000).toFixed(1)}M`}
             change=""
             changeType="neutral"
             icon={TrendingUp}
             iconClassName="text-emerald-500"
-            subtitle="sob gestão"
+            subtitle={t('consultant:dashboard.kpis.underManagement')}
           />
         </div>
         <div className="rounded-xl border-2 border-amber-500/70 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-all duration-200">
           <ProfessionalKpiCard
-            title="Tarefas Pendentes"
+            title={t('consultant:dashboard.kpis.pendingTasks')}
             value={metrics?.kpis?.pendingTasks?.toString() || "0"}
             change=""
             changeType="neutral"
             icon={Calendar}
             iconClassName="text-amber-500"
-            subtitle="para hoje"
+            subtitle={t('consultant:dashboard.kpis.forToday')}
           />
         </div>
         <div className="rounded-xl border-2 border-violet-500/70 bg-card h-full p-4 min-h-[88px] sm:min-h-0 flex flex-col justify-center shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-all duration-200">
           <ProfessionalKpiCard
-            title="Prospectos"
+            title={t('consultant:dashboard.kpis.prospects')}
             value={metrics?.kpis?.prospects?.toString() || "0"}
             change=""
             changeType="neutral"
             icon={AlertCircle}
             iconClassName="text-violet-500"
-            subtitle="no pipeline"
+            subtitle={t('consultant:dashboard.kpis.inPipeline')}
           />
         </div>
       </div>
@@ -125,13 +129,13 @@ const ConsultantDashboard = () => {
       {/* Pipeline and Tasks */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow min-w-0">
-          <h2 className="text-sm font-semibold text-foreground">Pipeline de Prospecção</h2>
-          <p className="text-xs text-muted-foreground mt-1 mb-4">Status dos prospectos</p>
+          <h2 className="text-sm font-semibold text-foreground">{t('consultant:dashboard.pipeline.title')}</h2>
+          <p className="text-xs text-muted-foreground mt-1 mb-4">{t('consultant:dashboard.pipeline.subtitle')}</p>
           {pipelineData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <GitBranch className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <p className="text-sm font-medium text-foreground">Nenhum prospecto no pipeline</p>
-              <p className="text-xs text-muted-foreground mt-1">Adicione prospectos para acompanhar o funil.</p>
+              <p className="text-sm font-medium text-foreground">{t('consultant:dashboard.pipeline.empty')}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('consultant:dashboard.pipeline.emptyDesc')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -139,7 +143,7 @@ const ConsultantDashboard = () => {
                 <div key={index} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-foreground">
-                      {STAGE_LABELS[stage.stage] ?? stage.stage}
+                      {getStageLabel(stage.stage)}
                     </span>
                     <span className="text-sm text-muted-foreground tabular-nums">{stage.count}</span>
                   </div>
@@ -158,20 +162,20 @@ const ConsultantDashboard = () => {
               to="/consultant/pipeline"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
             >
-              Ver pipeline completo
+              {t('consultant:dashboard.pipeline.viewAll')}
               <ChevronRight className="h-4 w-4 shrink-0" />
             </Link>
           </div>
         </div>
 
         <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
-          <h2 className="text-sm font-semibold text-foreground">Próximas Tarefas</h2>
-          <p className="text-xs text-muted-foreground mt-1 mb-4">Ações pendentes</p>
+          <h2 className="text-sm font-semibold text-foreground">{t('consultant:dashboard.tasks.title')}</h2>
+          <p className="text-xs text-muted-foreground mt-1 mb-4">{t('consultant:dashboard.tasks.subtitle')}</p>
           {recentTasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <p className="text-sm font-medium text-foreground">Nenhuma tarefa pendente</p>
-              <p className="text-xs text-muted-foreground mt-1">Suas próximas ações aparecerão aqui.</p>
+              <p className="text-sm font-medium text-foreground">{t('consultant:dashboard.tasks.empty')}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('consultant:dashboard.tasks.emptyDesc')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -193,7 +197,7 @@ const ConsultantDashboard = () => {
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {task.priority === "high" ? "Alta" : task.priority === "medium" ? "Média" : "Baixa"}
+                    {getPriorityLabel(task.priority)}
                   </span>
                 </div>
               ))}
@@ -204,7 +208,7 @@ const ConsultantDashboard = () => {
               to="/consultant/tasks"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
             >
-              Ver todas as tarefas
+              {t('consultant:dashboard.tasks.viewAll')}
               <ChevronRight className="h-4 w-4 shrink-0" />
             </Link>
           </div>
@@ -215,4 +219,3 @@ const ConsultantDashboard = () => {
 };
 
 export default ConsultantDashboard;
-

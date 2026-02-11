@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 type Client = {
   id: string;
@@ -34,12 +35,6 @@ type Client = {
   walletShared: boolean;
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  active: "Ativo",
-  inactive: "Inativo",
-  pending: "Pendente",
-};
-
 function getStatusBadgeClass(status: string): string {
   const s = (status || "").toLowerCase();
   if (s === "active") return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
@@ -49,6 +44,7 @@ function getStatusBadgeClass(status: string): string {
 }
 
 const ClientsList = () => {
+  const { t } = useTranslation(['consultant', 'common']);
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("");
@@ -67,12 +63,18 @@ const ClientsList = () => {
   const startItem = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
   const endItem = Math.min(pagination.page * pagination.limit, pagination.total);
 
+  // Get status label from translations
+  const getStatusLabel = (status: string) => {
+    const s = (status || "").toLowerCase();
+    return t(`consultant:clients.status.${s}`, { defaultValue: status });
+  };
+
   return (
     <div className="space-y-6 min-w-0">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Clientes</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('consultant:clients.title')}</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Lista de clientes vinculados ao seu perfil
+          {t('consultant:clients.subtitle')}
         </p>
       </div>
 
@@ -80,7 +82,7 @@ const ClientsList = () => {
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Buscar por nome ou e-mail..."
+            placeholder={t('consultant:clients.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-10 rounded-lg bg-muted/30 border-border focus-visible:ring-2"
@@ -88,13 +90,13 @@ const ClientsList = () => {
         </div>
         <Select value={status || "all"} onValueChange={(v) => { setStatus(v === "all" ? "" : v); setPage(1); }}>
           <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-lg bg-muted/30 border-border">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder={t('consultant:clients.tableHeaders.status')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="active">Ativo</SelectItem>
-            <SelectItem value="inactive">Inativo</SelectItem>
-            <SelectItem value="pending">Pendente</SelectItem>
+            <SelectItem value="all">{t('consultant:clients.allStatus')}</SelectItem>
+            <SelectItem value="active">{t('consultant:clients.status.active')}</SelectItem>
+            <SelectItem value="inactive">{t('consultant:clients.status.inactive')}</SelectItem>
+            <SelectItem value="pending">{t('consultant:clients.status.pending')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -115,27 +117,27 @@ const ClientsList = () => {
         ) : isError ? (
           <div className="p-8 flex flex-col items-center justify-center text-center">
             <Users className="h-12 w-12 text-destructive/70 mb-4" />
-            <p className="text-sm font-medium text-foreground mb-1">Erro ao carregar clientes</p>
-            <p className="text-xs text-muted-foreground mb-4">{(error as { error?: string })?.error || "Tente novamente em instantes."}</p>
+            <p className="text-sm font-medium text-foreground mb-1">{t('consultant:clients.loadError')}</p>
+            <p className="text-xs text-muted-foreground mb-4">{(error as { error?: string })?.error || t('consultant:clients.tryAgain')}</p>
             <Button variant="outline" size="sm" onClick={() => refetch()}>
-              Tentar novamente
+              {t('common:tryAgain')}
             </Button>
           </div>
         ) : clients.length === 0 ? (
           <div className="p-12 flex flex-col items-center justify-center text-center">
             <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <p className="text-sm font-medium text-foreground">Nenhum cliente</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-sm">Ajuste os filtros ou aguarde novos vínculos.</p>
+            <p className="text-sm font-medium text-foreground">{t('consultant:clients.empty')}</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm">{t('consultant:clients.emptyDesc')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border-0 border-border">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40 border-border">
-                  <TableHead className="font-medium text-muted-foreground">Nome</TableHead>
-                  <TableHead className="font-medium text-muted-foreground">E-mail</TableHead>
-                  <TableHead className="text-right font-medium text-muted-foreground">Patrimônio</TableHead>
-                  <TableHead className="font-medium text-muted-foreground">Status</TableHead>
+                  <TableHead className="font-medium text-muted-foreground">{t('consultant:clients.tableHeaders.name')}</TableHead>
+                  <TableHead className="font-medium text-muted-foreground">{t('consultant:clients.tableHeaders.email')}</TableHead>
+                  <TableHead className="text-right font-medium text-muted-foreground">{t('consultant:clients.tableHeaders.netWorth')}</TableHead>
+                  <TableHead className="font-medium text-muted-foreground">{t('consultant:clients.tableHeaders.status')}</TableHead>
                   <TableHead className="w-24"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -152,7 +154,7 @@ const ClientsList = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn("rounded-full text-xs font-medium border", getStatusBadgeClass(client.status))}>
-                        {STATUS_LABELS[(client.status || "").toLowerCase()] ?? client.status}
+                        {getStatusLabel(client.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -162,7 +164,7 @@ const ClientsList = () => {
                         className="text-primary hover:text-primary hover:bg-primary/10"
                         onClick={() => navigate(`/consultant/clients/${client.id}`)}
                       >
-                        Ver
+                        {t('consultant:clients.actions.view')}
                         <ChevronRight className="h-4 w-4 ml-0.5 shrink-0" />
                       </Button>
                     </TableCell>
@@ -177,7 +179,11 @@ const ClientsList = () => {
       {!isLoading && !isError && pagination.total > 0 && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-border">
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            Mostrando {startItem} a {endItem} de {pagination.total} cliente{pagination.total !== 1 ? "s" : ""}
+            {t('consultant:clients.showing', {
+              start: startItem,
+              end: endItem,
+              total: pagination.total
+            })} {t('consultant:clients.clientCount', { count: pagination.total })}
           </p>
           {pagination.totalPages > 1 && (
             <div className="flex gap-2">
@@ -187,7 +193,7 @@ const ClientsList = () => {
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
               >
-                Anterior
+                {t('common:previous')}
               </Button>
               <Button
                 variant="outline"
@@ -195,7 +201,7 @@ const ClientsList = () => {
                 disabled={page >= pagination.totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Próxima
+                {t('common:next')}
               </Button>
             </div>
           )}

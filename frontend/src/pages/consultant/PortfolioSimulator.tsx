@@ -22,8 +22,10 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 const PortfolioSimulator = () => {
+  const { t } = useTranslation(['consultant', 'common']);
   const [selectedClient, setSelectedClient] = useState("");
   const [scenario, setScenario] = useState<"conservative" | "moderate" | "bold">("moderate");
   const [timeHorizon, setTimeHorizon] = useState("10");
@@ -32,9 +34,24 @@ const PortfolioSimulator = () => {
 
   const clients = ["João Silva", "Maria Santos", "Pedro Costa"];
 
+  // Helper function for scenario labels
+  const getScenarioLabel = (scenario: string) => {
+    return t(`consultant:simulator.scenarios.${scenario}`, { defaultValue: scenario });
+  };
+
+  // Helper function for allocation labels
+  const getAllocationLabel = (type: string) => {
+    const typeMap: Record<string, string> = {
+      "Renda Fixa": "fixedIncome",
+      "Ações": "stocks",
+      "FIIs": "reits"
+    };
+    const key = typeMap[type];
+    return key ? t(`consultant:simulator.allocation.${key}`, { defaultValue: type }) : type;
+  };
+
   const scenarioConfig = {
     conservative: {
-      name: "Conservador",
       allocation: [
         { name: "Renda Fixa", value: 70, color: "#10b981" },
         { name: "Ações", value: 20, color: "#3b82f6" },
@@ -43,7 +60,6 @@ const PortfolioSimulator = () => {
       expectedReturn: 7,
     },
     moderate: {
-      name: "Moderado",
       allocation: [
         { name: "Renda Fixa", value: 50, color: "#10b981" },
         { name: "Ações", value: 30, color: "#3b82f6" },
@@ -52,7 +68,6 @@ const PortfolioSimulator = () => {
       expectedReturn: 10,
     },
     bold: {
-      name: "Arrojado",
       allocation: [
         { name: "Renda Fixa", value: 30, color: "#10b981" },
         { name: "Ações", value: 50, color: "#3b82f6" },
@@ -65,8 +80,8 @@ const PortfolioSimulator = () => {
   const simulate = () => {
     if (!selectedClient) {
       toast({
-        title: "Erro",
-        description: "Selecione um cliente primeiro",
+        title: t('common:error'),
+        description: t('consultant:simulator.toast.selectClient'),
         variant: "destructive",
       });
       return;
@@ -93,7 +108,7 @@ const PortfolioSimulator = () => {
 
     setResults({
       client: selectedClient,
-      scenario: config.name,
+      scenario: getScenarioLabel(scenario),
       currentValue,
       finalValue: value,
       totalReturn: ((value - currentValue) / currentValue) * 100,
@@ -107,15 +122,15 @@ const PortfolioSimulator = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Simulador de Portfólio</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('consultant:simulator.title')}</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-            Crie projeções de portfólio para apresentar aos clientes
+            {t('consultant:simulator.subtitle')}
           </p>
         </div>
         {results && (
           <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
-            Exportar Simulação
+            {t('consultant:simulator.exportButton')}
           </Button>
         )}
       </div>
@@ -129,16 +144,16 @@ const PortfolioSimulator = () => {
                 <Settings className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-foreground">Configuração</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Cliente, cenário e horizonte</p>
+                <h2 className="text-sm font-semibold text-foreground">{t('consultant:simulator.config.title')}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('consultant:simulator.config.subtitle')}</p>
               </div>
             </div>
           <div className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="client">Cliente</Label>
+                <Label htmlFor="client">{t('consultant:simulator.config.client')}</Label>
                 <Select value={selectedClient} onValueChange={setSelectedClient}>
                   <SelectTrigger id="client">
-                    <SelectValue placeholder="Selecione um cliente" />
+                    <SelectValue placeholder={t('consultant:simulator.config.clientPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {clients.map((client) => (
@@ -151,7 +166,7 @@ const PortfolioSimulator = () => {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="scenario">Cenário</Label>
+                <Label htmlFor="scenario">{t('consultant:simulator.config.scenario')}</Label>
                 <Select
                   value={scenario}
                   onValueChange={(v: any) => setScenario(v)}
@@ -160,19 +175,19 @@ const PortfolioSimulator = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="conservative">Conservador</SelectItem>
-                  <SelectItem value="moderate">Moderado</SelectItem>
-                  <SelectItem value="bold">Arrojado</SelectItem>
+                  <SelectItem value="conservative">{t('consultant:simulator.scenarios.conservative')}</SelectItem>
+                  <SelectItem value="moderate">{t('consultant:simulator.scenarios.moderate')}</SelectItem>
+                  <SelectItem value="bold">{t('consultant:simulator.scenarios.bold')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
               <div className="space-y-2">
-                <Label htmlFor="horizon">Horizonte (anos)</Label>
+                <Label htmlFor="horizon">{t('consultant:simulator.config.horizon')}</Label>
                 <Input
                   id="horizon"
                   type="number"
-                  placeholder="10"
+                  placeholder={t('consultant:simulator.config.horizonPlaceholder')}
                   value={timeHorizon}
                   onChange={(e) => setTimeHorizon(e.target.value)}
                 />
@@ -180,7 +195,7 @@ const PortfolioSimulator = () => {
 
               <Button onClick={simulate} className="w-full" disabled={!selectedClient}>
               <TrendingUp className="h-4 w-4 mr-2" />
-              Simular
+              {t('consultant:simulator.config.simulateButton')}
             </Button>
           </div>
         </div>
@@ -192,15 +207,15 @@ const PortfolioSimulator = () => {
                   <PieChart className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">Alocação</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Perfil do cenário selecionado</p>
+                  <h3 className="text-sm font-semibold text-foreground">{t('consultant:simulator.allocation.title')}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t('consultant:simulator.allocation.subtitle')}</p>
                 </div>
               </div>
               <div className="space-y-3">
                 {results.allocation.map((item: any, index: number) => (
                   <div key={index} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-foreground">{item.name}</span>
+                      <span className="text-foreground">{getAllocationLabel(item.name)}</span>
                       <span className="font-semibold">{item.value}%</span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
@@ -226,26 +241,26 @@ const PortfolioSimulator = () => {
                     <LineChartIcon className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-semibold text-foreground">Resultados da Simulação</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">Projeção e crescimento do portfólio</p>
+                    <h2 className="text-sm font-semibold text-foreground">{t('consultant:simulator.results.title')}</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('consultant:simulator.results.subtitle')}</p>
                   </div>
                 </div>
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Valor Final</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">{t('consultant:simulator.results.finalValue')}</div>
                   <div className="text-lg sm:text-xl md:text-2xl font-bold text-primary break-words">
                       R$ {results.finalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-success/10 border border-success/20">
-                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Retorno Total</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">{t('consultant:simulator.results.totalReturn')}</div>
                     <div className="text-lg sm:text-xl md:text-2xl font-bold text-success break-words">
                       +{results.totalReturn.toFixed(1)}%
                     </div>
                   </div>
                   <div className="p-4 rounded-lg bg-muted border border-border">
-                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Valor Atual</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">{t('consultant:simulator.results.currentValue')}</div>
                   <div className="text-lg sm:text-xl md:text-2xl font-bold break-words">
                       R$ {results.currentValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
@@ -253,7 +268,7 @@ const PortfolioSimulator = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-xs sm:text-sm font-semibold mb-4">Projeção de Crescimento</h3>
+                  <h3 className="text-xs sm:text-sm font-semibold mb-4">{t('consultant:simulator.results.growthProjection')}</h3>
                   <ResponsiveContainer width="100%" height={250} className="text-xs">
                     <LineChart data={results.projection}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -268,7 +283,7 @@ const PortfolioSimulator = () => {
                         dataKey="value"
                         stroke="#3b82f6"
                         strokeWidth={2}
-                        name="Valor do Portfólio"
+                        name={t('consultant:simulator.results.portfolioValue')}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -282,28 +297,28 @@ const PortfolioSimulator = () => {
                     <BarChart3 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-semibold text-foreground">Análise de Cenários</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">Compare perfis de investimento</p>
+                    <h2 className="text-sm font-semibold text-foreground">{t('consultant:simulator.analysis.title')}</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('consultant:simulator.analysis.subtitle')}</p>
                   </div>
                 </div>
               <div className="space-y-3">
                 <p className="text-xs sm:text-sm text-muted-foreground mb-4 break-words">
-                  Comparação dos diferentes perfis de investimento para o cliente {results.client}
+                  {t('consultant:simulator.analysis.comparison', { client: results.client })}
                 </p>
                 <div className="space-y-3">
                   {Object.entries(scenarioConfig).map(([key, config]) => (
                     <div key={key} className="p-3 rounded-lg border border-border">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm sm:text-base font-semibold truncate">{config.name}</div>
+                          <div className="text-sm sm:text-base font-semibold truncate">{getScenarioLabel(key)}</div>
                           <div className="text-xs text-muted-foreground">
-                            Retorno esperado: {config.expectedReturn}% a.a.
+                            {t('consultant:simulator.analysis.expectedReturn', { return: config.expectedReturn })}
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
                           <div className="font-semibold">
                             {key === scenario ? (
-                              <Badge className="bg-primary text-xs">Atual</Badge>
+                              <Badge className="bg-primary text-xs">{t('consultant:simulator.analysis.current')}</Badge>
                             ) : (
                               <Button
                                 variant="outline"
@@ -314,7 +329,7 @@ const PortfolioSimulator = () => {
                                   setTimeout(simulate, 100);
                                 }}
                               >
-                                Simular
+                                {t('consultant:simulator.analysis.simulateButton')}
                               </Button>
               )}
             </div>
@@ -333,14 +348,14 @@ const PortfolioSimulator = () => {
                   <PieChart className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold text-foreground">Simulação</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">Projeção de portfólio por cenário</p>
+                  <h2 className="text-sm font-semibold text-foreground">{t('consultant:simulator.title')}</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t('consultant:simulator.subtitle')}</p>
                 </div>
               </div>
               <div className="flex flex-1 flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border bg-muted/20 min-h-[140px]">
                 <PieChart className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-sm font-medium text-foreground">Nenhum resultado ainda</p>
-                <p className="text-xs text-muted-foreground mt-1">Selecione um cliente, configure o cenário e clique em &quot;Simular&quot;</p>
+                <p className="text-sm font-medium text-foreground">{t('consultant:simulator.empty.title')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('consultant:simulator.empty.description')}</p>
               </div>
             </div>
           )}

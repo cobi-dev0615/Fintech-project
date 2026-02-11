@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { 
-  User, 
-  Bell, 
-  Save, 
-  Lock, 
+import {
+  User,
+  Bell,
+  Save,
+  Lock,
   ChevronRight,
   History,
   LayoutDashboard,
@@ -23,6 +23,8 @@ import { consultantApi, userApi, subscriptionsApi, commentsApi } from "@/lib/api
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { ptBR, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import {
   Table,
   TableBody,
@@ -52,6 +54,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const Settings = () => {
+  const { t, i18n } = useTranslation(['consultant', 'common']);
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
+
   const [activeStep, setActiveStep] = useState<string>("profile");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -116,11 +121,11 @@ const Settings = () => {
   const [newComment, setNewComment] = useState({ title: "", content: "" });
 
   const steps = [
-    { id: "profile", label: "Perfil Profissional", icon: User },
-    { id: "notifications", label: "Notificações", icon: Bell },
-    { id: "password", label: "Senha", icon: Lock },
-    { id: "history", label: "Histórico de Planos", icon: History },
-    { id: "comments", label: "Feedback zurT", icon: MessageSquare },
+    { id: "profile", label: t('consultant:settings.steps.profile'), icon: User },
+    { id: "notifications", label: t('consultant:settings.steps.notifications'), icon: Bell },
+    { id: "password", label: t('consultant:settings.steps.password'), icon: Lock },
+    { id: "history", label: t('consultant:settings.steps.history'), icon: History },
+    { id: "comments", label: t('consultant:settings.steps.comments'), icon: MessageSquare },
   ];
 
   useEffect(() => {
@@ -197,7 +202,7 @@ const Settings = () => {
 
   const handleSaveProfile = async () => {
     if (profile.phone && !validatePhone(profile.phone)) {
-      toast({ title: "Erro", description: "Por favor, insira um telefone brasileiro válido", variant: "destructive" });
+      toast({ title: t('common:error'), description: t('consultant:settings.profile.phoneError'), variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -210,9 +215,9 @@ const Settings = () => {
         bio: profile.bio || undefined,
       });
       localStorage.setItem("consultantCountryCode", profile.countryCode);
-      toast({ title: "Sucesso", description: "Perfil profissional atualizado", variant: "success" });
+      toast({ title: t('common:success'), description: t('consultant:settings.profile.updateSuccess'), variant: "success" });
     } catch (error: any) {
-      toast({ title: "Erro", description: error?.error || "Erro ao atualizar perfil", variant: "destructive" });
+      toast({ title: t('common:error'), description: error?.error || t('consultant:settings.profile.updateError'), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -222,9 +227,9 @@ const Settings = () => {
     setSaving(true);
     try {
       localStorage.setItem("consultantNotifications", JSON.stringify(notifications));
-      toast({ title: "Sucesso", description: "Preferências de notificação atualizadas", variant: "success" });
+      toast({ title: t('common:success'), description: t('consultant:settings.notifications.updateSuccess'), variant: "success" });
     } catch (error: any) {
-      toast({ title: "Erro", description: "Erro ao atualizar notificações", variant: "destructive" });
+      toast({ title: t('common:error'), description: t('consultant:settings.notifications.updateError'), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -233,7 +238,7 @@ const Settings = () => {
   const handleChangePassword = async () => {
     setPasswordError("");
     if (!password.currentPassword || !password.newPassword) {
-      setPasswordError("Preencha todos os campos");
+      setPasswordError(t('consultant:settings.password.fillAllFields'));
       return;
     }
     setSaving(true);
@@ -242,10 +247,10 @@ const Settings = () => {
         currentPassword: password.currentPassword,
         newPassword: password.newPassword,
       });
-      toast({ title: "Sucesso", description: "Senha alterada com sucesso", variant: "success" });
+      toast({ title: t('common:success'), description: t('consultant:settings.password.changeSuccess'), variant: "success" });
       setPassword({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error: any) {
-      setPasswordError(error?.error || "Erro ao alterar senha");
+      setPasswordError(error?.error || t('consultant:settings.password.changeError'));
     } finally {
       setSaving(false);
     }
@@ -256,25 +261,25 @@ const Settings = () => {
     setSaving(true);
     try {
       await commentsApi.create(newComment);
-      toast({ title: "Sucesso", description: "Comentário enviado com sucesso", variant: "success" });
+      toast({ title: t('common:success'), description: t('consultant:settings.feedback.submitSuccess'), variant: "success" });
       setNewComment({ title: "", content: "" });
       setIsCreateModalOpen(false);
       fetchComments(1);
     } catch (error: any) {
-      toast({ title: "Erro", description: "Erro ao enviar comentário", variant: "destructive" });
+      toast({ title: t('common:error'), description: t('consultant:settings.feedback.submitError'), variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteComment = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este comentário?")) return;
+    if (!confirm(t('consultant:settings.feedback.deleteConfirm'))) return;
     try {
       await commentsApi.delete(id);
-      toast({ title: "Sucesso", description: "Comentário excluído", variant: "success" });
+      toast({ title: t('common:success'), description: t('consultant:settings.feedback.deleteSuccess'), variant: "success" });
       fetchComments(commentsPagination.page);
     } catch (error: any) {
-      toast({ title: "Erro", description: "Erro ao excluir comentário", variant: "destructive" });
+      toast({ title: t('common:error'), description: t('consultant:settings.feedback.deleteError'), variant: "destructive" });
     }
   };
 
@@ -290,8 +295,8 @@ const Settings = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Configurações do Consultor</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gerencie seu perfil profissional e preferências</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('consultant:settings.title')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t('consultant:settings.subtitle')}</p>
         </div>
       </div>
 
@@ -329,7 +334,7 @@ const Settings = () => {
                       {step.label}
                     </span>
                     <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">
-                      Passo {index + 1}
+                      {t('consultant:settings.step', { number: index + 1 })}
                     </span>
                   </div>
                 </button>
@@ -341,45 +346,45 @@ const Settings = () => {
         {/* Content Area */}
         <div className="flex-1">
           {activeStep === "profile" && (
-            <ChartCard 
-              title="Perfil Profissional"
-              actions={<Button onClick={handleSaveProfile} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? "Salvando..." : "Salvar Perfil"}</Button>}
+            <ChartCard
+              title={t('consultant:settings.profile.title')}
+              actions={<Button onClick={handleSaveProfile} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? t('consultant:settings.profile.saving') : t('consultant:settings.profile.save')}</Button>}
             >
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label htmlFor="name">Nome Completo</Label><Input id="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></div>
-                  <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" value={profile.email} disabled className="bg-muted" /></div>
+                  <div className="space-y-2"><Label htmlFor="name">{t('consultant:settings.profile.fullName')}</Label><Input id="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="email">{t('consultant:settings.profile.email')}</Label><Input id="email" value={profile.email} disabled className="bg-muted" /></div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input 
-                      id="phone" 
-                      value={profile.phone} 
-                      onChange={(e) => setProfile({ ...profile, phone: formatPhone(e.target.value) })} 
-                      placeholder="+55 (XX) XXXXX-XXXX"
-                      className="flex-1" 
+                    <Label htmlFor="phone">{t('consultant:settings.profile.phone')}</Label>
+                    <Input
+                      id="phone"
+                      value={profile.phone}
+                      onChange={(e) => setProfile({ ...profile, phone: formatPhone(e.target.value) })}
+                      placeholder={t('consultant:settings.profile.phonePlaceholder')}
+                      className="flex-1"
                     />
                   </div>
-                  <div className="space-y-2"><Label htmlFor="cref">CREF</Label><Input id="cref" value={profile.cref} onChange={(e) => setProfile({ ...profile, cref: e.target.value })} /></div>
-                  <div className="space-y-2"><Label htmlFor="specialty">Especialidade</Label><Input id="specialty" value={profile.specialty} onChange={(e) => setProfile({ ...profile, specialty: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="cref">{t('consultant:settings.profile.cref')}</Label><Input id="cref" value={profile.cref} onChange={(e) => setProfile({ ...profile, cref: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="specialty">{t('consultant:settings.profile.specialty')}</Label><Input id="specialty" value={profile.specialty} onChange={(e) => setProfile({ ...profile, specialty: e.target.value })} /></div>
                 </div>
-                <div className="space-y-2"><Label htmlFor="bio">Biografia</Label><Textarea id="bio" value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} rows={4} /></div>
+                <div className="space-y-2"><Label htmlFor="bio">{t('consultant:settings.profile.bio')}</Label><Textarea id="bio" value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} rows={4} /></div>
               </div>
             </ChartCard>
           )}
 
           {activeStep === "notifications" && (
-            <ChartCard 
-              title="Notificações"
-              actions={<Button onClick={handleSaveNotifications} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? "Salvando..." : "Salvar Notificações"}</Button>}
+            <ChartCard
+              title={t('consultant:settings.notifications.title')}
+              actions={<Button onClick={handleSaveNotifications} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" />{saving ? t('consultant:settings.notifications.saving') : t('consultant:settings.notifications.save')}</Button>}
             >
               <div className="space-y-8 py-4">
                 {Object.entries(notifications).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between">
-                    <Label htmlFor={key} className="text-sm font-medium text-foreground/80">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</Label>
-                    <Switch 
-                      id={key} 
-                      checked={value} 
-                      onCheckedChange={(checked) => setNotifications({ ...notifications, [key]: checked })} 
+                    <Label htmlFor={key} className="text-sm font-medium text-foreground/80">{t(`consultant:settings.notifications.${key}`)}</Label>
+                    <Switch
+                      id={key}
+                      checked={value}
+                      onCheckedChange={(checked) => setNotifications({ ...notifications, [key]: checked })}
                       className="data-[state=checked]:bg-success"
                     />
                   </div>
@@ -389,39 +394,39 @@ const Settings = () => {
           )}
 
           {activeStep === "password" && (
-            <ChartCard 
-              title="Segurança"
-              actions={<Button onClick={handleChangePassword} disabled={saving} size="sm"><Lock className="h-4 w-4 mr-2" />{saving ? "Alterando..." : "Alterar Senha"}</Button>}
+            <ChartCard
+              title={t('consultant:settings.password.title')}
+              actions={<Button onClick={handleChangePassword} disabled={saving} size="sm"><Lock className="h-4 w-4 mr-2" />{saving ? t('consultant:settings.password.changing') : t('consultant:settings.password.change')}</Button>}
             >
               <div className="space-y-4">
                 {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
-                <div className="space-y-2"><Label htmlFor="currentPassword">Senha Atual</Label><Input id="currentPassword" type="password" value={password.currentPassword} onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })} /></div>
-                <div className="space-y-2"><Label htmlFor="newPassword">Nova Senha</Label><Input id="newPassword" type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} /></div>
-                <div className="space-y-2"><Label htmlFor="confirmPassword">Confirmar Nova Senha</Label><Input id="confirmPassword" type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="currentPassword">{t('consultant:settings.password.current')}</Label><Input id="currentPassword" type="password" value={password.currentPassword} onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="newPassword">{t('consultant:settings.password.new')}</Label><Input id="newPassword" type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="confirmPassword">{t('consultant:settings.password.confirm')}</Label><Input id="confirmPassword" type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} /></div>
               </div>
             </ChartCard>
           )}
 
           {activeStep === "history" && (
-            <ChartCard title="Histórico de Planos">
+            <ChartCard title={t('consultant:settings.history.title')}>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Plano</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t('consultant:settings.history.plan')}</TableHead>
+                    <TableHead>{t('consultant:settings.history.date')}</TableHead>
+                    <TableHead>{t('consultant:settings.history.status')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {historyLoading ? (
-                    <TableRow><TableCell colSpan={3} className="text-center py-8">Carregando...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={3} className="text-center py-8">{t('consultant:settings.history.loading')}</TableCell></TableRow>
                   ) : history.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">{t('consultant:settings.history.empty')}</TableCell></TableRow>
                   ) : (
                     history.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.planName}</TableCell>
-                        <TableCell>{format(new Date(item.createdAt), "dd/MM/yyyy")}</TableCell>
+                        <TableCell>{format(new Date(item.createdAt), "dd/MM/yyyy", { locale: dateLocale })}</TableCell>
                         <TableCell><span className={cn("px-2 py-1 rounded-full text-xs font-medium", item.status === 'active' ? "bg-success/10 text-success" : "bg-muted text-muted-foreground")}>{item.status}</span></TableCell>
                       </TableRow>
                     ))
@@ -432,58 +437,58 @@ const Settings = () => {
           )}
 
           {activeStep === "comments" && (
-            <ChartCard 
-              title="Feedback para Admin"
+            <ChartCard
+              title={t('consultant:settings.feedback.title')}
               actions={
                 <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => fetchComments(commentsPagination.page)}
                     disabled={commentsLoading}
                   >
                     <RefreshCw className={cn("h-4 w-4 mr-2", commentsLoading && "animate-spin")} />
-                    Atualizar
+                    {t('consultant:settings.feedback.refresh')}
                   </Button>
                   <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                     <DialogTrigger asChild>
                       <Button size="sm">
                         <Plus className="h-4 w-4 mr-2" />
-                        Novo Feedback
+                        {t('consultant:settings.feedback.new')}
                       </Button>
                     </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Novo Feedback</DialogTitle>
+                      <DialogTitle>{t('consultant:settings.feedback.newTitle')}</DialogTitle>
                       <DialogDescription>
-                        Envie sua sugestão ou feedback sobre a plataforma zurT.
+                        {t('consultant:settings.feedback.newDescription')}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="title">Título</Label>
-                        <Input 
-                          id="title" 
-                          value={newComment.title} 
-                          onChange={(e) => setNewComment({ ...newComment, title: e.target.value })} 
-                          placeholder="Título do seu feedback"
+                        <Label htmlFor="title">{t('consultant:settings.feedback.fieldTitle')}</Label>
+                        <Input
+                          id="title"
+                          value={newComment.title}
+                          onChange={(e) => setNewComment({ ...newComment, title: e.target.value })}
+                          placeholder={t('consultant:settings.feedback.titlePlaceholder')}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="content">Mensagem</Label>
-                        <Textarea 
-                          id="content" 
-                          value={newComment.content} 
-                          onChange={(e) => setNewComment({ ...newComment, content: e.target.value })} 
-                          placeholder="Como podemos melhorar zurT?"
+                        <Label htmlFor="content">{t('consultant:settings.feedback.message')}</Label>
+                        <Textarea
+                          id="content"
+                          value={newComment.content}
+                          onChange={(e) => setNewComment({ ...newComment, content: e.target.value })}
+                          placeholder={t('consultant:settings.feedback.messagePlaceholder')}
                           className="min-h-[150px]"
                         />
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancelar</Button>
+                      <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>{t('common:cancel')}</Button>
                       <Button onClick={handleAddComment} disabled={saving || !newComment.content.trim()}>
-                        {saving ? "Enviando..." : "Enviar Feedback"}
+                        {saving ? t('consultant:settings.feedback.sending') : t('consultant:settings.feedback.send')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -495,44 +500,44 @@ const Settings = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[50px]">No</TableHead>
-                      <TableHead>Título</TableHead>
-                      <TableHead>Conteúdo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Processo</TableHead>
-                      <TableHead>Criado em</TableHead>
-                      <TableHead>Processado em</TableHead>
-                      <TableHead>Ações</TableHead>
+                      <TableHead className="w-[50px]">{t('consultant:settings.feedback.no')}</TableHead>
+                      <TableHead>{t('consultant:settings.feedback.tableTitle')}</TableHead>
+                      <TableHead>{t('consultant:settings.feedback.content')}</TableHead>
+                      <TableHead>{t('consultant:settings.feedback.status')}</TableHead>
+                      <TableHead>{t('consultant:settings.feedback.process')}</TableHead>
+                      <TableHead>{t('consultant:settings.feedback.createdAt')}</TableHead>
+                      <TableHead>{t('consultant:settings.feedback.processedAt')}</TableHead>
+                      <TableHead>{t('consultant:settings.feedback.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {commentsLoading ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-8">Carregando...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center py-8">{t('consultant:settings.feedback.loading')}</TableCell></TableRow>
                     ) : comments.length === 0 ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum feedback enviado</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t('consultant:settings.feedback.noFeedback')}</TableCell></TableRow>
                     ) : (
                       comments.map((c, index) => (
                         <TableRow key={c.id}>
                           <TableCell>{(commentsPagination.page - 1) * 10 + index + 1}</TableCell>
-                          <TableCell className="font-medium">{c.title || "Sem título"}</TableCell>
+                          <TableCell className="font-medium">{c.title || t('consultant:settings.feedback.noTitle')}</TableCell>
                           <TableCell className="max-w-[200px] truncate">{c.content}</TableCell>
                           <TableCell>
                             <Badge variant={c.status === 'replied' ? 'success' : 'secondary'} className={cn(c.status === 'replied' ? "bg-success/10 text-success border-success/20" : "")}>
-                              {c.status === 'replied' ? 'Respondido' : 'Pendente'}
+                              {c.status === 'replied' ? t('consultant:settings.feedback.replied') : t('consultant:settings.feedback.pending')}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {c.status === 'replied' ? 'Finalizado' : 'Em análise'}
+                            {c.status === 'replied' ? t('consultant:settings.feedback.finished') : t('consultant:settings.feedback.analyzing')}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap">{format(new Date(c.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                          <TableCell className="whitespace-nowrap">{format(new Date(c.created_at), "dd/MM/yyyy HH:mm", { locale: dateLocale })}</TableCell>
                           <TableCell className="whitespace-nowrap">
-                            {c.processed_at ? format(new Date(c.processed_at), "dd/MM/yyyy HH:mm") : "-"}
+                            {c.processed_at ? format(new Date(c.processed_at), "dd/MM/yyyy HH:mm", { locale: dateLocale }) : "-"}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => {
                                   setSelectedComment(c);
                                   setIsDetailModalOpen(true);
@@ -540,8 +545,8 @@ const Settings = () => {
                               >
                                 <Eye className="h-4 w-4 text-primary" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="icon"
                                 onClick={() => handleDeleteComment(c.id)}
                               >
@@ -559,39 +564,39 @@ const Settings = () => {
                 <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle>{selectedComment?.title || "Detalhes do Feedback"}</DialogTitle>
+                      <DialogTitle>{selectedComment?.title || t('consultant:settings.feedback.detailTitle')}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-6 py-4">
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Seu Feedback</Label>
+                        <Label className="text-muted-foreground">{t('consultant:settings.feedback.yourFeedback')}</Label>
                         <div className="p-4 bg-muted/30 rounded-lg border border-border/50 text-sm whitespace-pre-wrap">
                           {selectedComment?.content}
                         </div>
                         <p className="text-[10px] text-muted-foreground text-right italic">
-                          Enviado em: {selectedComment && format(new Date(selectedComment.created_at), "dd/MM/yyyy HH:mm")}
+                          {t('consultant:settings.feedback.sentOn')}: {selectedComment && format(new Date(selectedComment.created_at), "dd/MM/yyyy HH:mm", { locale: dateLocale })}
                         </p>
                       </div>
 
                       {selectedComment?.reply && (
                         <div className="space-y-2">
-                          <Label className="text-success font-semibold">Resposta do Administrador</Label>
+                          <Label className="text-success font-semibold">{t('consultant:settings.feedback.adminReply')}</Label>
                           <div className="p-4 bg-success/5 rounded-lg border border-success/20 text-sm whitespace-pre-wrap">
                             {selectedComment.reply}
                           </div>
                           <p className="text-[10px] text-muted-foreground text-right italic">
-                            Respondido em: {selectedComment.processed_at && format(new Date(selectedComment.processed_at), "dd/MM/yyyy HH:mm")}
+                            {t('consultant:settings.feedback.repliedOn')}: {selectedComment.processed_at && format(new Date(selectedComment.processed_at), "dd/MM/yyyy HH:mm", { locale: dateLocale })}
                           </p>
                         </div>
                       )}
 
                       {!selectedComment?.reply && (
                         <div className="p-4 bg-muted/20 rounded-lg border border-dashed border-border text-center text-sm text-muted-foreground italic">
-                          Aguardando resposta da nossa equipe...
+                          {t('consultant:settings.feedback.awaitingReply')}
                         </div>
                       )}
                     </div>
                     <DialogFooter>
-                      <Button onClick={() => setIsDetailModalOpen(false)}>Fechar</Button>
+                      <Button onClick={() => setIsDetailModalOpen(false)}>{t('common:close')}</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
