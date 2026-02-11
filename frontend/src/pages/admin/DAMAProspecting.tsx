@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, TrendingUp, DollarSign, Users, ArrowRight, Target } from "lucide-react";
+import { Search, TrendingUp, DollarSign, Users, ArrowRight, Target, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
@@ -25,11 +25,14 @@ interface Prospect {
   potential: "high" | "medium" | "low";
 }
 
+const LIMIT_OPTIONS = [5, 10, 20];
+
 const DAMAProspecting = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStage, setFilterStage] = useState<string>("all");
   const [filterPotential, setFilterPotential] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [kpis, setKpis] = useState({
     highPotential: 0,
@@ -45,7 +48,7 @@ const DAMAProspecting = () => {
   });
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 20,
+    limit: 10,
     total: 0,
     totalPages: 0,
   });
@@ -53,9 +56,15 @@ const DAMAProspecting = () => {
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
+  // Reset to page 1 when filters or search change
   useEffect(() => {
-    fetchProspects();
-  }, [searchQuery, filterStage, filterPotential, page]);
+    setPage(1);
+  }, [searchQuery, filterStage, filterPotential]);
+
+  // Reset to page 1 when page size changes
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
 
   const fetchProspects = async () => {
     try {
@@ -65,12 +74,12 @@ const DAMAProspecting = () => {
         stage: filterStage !== "all" ? filterStage : undefined,
         potential: filterPotential !== "all" ? filterPotential : undefined,
         page,
-        limit: 20,
+        limit: pageSize,
       });
       setProspects((data.prospects || []) as Prospect[]);
       setKpis(data.kpis ?? { highPotential: 0, totalNetWorth: 0, avgEngagement: 0, total: 0 });
       setFunnelData(data.funnel ?? { free: 0, basic: 0, pro: 0, consultant: 0 });
-      setPagination(data.pagination ?? { page: 1, limit: 20, total: 0, totalPages: 0 });
+      setPagination(data.pagination ?? { page: 1, limit: pageSize, total: 0, totalPages: 0 });
     } catch (err) {
       console.error("Failed to fetch prospects:", err);
       setProspects([]);
@@ -78,6 +87,12 @@ const DAMAProspecting = () => {
       setLoading(false);
     }
   };
+
+  // Debounced fetch on page, pageSize, search, or filter change
+  useEffect(() => {
+    const timer = setTimeout(() => fetchProspects(), 300);
+    return () => clearTimeout(timer);
+  }, [page, pageSize, searchQuery, filterStage, filterPotential]);
 
   const getStageBadge = (stage: string) => {
     const styles: Record<string, string> = {
@@ -255,28 +270,79 @@ const DAMAProspecting = () => {
             </div>
           )}
 
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-muted-foreground">
-                Página {pagination.page} de {pagination.totalPages}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagination.page <= 1}
-                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setPage((prev) => prev + 1)}
-                >
-                  Próxima
-                </Button>
+          {/* Pagination + page size */}
+          {prospects.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <span className="text-sm text-muted-foreground">
+                    Mostrando {((page - 1) * pagination.limit) + 1}–{Math.min(page * pagination.limit, pagination.total)} de {pagination.total} prospecto{pagination.total !== 1 ? "s" : ""}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="prospects-per-page" className="text-sm text-muted-foreground whitespace-nowrap">
+                      Por página
+                    </label>
+                    <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                      <SelectTrigger id="prospects-per-page" className="h-9 w-[110px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LIMIT_OPTIONS.map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {pagination.totalPages > 1 && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page <= 1 || loading}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    {Array.from({ length: Math.min(5, Math.max(1, pagination.totalPages)) }, (_, i) => {
+                      let pageNum: number;
+                      const totalP = Math.max(1, pagination.totalPages);
+                      if (totalP <= 5) {
+                        pageNum = i + 1;
+                      } else if (page <= 3) {
+                        pageNum = i + 1;
+                      } else if (page >= totalP - 2) {
+                        pageNum = totalP - 4 + i;
+                      } else {
+                        pageNum = page - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={page === pageNum ? "default" : "outline"}
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setPage(pageNum)}
+                          disabled={loading}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setPage((p) => Math.min(Math.max(1, pagination.totalPages), p + 1))}
+                      disabled={page >= Math.max(1, pagination.totalPages) || loading}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}
