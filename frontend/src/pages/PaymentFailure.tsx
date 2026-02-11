@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { XCircle, ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -9,26 +10,27 @@ const PaymentFailure = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { t } = useTranslation(['payment', 'common']);
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
     // Show error message
     const status = searchParams.get("status");
     const statusDetail = searchParams.get("status_detail");
-    
-    let errorMessage = "O pagamento não pôde ser processado.";
+
+    let errorMessage = t('failure.defaultError');
     if (statusDetail) {
-      errorMessage = `Erro: ${statusDetail}`;
+      errorMessage = t('failure.errorPrefix', { detail: statusDetail });
     } else if (status) {
-      errorMessage = `Status: ${status}`;
+      errorMessage = t('failure.statusPrefix', { status });
     }
 
     toast({
-      title: "Pagamento Falhou",
+      title: t('failure.toastTitle'),
       description: errorMessage,
       variant: "destructive",
     });
-  }, [toast, searchParams]);
+  }, [toast, searchParams, t]);
 
   // Separate effect for countdown
   useEffect(() => {
@@ -38,32 +40,32 @@ const PaymentFailure = () => {
         // Redirect to payment page
         const referrer = document.referrer;
         let basePath = '/app';
-        
+
         if (referrer.includes('/consultant')) {
           basePath = '/consultant';
         } else if (referrer.includes('/app')) {
           basePath = '/app';
         }
-        
+
         // Try to get planId from URL params or localStorage
         const preferenceId = searchParams.get("preference_id");
         const planId = searchParams.get("planId") || localStorage.getItem('lastSelectedPlanId');
         const billingPeriod = searchParams.get("billingPeriod") || localStorage.getItem('lastBillingPeriod') || 'monthly';
-        
+
         if (planId) {
           // Redirect to payment page with planId
-          navigate(`${basePath}/payment`, { 
-            state: { 
-              planId, 
-              billingPeriod: billingPeriod as 'monthly' | 'annual' 
-            } 
+          navigate(`${basePath}/payment`, {
+            state: {
+              planId,
+              billingPeriod: billingPeriod as 'monthly' | 'annual'
+            }
           });
         } else {
           // If no planId, redirect to plans page
           navigate(`${basePath}/plans`);
         }
       }, 0);
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [countdown, navigate, searchParams]);
@@ -89,25 +91,25 @@ const PaymentFailure = () => {
     // Try to determine base path from referrer or default to /app
     const referrer = document.referrer;
     let basePath = '/app';
-    
+
     if (referrer.includes('/consultant')) {
       basePath = '/consultant';
     } else if (referrer.includes('/app')) {
       basePath = '/app';
     }
-    
+
     // Try to get planId from URL params or localStorage
     const preferenceId = searchParams.get("preference_id");
     const planId = searchParams.get("planId") || localStorage.getItem('lastSelectedPlanId');
     const billingPeriod = searchParams.get("billingPeriod") || localStorage.getItem('lastBillingPeriod') || 'monthly';
-    
+
     if (planId) {
       // Redirect to payment page with planId
-      navigate(`${basePath}/payment`, { 
-        state: { 
-          planId, 
-          billingPeriod: billingPeriod as 'monthly' | 'annual' 
-        } 
+      navigate(`${basePath}/payment`, {
+        state: {
+          planId,
+          billingPeriod: billingPeriod as 'monthly' | 'annual'
+        }
       });
     } else {
       // If no planId, redirect to plans page
@@ -126,31 +128,31 @@ const PaymentFailure = () => {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
             <XCircle className="h-8 w-8 text-destructive" />
           </div>
-          <CardTitle className="text-2xl">Pagamento Não Aprovado</CardTitle>
+          <CardTitle className="text-2xl">{t('failure.title')}</CardTitle>
           <CardDescription>
-            Não foi possível processar seu pagamento. Por favor, tente novamente.
+            {t('failure.subtitle')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-destructive/10 p-4 text-sm">
             <p className="text-destructive">
-              {searchParams.get("status_detail") || 
-               searchParams.get("status") || 
-               "O pagamento foi recusado ou cancelado."}
+              {searchParams.get("status_detail") ||
+               searchParams.get("status") ||
+               t('failure.declinedOrCancelled')}
             </p>
           </div>
           {countdown > 0 && (
             <div className="text-center text-sm text-muted-foreground">
-              Redirecionando para a página de pagamento em {countdown} segundo{countdown !== 1 ? 's' : ''}...
+              {t('failure.redirecting', { count: countdown })}
             </div>
           )}
           <div className="flex flex-col gap-2">
             <Button onClick={handleRetryPayment} className="w-full">
-              Tentar Novamente Agora
+              {t('failure.retryNow')}
             </Button>
             <Button onClick={handleGoBack} variant="outline" className="w-full">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar
+              {t('failure.goBack')}
             </Button>
           </div>
         </CardContent>

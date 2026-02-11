@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Home, Calculator, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -10,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const UsufructCalculator = () => {
+  const { t } = useTranslation(['calculators', 'common']);
   const [propertyValue, setPropertyValue] = useState<number | "">("");
   const [usufructAge, setUsufructAge] = useState("");
   const [usufructType, setUsufructType] = useState<"temporary" | "lifelong">("lifelong");
@@ -22,8 +24,8 @@ const UsufructCalculator = () => {
 
     if (value <= 0 || age <= 0) {
       toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos corretamente.",
+        title: t('common:error'),
+        description: t('calculators:usufruct.validationError'),
         variant: "destructive",
       });
       return;

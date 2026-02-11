@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -10,6 +11,7 @@ const GoogleAuthCallback = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation(['auth', 'common']);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -21,15 +23,15 @@ const GoogleAuthCallback = () => {
         const error = searchParams.get("error");
 
         if (error) {
-          const errorMessage = searchParams.get("message") || 
-            (error === "access_denied" 
-              ? "Você cancelou a autenticação com Google" 
+          const errorMessage = searchParams.get("message") ||
+            (error === "access_denied"
+              ? t('googleAuth.cancelledAuth')
               : error === "account_pending"
-              ? "Sua conta está aguardando aprovação do administrador"
-              : "Erro ao autenticar com Google. Tente novamente.");
-          
+              ? t('googleAuth.accountPending')
+              : t('googleAuth.genericError'));
+
           toast({
-            title: "Erro na autenticação",
+            title: t('googleAuth.authError'),
             description: errorMessage,
             variant: "destructive",
           });
@@ -41,13 +43,13 @@ const GoogleAuthCallback = () => {
           // Store token in localStorage and API client
           localStorage.setItem("auth_token", token);
           api.setToken(token);
-          
+
           // Fetch user info to get role for redirect
-          const apiBaseUrl = import.meta.env.VITE_API_URL || 
-            (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
-              ? 'http://localhost:5000/api' 
+          const apiBaseUrl = import.meta.env.VITE_API_URL ||
+            (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+              ? 'http://localhost:5000/api'
               : `${window.location.origin}/api`);
-          
+
           const response = await fetch(`${apiBaseUrl}/auth/me`, {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -56,10 +58,10 @@ const GoogleAuthCallback = () => {
 
           if (response.ok) {
             const data = await response.json();
-            
+
             // Update the query cache with the user data
             queryClient.setQueryData(['auth', 'me'], data.user);
-            
+
             // Redirect based on role
             const role = data.user.role;
             if (role === 'admin') {
@@ -75,8 +77,8 @@ const GoogleAuthCallback = () => {
         } else {
           // No token or code, redirect to login
           toast({
-            title: "Erro na autenticação",
-            description: "Não foi possível completar a autenticação. Tente novamente.",
+            title: t('googleAuth.authError'),
+            description: t('googleAuth.couldNotComplete'),
             variant: "destructive",
           });
           navigate("/login");
@@ -84,8 +86,8 @@ const GoogleAuthCallback = () => {
       } catch (error: any) {
         console.error("Google auth callback error:", error);
         toast({
-          title: "Erro na autenticação",
-          description: error?.message || "Erro ao processar autenticação com Google. Tente novamente.",
+          title: t('googleAuth.authError'),
+          description: error?.message || t('googleAuth.processingError'),
           variant: "destructive",
         });
         navigate("/login");
@@ -93,13 +95,13 @@ const GoogleAuthCallback = () => {
     };
 
     handleCallback();
-  }, [searchParams, navigate, toast, queryClient, user]);
+  }, [searchParams, navigate, toast, queryClient, user, t]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="text-center">
         <div className="mb-4 animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-        <p className="text-muted-foreground">Processando autenticação...</p>
+        <p className="text-muted-foreground">{t('googleAuth.processing')}</p>
       </div>
     </div>
   );

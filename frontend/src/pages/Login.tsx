@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const Login = () => {
   const navigate = useNavigate();
   const { loginAsync, isLoggingIn } = useAuth();
+  const { t } = useTranslation(['auth', 'common']);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,37 +23,37 @@ const Login = () => {
 
     try {
       const response = await loginAsync({ email, password });
-      
+
       // Redirect based on user role
       const userRole = response?.user?.role;
       let redirectPath = "/app/dashboard"; // Default to customer dashboard
-      
+
       if (userRole === 'consultant') {
         redirectPath = "/consultant/dashboard";
       } else if (userRole === 'admin') {
         redirectPath = "/admin/dashboard";
       }
-      
+
       navigate(redirectPath);
     } catch (err: any) {
       // Handle approval status errors
       if (err?.approval_status === 'pending') {
-        setError(err?.message || "Sua conta está aguardando aprovação do administrador. Você receberá uma notificação quando sua conta for aprovada.");
+        setError(err?.message || t('login.pendingApproval'));
       } else if (err?.approval_status === 'rejected') {
-        setError(err?.message || "Sua solicitação de registro foi rejeitada. Entre em contato com o suporte para mais informações.");
+        setError(err?.message || t('login.rejected'));
       } else {
-        setError(err?.error || "Erro ao fazer login. Verifique suas credenciais.");
+        setError(err?.error || t('login.loginError'));
       }
     }
   };
 
   const handleGoogleLogin = () => {
     // Google OAuth implementation
-    const apiBaseUrl = import.meta.env.VITE_API_URL || 
-      (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
-        ? 'http://localhost:5000/api' 
+    const apiBaseUrl = import.meta.env.VITE_API_URL ||
+      (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+        ? 'http://localhost:5000/api'
         : `${window.location.origin}/api`);
-    
+
     // Redirect to backend Google OAuth endpoint
     window.location.href = `${apiBaseUrl}/auth/google`;
   };
@@ -61,7 +63,7 @@ const Login = () => {
       {/* Left side - Branding with Financial Capital Background */}
       <div className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-center items-center relative overflow-hidden">
         {/* Background Image */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: 'url(/photo_2026-01-14_17-01-46.jpg)',
@@ -70,28 +72,28 @@ const Login = () => {
           {/* Fallback gradient if image doesn't load */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-teal-700" />
         </div>
-        
+
         {/* Dark overlay for better text contrast */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-black/70" />
-        
+
         {/* Subtle gradient overlay for depth */}
         <div className="absolute inset-0 bg-gradient-to-t from-blue-900/30 via-transparent to-transparent" />
-        
+
         {/* Logo - Always visible at top */}
         <Link to="/" className="absolute top-12 left-12 flex items-center gap-2 relative z-20">
           <span className="font-semibold text-xl text-white drop-shadow-lg">
             zurT
           </span>
         </Link>
-        
+
         {/* Content - Centered */}
         <div className="relative z-10 w-full max-w-lg space-y-6">
           {/* Login Image */}
           <div className="flex justify-center items-center mb-6">
             <div className="relative">
-              <img 
-                src="/register.png" 
-                alt="Login zurT" 
+              <img
+                src="/register.png"
+                alt="Login zurT"
                 className="h-48 md:h-56 lg:h-64 w-auto object-contain drop-shadow-2xl"
                 style={{
                   filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.5))',
@@ -102,7 +104,7 @@ const Login = () => {
                   zIndex: 15,
                 }}
                 onError={(e) => {
-                  console.error('❌ Failed to load register.png image');
+                  console.error('Failed to load register.png image');
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'block';
                   target.style.visibility = 'visible';
@@ -110,44 +112,43 @@ const Login = () => {
                   target.style.zIndex = '15';
                 }}
                 onLoad={(e) => {
-                  console.log('✅ Register image loaded successfully');
                   const target = e.target as HTMLImageElement;
                   target.style.zIndex = '15';
                 }}
               />
             </div>
           </div>
-          
+
           <h1 className="text-4xl font-bold text-white leading-tight drop-shadow-lg text-center">
-            Bem-vindo de volta ao seu centro de comando financeiro
+            {t('login.welcomeBack')}
           </h1>
           <p className="text-white/95 text-lg drop-shadow-md text-center">
-            Acesse todas as suas contas, investimentos e insights em um lugar seguro.
+            {t('login.welcomeDesc')}
           </p>
-          
+
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-lg">
                 <span className="text-white font-semibold text-sm">1</span>
               </div>
-              <span className="text-white/95 font-medium drop-shadow-md">Conecte suas contas</span>
+              <span className="text-white/95 font-medium drop-shadow-md">{t('login.connectAccounts')}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-lg">
                 <span className="text-white font-semibold text-sm">2</span>
               </div>
-              <span className="text-white/95 font-medium drop-shadow-md">Veja sua imagem completa</span>
+              <span className="text-white/95 font-medium drop-shadow-md">{t('login.seeFullPicture')}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-lg">
                 <span className="text-white font-semibold text-sm">3</span>
               </div>
-              <span className="text-white/95 font-medium drop-shadow-md">Tome decisões mais inteligentes</span>
+              <span className="text-white/95 font-medium drop-shadow-md">{t('login.makeSmartDecisions')}</span>
             </div>
           </div>
         </div>
       </div>
-      
+
       {/* Right side - Login Form */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
@@ -159,18 +160,18 @@ const Login = () => {
               </span>
             </Link>
           </div>
-          
+
           <div className="bg-white rounded-lg p-8 border border-gray-200 shadow-lg w-full">
             {/* Title */}
-            <h2 className="text-2xl font-bold text-black mb-6 text-center">Entrar</h2>
-            
+            <h2 className="text-2xl font-bold text-black mb-6 text-center">{t('login.title')}</h2>
+
             {error && (
               <Alert variant="destructive" className="mb-5">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             {/* Google Sign In Button - At the top */}
             <Button
               type="button"
@@ -197,29 +198,29 @@ const Login = () => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Entrar com Google
+              {t('login.signInWithGoogle')}
             </Button>
-            
+
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-black">OU</span>
+                <span className="bg-white px-2 text-black">{t('login.or')}</span>
               </div>
             </div>
-            
+
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-black">Email</Label>
+                <Label htmlFor="email" className="text-black">{t('login.email')}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Endereço de email"
+                    placeholder={t('login.emailAddress')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-white border-gray-300 rounded-lg text-black"
@@ -227,12 +228,12 @@ const Login = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-black">Senha</Label>
+                  <Label htmlFor="password" className="text-black">{t('login.password')}</Label>
                   <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
-                    Esqueceu a senha?
+                    {t('login.forgotPassword')}
                   </Link>
                 </div>
                 <div className="relative">
@@ -240,7 +241,7 @@ const Login = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Senha"
+                    placeholder={t('login.password')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 bg-white border-gray-300 rounded-lg text-black"
@@ -255,22 +256,22 @@ const Login = () => {
                   </button>
                 </div>
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg" 
-                size="lg" 
+
+              <Button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                size="lg"
                 disabled={isLoggingIn}
               >
-                {isLoggingIn ? "Entrando..." : "Entrar"}
+                {isLoggingIn ? t('login.signingIn') : t('login.submit')}
               </Button>
             </form>
-            
+
             <div className="mt-6 text-center">
               <p className="text-sm text-black">
-                Não tem uma conta?{" "}
+                {t('login.noAccount')}{" "}
                 <Link to="/register" className="text-blue-600 font-medium hover:underline">
-                  Crie uma
+                  {t('login.createOne')}
                 </Link>
               </p>
             </div>

@@ -86,6 +86,64 @@
     "walletUnsharedDesc": "{{customerName}} desativou o compartilhamento da carteira.",
     "walletUnsharedDescFallback": "O cliente desativou o compartilhamento da carteira."
   },
+  "preferences": {
+    "title": "Configurações de Notificações",
+    "subtitle": "Configure quais notificações você deseja receber",
+    "cardTitle": "Preferências de Notificação",
+    "cardDesc": "Ative ou desative os tipos de notificação que você deseja receber. Você pode controlar notificações no aplicativo e por e-mail separadamente.",
+    "loadError": "Não foi possível carregar as preferências de notificação.",
+    "couldNotLoadPrefs": "Não foi possível carregar as preferências.",
+    "saveSuccess": "Preferências de notificação salvas com sucesso.",
+    "saveError": "Não foi possível salvar as preferências de notificação.",
+    "saving": "Salvando...",
+    "saveChanges": "Salvar Alterações",
+    "unsaved": "(não salvo)",
+    "enableNotifications": "Ativar notificações",
+    "emailNotifications": "Notificações por e-mail",
+    "inAppNotifications": "Notificações no aplicativo",
+    "types": {
+      "account_activity": {
+        "label": "Atividade da Conta",
+        "description": "Notificações sobre mudanças na sua conta"
+      },
+      "transaction_alert": {
+        "label": "Alertas de Transação",
+        "description": "Notificações sobre transações importantes"
+      },
+      "investment_update": {
+        "label": "Atualizações de Investimentos",
+        "description": "Notificações sobre mudanças nos seus investimentos"
+      },
+      "report_ready": {
+        "label": "Relatórios Prontos",
+        "description": "Notificações quando seus relatórios estiverem prontos"
+      },
+      "message_received": {
+        "label": "Mensagens Recebidas",
+        "description": "Notificações quando você receber mensagens"
+      },
+      "consultant_assignment": {
+        "label": "Atribuição de Consultor",
+        "description": "Notificações sobre atribuições de consultores"
+      },
+      "subscription_update": {
+        "label": "Atualizações de Assinatura",
+        "description": "Notificações sobre mudanças na sua assinatura"
+      },
+      "system_announcement": {
+        "label": "Anúncios do Sistema",
+        "description": "Notificações sobre atualizações e anúncios do sistema"
+      },
+      "goal_milestone": {
+        "label": "Marcos de Metas",
+        "description": "Notificações quando você atingir marcos nas suas metas"
+      },
+      "connection_status": {
+        "label": "Status de Conexão",
+        "description": "Notificações sobre o status das suas conexões bancárias"
+      }
+    }
+  },
   "retry": "Tentar novamente",
   "showing": "Mostrando",
   "to": "a",

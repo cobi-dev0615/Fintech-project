@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckCircle2, XCircle, Clock, RefreshCw, Trash2, Link2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { connectionsApi } from "@/lib/api";
@@ -41,6 +42,7 @@ interface Connection {
 }
 
 const Connections = () => {
+  const { t } = useTranslation(['connections', 'common']);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,8 +105,8 @@ const Connections = () => {
       } catch (err: any) {
         console.error('Error fetching institutions:', err);
         toast({
-          title: "Erro",
-          description: "Erro ao carregar instituições",
+          title: t('common:error'),
+          description: t('connections:toast.loadInstitutionsError'),
           variant: "destructive",
         });
       } finally {
@@ -118,8 +120,8 @@ const Connections = () => {
   const handleCreateConnection = async () => {
     if (!selectedProvider) {
       toast({
-        title: "Erro",
-        description: "Selecione um provedor",
+        title: t('common:error'),
+        description: t('connections:toast.selectProvider'),
         variant: "destructive",
       });
       return;
@@ -163,8 +165,8 @@ const Connections = () => {
                   });
 
                   toast({
-                    title: "Sucesso",
-                    description: "Conexão criada com sucesso! Sincronizando dados...",
+                    title: t('common:success'),
+                    description: t('connections:toast.connectionCreated'),
                   });
 
                   // Refresh connections list
@@ -190,8 +192,8 @@ const Connections = () => {
                 } catch (err: any) {
                   console.error('Error creating connection:', err);
                   toast({
-                    title: "Erro",
-                    description: err?.error || "Erro ao salvar conexão",
+                    title: t('common:error'),
+                    description: err?.error || t('connections:toast.connectionError'),
                     variant: "destructive",
                   });
                 } finally {
@@ -201,8 +203,8 @@ const Connections = () => {
               onError: (error: any) => {
                 console.error('Pluggy Connect error:', error);
                 toast({
-                  title: "Erro",
-                  description: "Erro ao conectar com o banco. Tente novamente.",
+                  title: t('common:error'),
+                  description: t('connections:toast.connectError'),
                   variant: "destructive",
                 });
                 setCreating(false);
@@ -231,8 +233,8 @@ const Connections = () => {
           } catch (widgetError: any) {
             console.error('Error initializing Pluggy widget:', widgetError);
             toast({
-              title: "Erro",
-              description: "Erro ao inicializar widget. Tente novamente.",
+              title: t('common:error'),
+              description: t('connections:toast.widgetInitError'),
               variant: "destructive",
             });
             setCreating(false);
@@ -248,8 +250,8 @@ const Connections = () => {
       } catch (err: any) {
         console.error('Error initializing Pluggy Connect:', err);
         toast({
-          title: "Erro",
-          description: err?.error || "Erro ao inicializar conexão. Certifique-se de que o widget Pluggy está carregado.",
+          title: t('common:error'),
+          description: err?.error || t('connections:toast.initConnectionError'),
           variant: "destructive",
         });
         setCreating(false);
@@ -257,8 +259,8 @@ const Connections = () => {
     } else {
       // For B3, use the old flow (if needed)
       toast({
-        title: "Em breve",
-        description: "Conexão B3 será implementada em breve",
+        title: t('connections:b3.comingSoon'),
+        description: t('connections:b3.comingSoonDesc'),
         variant: "default",
       });
     }
@@ -285,8 +287,8 @@ const Connections = () => {
       await connectionsApi.delete(connectionToDelete.id);
 
       toast({
-        title: "Sucesso",
-        description: "Conexão excluída com sucesso",
+        title: t('common:success'),
+        description: t('connections:toast.deleteSuccess'),
       });
 
       // Refresh connections list
@@ -309,8 +311,8 @@ const Connections = () => {
     } catch (err: any) {
       console.error('Error deleting connection:', err);
       toast({
-        title: "Erro",
-        description: err?.error || "Erro ao excluir conexão",
+        title: t('common:error'),
+        description: err?.error || t('connections:toast.deleteError'),
         variant: "destructive",
       });
     } finally {
@@ -457,8 +459,8 @@ const Connections = () => {
                     try {
                       await connectionsApi.sync(connection.id);
                       toast({
-                        title: "Sucesso",
-                        description: "Conexão sincronizada com sucesso",
+                        title: t('common:success'),
+                        description: t('connections:toast.syncSuccess'),
                       });
                       // Refresh connections
                       const data = await connectionsApi.getAll();
@@ -476,8 +478,8 @@ const Connections = () => {
                       setConnections(mappedConnections);
                     } catch (err: any) {
                       toast({
-                        title: "Erro",
-                        description: err?.error || "Erro ao sincronizar conexão",
+                        title: t('common:error'),
+                        description: err?.error || t('connections:toast.syncError'),
                         variant: "destructive",
                       });
                     }

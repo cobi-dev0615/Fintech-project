@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Calculator, TrendingUp, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -10,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const ProfitabilitySimulator = () => {
+  const { t } = useTranslation(['calculators', 'common']);
   const [initialAmount, setInitialAmount] = useState<number | "">("");
   const [scenarios, setScenarios] = useState([
     { name: "Conservador", rate: "6", color: "#10b981" },
@@ -26,8 +28,8 @@ const ProfitabilitySimulator = () => {
 
     if (principal <= 0 || years <= 0) {
       toast({
-        title: "Erro",
-        description: "Por favor, preencha os valores corretamente.",
+        title: t('common:error'),
+        description: t('calculators:profitability.validationError'),
         variant: "destructive",
       });
       return;

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Coins, Calculator, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const ITCMDCalculator = () => {
+  const { t } = useTranslation(['calculators', 'common']);
   const [propertyValue, setPropertyValue] = useState<number | "">("");
   const [state, setState] = useState("SP");
   const [transactionType, setTransactionType] = useState<"inheritance" | "donation">("inheritance");
@@ -34,8 +36,8 @@ const ITCMDCalculator = () => {
 
     if (value <= 0) {
       toast({
-        title: "Erro",
-        description: "Por favor, informe o valor do bem.",
+        title: t('common:error'),
+        description: t('calculators:itcmd.validationError'),
         variant: "destructive",
       });
       return;

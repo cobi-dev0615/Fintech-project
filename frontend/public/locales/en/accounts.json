@@ -34,6 +34,10 @@
     "noOpenFinanceAssetsDesc": "Connect your accounts in Connections to see balances and investments here.",
     "liquidityAccounts": "Liquidity (Accounts)",
     "debtCards": "Debt (Cards)",
-    "othersMore": "+ {{count}} others"
+    "othersMore": "+ {{count}} others",
+    "accountCountOF": "{{count}} account(s) • Open Finance",
+    "assetCountOF": "{{count}} asset(s) • Open Finance",
+    "investmentFallback": "Investment",
+    "accountFallback": "Account"
   }
 }

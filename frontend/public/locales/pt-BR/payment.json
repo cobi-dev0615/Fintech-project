@@ -34,5 +34,33 @@
   "redirectingDesc": "Você será redirecionado para o Mercado Pago para finalizar o pagamento.",
   "successTitle": "Sucesso!",
   "successDesc": "Plano {{name}} ativado com sucesso!",
-  "paymentError": "Falha ao processar pagamento"
+  "paymentError": "Falha ao processar pagamento",
+  "approved": {
+    "toastTitle": "Pagamento Aprovado!",
+    "toastDesc": "Seu pagamento foi processado com sucesso.",
+    "title": "Pagamento Aprovado!",
+    "subtitle": "Seu pagamento foi processado com sucesso. Sua assinatura está ativa.",
+    "emailConfirmation": "Você receberá um e-mail de confirmação em breve. Obrigado pela sua compra!",
+    "goToDashboard": "Ir para o Dashboard"
+  },
+  "pending": {
+    "toastTitle": "Pagamento Pendente",
+    "toastDesc": "Seu pagamento está sendo processado. Você receberá uma notificação quando for aprovado.",
+    "title": "Pagamento Pendente",
+    "subtitle": "Seu pagamento está sendo processado. Aguarde a confirmação.",
+    "emailNotification": "Você receberá uma notificação por e-mail quando o pagamento for aprovado. Isso pode levar alguns minutos.",
+    "goToDashboard": "Ir para o Dashboard"
+  },
+  "failure": {
+    "toastTitle": "Pagamento Falhou",
+    "defaultError": "O pagamento não pôde ser processado.",
+    "errorPrefix": "Erro: {{detail}}",
+    "statusPrefix": "Status: {{status}}",
+    "title": "Pagamento Não Aprovado",
+    "subtitle": "Não foi possível processar seu pagamento. Por favor, tente novamente.",
+    "declinedOrCancelled": "O pagamento foi recusado ou cancelado.",
+    "redirecting": "Redirecionando para a página de pagamento em {{count}} segundo(s)...",
+    "retryNow": "Tentar Novamente Agora",
+    "goBack": "Voltar"
+  }
 }

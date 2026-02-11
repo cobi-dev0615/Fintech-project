@@ -34,5 +34,33 @@
   "redirectingDesc": "You will be redirected to Mercado Pago to complete the payment.",
   "successTitle": "Success!",
   "successDesc": "Plan {{name}} activated successfully!",
-  "paymentError": "Failed to process payment"
+  "paymentError": "Failed to process payment",
+  "approved": {
+    "toastTitle": "Payment Approved!",
+    "toastDesc": "Your payment was processed successfully.",
+    "title": "Payment Approved!",
+    "subtitle": "Your payment was processed successfully. Your subscription is active.",
+    "emailConfirmation": "You will receive a confirmation email shortly. Thank you for your purchase!",
+    "goToDashboard": "Go to Dashboard"
+  },
+  "pending": {
+    "toastTitle": "Payment Pending",
+    "toastDesc": "Your payment is being processed. You will receive a notification when it is approved.",
+    "title": "Payment Pending",
+    "subtitle": "Your payment is being processed. Please wait for confirmation.",
+    "emailNotification": "You will receive an email notification when the payment is approved. This may take a few minutes.",
+    "goToDashboard": "Go to Dashboard"
+  },
+  "failure": {
+    "toastTitle": "Payment Failed",
+    "defaultError": "Payment could not be processed.",
+    "errorPrefix": "Error: {{detail}}",
+    "statusPrefix": "Status: {{status}}",
+    "title": "Payment Not Approved",
+    "subtitle": "Could not process your payment. Please try again.",
+    "declinedOrCancelled": "Payment was declined or cancelled.",
+    "redirecting": "Redirecting to payment page in {{count}} second(s)...",
+    "retryNow": "Retry Now",
+    "goBack": "Back"
+  }
 }

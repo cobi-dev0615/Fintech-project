@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bell, Mail, Smartphone, Save } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -9,7 +10,7 @@ import { notificationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type NotificationType = 
+type NotificationType =
   | 'account_activity'
   | 'transaction_alert'
   | 'investment_update'
@@ -27,50 +28,21 @@ interface NotificationPreference {
   pushEnabled: boolean;
 }
 
-const notificationTypeLabels: Record<NotificationType, { label: string; description: string }> = {
-  account_activity: {
-    label: 'Atividade da Conta',
-    description: 'Notificações sobre mudanças na sua conta',
-  },
-  transaction_alert: {
-    label: 'Alertas de Transação',
-    description: 'Notificações sobre transações importantes',
-  },
-  investment_update: {
-    label: 'Atualizações de Investimentos',
-    description: 'Notificações sobre mudanças nos seus investimentos',
-  },
-  report_ready: {
-    label: 'Relatórios Prontos',
-    description: 'Notificações quando seus relatórios estiverem prontos',
-  },
-  message_received: {
-    label: 'Mensagens Recebidas',
-    description: 'Notificações quando você receber mensagens',
-  },
-  consultant_assignment: {
-    label: 'Atribuição de Consultor',
-    description: 'Notificações sobre atribuições de consultores',
-  },
-  subscription_update: {
-    label: 'Atualizações de Assinatura',
-    description: 'Notificações sobre mudanças na sua assinatura',
-  },
-  system_announcement: {
-    label: 'Anúncios do Sistema',
-    description: 'Notificações sobre atualizações e anúncios do sistema',
-  },
-  goal_milestone: {
-    label: 'Marcos de Metas',
-    description: 'Notificações quando você atingir marcos nas suas metas',
-  },
-  connection_status: {
-    label: 'Status de Conexão',
-    description: 'Notificações sobre o status das suas conexões bancárias',
-  },
-};
+const notificationTypeKeys: NotificationType[] = [
+  'account_activity',
+  'transaction_alert',
+  'investment_update',
+  'report_ready',
+  'message_received',
+  'consultant_assignment',
+  'subscription_update',
+  'system_announcement',
+  'goal_milestone',
+  'connection_status',
+];
 
 export default function NotificationSettings() {
+  const { t } = useTranslation(['notifications', 'common']);
   const [preferences, setPreferences] = useState<Record<NotificationType, NotificationPreference>>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -88,8 +60,8 @@ export default function NotificationSettings() {
       setPreferences(response.preferences as Record<NotificationType, NotificationPreference>);
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar as preferências de notificação.",
+        title: t('common:error'),
+        description: t('notifications:preferences.loadError'),
         variant: "destructive",
       });
     } finally {
@@ -132,13 +104,13 @@ export default function NotificationSettings() {
       setChangedTypes(new Set());
 
       toast({
-        title: "Sucesso",
-        description: "Preferências de notificação salvas com sucesso.",
+        title: t('common:success'),
+        description: t('notifications:preferences.saveSuccess'),
       });
     } catch (error: any) {
       toast({
-        title: "Erro",
-        description: "Não foi possível salvar as preferências de notificação.",
+        title: t('common:error'),
+        description: t('notifications:preferences.saveError'),
         variant: "destructive",
       });
     } finally {
@@ -150,9 +122,9 @@ export default function NotificationSettings() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Configurações de Notificações</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('notifications:preferences.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Configure quais notificações você deseja receber
+            {t('notifications:preferences.subtitle')}
           </p>
         </div>
         <Card>
@@ -174,51 +146,49 @@ export default function NotificationSettings() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Configurações de Notificações</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('notifications:preferences.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Configure quais notificações você deseja receber
+            {t('notifications:preferences.subtitle')}
           </p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <p className="text-muted-foreground">Não foi possível carregar as preferências.</p>
+            <p className="text-muted-foreground">{t('notifications:preferences.couldNotLoadPrefs')}</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const notificationTypes = Object.keys(notificationTypeLabels) as NotificationType[];
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Configurações de Notificações</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('notifications:preferences.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            Configure quais notificações você deseja receber
+            {t('notifications:preferences.subtitle')}
           </p>
         </div>
         {changedTypes.size > 0 && (
           <Button onClick={savePreferences} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Salvando...' : 'Salvar Alterações'}
+            {saving ? t('notifications:preferences.saving') : t('notifications:preferences.saveChanges')}
           </Button>
         )}
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Preferências de Notificação</CardTitle>
+          <CardTitle>{t('notifications:preferences.cardTitle')}</CardTitle>
           <CardDescription>
-            Ative ou desative os tipos de notificação que você deseja receber. Você pode controlar
-            notificações no aplicativo e por e-mail separadamente.
+            {t('notifications:preferences.cardDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {notificationTypes.map((type, index) => {
+          {notificationTypeKeys.map((type, index) => {
             const pref = preferences[type];
-            const { label, description } = notificationTypeLabels[type];
+            const label = t(`notifications:preferences.types.${type}.label`);
+            const description = t(`notifications:preferences.types.${type}.description`);
             const hasChanges = changedTypes.has(type);
 
             return (
@@ -230,7 +200,7 @@ export default function NotificationSettings() {
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold">{label}</h3>
                         {hasChanges && (
-                          <span className="text-xs text-primary font-medium">(não salvo)</span>
+                          <span className="text-xs text-primary font-medium">{t('notifications:preferences.unsaved')}</span>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">{description}</p>
@@ -243,7 +213,7 @@ export default function NotificationSettings() {
                       <div className="flex items-center gap-2">
                         <Bell className="h-4 w-4 text-muted-foreground" />
                         <Label htmlFor={`${type}-enabled`} className="cursor-pointer">
-                          Ativar notificações
+                          {t('notifications:preferences.enableNotifications')}
                         </Label>
                       </div>
                       <Switch
@@ -258,7 +228,7 @@ export default function NotificationSettings() {
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <Label htmlFor={`${type}-email`} className="cursor-pointer">
-                          Notificações por e-mail
+                          {t('notifications:preferences.emailNotifications')}
                         </Label>
                       </div>
                       <Switch
@@ -274,7 +244,7 @@ export default function NotificationSettings() {
                       <div className="flex items-center gap-2">
                         <Smartphone className="h-4 w-4 text-muted-foreground" />
                         <Label htmlFor={`${type}-push`} className="cursor-pointer">
-                          Notificações no aplicativo
+                          {t('notifications:preferences.inAppNotifications')}
                         </Label>
                       </div>
                       <Switch

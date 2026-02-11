@@ -39,6 +39,19 @@
       "revoked": "Revogado"
     }
   },
+  "toast": {
+    "loadInstitutionsError": "Erro ao carregar instituições",
+    "selectProvider": "Selecione um provedor",
+    "connectionCreated": "Conexão criada com sucesso! Sincronizando dados...",
+    "connectionError": "Erro ao salvar conexão",
+    "connectError": "Erro ao conectar com o banco. Tente novamente.",
+    "widgetInitError": "Erro ao inicializar widget. Tente novamente.",
+    "initConnectionError": "Erro ao inicializar conexão. Certifique-se de que o widget Pluggy está carregado.",
+    "deleteSuccess": "Conexão excluída com sucesso",
+    "deleteError": "Erro ao excluir conexão",
+    "syncSuccess": "Conexão sincronizada com sucesso",
+    "syncError": "Erro ao sincronizar conexão"
+  },
   "b3": {
     "title": "B3",
     "subtitle": "Conecte sua conta da B3 para visualizar seus investimentos",

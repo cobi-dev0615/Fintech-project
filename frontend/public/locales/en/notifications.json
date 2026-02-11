@@ -86,6 +86,64 @@
     "walletUnsharedDesc": "{{customerName}} disabled wallet sharing.",
     "walletUnsharedDescFallback": "Customer disabled wallet sharing."
   },
+  "preferences": {
+    "title": "Notification Settings",
+    "subtitle": "Configure which notifications you want to receive",
+    "cardTitle": "Notification Preferences",
+    "cardDesc": "Enable or disable the types of notifications you want to receive. You can control in-app and email notifications separately.",
+    "loadError": "Could not load notification preferences.",
+    "couldNotLoadPrefs": "Could not load preferences.",
+    "saveSuccess": "Notification preferences saved successfully.",
+    "saveError": "Could not save notification preferences.",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes",
+    "unsaved": "(unsaved)",
+    "enableNotifications": "Enable notifications",
+    "emailNotifications": "Email notifications",
+    "inAppNotifications": "In-app notifications",
+    "types": {
+      "account_activity": {
+        "label": "Account Activity",
+        "description": "Notifications about changes to your account"
+      },
+      "transaction_alert": {
+        "label": "Transaction Alerts",
+        "description": "Notifications about important transactions"
+      },
+      "investment_update": {
+        "label": "Investment Updates",
+        "description": "Notifications about changes to your investments"
+      },
+      "report_ready": {
+        "label": "Reports Ready",
+        "description": "Notifications when your reports are ready"
+      },
+      "message_received": {
+        "label": "Messages Received",
+        "description": "Notifications when you receive messages"
+      },
+      "consultant_assignment": {
+        "label": "Consultant Assignment",
+        "description": "Notifications about consultant assignments"
+      },
+      "subscription_update": {
+        "label": "Subscription Updates",
+        "description": "Notifications about changes to your subscription"
+      },
+      "system_announcement": {
+        "label": "System Announcements",
+        "description": "Notifications about system updates and announcements"
+      },
+      "goal_milestone": {
+        "label": "Goal Milestones",
+        "description": "Notifications when you reach milestones in your goals"
+      },
+      "connection_status": {
+        "label": "Connection Status",
+        "description": "Notifications about the status of your bank connections"
+      }
+    }
+  },
   "retry": "Try again",
   "showing": "Showing",
   "to": "to",

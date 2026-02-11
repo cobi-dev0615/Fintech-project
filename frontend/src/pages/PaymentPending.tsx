@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -8,15 +9,16 @@ import { useToast } from "@/hooks/use-toast";
 const PaymentPending = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation(['payment', 'common']);
 
   useEffect(() => {
     // Show pending message
     toast({
-      title: "Pagamento Pendente",
-      description: "Seu pagamento está sendo processado. Você receberá uma notificação quando for aprovado.",
+      title: t('pending.toastTitle'),
+      description: t('pending.toastDesc'),
       variant: "default",
     });
-  }, [toast]);
+  }, [toast, t]);
 
   const handleGoToDashboard = () => {
     const basePath = location.pathname.startsWith('/consultant') ? '/consultant' : '/app';
@@ -30,20 +32,19 @@ const PaymentPending = () => {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-warning/10">
             <Clock className="h-8 w-8 text-warning" />
           </div>
-          <CardTitle className="text-2xl">Pagamento Pendente</CardTitle>
+          <CardTitle className="text-2xl">{t('pending.title')}</CardTitle>
           <CardDescription>
-            Seu pagamento está sendo processado. Aguarde a confirmação.
+            {t('pending.subtitle')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-muted/50 p-4 text-sm">
             <p className="text-muted-foreground">
-              Você receberá uma notificação por e-mail quando o pagamento for aprovado. 
-              Isso pode levar alguns minutos.
+              {t('pending.emailNotification')}
             </p>
           </div>
           <Button onClick={handleGoToDashboard} className="w-full">
-            Ir para o Dashboard
+            {t('pending.goToDashboard')}
           </Button>
         </CardContent>
       </Card>

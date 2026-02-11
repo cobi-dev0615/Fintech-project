@@ -34,6 +34,10 @@
     "noOpenFinanceAssetsDesc": "Conecte suas contas em Conexões para ver saldos e investimentos aqui.",
     "liquidityAccounts": "Liquidez (Contas)",
     "debtCards": "Dívida (Cartões)",
-    "othersMore": "+ {{count}} outros"
+    "othersMore": "+ {{count}} outros",
+    "accountCountOF": "{{count}} conta(s) • Open Finance",
+    "assetCountOF": "{{count}} ativo(s) • Open Finance",
+    "investmentFallback": "Investimento",
+    "accountFallback": "Conta"
   }
 }

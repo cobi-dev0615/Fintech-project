@@ -39,6 +39,19 @@
       "revoked": "Revoked"
     }
   },
+  "toast": {
+    "loadInstitutionsError": "Error loading institutions",
+    "selectProvider": "Please select a provider",
+    "connectionCreated": "Connection created successfully! Syncing data...",
+    "connectionError": "Error saving connection",
+    "connectError": "Error connecting to bank. Please try again.",
+    "widgetInitError": "Error initializing widget. Please try again.",
+    "initConnectionError": "Error initializing connection. Make sure the Pluggy widget is loaded.",
+    "deleteSuccess": "Connection deleted successfully",
+    "deleteError": "Error deleting connection",
+    "syncSuccess": "Connection synced successfully",
+    "syncError": "Error syncing connection"
+  },
   "b3": {
     "title": "B3",
     "subtitle": "Connect your B3 account to view your investments",

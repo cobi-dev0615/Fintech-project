@@ -1,21 +1,23 @@
 import { useState, useEffect, useMemo } from "react";
 import { LayoutDashboard, Wallet, TrendingUp, CreditCard, RefreshCw, Building2, ChevronDown, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { financeApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  PieChart as RechartsPieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
-  Tooltip, 
+import {
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
   Legend,
   Label
 } from "recharts";
 
 const Assets = () => {
+  const { t } = useTranslation(['accounts', 'common']);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -80,14 +82,14 @@ const Assets = () => {
       await financeApi.sync();
       await fetchData();
       toast({
-        title: "Sincronização concluída",
-        description: "Seus ativos foram atualizados com sucesso.",
+        title: t('common:syncComplete'),
+        description: t('accounts:assets.syncSuccess'),
         variant: "success",
       });
     } catch (err: any) {
       toast({
-        title: "Erro na sincronização",
-        description: err?.error || "Não foi possível sincronizar os dados.",
+        title: t('common:syncError'),
+        description: err?.error || t('common:syncErrorDesc'),
         variant: "destructive",
       });
     } finally {
@@ -101,14 +103,14 @@ const Assets = () => {
   const accountsByBank = useMemo(() => {
     const map = new Map<string, { accounts: any[]; total: number }>();
     (data.accounts || []).forEach((acc: any) => {
-      const bank = acc.institution_name || "Outros";
+      const bank = acc.institution_name || t('common:others');
       if (!map.has(bank)) map.set(bank, { accounts: [], total: 0 });
       const entry = map.get(bank)!;
       entry.accounts.push(acc);
       entry.total += parseFloat(acc.current_balance || 0);
     });
     return Array.from(map.entries()).map(([name, { accounts, total }]) => ({ name, accounts, total }));
-  }, [data.accounts]);
+  }, [data.accounts, t]);
 
   const toggleBank = (bankName: string) => {
     setExpandedBanks((prev) => {
@@ -120,10 +122,10 @@ const Assets = () => {
   };
 
   const allocationData = [
-    { name: "Liquidez (Contas)", value: data.totalBalance, color: "#3b82f6" },
-    { name: "Investimentos", value: data.totalInvestments, color: "#10b981" },
+    { name: t('assets.liquidityAccounts'), value: data.totalBalance, color: "#3b82f6" },
+    { name: t('assets.investmentsLabel'), value: data.totalInvestments, color: "#10b981" },
     ...(data.totalCardDebt > 0
-      ? [{ name: "Dívida (Cartões)", value: data.totalCardDebt, color: "#ef4444" }]
+      ? [{ name: t('assets.debtCards'), value: data.totalCardDebt, color: "#ef4444" }]
       : []),
   ].filter((item) => item.value > 0);
 
@@ -139,9 +141,9 @@ const Assets = () => {
     <div className="space-y-6 min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Meus Ativos</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('assets.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Dados do Open Finance — visão consolidada do seu patrimônio
+            {t('assets.subtitle')}
           </p>
         </div>
         <Button
@@ -152,65 +154,65 @@ const Assets = () => {
           className="shrink-0"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Sincronizando…" : "Atualizar"}
+          {syncing ? t('common:syncing') : t('common:sync')}
         </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
         <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow">
           <ProfessionalKpiCard
-            title="Patrimônio Líquido"
+            title={t('assets.netWorth')}
             value={`R$ ${netWorth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
             icon={LayoutDashboard}
             iconClassName="text-emerald-600 dark:text-emerald-400"
             changeType="neutral"
             change=""
-            subtitle="Contas + Investimentos − Cartões"
+            subtitle={t('assets.netWorthSubtitle')}
           />
         </div>
         <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
           <ProfessionalKpiCard
-            title="Disponível"
+            title={t('assets.available')}
             value={`R$ ${data.totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
             icon={Wallet}
             iconClassName="text-blue-600 dark:text-blue-400"
             changeType="neutral"
             change=""
-            subtitle="Saldos em conta (Open Finance)"
+            subtitle={t('assets.availableSubtitle')}
           />
         </div>
         <div className="rounded-xl border-2 border-violet-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow">
           <ProfessionalKpiCard
-            title="Investido"
+            title={t('assets.invested')}
             value={`R$ ${data.totalInvestments.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
             icon={TrendingUp}
             iconClassName="text-violet-600 dark:text-violet-400"
             changeType="neutral"
             change=""
-            subtitle="Renda fixa, fundos e outros"
+            subtitle={t('assets.investedSubtitle')}
           />
         </div>
         <div className="rounded-xl border-2 border-amber-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-shadow">
           <ProfessionalKpiCard
-            title="Dívida em cartões"
+            title={t('assets.cardDebt')}
             value={`R$ ${data.totalCardDebt.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
             icon={CreditCard}
             iconClassName="text-amber-600 dark:text-amber-400"
             changeType="neutral"
             change=""
-            subtitle="Faturas em aberto"
+            subtitle={t('assets.cardDebtSubtitle')}
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Distribuição de Patrimônio" subtitle={allocationData.length === 0 ? "Conecte contas em Conexões para ver o gráfico" : undefined}>
+        <ChartCard title={t('assets.wealthDistribution')} subtitle={allocationData.length === 0 ? t('assets.connectToSeeChart') : undefined}>
           <div className="h-[400px]">
             {allocationData.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground">
                 <LayoutDashboard className="h-12 w-12 opacity-50 mb-2" />
-                <p className="text-sm font-medium text-foreground">Sem dados para exibir</p>
-                <p className="text-xs mt-1">Patrimônio, liquidez e dívidas aparecerão aqui.</p>
+                <p className="text-sm font-medium text-foreground">{t('common:noData')}</p>
+                <p className="text-xs mt-1">{t('assets.noDataDesc')}</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -235,7 +237,7 @@ const Assets = () => {
                         return (
                           <g>
                             <text x={cx} y={cy - 8} textAnchor="middle" fill="#ffffff" className="text-sm font-medium">
-                              Patrimônio
+                              {t('assets.patrimony')}
                             </text>
                             <text x={cx} y={cy + 10} textAnchor="middle" fill="#ffffff" className="text-lg font-bold">
                               R$ {netWorth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -245,7 +247,7 @@ const Assets = () => {
                       }}
                     />
                   </Pie>
-                  <Tooltip 
+                  <Tooltip
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
                       const value = payload[0]?.value as number;
@@ -273,7 +275,7 @@ const Assets = () => {
           </div>
         </ChartCard>
 
-        <ChartCard title="Resumo por Ativo (Open Finance)" subtitle={data.accounts.length === 0 && data.investments.length === 0 ? "Conecte contas em Conexões" : undefined}>
+        <ChartCard title={t('assets.assetSummary')} subtitle={data.accounts.length === 0 && data.investments.length === 0 ? t('assets.connectAccounts') : undefined}>
           <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1 assets-scrollbar">
             {data.accounts.length > 0 && (
               <div className="space-y-2">
@@ -283,8 +285,8 @@ const Assets = () => {
                       <Wallet className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium text-foreground">Contas Bancárias</p>
-                      <p className="text-xs text-muted-foreground">{data.accounts.length} conta(s) • Open Finance</p>
+                      <p className="font-medium text-foreground">{t('assets.bankAccounts')}</p>
+                      <p className="text-xs text-muted-foreground">{t('assets.accountCountOF', { count: data.accounts.length })}</p>
                     </div>
                   </div>
                   <p className="font-semibold text-foreground tabular-nums shrink-0">R$ {data.totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
@@ -306,7 +308,7 @@ const Assets = () => {
                           )}
                           <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
                           <span className="text-sm font-medium text-foreground truncate">{bankName}</span>
-                          <span className="text-xs text-muted-foreground shrink-0">{bankAccounts.length} conta(s)</span>
+                          <span className="text-xs text-muted-foreground shrink-0">{t('common:accountCount', { count: bankAccounts.length })}</span>
                         </div>
                         <span className="text-sm font-medium tabular-nums shrink-0">R$ {bankTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                       </button>
@@ -315,7 +317,7 @@ const Assets = () => {
                           {bankAccounts.map((acc: any) => (
                             <div key={acc.id || acc.pluggy_account_id} className="flex items-center justify-between gap-2 pl-8 pr-3 py-2 bg-muted/5 min-w-0">
                               <span className="text-sm truncate text-muted-foreground">
-                                {acc.name && acc.name !== (acc.institution_name || "") ? acc.name : "Conta"}
+                                {acc.name && acc.name !== (acc.institution_name || "") ? acc.name : t('assets.accountFallback')}
                               </span>
                               <span className="text-sm font-medium tabular-nums shrink-0">R$ {parseFloat(acc.current_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                             </div>
@@ -336,20 +338,20 @@ const Assets = () => {
                       <TrendingUp className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-medium">Investimentos</p>
-                      <p className="text-xs text-muted-foreground">{data.investments.length} ativo(s) • Open Finance</p>
+                      <p className="font-medium">{t('assets.investmentsLabel')}</p>
+                      <p className="text-xs text-muted-foreground">{t('assets.assetCountOF', { count: data.investments.length })}</p>
                     </div>
                   </div>
                   <p className="font-semibold text-foreground">R$ {data.totalInvestments.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                 </div>
                 {data.investments.slice(0, 8).map((inv: any) => (
                   <div key={inv.id || inv.pluggy_investment_id} className="flex items-center justify-between pl-4 pr-3 py-2 rounded-lg bg-muted/10 border border-border/50">
-                    <div className="text-sm">{inv.name || inv.type || "Investimento"}</div>
+                    <div className="text-sm">{inv.name || inv.type || t('assets.investmentFallback')}</div>
                     <span className="text-sm font-medium">R$ {parseFloat(inv.current_value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                   </div>
                 ))}
                 {data.investments.length > 8 && (
-                  <p className="text-xs text-muted-foreground pl-4">+ {data.investments.length - 8} outros</p>
+                  <p className="text-xs text-muted-foreground pl-4">{t('assets.othersMore', { count: data.investments.length - 8 })}</p>
                 )}
               </div>
             )}
@@ -362,8 +364,8 @@ const Assets = () => {
                       <CreditCard className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-medium">Cartões de crédito</p>
-                      <p className="text-xs text-muted-foreground">Faturas em aberto</p>
+                      <p className="font-medium">{t('assets.creditCards')}</p>
+                      <p className="text-xs text-muted-foreground">{t('assets.openInvoices')}</p>
                     </div>
                   </div>
                   <p className="font-semibold text-destructive">R$ {data.totalCardDebt.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
@@ -376,9 +378,9 @@ const Assets = () => {
                 <div className="rounded-full bg-muted/50 p-4 mb-3">
                   <Wallet className="h-10 w-10 text-muted-foreground" />
                 </div>
-                <p className="font-medium text-foreground">Nenhum ativo do Open Finance</p>
+                <p className="font-medium text-foreground">{t('assets.noOpenFinanceAssets')}</p>
                 <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                  Conecte suas contas em Conexões para ver saldos e investimentos aqui.
+                  {t('assets.noOpenFinanceAssetsDesc')}
                 </p>
               </div>
             )}

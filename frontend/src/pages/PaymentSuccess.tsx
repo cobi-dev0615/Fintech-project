@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -9,19 +10,20 @@ const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { t } = useTranslation(['payment', 'common']);
 
   useEffect(() => {
     // Clear stored plan info after successful payment
     localStorage.removeItem('lastSelectedPlanId');
     localStorage.removeItem('lastBillingPeriod');
-    
+
     // Show success message
     toast({
-      title: "Pagamento Aprovado!",
-      description: "Seu pagamento foi processado com sucesso.",
+      title: t('approved.toastTitle'),
+      description: t('approved.toastDesc'),
       variant: "default",
     });
-  }, [toast]);
+  }, [toast, t]);
 
   const handleGoToDashboard = () => {
     const basePath = location.pathname.startsWith('/consultant') ? '/consultant' : '/app';
@@ -35,19 +37,19 @@ const PaymentSuccess = () => {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
             <CheckCircle2 className="h-8 w-8 text-success" />
           </div>
-          <CardTitle className="text-2xl">Pagamento Aprovado!</CardTitle>
+          <CardTitle className="text-2xl">{t('approved.title')}</CardTitle>
           <CardDescription>
-            Seu pagamento foi processado com sucesso. Sua assinatura está ativa.
+            {t('approved.subtitle')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-muted/50 p-4 text-sm">
             <p className="text-muted-foreground">
-              Você receberá um e-mail de confirmação em breve. Obrigado pela sua compra!
+              {t('approved.emailConfirmation')}
             </p>
           </div>
           <Button onClick={handleGoToDashboard} className="w-full">
-            Ir para o Dashboard
+            {t('approved.goToDashboard')}
           </Button>
         </CardContent>
       </Card>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, UserCheck } from "lucide-react";
+import { useTranslation, Trans } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,7 @@ const Register = () => {
   const [searchParams] = useSearchParams();
   const refToken = searchParams.get("ref") || undefined;
   const { registerAsync, isRegistering } = useAuth();
+  const { t } = useTranslation(['auth', 'common']);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState("");
@@ -43,12 +45,12 @@ const Register = () => {
     setError(null);
 
     if (!acceptTerms) {
-      setError("Você precisa aceitar os termos de serviço");
+      setError(t('register.acceptTermsError'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("As senhas não coincidem");
+      setError(t('register.passwordsMismatch'));
       return;
     }
 
@@ -59,8 +61,8 @@ const Register = () => {
         setError(null);
         toast({
           variant: "success",
-          title: "Registro realizado com sucesso!",
-          description: "Sua conta está aguardando aprovação do administrador. Você receberá uma notificação quando sua conta for aprovada.",
+          title: t('register.successTitle'),
+          description: t('register.successDesc'),
         });
         navigate("/login");
         return;
@@ -70,17 +72,17 @@ const Register = () => {
       const redirectPath = userRole === 'consultant' ? "/consultant/dashboard" : "/app/dashboard";
       navigate(redirectPath);
     } catch (err: any) {
-      setError(err?.error || "Erro ao criar conta. Tente novamente.");
+      setError(err?.error || t('register.createError'));
     }
   };
 
   const handleGoogleSignUp = () => {
     // Google OAuth implementation
-    const apiBaseUrl = import.meta.env.VITE_API_URL || 
-      (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
-        ? 'http://localhost:5000/api' 
+    const apiBaseUrl = import.meta.env.VITE_API_URL ||
+      (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+        ? 'http://localhost:5000/api'
         : `${window.location.origin}/api`);
-    
+
     // Redirect to backend Google OAuth endpoint
     window.location.href = `${apiBaseUrl}/auth/google`;
   };
@@ -90,7 +92,7 @@ const Register = () => {
       {/* Left side - Branding with Financial Capital Background */}
       <div className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-center items-center relative overflow-hidden">
         {/* Background Image */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: 'url(/photo_2026-01-14_17-01-46.jpg)',
@@ -99,28 +101,28 @@ const Register = () => {
           {/* Fallback gradient if image doesn't load */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-teal-700" />
         </div>
-        
+
         {/* Dark overlay for better text contrast */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-black/70" />
-        
+
         {/* Subtle gradient overlay for depth */}
         <div className="absolute inset-0 bg-gradient-to-t from-blue-900/30 via-transparent to-transparent" />
-        
+
         {/* Logo - Always visible at top */}
         <Link to="/" className="absolute top-12 left-12 flex items-center gap-2 relative z-20">
           <span className="font-semibold text-xl text-white drop-shadow-lg">
             zurT
           </span>
         </Link>
-        
+
         {/* Content - Centered */}
         <div className="relative z-10 w-full max-w-lg space-y-6">
           {/* Register Image */}
           <div className="flex justify-center items-center mb-6">
             <div className="relative">
-              <img 
-                src="/register.png" 
-                alt="Registro zurT" 
+              <img
+                src="/register.png"
+                alt="Registro zurT"
                 className="h-48 md:h-56 lg:h-64 w-auto object-contain drop-shadow-2xl"
                 style={{
                   filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.5))',
@@ -131,7 +133,7 @@ const Register = () => {
                   zIndex: 15,
                 }}
                 onError={(e) => {
-                  console.error('❌ Failed to load register.png image');
+                  console.error('Failed to load register.png image');
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'block';
                   target.style.visibility = 'visible';
@@ -139,44 +141,43 @@ const Register = () => {
                   target.style.zIndex = '15';
                 }}
                 onLoad={(e) => {
-                  console.log('✅ Register image loaded successfully');
                   const target = e.target as HTMLImageElement;
                   target.style.zIndex = '15';
                 }}
               />
             </div>
           </div>
-          
+
           <h1 className="text-4xl font-bold text-white leading-tight drop-shadow-lg text-center">
-            Comece sua jornada para a clareza financeira
+            {t('register.startJourney')}
           </h1>
           <p className="text-white/95 text-lg drop-shadow-md text-center">
-            Junte-se a milhares de usuários que assumiram o controle de suas finanças com o zurT.
+            {t('register.joinUsers')}
           </p>
-          
+
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-lg">
                 <span className="text-white font-semibold text-sm">1</span>
               </div>
-              <span className="text-white/95 font-medium drop-shadow-md">Conecte suas contas</span>
+              <span className="text-white/95 font-medium drop-shadow-md">{t('register.connectAccounts')}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-lg">
                 <span className="text-white font-semibold text-sm">2</span>
               </div>
-              <span className="text-white/95 font-medium drop-shadow-md">Veja sua imagem completa</span>
+              <span className="text-white/95 font-medium drop-shadow-md">{t('register.seeFullPicture')}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-lg">
                 <span className="text-white font-semibold text-sm">3</span>
               </div>
-              <span className="text-white/95 font-medium drop-shadow-md">Tome decisões mais inteligentes</span>
+              <span className="text-white/95 font-medium drop-shadow-md">{t('register.makeSmartDecisions')}</span>
             </div>
           </div>
         </div>
       </div>
-      
+
       {/* Right side - Register Form */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
@@ -188,26 +189,28 @@ const Register = () => {
               </span>
             </Link>
           </div>
-          
+
           <div className="bg-white rounded-lg p-8 border border-gray-200 shadow-lg w-full">
             {/* Title */}
-            <h2 className="text-2xl font-bold text-black mb-6 text-center">Cadastrar</h2>
+            <h2 className="text-2xl font-bold text-black mb-6 text-center">{t('register.title')}</h2>
             {inviterName && (
               <Alert className="mb-6 border-primary/30 bg-primary/5 text-black">
                 <UserCheck className="h-4 w-4" />
                 <AlertDescription className="text-black">
-                  Você foi convidado por <strong>{inviterName}</strong> para usar a plataforma.
+                  <Trans i18nKey="register.invitedBy" ns="auth" values={{ name: inviterName }}>
+                    You were invited by <strong>{{ name: inviterName } as any}</strong> to use the platform.
+                  </Trans>
                 </AlertDescription>
               </Alert>
             )}
-            
+
             {error && (
               <Alert variant="destructive" className="mb-5">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             {/* Google Sign Up Button - At the top */}
             <Button
               type="button"
@@ -234,19 +237,19 @@ const Register = () => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Entrar com Google
+              {t('register.signInWithGoogle')}
             </Button>
-            
+
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-black">OU</span>
+                <span className="bg-white px-2 text-black">{t('register.or')}</span>
               </div>
             </div>
-            
+
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -255,7 +258,7 @@ const Register = () => {
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Nome completo"
+                    placeholder={t('register.fullName')}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-10 bg-white border-gray-300 rounded-lg text-black"
@@ -263,14 +266,14 @@ const Register = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Endereço de email"
+                    placeholder={t('register.emailAddress')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-white border-gray-300 rounded-lg text-black"
@@ -278,14 +281,14 @@ const Register = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Senha"
+                    placeholder={t('register.password')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 bg-white border-gray-300 rounded-lg text-black"
@@ -300,14 +303,14 @@ const Register = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirmar senha"
+                    placeholder={t('register.confirmPassword')}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10 bg-white border-gray-300 rounded-lg text-black"
@@ -323,24 +326,24 @@ const Register = () => {
                 </div>
                 {confirmPassword && password !== confirmPassword && (
                   <p className="text-xs text-red-500">
-                    As senhas não coincidem
+                    {t('register.passwordsMismatch')}
                   </p>
                 )}
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="role" className="text-black">Tipo de usuário</Label>
+                <Label htmlFor="role" className="text-black">{t('register.userType')}</Label>
                 <Select value={role} onValueChange={(value: 'customer' | 'consultant') => setRole(value)}>
                   <SelectTrigger id="role" className="bg-white border-gray-300 rounded-lg text-black">
-                    <SelectValue placeholder="Selecione o tipo de usuário" />
+                    <SelectValue placeholder={t('register.selectUserType')} />
                   </SelectTrigger>
                   <SelectContent className="bg-white text-black">
-                    <SelectItem value="customer">Cliente</SelectItem>
-                    <SelectItem value="consultant">Consultor</SelectItem>
+                    <SelectItem value="customer">{t('register.customer')}</SelectItem>
+                    <SelectItem value="consultant">{t('register.consultant')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="flex items-start gap-2 pt-2">
                 <Checkbox
                   id="terms"
@@ -349,28 +352,28 @@ const Register = () => {
                   className="mt-1"
                 />
                 <Label htmlFor="terms" className="text-sm text-black font-normal leading-relaxed">
-                  Eu concordo com os{" "}
-                  <a href="https://www.mundoinvest.com.br/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Termos de Serviço</a>
-                  {" "}e a{" "}
-                  <a href="https://www.mundoinvest.com.br/politica-de-privacidade" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Política de Privacidade</a>
+                  {t('register.agreeToTerms')}
+                  <a href="https://www.mundoinvest.com.br/termos-de-uso" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{t('register.termsOfService')}</a>
+                  {t('register.and')}
+                  <a href="https://www.mundoinvest.com.br/politica-de-privacidade" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{t('register.privacyPolicy')}</a>
                 </Label>
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg" 
-                size="lg" 
+
+              <Button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                size="lg"
                 disabled={!acceptTerms || isRegistering || password !== confirmPassword}
               >
-                {isRegistering ? "Criando conta..." : "Cadastrar"}
+                {isRegistering ? t('register.creatingAccount') : t('register.submit')}
               </Button>
             </form>
-            
+
             <div className="mt-6 text-center">
               <p className="text-sm text-black">
-                Já tem uma conta?{" "}
+                {t('register.alreadyHaveAccount')}{" "}
                 <Link to="/login" className="text-blue-600 font-medium hover:underline">
-                  Entrar
+                  {t('register.signIn')}
                 </Link>
               </p>
             </div>
