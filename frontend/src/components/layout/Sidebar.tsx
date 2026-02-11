@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, memo } from "react";
 import {
   LayoutDashboard,
   Link2,
@@ -77,7 +77,7 @@ interface NavItem {
   section?: string; // Optional section label for grouping (shown when sidebar expanded)
 }
 
-const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOpenChange }: SidebarProps) => {
+const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMobileOpenChange }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -85,7 +85,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
   const { t } = useTranslation('layout');
 
   // Customer navigation items - all enabled, with sections for clearer hierarchy
-  const customerNavItems: NavItem[] = [
+  const customerNavItems: NavItem[] = useMemo(() => [
     { icon: LayoutDashboard, label: t('sidebar.nav.dashboard'), href: "/app/dashboard", enabled: true, section: t('sidebar.sections.principal') },
     { icon: Bell, label: t('sidebar.nav.notifications'), href: "/app/notifications", enabled: true, section: t('sidebar.sections.principal') },
     { icon: UserPlus, label: t('sidebar.nav.invitations'), href: "/app/invitations", enabled: true, section: t('sidebar.sections.principal') },
@@ -133,10 +133,10 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
         { label: t('sidebar.nav.profitability'), href: "/app/calculators/profitability", enabled: true, icon: Percent },
       ],
     },
-  ];
+  ], [t]);
 
   // Consultant navigation items - all enabled
-  const consultantNavItems: NavItem[] = [
+  const consultantNavItems: NavItem[] = useMemo(() => [
     { icon: LayoutDashboard, label: t('sidebar.nav.dashboard'), href: "/consultant/dashboard", enabled: true, section: t('sidebar.sections.principal') },
     { icon: Bell, label: t('sidebar.nav.notifications'), href: "/consultant/notifications", enabled: true, section: t('sidebar.sections.principal') },
     { icon: Package, label: t('sidebar.nav.plans'), href: "/consultant/plans", enabled: true, section: t('sidebar.sections.principal') },
@@ -160,10 +160,10 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
       ],
     },
     { icon: TrendingUp, label: t('sidebar.nav.simulator'), href: "/consultant/simulator", enabled: true, section: t('sidebar.sections.ferramentas') },
-  ];
+  ], [t]);
 
   // Admin navigation items - all enabled
-  const adminNavItems: NavItem[] = [
+  const adminNavItems: NavItem[] = useMemo(() => [
     { icon: LayoutDashboard, label: t('sidebar.nav.dashboard'), href: "/admin/dashboard", enabled: true, section: t('sidebar.sections.principal') },
     { icon: Bell, label: t('sidebar.nav.notifications'), href: "/admin/notifications", enabled: true, section: t('sidebar.sections.principal') },
     { icon: Shield, label: t('sidebar.nav.users'), href: "/admin/users", enabled: true, section: t('sidebar.sections.gestao') },
@@ -174,7 +174,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
     { icon: Search, label: t('sidebar.nav.prospecting'), href: "/admin/prospecting", enabled: true, section: t('sidebar.sections.sistema') },
     { icon: Receipt, label: t('sidebar.nav.paymentHistory'), href: "/admin/payments", enabled: true, section: t('sidebar.sections.sistema') },
     { icon: Clock, label: t('sidebar.nav.loginHistory'), href: "/admin/login-history", enabled: true, section: t('sidebar.sections.sistema') },
-  ];
+  ], [t]);
 
   // Get navigation items based on user role
   const getNavItems = () => {
@@ -233,7 +233,8 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
         setExpandedItems(prev => new Set(prev).add(item.id || item.label));
       }
     });
-  }, [location.pathname, navItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   // Shared navigation content component
   const NavigationContent = ({ showLabels = true, onLinkClick }: { showLabels?: boolean; onLinkClick?: () => void }) => (
@@ -241,14 +242,14 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
       {/* Logo / header - when collapsed, center logo and position toggle button absolute so logo stays centered */}
       <div
         className={cn(
-          "flex items-center h-12 border-b border-sidebar-border shrink-0",
-          showLabels ? "justify-between px-3 sm:px-4" : "justify-center relative px-0"
+          "flex items-center h-16 shrink-0",
+          showLabels ? "justify-between px-4" : "justify-center relative px-0"
         )}
       >
         {showLabels && (
-          <Link to={getDashboardPath()} className="flex items-center gap-2 min-w-0" onClick={onLinkClick}>
+          <Link to={getDashboardPath()} className="flex items-center gap-3 min-w-0" onClick={onLinkClick}>
             <img src="/logo.png" alt="zurT Logo" className="h-9 w-9 object-contain shrink-0" />
-            <span className="font-semibold text-base text-sidebar-foreground truncate">zurT</span>
+            <span className="font-bold text-lg text-white truncate tracking-tight">zurT</span>
           </Link>
         )}
         {!showLabels && (
@@ -262,7 +263,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
             size="icon"
             onClick={onCollapse}
             className={cn(
-              "h-8 w-8 shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors",
+              "h-8 w-8 shrink-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-white rounded-lg transition-all duration-200",
               !showLabels && "absolute right-1 top-1/2 -translate-y-1/2"
             )}
             aria-label={collapsed ? t('sidebar.expandMenu') : t('sidebar.collapseMenu')}
@@ -286,7 +287,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
           
           const sectionLabel = showSectionLabel && item.section ? (
             <div key={`section-${item.section}`} className="pt-3 pb-1.5 px-3">
-              <span className="text-xs font-semibold text-sidebar-section uppercase tracking-wider">{item.section}</span>
+              <span className="sidebar-section-header">{item.section}</span>
             </div>
           ) : null;
 
@@ -316,16 +317,16 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
                 <DropdownMenuTrigger asChild>
                   <button
                     className={cn(
-                      "w-full flex flex-col items-center justify-center gap-0.5 px-2 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                      "sidebar-nav-item w-full flex flex-col items-center justify-center gap-0.5 px-2 py-2.5 text-sm font-medium",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-primary border border-sidebar-primary/30"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        ? "active bg-sidebar-active-bg text-white"
+                        : "text-sidebar-foreground hover:text-sidebar-accent-foreground"
                     )}
                     title={`${item.label} — ${t('sidebar.clickToSeeOptions')}`}
                     aria-label={`${item.label}, submenu`}
                   >
-                    <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-sidebar-primary")} />
-                    <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 opacity-90" aria-hidden />
+                    <item.icon className={cn("sidebar-icon", isActive && "text-sidebar-primary")} />
+                    <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 opacity-70" aria-hidden />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start" sideOffset={8} className="min-w-[11rem]">
@@ -370,20 +371,20 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
                 <button
                   onClick={() => toggleExpanded(itemKey)}
                   className={cn(
-                    "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                    "sidebar-nav-item w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium",
                     isActive
-                      ? "bg-sidebar-accent text-sidebar-primary border border-sidebar-primary/30"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      ? "active bg-sidebar-active-bg text-white"
+                      : "text-sidebar-foreground hover:text-sidebar-accent-foreground"
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-sidebar-primary")} />
+                    <item.icon className={cn("sidebar-icon", isActive && "text-sidebar-primary")} />
                     <span>{item.label}</span>
                   </div>
                   {isExpanded ? (
-                    <ChevronUp className="h-4 w-4 flex-shrink-0" />
+                    <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                    <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />
                   )}
                 </button>
                 {isExpanded && (
@@ -391,7 +392,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
                     {item.subItems!.map((subItem) => {
                       const isSubActive = location.pathname === subItem.href;
                       const isSubEnabled = subItem.enabled !== false;
-                      
+
                       if (!isSubEnabled) {
                         const DisabledSubIcon = subItem.icon;
                         return (
@@ -412,13 +413,13 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
                           to={subItem.href}
                           onClick={onLinkClick}
                           className={cn(
-                            "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md transition-colors",
+                            "flex items-center gap-2 px-2 py-1.5 text-xs rounded-md transition-all duration-200",
                             isSubActive
-                              ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                              ? "bg-sidebar-active-bg text-sidebar-primary font-medium"
                               : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                           )}
                         >
-                          {SubIcon && <SubIcon className="h-3.5 w-3.5 shrink-0" />}
+                          {SubIcon && <SubIcon className="h-3.5 w-3.5 shrink-0 opacity-70" />}
                           <span>{subItem.label}</span>
                         </Link>
                       );
@@ -436,14 +437,14 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
               to={item.href || '#'}
               onClick={onLinkClick}
               className={cn(
-                "flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "sidebar-nav-item flex items-center gap-3 py-2.5 text-sm font-medium",
                 showLabels ? "px-3" : "px-2 justify-center",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-primary border border-sidebar-primary/30"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "active bg-sidebar-active-bg text-white"
+                  : "text-sidebar-foreground hover:text-sidebar-accent-foreground"
               )}
             >
-              <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-sidebar-primary")} />
+              <item.icon className={cn("sidebar-icon", isActive && "text-sidebar-primary")} />
               {showLabels && <span>{item.label}</span>}
             </Link>
           );
@@ -457,7 +458,7 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
   if (isMobile) {
     return (
       <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
-        <SheetContent side="left" className="w-80 p-0 bg-sidebar/70 backdrop-blur-xl text-sidebar-foreground border-sidebar-border/50">
+        <SheetContent side="left" className="w-80 p-0 sidebar-glass text-sidebar-foreground border-sidebar-border/50">
           <VisuallyHidden.Root asChild>
             <SheetTitle>Navigation Menu</SheetTitle>
           </VisuallyHidden.Root>
@@ -473,13 +474,15 @@ const Sidebar = ({ collapsed = false, onCollapse, mobileOpen = false, onMobileOp
   return (
     <aside
       className={cn(
-        "hidden lg:flex flex-col h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 sticky top-0 border-r border-sidebar-border",
+        "hidden lg:flex flex-col h-screen sidebar-glass text-sidebar-foreground transition-all duration-300 sticky top-0",
         collapsed ? "w-20" : "w-64"
       )}
     >
       <NavigationContent showLabels={!collapsed} />
     </aside>
   );
-};
+});
+
+Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;

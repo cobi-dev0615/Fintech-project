@@ -77,12 +77,19 @@ class ApiClient {
     }
 
     const requestPromise = (async () => {
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       try {
         const response = await fetch(url, {
           ...options,
           headers,
           credentials: 'include',
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({
@@ -123,7 +130,17 @@ class ApiClient {
           throw error;
         }
         return response.json();
-      } catch (error) {
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        // Handle timeout/abort errors
+        if (error.name === 'AbortError') {
+          const timeoutError: ApiError = {
+            error: 'Request timeout - please check your connection and try again',
+            statusCode: 408,
+            code: 'TIMEOUT',
+          };
+          throw timeoutError;
+        }
         throw error;
       }
     })();

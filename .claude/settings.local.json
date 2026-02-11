@@ -5,7 +5,21 @@
       "Bash(npx:*)",
       "Bash(for file in \"h:\\\\work\\\\20260113_fintech project\\\\Fintech-project\\\\frontend\\\\src\\\\components\\\\dashboard\\\\AlertList.tsx\" \"h:\\\\work\\\\20260113_fintech project\\\\Fintech-project\\\\frontend\\\\src\\\\components\\\\dashboard\\\\AlertsCard.tsx\" \"h:\\\\work\\\\20260113_fintech project\\\\Fintech-project\\\\frontend\\\\src\\\\components\\\\dashboard\\\\KpiCard.tsx\" \"h:\\\\work\\\\20260113_fintech project\\\\Fintech-project\\\\frontend\\\\src\\\\components\\\\dashboard\\\\RecentTransactions.tsx\")",
       "Bash(do wc -l \"$file\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(sudo apt update:*)",
+      "Bash(sudo apt install:*)",
+      "Bash(psql:*)",
+      "Bash(dpkg -l:*)",
+      "Bash(npm run db:migrate:full:*)",
+      "Bash(sudo -u postgres psql:*)",
+      "Bash(echo \"Please run the following command in your terminal:\n\nsudo -u postgres psql -c \"\"CREATE DATABASE fintech_db OWNER fintech_user;\"\"\n\nThen let me know when it''s done.\")",
+      "Bash(npm run db:test:*)",
+      "Bash(npm run db:seed:*)",
+      "Bash(npm run db:migrate:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

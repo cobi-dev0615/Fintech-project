@@ -127,10 +127,13 @@ CREATE TABLE IF NOT EXISTS plans (
   code               TEXT NOT NULL UNIQUE, -- free/basic/pro/consultant/enterprise
   name               TEXT NOT NULL,
   price_cents        INTEGER NOT NULL DEFAULT 0,
+  monthly_price_cents INTEGER,
+  annual_price_cents INTEGER,
   currency           TEXT NOT NULL DEFAULT 'BRL',
   connection_limit   INTEGER, -- null = unlimited
   features_json      JSONB NOT NULL DEFAULT '{}'::jsonb,
   is_active          BOOLEAN NOT NULL DEFAULT TRUE,
+  role               TEXT CHECK (role IN ('customer', 'consultant') OR role IS NULL),
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -629,21 +632,18 @@ BEGIN
         'integration_health'
       )
   LOOP
-    EXECUTE format('
-      DO $$ BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_trigger
-          WHERE tgname = %L
-        ) THEN
-          CREATE TRIGGER %I
-          BEFORE UPDATE ON %I
-          FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-        END IF;
-      END $$;',
-      'trg_set_updated_at_' || t.tablename,
-      'trg_set_updated_at_' || t.tablename,
-      t.tablename
-    );
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_trigger
+      WHERE tgname = 'trg_set_updated_at_' || t.tablename
+    ) THEN
+      EXECUTE format('
+        CREATE TRIGGER %I
+        BEFORE UPDATE ON %I
+        FOR EACH ROW EXECUTE FUNCTION set_updated_at()',
+        'trg_set_updated_at_' || t.tablename,
+        t.tablename
+      );
+    END IF;
   END LOOP;
 END $$;
 

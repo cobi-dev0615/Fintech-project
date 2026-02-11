@@ -45,8 +45,12 @@ const OpenFinance = () => {
 
     try {
       setLoading(true);
+      setError(null); // Clear any previous errors
       const [connectionsData, accountsData] = await Promise.all([
-        connectionsApi.getAll(),
+        connectionsApi.getAll().catch((err) => {
+          console.error('Error fetching connections:', err);
+          return { connections: [] };
+        }),
         financeApi.getAccounts().catch(() => ({ accounts: [], grouped: [], total: 0 })),
       ]);
       if (abortController.signal.aborted) return;
@@ -85,10 +89,14 @@ const OpenFinance = () => {
     } catch (err: any) {
       setAccounts([]);
       if (abortController.signal.aborted) return;
-      setError(err?.error || t('connections:openFinance.errorLoading'));
+      const errorMessage = err?.error || err?.message || t('connections:openFinance.errorLoading');
+      setError(errorMessage);
       console.error("Error fetching connections:", err);
+      setConnections([]); // Set empty connections on error
     } finally {
-      if (!abortController.signal.aborted) setLoading(false);
+      if (!abortController.signal.aborted) {
+        setLoading(false);
+      }
       fetchingRef.current = false;
     }
   };
@@ -99,7 +107,8 @@ const OpenFinance = () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
       fetchingRef.current = false;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array is intentional - only fetch on mount
 
   const handlePluggyConnection = async () => {
     try {
@@ -158,18 +167,31 @@ const OpenFinance = () => {
     }
   };
 
-  if (loading && connections.length === 0) {
+  // Show loading only initially
+  if (loading && connections.length === 0 && !error) {
     return (
       <div className="flex justify-center items-center h-64">
-        <p className="text-muted-foreground">{t('connections:openFinance.loading')}</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">{t('connections:openFinance.loading')}</p>
+        </div>
       </div>
     );
   }
 
+  // Show error if loading failed
   if (error && connections.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
-        <p className="text-destructive">{error}</p>
+        <div className="text-center space-y-3">
+          <p className="text-destructive">{error}</p>
+          <button
+            onClick={() => fetchConnections()}
+            className="text-sm text-primary hover:underline"
+          >
+            {t('connections:openFinance.tryAgain', { defaultValue: 'Try again' })}
+          </button>
+        </div>
       </div>
     );
   }

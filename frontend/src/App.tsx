@@ -123,87 +123,87 @@ const App = () => (
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/payment/success" element={<Suspense fallback={<PageLoader />}><PaymentSuccess /></Suspense>} />
-            <Route path="/payment/failure" element={<Suspense fallback={<PageLoader />}><PaymentFailure /></Suspense>} />
-            <Route path="/payment/pending" element={<Suspense fallback={<PageLoader />}><PaymentPending /></Suspense>} />
+            <Route path="/payment/success" element={<PaymentSuccess />} />
+            <Route path="/payment/failure" element={<PaymentFailure />} />
+            <Route path="/payment/pending" element={<PaymentPending />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/auth/google" element={<GoogleAuthCallback />} />
             <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
-            <Route path="/security" element={<Suspense fallback={<PageLoader />}><Security /></Suspense>} />
-            <Route path="/about" element={<Suspense fallback={<PageLoader />}><About /></Suspense>} />
-            <Route path="/blog" element={<Suspense fallback={<PageLoader />}><Blog /></Suspense>} />
-            <Route path="/careers" element={<Suspense fallback={<PageLoader />}><Careers /></Suspense>} />
-            <Route path="/privacy" element={<Suspense fallback={<PageLoader />}><Privacy /></Suspense>} />
-            <Route path="/terms" element={<Suspense fallback={<PageLoader />}><Terms /></Suspense>} />
-            <Route path="/cookies" element={<Suspense fallback={<PageLoader />}><Cookies /></Suspense>} />
-            <Route path="/features" element={<Suspense fallback={<PageLoader />}><Features /></Suspense>} />
+            <Route path="/security" element={<Security />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/careers" element={<Careers />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/cookies" element={<Cookies />} />
+            <Route path="/features" element={<Features />} />
             
             {/* App Routes (Customer) */}
             <Route path="/app" element={<AppLayout />}>
-              <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
-              <Route path="connections" element={<Suspense fallback={<PageLoader />}><Connections /></Suspense>} />
-              <Route path="connections/open-finance" element={<Suspense fallback={<PageLoader />}><OpenFinance /></Suspense>} />
-              <Route path="connections/b3" element={<Suspense fallback={<PageLoader />}><B3 /></Suspense>} />
-              <Route path="accounts" element={<Suspense fallback={<PageLoader />}><Accounts /></Suspense>} />
-              <Route path="transactions" element={<Suspense fallback={<PageLoader />}><TransactionHistory /></Suspense>} />
-              <Route path="cards" element={<Suspense fallback={<PageLoader />}><Cards /></Suspense>} />
-              <Route path="assets" element={<Suspense fallback={<PageLoader />}><Assets /></Suspense>} />
-              <Route path="investments" element={<Suspense fallback={<PageLoader />}><Investments /></Suspense>} />
-              <Route path="investments/b3" element={<Suspense fallback={<PageLoader />}><B3Portfolio /></Suspense>} />
-              <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
-              <Route path="reports/history" element={<Suspense fallback={<PageLoader />}><ReportHistory /></Suspense>} />
-              <Route path="goals" element={<Suspense fallback={<PageLoader />}><Goals /></Suspense>} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="connections" element={<Connections />} />
+              <Route path="connections/open-finance" element={<OpenFinance />} />
+              <Route path="connections/b3" element={<B3 />} />
+              <Route path="accounts" element={<Accounts />} />
+              <Route path="transactions" element={<TransactionHistory />} />
+              <Route path="cards" element={<Cards />} />
+              <Route path="assets" element={<Assets />} />
+              <Route path="investments" element={<Investments />} />
+              <Route path="investments/b3" element={<B3Portfolio />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="reports/history" element={<ReportHistory />} />
+              <Route path="goals" element={<Goals />} />
               <Route path="calculators" element={<Navigate to="calculators/fire" replace />} />
-              <Route path="calculators/fire" element={<Suspense fallback={<PageLoader />}><FIRECalculator /></Suspense>} />
-              <Route path="calculators/compound" element={<Suspense fallback={<PageLoader />}><CompoundInterest /></Suspense>} />
-              <Route path="calculators/usufruct" element={<Suspense fallback={<PageLoader />}><UsufructCalculator /></Suspense>} />
-              <Route path="calculators/itcmd" element={<Suspense fallback={<PageLoader />}><ITCMDCalculator /></Suspense>} />
-              <Route path="calculators/profitability" element={<Suspense fallback={<PageLoader />}><ProfitabilitySimulator /></Suspense>} />
-              <Route path="settings" element={<Suspense fallback={<PageLoader />}><CustomerSettings /></Suspense>} />
-              <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
-              <Route path="invitations" element={<Suspense fallback={<PageLoader />}><Invitations /></Suspense>} />
-              <Route path="messages" element={<Suspense fallback={<PageLoader />}><CustomerMessages /></Suspense>} />
-              <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanPurchase /></Suspense>} />
-              <Route path="payment" element={<Suspense fallback={<PageLoader />}><Payment /></Suspense>} />
-              <Route path="more" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+              <Route path="calculators/fire" element={<FIRECalculator />} />
+              <Route path="calculators/compound" element={<CompoundInterest />} />
+              <Route path="calculators/usufruct" element={<UsufructCalculator />} />
+              <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
+              <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
+              <Route path="settings" element={<CustomerSettings />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="invitations" element={<Invitations />} />
+              <Route path="messages" element={<CustomerMessages />} />
+              <Route path="plans" element={<PlanPurchase />} />
+              <Route path="payment" element={<Payment />} />
+              <Route path="more" element={<Dashboard />} />
             </Route>
 
             {/* Consultant Routes */}
             <Route path="/consultant" element={<AppLayout />}>
-              <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><ConsultantDashboard /></Suspense>} />
-              <Route path="clients" element={<Suspense fallback={<PageLoader />}><ClientsList /></Suspense>} />
-              <Route path="clients/:id" element={<Suspense fallback={<PageLoader />}><ClientProfile /></Suspense>} />
-              <Route path="pipeline" element={<Suspense fallback={<PageLoader />}><Pipeline /></Suspense>} />
-              <Route path="invitations" element={<Suspense fallback={<PageLoader />}><SendInvitations /></Suspense>} />
-              <Route path="messages" element={<Suspense fallback={<PageLoader />}><Messages /></Suspense>} />
-              <Route path="reports" element={<Suspense fallback={<PageLoader />}><ProfessionalReports /></Suspense>} />
+              <Route path="dashboard" element={<ConsultantDashboard />} />
+              <Route path="clients" element={<ClientsList />} />
+              <Route path="clients/:id" element={<ClientProfile />} />
+              <Route path="pipeline" element={<Pipeline />} />
+              <Route path="invitations" element={<SendInvitations />} />
+              <Route path="messages" element={<Messages />} />
+              <Route path="reports" element={<ProfessionalReports />} />
               <Route path="calculators" element={<Navigate to="calculators/fire" replace />} />
-              <Route path="calculators/fire" element={<Suspense fallback={<PageLoader />}><FIRECalculator /></Suspense>} />
-              <Route path="calculators/compound" element={<Suspense fallback={<PageLoader />}><CompoundInterest /></Suspense>} />
-              <Route path="calculators/usufruct" element={<Suspense fallback={<PageLoader />}><UsufructCalculator /></Suspense>} />
-              <Route path="calculators/itcmd" element={<Suspense fallback={<PageLoader />}><ITCMDCalculator /></Suspense>} />
-              <Route path="calculators/profitability" element={<Suspense fallback={<PageLoader />}><ProfitabilitySimulator /></Suspense>} />
-              <Route path="simulator" element={<Suspense fallback={<PageLoader />}><PortfolioSimulator /></Suspense>} />
-              <Route path="settings" element={<Suspense fallback={<PageLoader />}><ConsultantSettings /></Suspense>} />
-              <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
-              <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanPurchase /></Suspense>} />
-              <Route path="payment" element={<Suspense fallback={<PageLoader />}><Payment /></Suspense>} />
+              <Route path="calculators/fire" element={<FIRECalculator />} />
+              <Route path="calculators/compound" element={<CompoundInterest />} />
+              <Route path="calculators/usufruct" element={<UsufructCalculator />} />
+              <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
+              <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
+              <Route path="simulator" element={<PortfolioSimulator />} />
+              <Route path="settings" element={<ConsultantSettings />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="plans" element={<PlanPurchase />} />
+              <Route path="payment" element={<Payment />} />
             </Route>
 
             {/* Admin Routes */}
             <Route path="/admin" element={<AppLayout />}>
-              <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
-              <Route path="users" element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
-              <Route path="users/:id/finance" element={<Suspense fallback={<PageLoader />}><CustomerFinanceDetail /></Suspense>} />
-              <Route path="plans" element={<Suspense fallback={<PageLoader />}><PlanManagement /></Suspense>} />
-              <Route path="payments" element={<Suspense fallback={<PageLoader />}><PaymentHistory /></Suspense>} />
-              <Route path="login-history" element={<Suspense fallback={<PageLoader />}><LoginHistory /></Suspense>} />
-                <Route path="integrations" element={<Suspense fallback={<PageLoader />}><IntegrationsMonitor /></Suspense>} />
-                <Route path="prospecting" element={<Suspense fallback={<PageLoader />}><DAMAProspecting /></Suspense>} />
-              <Route path="financial" element={<Suspense fallback={<PageLoader />}><FinancialReports /></Suspense>} />
-              <Route path="comments" element={<Suspense fallback={<PageLoader />}><AdminComments /></Suspense>} />
-              <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
-              <Route path="notifications" element={<Suspense fallback={<PageLoader />}><Notifications /></Suspense>} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="users" element={<UserManagement />} />
+              <Route path="users/:id/finance" element={<CustomerFinanceDetail />} />
+              <Route path="plans" element={<PlanManagement />} />
+              <Route path="payments" element={<PaymentHistory />} />
+              <Route path="login-history" element={<LoginHistory />} />
+                <Route path="integrations" element={<IntegrationsMonitor />} />
+                <Route path="prospecting" element={<DAMAProspecting />} />
+              <Route path="financial" element={<FinancialReports />} />
+              <Route path="comments" element={<AdminComments />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="notifications" element={<Notifications />} />
             </Route>
             
             {/* Catch-all */}
