@@ -634,7 +634,7 @@ export async function buildReportPdf(options: {
     doc.moveDown(0.6);
 
     if (reportType === 'monthly') {
-      doc.moveDown(1);
+    doc.moveDown(1);
       doc.fontSize(12).fillColor('#111827').text('Resumo do período', { continued: false });
       doc.moveDown(0.3);
       const sectionY = doc.y;
@@ -805,11 +805,11 @@ export async function buildReportPdf(options: {
 
     const hasOwnFooter = (reportType === 'transactions' && transactions.length > 0) || (reportType === 'monthly' && transactions.length > 0);
     if (!hasOwnFooter) {
-      doc.moveDown(3);
-      doc.fontSize(9).fillColor('#999999').text(
-        '— Documento gerado automaticamente por zurT. Para dúvidas, acesse a plataforma.',
-        { align: 'center' }
-      );
+    doc.moveDown(3);
+    doc.fontSize(9).fillColor('#999999').text(
+      '— Documento gerado automaticamente por zurT. Para dúvidas, acesse a plataforma.',
+      { align: 'center' }
+    );
     }
 
   doc.end();
