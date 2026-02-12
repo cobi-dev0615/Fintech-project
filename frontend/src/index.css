@@ -141,8 +141,9 @@
 @layer components {
   /* Professional KPI Card styles */
   .kpi-card {
-    @apply bg-card rounded-xl p-5 border border-border/60 transition-all duration-200;
+    @apply bg-card rounded-xl p-5 border border-border/60 transition-all duration-200 h-full;
     box-shadow: var(--shadow-card);
+    min-height: 160px;
   }
 
   .kpi-card:hover {
