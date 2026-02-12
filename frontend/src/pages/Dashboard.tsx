@@ -85,14 +85,16 @@ const Dashboard = () => {
     fetchOpenFinanceData();
   }, []);
 
-  const netWorth = openFinanceData.totalBalance + openFinanceData.totalInvestments;
   const cashBalance = openFinanceData.totalBalance;
   const investmentValue = openFinanceData.totalInvestments;
 
-  // Calculate total card debt
+  // Calculate total card debt (using balance to match Assets page)
   const cardDebt = openFinanceData.cards.reduce((total: number, card: any) => {
-    return total + (card.usedLimit || 0);
+    return total + parseFloat(card.balance || 0);
   }, 0);
+
+  // Calculate net worth (subtracting debt to match Assets page)
+  const netWorth = openFinanceData.totalBalance + openFinanceData.totalInvestments - cardDebt;
 
   // Define dashboard card configuration (must be before conditional returns)
   const dashboardCards = useMemo((): DashboardCard[] => {
