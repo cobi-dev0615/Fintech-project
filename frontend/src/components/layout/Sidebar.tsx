@@ -76,6 +76,7 @@ interface NavItem {
   enabled?: boolean; // Whether this menu item is enabled/active
   subItems?: NavSubItem[]; // Submenu items
   section?: string; // Optional section label for grouping (shown when sidebar expanded)
+  iconClass?: string; // Optional custom class for icon styling
 }
 
 const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMobileOpenChange }: SidebarProps) => {
@@ -106,7 +107,7 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
     },
     { icon: Wallet, label: t('sidebar.nav.accounts'), href: "/app/accounts", enabled: true, section: t('sidebar.sections.financeiro') },
     { icon: Receipt, label: t('sidebar.nav.transactions'), href: "/app/transactions", enabled: true, section: t('sidebar.sections.financeiro') },
-    { icon: CreditCard, label: t('sidebar.nav.cards'), href: "/app/cards", enabled: true, section: t('sidebar.sections.financeiro') },
+    { icon: CreditCard, label: t('sidebar.nav.cards'), href: "/app/cards", enabled: true, section: t('sidebar.sections.financeiro'),  },
     { icon: TrendingUp, label: t('sidebar.nav.investments'), href: "/app/investments", enabled: true, section: t('sidebar.sections.financeiro') },
     {
       icon: FileText,
@@ -326,7 +327,7 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
                     title={`${item.label} — ${t('sidebar.clickToSeeOptions')}`}
                     aria-label={`${item.label}, submenu`}
                   >
-                    <item.icon className={cn("sidebar-icon", isActive && "text-sidebar-primary")} />
+                    <item.icon className={cn("sidebar-icon", isActive && "text-sidebar-primary", item.iconClass)} />
                     <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 opacity-70" aria-hidden />
                   </button>
                 </DropdownMenuTrigger>
@@ -379,7 +380,7 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <item.icon className={cn("sidebar-icon", isActive && "text-sidebar-primary")} />
+                    <item.icon className={cn("sidebar-icon", isActive && "text-sidebar-primary", item.iconClass)} />
                     <span>{item.label}</span>
                   </div>
                   {isExpanded ? (
@@ -445,7 +446,7 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
                   : "text-sidebar-foreground hover:text-sidebar-accent-foreground"
               )}
             >
-              <item.icon className={cn("sidebar-icon", isActive && "text-sidebar-primary")} />
+              <item.icon className={cn("sidebar-icon", isActive && "text-sidebar-primary", item.iconClass)} />
               {showLabels && <span>{item.label}</span>}
             </Link>
           );

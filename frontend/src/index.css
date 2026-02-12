@@ -13,7 +13,7 @@
     --foreground: 0 0% 100%; /* white */
 
     /* Cards and surfaces - glassmorphic style */
-    --card: 232 55% 25% / 0.35; /* Dark blue with transparency #1c2660 35% */
+    --card: 232 55% 18% / 0.50; /* Dark blue with transparency - darker 50% */
     --card-foreground: 0 0% 100%;
     
     --popover: 232 100% 5%; /* Matching background theme */
@@ -58,7 +58,7 @@
     --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
     --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
     --gradient-hero: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
-    --gradient-card: linear-gradient(180deg, rgba(28, 38, 96, 0.45) 0%, rgba(28, 38, 96, 0.35) 100%);
+    --gradient-card: linear-gradient(180deg, rgba(20, 28, 70, 0.55) 0%, rgba(20, 28, 70, 0.50) 100%);
     
     /* Shadows - Dark theme */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -141,7 +141,9 @@
 @layer components {
   /* Professional KPI Card styles */
   .kpi-card {
-    @apply bg-card rounded-xl p-5 border border-border/60 transition-all duration-200 h-full;
+    @apply rounded-xl p-5 transition-all duration-200 h-full;
+    background: linear-gradient(180deg, rgba(6, 10, 20, 0.85) 0%, rgba(6, 10, 20, 0.75) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.4);
     box-shadow: var(--shadow-card);
     min-height: 160px;
   }
@@ -153,13 +155,17 @@
 
   /* Chart Card */
   .chart-card {
-    @apply bg-card rounded-xl p-5 sm:p-6 border border-border/60;
+    @apply rounded-xl p-5 sm:p-6;
+    background: linear-gradient(180deg, rgba(6, 10, 20, 0.85) 0%, rgba(6, 10, 20, 0.75) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.4);
     box-shadow: var(--shadow-card);
   }
   
   /* Alert Card */
   .alert-card {
-    @apply bg-card rounded-lg p-4 border border-border transition-all duration-200;
+    @apply rounded-lg p-4 transition-all duration-200;
+    background: linear-gradient(180deg, rgba(6, 10, 20, 0.85) 0%, rgba(6, 10, 20, 0.75) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.4);
   }
   
   .alert-card:hover {
@@ -183,7 +189,9 @@
   
   /* Feature card hover */
   .feature-card {
-    @apply bg-card rounded-2xl p-6 transition-all duration-300 border border-border;
+    @apply rounded-2xl p-6 transition-all duration-300;
+    background: linear-gradient(180deg, rgba(6, 10, 20, 0.85) 0%, rgba(6, 10, 20, 0.75) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.4);
     box-shadow: var(--shadow-card);
   }
   
@@ -254,6 +262,8 @@
     opacity: 1;
   }
 
+
+
   /* Modern glassmorphic sidebar effect */
   .sidebar-glass {
     background: #0a0a0a;
@@ -263,8 +273,6 @@
   /* Card glassmorphic effect */
   .card,
   [class*="card"] {
-    background: linear-gradient(180deg, rgba(28, 38, 96, 0.45) 0%, rgba(28, 38, 96, 0.35) 100%);
-    border: 1px solid rgba(59, 130, 246, 0.4);
     backdrop-filter: blur(8px);
   }
 
