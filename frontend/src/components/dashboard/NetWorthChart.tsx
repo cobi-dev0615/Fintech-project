@@ -44,7 +44,7 @@ const NetWorthChart = () => {
       title={t('chart.title')}
       subtitle={t('chart.subtitle')}
       actions={
-        <div className="flex items-center gap-0.5 rounded-lg p-0.5 bg-muted/40 border border-border/40">
+        <div className="flex items-center gap-0.5 rounded-lg p-0.5 bg-muted/40">
           {(["7M", "1A", "all"] as const).map((range) => (
             <button
               key={range}

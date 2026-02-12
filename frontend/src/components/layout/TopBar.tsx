@@ -20,9 +20,11 @@ interface TopBarProps {
   onMenuClick?: () => void;
   showMenuButton?: boolean;
   hideSearch?: boolean;
+  title?: string;
+  subtitle?: string;
 }
 
-const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: TopBarProps) => {
+const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, title, subtitle }: TopBarProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation('layout');
@@ -66,7 +68,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-12 items-center justify-between border-b border-border bg-card/50 backdrop-blur-xl px-4 lg:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border border-l-0 bg-card/50 backdrop-blur-xl px-4 lg:px-6">
       <div className="flex items-center gap-4">
         {showMenuButton && (
           <Button
@@ -78,15 +80,8 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
             <Menu className="h-5 w-5" />
           </Button>
         )}
-        {!hideSearch && (
-        <div className="hidden md:flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder={t('topbar.searchPlaceholder')}
-            className="border-0 bg-transparent h-auto p-0 focus-visible:ring-0 w-64 text-foreground placeholder:text-muted-foreground"
-          />
-        </div>
+        {title && (
+          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
         )}
       </div>
       
@@ -98,7 +93,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false }: Top
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-lg border border-border bg-transparent text-foreground hover:bg-muted/80 hover:border-muted-foreground/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-lg border border-border bg-transparent text-foreground hover:bg-muted/80 hover:border-muted-foreground/30 transition-colors focus-visible:outline-none"
                 aria-label={t('topbar.openAccountMenu')}
               >
                 <Avatar className="h-7 w-7 rounded-full border border-border">

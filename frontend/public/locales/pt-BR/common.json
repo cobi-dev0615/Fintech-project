@@ -68,5 +68,8 @@
   "email": "E-mail",
   "ip": "IP",
   "itemsPerPageAria": "Itens por página",
-  "year": "Ano"
+  "year": "Ano",
+  "month": "mês",
+  "days": "dias",
+  "active": "Ativo"
 }

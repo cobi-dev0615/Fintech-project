@@ -25,5 +25,20 @@
     "loading": "Carregando...",
     "noData": "Nenhum dado disponível",
     "tooltipLabel": "Patrimônio"
-  }
+  },
+  "dragHandle": "Arrastar para reordenar",
+  "layoutSaved": "Layout do painel salvo",
+  "layoutReset": "Layout do painel redefinido para o padrão",
+  "currentPlan": "Plano Atual",
+  "renewsOn": "Renova em",
+  "yourConsultant": "Seu Consultor",
+  "primaryConsultant": "Consultor financeiro principal",
+  "assetsOverview": "Resumo de Ativos",
+  "invested": "Investido",
+  "cardDebt": "Dívida de Cartão",
+  "progress": "Progresso",
+  "current": "Atual",
+  "target": "Meta",
+  "toGo": "faltam",
+  "deadline": "Prazo"
 }

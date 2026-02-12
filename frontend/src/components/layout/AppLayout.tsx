@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, useCallback } from "react";
+import { useState, useEffect, Suspense, useCallback, useMemo } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
@@ -23,12 +23,67 @@ const PageLoader = () => (
 );
 
 const AppLayout = () => {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation(['common', 'dashboard', 'layout']);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Get page title based on current route
+  const pageTitle = useMemo(() => {
+    const path = location.pathname;
+
+    // Customer routes
+    if (path.includes('/app/dashboard')) return t('dashboard:title');
+    if (path.includes('/app/connections/open-finance')) return t('layout:sidebar.nav.openFinance');
+    if (path.includes('/app/connections/b3')) return t('layout:sidebar.nav.b3');
+    if (path.includes('/app/connections')) return t('layout:sidebar.nav.connections');
+    if (path.includes('/app/accounts')) return t('layout:sidebar.nav.accounts');
+    if (path.includes('/app/transactions')) return t('layout:sidebar.nav.transactions');
+    if (path.includes('/app/cards')) return t('layout:sidebar.nav.cards');
+    if (path.includes('/app/assets')) return t('layout:sidebar.nav.assets');
+    if (path.includes('/app/investments/b3')) return 'B3 Portfolio';
+    if (path.includes('/app/investments')) return t('layout:sidebar.nav.investments');
+    if (path.includes('/app/reports/history')) return t('layout:sidebar.nav.history');
+    if (path.includes('/app/reports')) return t('layout:sidebar.nav.reports');
+    if (path.includes('/app/goals')) return t('layout:sidebar.nav.goals');
+    if (path.includes('/app/calculators')) return t('layout:sidebar.nav.calculators');
+    if (path.includes('/app/settings')) return 'Settings';
+    if (path.includes('/app/notifications')) return t('layout:sidebar.nav.notifications');
+    if (path.includes('/app/invitations')) return t('layout:sidebar.nav.invitations');
+    if (path.includes('/app/messages')) return t('layout:sidebar.nav.messages');
+    if (path.includes('/app/plans')) return t('layout:sidebar.nav.plans');
+    if (path.includes('/app/payment')) return 'Payment';
+
+    // Consultant routes
+    if (path.includes('/consultant/dashboard')) return 'Dashboard';
+    if (path.includes('/consultant/clients')) return t('layout:sidebar.nav.clients');
+    if (path.includes('/consultant/pipeline')) return t('layout:sidebar.nav.pipeline');
+    if (path.includes('/consultant/invitations')) return t('layout:sidebar.nav.sendInvitations');
+    if (path.includes('/consultant/messages')) return t('layout:sidebar.nav.messages');
+    if (path.includes('/consultant/reports')) return t('layout:sidebar.nav.reports');
+    if (path.includes('/consultant/calculators')) return t('layout:sidebar.nav.calculators');
+    if (path.includes('/consultant/simulator')) return t('layout:sidebar.nav.simulator');
+    if (path.includes('/consultant/settings')) return 'Settings';
+    if (path.includes('/consultant/notifications')) return t('layout:sidebar.nav.notifications');
+    if (path.includes('/consultant/plans')) return t('layout:sidebar.nav.plans');
+
+    // Admin routes
+    if (path.includes('/admin/dashboard')) return 'Dashboard';
+    if (path.includes('/admin/users')) return t('layout:sidebar.nav.users');
+    if (path.includes('/admin/plans')) return t('layout:sidebar.nav.plans');
+    if (path.includes('/admin/payments')) return t('layout:sidebar.nav.paymentHistory');
+    if (path.includes('/admin/login-history')) return t('layout:sidebar.nav.loginHistory');
+    if (path.includes('/admin/integrations')) return t('layout:sidebar.nav.integrations');
+    if (path.includes('/admin/prospecting')) return t('layout:sidebar.nav.prospecting');
+    if (path.includes('/admin/financial')) return t('layout:sidebar.nav.financial');
+    if (path.includes('/admin/comments')) return t('layout:sidebar.nav.comments');
+    if (path.includes('/admin/settings')) return 'Settings';
+    if (path.includes('/admin/notifications')) return t('layout:sidebar.nav.notifications');
+
+    return '';
+  }, [location.pathname, t]);
 
   // Redirect to login when on a protected path with no session
   useEffect(() => {
@@ -76,7 +131,7 @@ const AppLayout = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-950">
+    <div className="flex min-h-screen bg-background">
       <Sidebar
         collapsed={sidebarCollapsed}
         onCollapse={handleCollapse}
@@ -89,6 +144,7 @@ const AppLayout = () => {
           showMenuButton
           hideSearch={hideSearch}
           onMenuClick={handleMenuClick}
+          title={pageTitle}
         />
         
         <main className={`flex-1 min-h-0 flex flex-col py-3 px-4 overflow-hidden ${isCustomerPage ? 'lg:py-3 lg:px-4 xl:py-4 xl:px-4' : 'lg:py-4 lg:px-6'}`}>

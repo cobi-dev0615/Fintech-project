@@ -25,5 +25,20 @@
     "loading": "Loading...",
     "noData": "No data available",
     "tooltipLabel": "Net Worth"
-  }
+  },
+  "dragHandle": "Drag to reorder",
+  "layoutSaved": "Dashboard layout saved",
+  "layoutReset": "Dashboard layout reset to default",
+  "currentPlan": "Current Plan",
+  "renewsOn": "Renews on",
+  "yourConsultant": "Your Consultant",
+  "primaryConsultant": "Primary financial advisor",
+  "assetsOverview": "Assets Overview",
+  "invested": "Invested",
+  "cardDebt": "Card Debt",
+  "progress": "Progress",
+  "current": "Current",
+  "target": "Target",
+  "toGo": "to go",
+  "deadline": "Deadline"
 }

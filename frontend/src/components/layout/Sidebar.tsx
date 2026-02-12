@@ -34,6 +34,7 @@ import {
   Coins,
   Percent,
   PieChart,
+  LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -80,7 +81,7 @@ interface NavItem {
 const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMobileOpenChange }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   const { t } = useTranslation('layout');
 
@@ -451,6 +452,23 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
         })}
       </nav>
       </ScrollArea>
+
+      {/* Logout button pinned to bottom */}
+      <div className="shrink-0 border-t border-sidebar-border">
+        <button
+          onClick={() => {
+            logout();
+            if (onLinkClick) onLinkClick();
+          }}
+          className={cn(
+            "sidebar-nav-item flex items-center gap-3 py-3 text-sm font-medium text-sidebar-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent w-full transition-colors",
+            showLabels ? "px-4" : "px-2 justify-center"
+          )}
+        >
+          <LogOut className="sidebar-icon" />
+          {showLabels && <span>{t('topbar.logout')}</span>}
+        </button>
+      </div>
     </>
   );
 
@@ -458,7 +476,7 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
   if (isMobile) {
     return (
       <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
-        <SheetContent side="left" className="w-80 p-0 sidebar-glass text-sidebar-foreground border-sidebar-border/50">
+        <SheetContent side="left" className="w-72 p-0 sidebar-glass text-sidebar-foreground border-sidebar-border/50">
           <VisuallyHidden.Root asChild>
             <SheetTitle>Navigation Menu</SheetTitle>
           </VisuallyHidden.Root>
@@ -475,7 +493,7 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
     <aside
       className={cn(
         "hidden lg:flex flex-col h-screen sidebar-glass text-sidebar-foreground transition-all duration-300 sticky top-0",
-        collapsed ? "w-20" : "w-64"
+        collapsed ? "w-20" : "w-56"
       )}
     >
       <NavigationContent showLabels={!collapsed} />

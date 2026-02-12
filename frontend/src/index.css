@@ -8,40 +8,40 @@
 @layer base {
   :root {
     /* MyRenda Dark Theme - Default */
-    /* Core backgrounds - Dark gray palette */
-    --background: 222 47% 4%; /* gray-950 #030712 */
+    /* Core backgrounds - Dark blue-black palette */
+    --background: 232 100% 3%; /* Very dark blue-black #00020f */
     --foreground: 0 0% 100%; /* white */
-    
-    /* Cards and surfaces */
-    --card: 222 47% 11%; /* gray-900 #111827 */
+
+    /* Cards and surfaces - glassmorphic style */
+    --card: 232 55% 25% / 0.35; /* Dark blue with transparency #1c2660 35% */
     --card-foreground: 0 0% 100%;
     
-    --popover: 222 47% 11%; /* gray-900 */
+    --popover: 232 100% 5%; /* Matching background theme */
     --popover-foreground: 0 0% 100%;
-    
+
     /* Primary - Blue/Cyan (Professional Fintech) */
     --primary: 217 91% 60%; /* blue-500 #3b82f6 */
     --primary-foreground: 0 0% 100%;
-    
-    /* Secondary - Dark gray surface */
-    --secondary: 222 47% 18%; /* gray-800 #1f2937 */
+
+    /* Secondary - Dark surface */
+    --secondary: 232 100% 6%; /* Slightly lighter surface */
     --secondary-foreground: 0 0% 100%;
-    
+
     /* Muted elements */
-    --muted: 222 47% 18%; /* gray-800 */
+    --muted: 232 100% 6%; /* Matching secondary */
     --muted-foreground: 215 16% 47%; /* gray-500 #6b7280 */
-    
+
     /* Accent - Cyan for highlights */
     --accent: 188 85% 53%; /* cyan-500 #06b6d4 */
     --accent-foreground: 0 0% 100%;
-    
+
     /* Destructive - Red */
     --destructive: 0 84% 60%; /* red-500 #ef4444 */
     --destructive-foreground: 0 0% 100%;
-    
+
     /* Borders and inputs */
-    --border: 217 33% 17%; /* gray-700 #374151 */
-    --input: 217 33% 17%; /* gray-700 */
+    --border: 0 0% 100% / 0.15; /* Brighter border for better card separation */
+    --input: 232 100% 6%; /* Input background matching secondary */
     --ring: 217 91% 60%; /* blue-500 */
     
     --radius: 0.75rem;
@@ -58,7 +58,7 @@
     --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
     --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
     --gradient-hero: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
-    --gradient-card: linear-gradient(180deg, rgba(17, 24, 39, 0.7) 0%, rgba(17, 24, 39, 0.5) 100%);
+    --gradient-card: linear-gradient(180deg, rgba(28, 38, 96, 0.45) 0%, rgba(28, 38, 96, 0.35) 100%);
     
     /* Shadows - Dark theme */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -69,8 +69,8 @@
     --shadow-card-hover: 0 10px 40px rgba(0, 0, 0, 0.5);
     --shadow-blue: 0 10px 40px rgba(59, 130, 246, 0.15);
     
-    /* Sidebar - Modern Dark Dashboard Style (matching sample) */
-    --sidebar-background: 228 50% 3%; /* Very dark black #05070F */
+    /* Sidebar - Modern Dark Dashboard Style */
+    --sidebar-background: 0 0% 4%; /* Very dark gray #0a0a0a */
     --sidebar-foreground: 0 0% 70%; /* Light gray for text - rgba(255, 255, 255, 0.7) */
     --sidebar-primary: 217 91% 60%; /* Bright blue accent #3b82f6 */
     --sidebar-primary-foreground: 0 0% 100%;
@@ -255,14 +255,33 @@
 
   /* Modern glassmorphic sidebar effect */
   .sidebar-glass {
-    background: linear-gradient(180deg, #05070F 0%, #030508 100%);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    background: #0a0a0a;
     backdrop-filter: blur(12px);
+  }
+
+  /* Card glassmorphic effect */
+  .card,
+  [class*="card"] {
+    background: linear-gradient(180deg, rgba(28, 38, 96, 0.45) 0%, rgba(28, 38, 96, 0.35) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    backdrop-filter: blur(8px);
   }
 
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Drag-and-drop styles */
+  .drag-handle {
+    @apply transition-opacity duration-200;
+  }
+
+  /* Touch device adjustments - always show drag handle with lower opacity */
+  @media (hover: none) {
+    .drag-handle {
+      @apply opacity-60;
+    }
   }
 }
 
