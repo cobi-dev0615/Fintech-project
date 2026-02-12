@@ -13,12 +13,12 @@ const ChartCard = ({ title, subtitle, children, className, actions }: ChartCardP
   return (
     <div className={cn("chart-card min-w-0", className)}>
       {(title || actions) && (
-        <div className="flex items-start justify-between gap-3 mb-4 min-w-0">
+        <div className="flex items-start justify-between gap-3 mb-5 min-w-0">
           {title && (
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+              <h3 className="text-base font-bold text-foreground tracking-tight">{title}</h3>
               {subtitle && (
-                <p className="text-xs text-muted-foreground/70 mt-0.5">{subtitle}</p>
+                <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">{subtitle}</p>
               )}
             </div>
           )}
