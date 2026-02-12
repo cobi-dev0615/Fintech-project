@@ -16,27 +16,29 @@ const languages = [
 const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
 
+  // Get current language flag
+  const currentLang = languages.find(lang => lang.code === i18n.language) || languages[0];
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted text-xl"
           aria-label="Change language"
         >
-          <Globe className="h-4 w-4" />
+          {currentLang.flag}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[160px]">
+      <DropdownMenuContent align="end" className="min-w-[80px]">
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
             onClick={() => i18n.changeLanguage(lang.code)}
-            className={i18n.language === lang.code ? 'bg-accent font-medium' : ''}
+            className={`justify-center text-2xl cursor-pointer ${i18n.language === lang.code ? 'bg-accent' : ''}`}
           >
-            <span className="mr-2">{lang.flag}</span>
-            {lang.label}
+            {lang.flag}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
