@@ -142,7 +142,7 @@
   /* Professional KPI Card styles */
   .kpi-card {
     @apply rounded-xl p-5 transition-all duration-200 h-full;
-    background: linear-gradient(180deg, rgba(6, 10, 20, 0.85) 0%, rgba(6, 10, 20, 0.75) 100%);
+    background: linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%);
     border: 1px solid rgba(59, 130, 246, 0.4);
     box-shadow: var(--shadow-card);
     min-height: 160px;
@@ -156,7 +156,7 @@
   /* Chart Card */
   .chart-card {
     @apply rounded-xl p-5 sm:p-6;
-    background: linear-gradient(180deg, rgba(6, 10, 20, 0.85) 0%, rgba(6, 10, 20, 0.75) 100%);
+    background: linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%);
     border: 1px solid rgba(59, 130, 246, 0.4);
     box-shadow: var(--shadow-card);
   }
@@ -164,7 +164,7 @@
   /* Alert Card */
   .alert-card {
     @apply rounded-lg p-4 transition-all duration-200;
-    background: linear-gradient(180deg, rgba(6, 10, 20, 0.85) 0%, rgba(6, 10, 20, 0.75) 100%);
+    background: linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%);
     border: 1px solid rgba(59, 130, 246, 0.4);
   }
   
@@ -190,7 +190,7 @@
   /* Feature card hover */
   .feature-card {
     @apply rounded-2xl p-6 transition-all duration-300;
-    background: linear-gradient(180deg, rgba(6, 10, 20, 0.85) 0%, rgba(6, 10, 20, 0.75) 100%);
+    background: linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%);
     border: 1px solid rgba(59, 130, 246, 0.4);
     box-shadow: var(--shadow-card);
   }
