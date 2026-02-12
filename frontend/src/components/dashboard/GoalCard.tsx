@@ -44,7 +44,7 @@ export function GoalCard({ name, target, current, deadline, category }: GoalCard
 
   return (
     <div className="kpi-card group cursor-default">
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning transition-colors">
             <Target className="h-5 w-5" />
@@ -53,7 +53,7 @@ export function GoalCard({ name, target, current, deadline, category }: GoalCard
             <h3 className="text-sm font-medium text-muted-foreground capitalize">
               {category}
             </h3>
-            <p className="text-lg font-bold text-foreground mt-1">
+            <p className="text-xl font-bold text-foreground mt-1">
               {name}
             </p>
           </div>
@@ -72,49 +72,33 @@ export function GoalCard({ name, target, current, deadline, category }: GoalCard
         )}
       </div>
 
-      {/* Progress Bar */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between text-sm mb-2">
+      <div className="mt-4 pt-4 border-t border-border/40">
+        {/* Progress Bar - Compact */}
+        <div className="flex items-center justify-between text-xs mb-1.5">
           <span className="text-muted-foreground">
             {t('dashboard:progress', { defaultValue: 'Progress' })}
           </span>
           <span className="font-medium text-foreground">{progress.toFixed(1)}%</span>
         </div>
-        <div className="relative h-2.5 bg-muted/30 rounded-full overflow-hidden">
+        <div className="relative h-2 bg-muted/30 rounded-full overflow-hidden mb-3">
           <div
             className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
-      </div>
 
-      {/* Timeline with current position marker */}
-      <div className="relative pt-4 border-t border-border/40">
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground">
-              {t('dashboard:current', { defaultValue: 'Current' })}
-            </span>
-            <span className="font-bold text-success">{formatCurrency(current)}</span>
+        {/* Compact Timeline */}
+        <div className="flex items-center justify-between text-xs">
+          <div>
+            <span className="text-muted-foreground">{formatCurrency(current)}</span>
           </div>
-          <div className="flex flex-col items-center">
-            <TrendingUp className="h-4 w-4 text-primary mb-1" />
-            <span className="text-xs text-muted-foreground">
-              {formatCurrency(remaining)} {t('dashboard:toGo', { defaultValue: 'to go' })}
-            </span>
+          <div className="text-muted-foreground">
+            {formatCurrency(remaining)} {t('dashboard:toGo', { defaultValue: 'to go' })}
           </div>
-          <div className="flex flex-col items-end">
-            <span className="text-xs text-muted-foreground">
-              {t('dashboard:target', { defaultValue: 'Target' })}
-            </span>
-            <span className="font-bold text-primary">{formatCurrency(target)}</span>
+          <div>
+            <span className="font-medium text-primary">{formatCurrency(target)}</span>
           </div>
         </div>
-        {deadline && (
-          <div className="mt-3 text-center text-xs text-muted-foreground">
-            {t('dashboard:deadline', { defaultValue: 'Deadline' })}: {formatDate(deadline)}
-          </div>
-        )}
       </div>
     </div>
   );
