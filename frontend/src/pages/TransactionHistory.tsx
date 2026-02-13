@@ -399,32 +399,56 @@ const TransactionHistory = () => {
     setExportDialogOpen(true);
   };
 
-  // Actually download the CSV after user confirms
-  const handleExportConfirm = () => {
-    const headers = ["Description", "Amount", "Category", "Status", "Date"];
-    const rows = sortedTransactions.map((tx: any) => [
-      `"${(tx.description || tx.merchant || "").replace(/"/g, '""')}"`,
-      tx.amount || "0",
-      tx.category || "",
-      parseFloat(tx.amount ?? 0) >= 0
-        ? "Completed"
-        : tx.status || "Completed",
-      tx.date || "",
-    ]);
-    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `transactions_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setExportDialogOpen(false);
-    toast({
-      title: t("transactions:exportSuccess"),
-      description: t("transactions:exportSuccessDesc"),
-      variant: "success",
-    });
+  // Actually download the CSV after user confirms — fetch ALL filtered records
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportConfirm = async () => {
+    try {
+      setExporting(true);
+      // Fetch all matching records (large limit) with the same filters
+      const data = await financeApi.getTransactions({
+        page: 1,
+        limit: 10000,
+        q: search || undefined,
+        accountId: accountId || undefined,
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+      });
+      const allTx = data.transactions || [];
+
+      const headers = ["Description", "Amount", "Category", "Status", "Date"];
+      const rows = allTx.map((tx: any) => [
+        `"${(tx.description || tx.merchant || "").replace(/"/g, '""')}"`,
+        tx.amount || "0",
+        tx.category || "",
+        parseFloat(tx.amount ?? 0) >= 0
+          ? "Completed"
+          : tx.status || "Completed",
+        tx.date || "",
+      ]);
+      const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportDialogOpen(false);
+      toast({
+        title: t("transactions:exportSuccess"),
+        description: t("transactions:exportSuccessDesc"),
+        variant: "success",
+      });
+    } catch {
+      toast({
+        title: t("common:error"),
+        description: t("transactions:errorLoading"),
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
   };
 
   // Add transaction
@@ -1188,9 +1212,9 @@ const TransactionHistory = () => {
             >
               {t("transactions:cancel")}
             </Button>
-            <Button onClick={handleExportConfirm} className="gap-2">
-              <Download className="h-4 w-4" />
-              {t("transactions:export")}
+            <Button onClick={handleExportConfirm} disabled={exporting} className="gap-2">
+              <Download className={`h-4 w-4 ${exporting ? "animate-spin" : ""}`} />
+              {exporting ? t("common:loading") : t("transactions:export")}
             </Button>
           </DialogFooter>
         </DialogContent>
