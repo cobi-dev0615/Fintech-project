@@ -61,6 +61,12 @@
     "disconnectDesc": "Tem certeza que deseja desconectar de <strong>{{name}}</strong>? O consultor não poderá mais acessar suas informações.",
     "disconnecting": "Desconectando..."
   },
+  "kpi": {
+    "pendingInvitations": "Convites Pendentes",
+    "connectedConsultants": "Consultores Conectados",
+    "invitedFriends": "Amigos Convidados",
+    "referralProgress": "Progresso de Indicação"
+  },
   "toast": {
     "accepted": "Convite aceito",
     "acceptedDesc": "Você agora está conectado com {{name}}",
