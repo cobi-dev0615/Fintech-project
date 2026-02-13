@@ -1,16 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { Globe } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 
 const languages = [
-  { code: 'pt-BR', label: 'Portugues BR', flag: '\u{1F1E7}\u{1F1F7}' },
-  { code: 'en', label: 'English', flag: '\u{1F1FA}\u{1F1F8}' },
+  { code: 'pt-BR', label: 'Portugues BR', short: 'BR', flag: '\u{1F1E7}\u{1F1F7}' },
+  { code: 'en', label: 'English', short: 'US', flag: '\u{1F1FA}\u{1F1F8}' },
 ] as const;
 
 const LanguageSwitcher = () => {
@@ -22,23 +20,24 @@ const LanguageSwitcher = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted text-xl"
+        <button
+          type="button"
+          className="flex items-center gap-1.5 h-9 px-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
           aria-label="Change language"
         >
-          {currentLang.flag}
-        </Button>
+          <span className="text-base leading-none">{currentLang.flag}</span>
+          <span className="text-xs font-medium">{currentLang.short}</span>
+        </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[80px]">
+      <DropdownMenuContent align="end" className="min-w-[120px]">
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
             onClick={() => i18n.changeLanguage(lang.code)}
-            className={`justify-center text-2xl cursor-pointer ${i18n.language === lang.code ? 'bg-accent' : ''}`}
+            className={`gap-2 cursor-pointer ${i18n.language === lang.code ? 'bg-accent' : ''}`}
           >
-            {lang.flag}
+            <span className="text-base">{lang.flag}</span>
+            <span className="text-sm">{lang.label}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

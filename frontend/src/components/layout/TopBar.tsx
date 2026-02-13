@@ -1,10 +1,8 @@
-import { useState, useEffect } from "react";
-import { Search, Menu, UserCircle, LogOut } from "lucide-react";
+import { Menu, UserCircle, LogOut, Moon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CircleUserRound } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,7 +50,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, title
   // Get settings path based on user role
   const getSettingsPath = () => {
     if (!user) return '/app/settings';
-    
+
     switch (user.role) {
       case 'consultant':
         return '/consultant/settings';
@@ -68,40 +66,53 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, title
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border border-l-0 bg-card/50 backdrop-blur-xl px-4 lg:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/30 bg-background/80 backdrop-blur-xl px-4 lg:px-6">
       <div className="flex items-center gap-4">
         {showMenuButton && (
           <Button
             variant="ghost"
             size="icon"
             onClick={onMenuClick}
-            className="lg:hidden text-muted-foreground hover:text-foreground hover:bg-muted"
+            className="lg:hidden text-muted-foreground hover:text-foreground hover:bg-muted/50"
           >
             <Menu className="h-5 w-5" />
           </Button>
         )}
         {title && (
-          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
         )}
       </div>
-      
-      <div className="flex items-center gap-3">
+
+      <div className="flex items-center gap-1">
+        {/* Language Switcher */}
         <LanguageSwitcher />
+
+        {/* Dark Mode Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          aria-label="Toggle theme"
+        >
+          <Moon className="h-[18px] w-[18px]" />
+        </Button>
+
+        {/* Notifications */}
         <NotificationDropdown />
+
+        {/* Separator */}
+        <div className="h-6 w-px bg-border/40 mx-1.5 hidden sm:block" />
+
+        {/* User Profile */}
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-lg border border-border bg-transparent text-foreground hover:bg-muted/80 hover:border-muted-foreground/30 transition-colors focus-visible:outline-none"
+                className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-lg text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none"
                 aria-label={t('topbar.openAccountMenu')}
               >
-                <Avatar className="h-7 w-7 rounded-full border border-border">
-                  <AvatarImage src={undefined} alt="" />
-                  <AvatarFallback className="text-xs font-medium bg-muted text-muted-foreground">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
+                <CircleUserRound className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium text-foreground hidden sm:inline max-w-[120px] truncate">
                   {getAbbreviatedName() || t('topbar.accountFallback')}
                 </span>
