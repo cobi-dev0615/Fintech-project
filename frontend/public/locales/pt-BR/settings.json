@@ -4,14 +4,21 @@
   "tabs": {
     "profile": "Perfil",
     "notifications": "Notificações",
+    "security": "Segurança",
     "password": "Senha",
     "history": "Histórico de Planos",
-    "comments": "Comentários"
+    "comments": "Comentários",
+    "helpSupport": "Ajuda & Suporte",
+    "signOut": "Sair"
   },
   "ariaLabel": "Seções do perfil",
   "profile": {
     "title": "Informações Pessoais",
     "fullName": "Nome Completo",
+    "firstName": "Nome",
+    "firstNamePlaceholder": "Seu nome",
+    "lastName": "Sobrenome",
+    "lastNamePlaceholder": "Seu sobrenome",
     "namePlaceholder": "Seu nome",
     "email": "E-mail",
     "emailHint": "Alterações de e-mail podem ser feitas pelo suporte.",
@@ -28,8 +35,10 @@
       "moderate": "Moderado",
       "aggressive": "Arrojado"
     },
+    "subtitle": "Atualize seus dados e informações pessoais",
     "saving": "Salvando...",
     "saveProfile": "Salvar Perfil",
+    "saveChanges": "Salvar Alterações",
     "saveSuccess": "Perfil atualizado com sucesso",
     "saveError": "Erro ao atualizar perfil"
   },
@@ -42,13 +51,16 @@
       "weeklySummary": "Resumo semanal",
       "marketingEmails": "E-mails de marketing"
     },
+    "subtitle": "Escolha quais notificações você deseja receber",
     "saving": "Salvando...",
     "saveNotifications": "Salvar Notificações",
+    "saveChanges": "Salvar Alterações",
     "saveSuccess": "Notificações atualizadas",
     "saveError": "Erro ao atualizar notificações"
   },
   "password": {
     "title": "Alterar Senha",
+    "subtitle": "Atualize sua senha para manter sua conta segura",
     "currentPassword": "Senha Atual",
     "newPassword": "Nova Senha",
     "newPasswordHint": "Mínimo 8 caracteres.",
@@ -62,6 +74,7 @@
   },
   "history": {
     "title": "Histórico de Compras",
+    "subtitle": "Veja suas assinaturas de planos e histórico de pagamentos",
     "noPurchases": "Nenhuma compra encontrada",
     "noPurchasesDesc": "Suas assinaturas de planos aparecerão aqui.",
     "tableHeaders": {
@@ -73,6 +86,7 @@
   },
   "comments": {
     "title": "Comentários e Feedback",
+    "subtitle": "Envie dúvidas ou sugestões para nossa equipe",
     "refresh": "Atualizar",
     "newComment": "Novo Comentário",
     "noComments": "Nenhum comentário enviado",

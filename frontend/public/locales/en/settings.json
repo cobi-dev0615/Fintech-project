@@ -4,14 +4,21 @@
   "tabs": {
     "profile": "Profile",
     "notifications": "Notifications",
+    "security": "Security",
     "password": "Password",
     "history": "Plan History",
-    "comments": "Comments"
+    "comments": "Comments",
+    "helpSupport": "Help & Support",
+    "signOut": "Sign Out"
   },
   "ariaLabel": "Profile sections",
   "profile": {
     "title": "Personal Information",
     "fullName": "Full Name",
+    "firstName": "First Name",
+    "firstNamePlaceholder": "Your first name",
+    "lastName": "Last Name",
+    "lastNamePlaceholder": "Your last name",
     "namePlaceholder": "Your name",
     "email": "Email",
     "emailHint": "Email changes can be made through support.",
@@ -28,8 +35,10 @@
       "moderate": "Moderate",
       "aggressive": "Aggressive"
     },
+    "subtitle": "Update your personal details and information",
     "saving": "Saving...",
     "saveProfile": "Save Profile",
+    "saveChanges": "Save Changes",
     "saveSuccess": "Profile updated successfully",
     "saveError": "Error updating profile"
   },
@@ -42,13 +51,16 @@
       "weeklySummary": "Weekly summary",
       "marketingEmails": "Marketing emails"
     },
+    "subtitle": "Choose which notifications you want to receive",
     "saving": "Saving...",
     "saveNotifications": "Save Notifications",
+    "saveChanges": "Save Changes",
     "saveSuccess": "Notifications updated",
     "saveError": "Error updating notifications"
   },
   "password": {
     "title": "Change Password",
+    "subtitle": "Update your password to keep your account secure",
     "currentPassword": "Current Password",
     "newPassword": "New Password",
     "newPasswordHint": "Minimum 8 characters.",
@@ -62,6 +74,7 @@
   },
   "history": {
     "title": "Purchase History",
+    "subtitle": "View your plan subscriptions and payment history",
     "noPurchases": "No purchases found",
     "noPurchasesDesc": "Your plan subscriptions will appear here.",
     "tableHeaders": {
@@ -73,6 +86,7 @@
   },
   "comments": {
     "title": "Comments & Feedback",
+    "subtitle": "Submit questions or suggestions to our team",
     "refresh": "Refresh",
     "newComment": "New Comment",
     "noComments": "No comments submitted",

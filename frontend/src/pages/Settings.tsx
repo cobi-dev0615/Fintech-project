@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import { 
-  User, 
-  Bell, 
-  Save, 
-  Lock, 
+import {
+  Bell,
+  Lock,
   History,
   MessageSquare,
   Plus,
@@ -11,7 +9,10 @@ import {
   Trash2,
   Eye,
   RefreshCw,
-  ShoppingBag
+  ShoppingBag,
+  HelpCircle,
+  LogOut,
+  UserCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,9 +35,7 @@ import {
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
-  PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
@@ -52,9 +51,11 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProfileState {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   countryCode: string;
@@ -68,10 +69,12 @@ const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { user, logout } = useAuth();
 
   // State for different sections
   const [profile, setProfile] = useState<ProfileState>({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "+55 ",
     countryCode: "BR",
@@ -134,12 +137,28 @@ const Settings = () => {
   const [selectedComment, setSelectedComment] = useState<any>(null);
   const [newComment, setNewComment] = useState({ title: "", content: "" });
 
-  const steps = [
-    { id: "profile", label: t('settings:tabs.profile'), icon: User },
-    { id: "notifications", label: t('settings:tabs.notifications'), icon: Bell },
-    { id: "password", label: t('settings:tabs.password'), icon: Lock },
-    { id: "history", label: t('settings:tabs.history'), icon: History },
-    { id: "comments", label: t('settings:tabs.comments'), icon: MessageSquare },
+  const getUserInitials = () => {
+    if (profile.firstName && profile.lastName) {
+      return (profile.firstName[0] + profile.lastName[0]).toUpperCase();
+    }
+    if (profile.firstName) return profile.firstName[0].toUpperCase();
+    if (user?.full_name) {
+      const names = user.full_name.trim().split(' ');
+      if (names.length >= 2) return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+      return names[0][0].toUpperCase();
+    }
+    return 'U';
+  };
+
+  const getFullName = () => {
+    return [profile.firstName, profile.lastName].filter(Boolean).join(' ');
+  };
+
+  const mainSteps = [
+    { id: "profile", label: t('settings:tabs.profile') },
+    { id: "password", label: t('settings:tabs.security') },
+    { id: "notifications", label: t('settings:tabs.notifications') },
+    { id: "history", label: t('settings:tabs.history') },
   ];
 
   // Load user data on mount
@@ -150,8 +169,12 @@ const Settings = () => {
         const response = await authApi.me();
         const user = response.user;
         const savedCountryCode = localStorage.getItem("userCountryCode") || "BR";
+        const nameParts = (user.full_name || "").trim().split(' ');
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : "";
         setProfile({
-          name: user.full_name || "",
+          firstName,
+          lastName,
           email: user.email || "",
           phone: user.phone ? formatPhone(user.phone) : "+55 ",
           countryCode: savedCountryCode,
@@ -222,7 +245,7 @@ const Settings = () => {
     setSaving(true);
     try {
       await userApi.updateProfile({
-        full_name: profile.name,
+        full_name: getFullName(),
         phone: profile.phone ? profile.phone.replace(/\D/g, "") : undefined,
         birth_date: profile.birthDate || undefined,
         risk_profile: profile.riskProfile || undefined,
@@ -324,90 +347,139 @@ const Settings = () => {
   ];
 
   return (
-    <div className="space-y-6 min-w-0 max-w-full overflow-x-hidden">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('settings:title')}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t('settings:subtitle')}</p>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-8 min-w-0">
-        {/* Tab navigation */}
+    <div className="min-w-0 max-w-full overflow-x-hidden">
+      <div className="flex flex-col lg:flex-row lg:items-stretch gap-6 min-w-0">
+        {/* Sidebar navigation */}
         <div className="w-full lg:w-56 shrink-0">
-          <nav className="flex flex-row lg:flex-col gap-2 lg:gap-1 relative overflow-x-auto pb-2 lg:pb-0" aria-label={t('settings:ariaLabel')}>
-            {/* Vertical line: inside nav so length = first to last step only; centered on icons; top/bottom = center of first/last (py-2.5 + half h-9 = 1.1875rem) */}
-            <div className="absolute left-[1.875rem] top-[1.1875rem] bottom-[1.1875rem] w-px bg-border hidden lg:block z-0 pointer-events-none" />
-            {steps.map((step, index) => {
-              const isActive = activeStep === step.id;
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => setActiveStep(step.id)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors shrink-0 lg:shrink",
-                    isActive
-                      ? "bg-primary/10 border border-primary/30 text-primary"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent"
-                  )}
-                >
-                  <div className={cn(
-                    "flex items-center justify-center h-9 w-9 rounded-full shrink-0",
-                    isActive ? "bg-primary/20 text-primary" : "bg-muted/60"
-                  )}>
-                    <step.icon className="h-4 w-4" />
-                  </div>
-                  <span className="font-medium text-sm">{step.label}</span>
-                </button>
-              );
-            })}
-          </nav>
+          <div className="settings-card !px-3 !pt-8 !pb-3 h-full">
+            <nav className="flex flex-row lg:flex-col gap-0.5 overflow-x-auto" aria-label={t('settings:ariaLabel')}>
+              {mainSteps.map((step) => {
+                const isActive = activeStep === step.id;
+                return (
+                  <button
+                    key={step.id}
+                    onClick={() => setActiveStep(step.id)}
+                    className={cn(
+                      "relative text-left px-4 py-2.5 text-sm font-medium transition-colors shrink-0 lg:shrink rounded-md",
+                      isActive
+                        ? "text-primary bg-primary/15 dark:bg-primary/20"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                    )}
+                  >
+                    {/* Active left border indicator */}
+                    {isActive && (
+                      <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full bg-primary hidden lg:block" />
+                    )}
+                    {/* Active bottom border for mobile */}
+                    {isActive && (
+                      <span className="absolute left-1 right-1 bottom-0 h-[2px] rounded-full bg-primary lg:hidden" />
+                    )}
+                    {step.label}
+                  </button>
+                );
+              })}
+
+              {/* Separator */}
+              <div className="hidden lg:block my-2 mx-2 h-px bg-border/50" />
+
+              {/* Help & Support */}
+              <button
+                onClick={() => setActiveStep("comments")}
+                className={cn(
+                  "relative text-left px-4 py-2.5 text-sm font-medium transition-colors shrink-0 lg:shrink flex items-center gap-2 rounded-md",
+                  activeStep === "comments"
+                    ? "text-primary bg-primary/15 dark:bg-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                )}
+              >
+                {activeStep === "comments" && (
+                  <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full bg-primary hidden lg:block" />
+                )}
+                <HelpCircle className="h-4 w-4" />
+                {t('settings:tabs.helpSupport')}
+              </button>
+
+              {/* Sign Out */}
+              <button
+                onClick={logout}
+                className="relative text-left px-4 py-2.5 text-sm font-medium text-destructive hover:text-destructive/80 transition-colors shrink-0 lg:shrink flex items-center gap-2 rounded-md hover:bg-destructive/10"
+              >
+                <LogOut className="h-4 w-4" />
+                {t('settings:tabs.signOut')}
+              </button>
+            </nav>
+          </div>
         </div>
 
-        {/* Content Area: min-w-0 so table horizontal scroll stays inside content, not page */}
-        <div className="flex-1 min-w-0">
+        {/* Content Area */}
+        <div className="flex-1 min-w-0 pt-2 lg:pt-0 flex flex-col">
           {activeStep === "profile" && (
-            <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
-              <h2 className="text-sm font-semibold text-foreground mb-4">{t('settings:profile.title')}</h2>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">{t('settings:profile.fullName')}</Label>
-                  <Input id="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} placeholder={t('settings:profile.namePlaceholder')} />
+            <div className="settings-card flex-1">
+              {/* Profile title */}
+              <h1 className="text-xl font-semibold text-foreground mb-6">{t('settings:tabs.profile')}</h1>
+
+              {/* Avatar header */}
+              <div className="flex items-center gap-4 mb-8">
+                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-pink-400 to-violet-500 flex items-center justify-center text-white text-xl font-bold shrink-0">
+                  {getUserInitials()}
                 </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-base font-semibold text-foreground truncate">{getFullName() || t('settings:profile.namePlaceholder')}</h2>
+                  <p className="text-sm text-muted-foreground truncate">{profile.email}</p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-border/50 mb-6" />
+
+              {/* Personal Information section */}
+              <div className="flex items-center gap-2 mb-1">
+                <UserCircle className="h-5 w-5 text-muted-foreground" />
+                <h2 className="text-base font-semibold text-foreground">{t('settings:profile.title')}</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">{t('settings:profile.subtitle')}</p>
+
+              <div className="space-y-5">
+                {/* 2-column grid: First Name / Last Name */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">{t('settings:profile.firstName')}</Label>
+                    <Input id="firstName" value={profile.firstName} onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} placeholder={t('settings:profile.firstNamePlaceholder')} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">{t('settings:profile.lastName')}</Label>
+                    <Input id="lastName" value={profile.lastName} onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} placeholder={t('settings:profile.lastNamePlaceholder')} />
+                  </div>
+                </div>
+
+                {/* Email full-width */}
                 <div className="space-y-2">
                   <Label htmlFor="email">{t('settings:profile.email')}</Label>
-                  <Input id="email" value={profile.email} disabled className="bg-muted" />
+                  <Input id="email" value={profile.email} disabled className="bg-muted/50" />
                   <p className="text-xs text-muted-foreground">{t('settings:profile.emailHint')}</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">{t('settings:profile.phone')}</Label>
-                  <Input
-                    id="phone"
-                    value={profile.phone}
-                    onChange={(e) => setProfile({ ...profile, phone: formatPhone(e.target.value) })}
-                    placeholder={t('settings:profile.phonePlaceholder')}
-                  />
+
+                {/* 2-column grid: Phone / Birth Date */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">{t('settings:profile.phone')}</Label>
+                    <Input
+                      id="phone"
+                      value={profile.phone}
+                      onChange={(e) => setProfile({ ...profile, phone: formatPhone(e.target.value) })}
+                      placeholder={t('settings:profile.phonePlaceholder')}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="birthDate">{t('settings:profile.birthDate')}</Label>
+                    <Input id="birthDate" type="date" value={profile.birthDate} onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="birthDate">{t('settings:profile.birthDate')}</Label>
-                  <Input id="birthDate" type="date" value={profile.birthDate} onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('settings:profile.riskProfile')}</Label>
-                  <Select value={profile.riskProfile || "none"} onValueChange={(v) => setProfile({ ...profile, riskProfile: v === "none" ? "" : v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('settings:profile.riskProfilePlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {riskProfileOptions.map((opt) => (
-                        <SelectItem key={opt.value || "none"} value={opt.value || "none"}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">{t('settings:profile.riskProfileHint')}</p>
-                </div>
-                <div className="pt-2">
-                  <Button onClick={handleSaveProfile} disabled={saving} className="w-full sm:w-auto">
-                    <Save className="h-4 w-4 mr-2" />
-                    {saving ? t('settings:profile.saving') : t('settings:profile.saveProfile')}
+
+                {/* Save button */}
+                <div className="flex justify-end pt-2">
+                  <Button onClick={handleSaveProfile} disabled={saving}>
+                    {saving ? t('settings:profile.saving') : t('settings:profile.saveChanges')}
                   </Button>
                 </div>
               </div>
@@ -415,9 +487,14 @@ const Settings = () => {
           )}
 
           {activeStep === "notifications" && (
-            <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
-              <h2 className="text-sm font-semibold text-foreground mb-4">{t('settings:notifications.title')}</h2>
-              <div className="space-y-5 py-2">
+            <div className="settings-card flex-1">
+              <h1 className="text-xl font-semibold text-foreground mb-6">{t('settings:tabs.notifications')}</h1>
+              <div className="flex items-center gap-2 mb-1">
+                <Bell className="h-5 w-5 text-muted-foreground" />
+                <h2 className="text-base font-semibold text-foreground">{t('settings:notifications.title')}</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">{t('settings:notifications.subtitle')}</p>
+              <div className="space-y-5">
                 {Object.entries(notifications).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between gap-4">
                     <Label htmlFor={key} className="text-sm font-medium text-foreground flex-1">
@@ -432,36 +509,41 @@ const Settings = () => {
                   </div>
                 ))}
               </div>
-              <div className="pt-4">
-                <Button onClick={handleSaveNotifications} disabled={saving} className="w-full sm:w-auto">
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? t('settings:notifications.saving') : t('settings:notifications.saveNotifications')}
+              <div className="flex justify-end pt-6">
+                <Button onClick={handleSaveNotifications} disabled={saving}>
+                  {saving ? t('settings:notifications.saving') : t('settings:notifications.saveChanges')}
                 </Button>
               </div>
             </div>
           )}
 
           {activeStep === "password" && (
-            <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
-              <h2 className="text-sm font-semibold text-foreground mb-4">{t('settings:password.title')}</h2>
-              <div className="space-y-4 max-w-md">
+            <div className="settings-card flex-1">
+              <h1 className="text-xl font-semibold text-foreground mb-6">{t('settings:tabs.security')}</h1>
+              <div className="flex items-center gap-2 mb-1">
+                <Lock className="h-5 w-5 text-muted-foreground" />
+                <h2 className="text-base font-semibold text-foreground">{t('settings:password.title')}</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">{t('settings:password.subtitle')}</p>
+              <div className="space-y-5 max-w-lg">
                 {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword">{t('settings:password.currentPassword')}</Label>
                   <Input id="currentPassword" type="password" value={password.currentPassword} onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })} placeholder="••••••••" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">{t('settings:password.newPassword')}</Label>
-                  <Input id="newPassword" type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} placeholder="••••••••" />
-                  <p className="text-xs text-muted-foreground">{t('settings:password.newPasswordHint')}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">{t('settings:password.newPassword')}</Label>
+                    <Input id="newPassword" type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} placeholder="••••••••" />
+                    <p className="text-xs text-muted-foreground">{t('settings:password.newPasswordHint')}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">{t('settings:password.confirmPassword')}</Label>
+                    <Input id="confirmPassword" type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} placeholder="••••••••" />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">{t('settings:password.confirmPassword')}</Label>
-                  <Input id="confirmPassword" type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} placeholder="••••••••" />
-                </div>
-                <div className="pt-2">
-                  <Button onClick={handleChangePassword} disabled={saving} className="w-full sm:w-auto">
-                    <Lock className="h-4 w-4 mr-2" />
+                <div className="flex justify-end pt-2">
+                  <Button onClick={handleChangePassword} disabled={saving}>
                     {saving ? t('settings:password.changing') : t('settings:password.changePassword')}
                   </Button>
                 </div>
@@ -470,8 +552,13 @@ const Settings = () => {
           )}
 
           {activeStep === "history" && (
-            <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow">
-              <h2 className="text-sm font-semibold text-foreground mb-4">{t('settings:history.title')}</h2>
+            <div className="settings-card flex-1">
+              <h1 className="text-xl font-semibold text-foreground mb-6">{t('settings:tabs.history')}</h1>
+              <div className="flex items-center gap-2 mb-1">
+                <History className="h-5 w-5 text-muted-foreground" />
+                <h2 className="text-base font-semibold text-foreground">{t('settings:history.title')}</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">{t('settings:history.subtitle')}</p>
               {historyLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -526,9 +613,16 @@ const Settings = () => {
           )}
 
           {activeStep === "comments" && (
-            <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-w-0 overflow-hidden">
+            <div className="settings-card flex-1 min-w-0 overflow-hidden">
+              <h1 className="text-xl font-semibold text-foreground mb-6">{t('settings:tabs.helpSupport')}</h1>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                <h2 className="text-sm font-semibold text-foreground">{t('settings:comments.title')}</h2>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                    <h2 className="text-base font-semibold text-foreground">{t('settings:comments.title')}</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{t('settings:comments.subtitle')}</p>
+                </div>
                 <div className="flex gap-2">
                   <Button
                     size="sm"
