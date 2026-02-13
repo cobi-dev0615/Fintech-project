@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const FIRECalculator = () => {
+  const { formatCurrency } = useCurrency();
   const [currentSavings, setCurrentSavings] = useState<number | "">("");
   const [monthlyContribution, setMonthlyContribution] = useState<number | "">("");
   const [annualReturn, setAnnualReturn] = useState("");
@@ -101,7 +103,7 @@ const FIRECalculator = () => {
                 {Math.floor(result.months / 12)} anos e {result.months % 12} meses
               </p>
               <p className="text-sm text-muted-foreground">
-                Patrimônio projetado: {result.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                Patrimônio projetado: {formatCurrency(result.amount)}
               </p>
             </div>
           ) : (

@@ -6,9 +6,11 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const Accounts = () => {
   const { t } = useTranslation(['accounts', 'common']);
+  const { formatCurrency } = useCurrency();
   const { toast } = useToast();
   const [accounts, setAccounts] = useState<any[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
@@ -115,7 +117,7 @@ const Accounts = () => {
           <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
             <ProfessionalKpiCard
               title={t('accounts:totalBalance')}
-              value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              value={formatCurrency(totalBalance)}
               change=""
               changeType="neutral"
               icon={Wallet}
@@ -161,7 +163,7 @@ const Accounts = () => {
                           </div>
                         </div>
                         <p className="font-semibold tabular-nums shrink-0">
-                          R$ {bankTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          {formatCurrency(bankTotal)}
                         </p>
                       </button>
                       {isExpanded && (
@@ -175,7 +177,7 @@ const Accounts = () => {
                                 {acc.name || acc.type || t('common:account')}
                               </span>
                               <span className="text-sm font-medium tabular-nums shrink-0">
-                                R$ {parseFloat(acc.current_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                {formatCurrency(parseFloat(acc.current_balance || 0))}
                               </span>
                             </div>
                           ))}

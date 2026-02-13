@@ -15,8 +15,10 @@ import {
   Cell,
 } from "recharts";
 import { investmentsApi } from "@/lib/api";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const B3Portfolio = () => {
+  const { formatCurrency } = useCurrency();
   const [holdings, setHoldings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +100,7 @@ const B3Portfolio = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <ProfessionalKpiCard
           title="Valor Total"
-          value={`R$ ${totalValue.toLocaleString("pt-BR")}`}
+          value={formatCurrency(totalValue)}
           change=""
           changeType="neutral"
           icon={TrendingUp}
@@ -114,7 +116,7 @@ const B3Portfolio = () => {
         />
         <ProfessionalKpiCard
           title="Dividendos"
-          value={`R$ ${totalDividends.toLocaleString("pt-BR")}`}
+          value={formatCurrency(totalDividends)}
           change="este mês"
           changeType="positive"
           icon={Calendar}
@@ -159,7 +161,7 @@ const B3Portfolio = () => {
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "6px",
                 }}
-                formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`}
+                formatter={(value: number) => formatCurrency(value)}
               />
               <Line
                 type="monotone"
@@ -226,13 +228,13 @@ const B3Portfolio = () => {
                     {position.quantity}
                   </td>
                   <td className="py-3 px-4 text-right text-sm text-foreground tabular-nums">
-                    R$ {position.avgPrice.toFixed(2)}
+                    {formatCurrency(position.avgPrice)}
                   </td>
                   <td className="py-3 px-4 text-right text-sm text-foreground tabular-nums">
-                    R$ {position.currentPrice.toFixed(2)}
+                    {formatCurrency(position.currentPrice)}
                   </td>
                   <td className="py-3 px-4 text-right text-sm font-medium text-foreground tabular-nums">
-                    R$ {position.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    {formatCurrency(position.value)}
                   </td>
                   <td
                     className={`py-3 px-4 text-right text-sm font-medium tabular-nums ${
@@ -270,7 +272,7 @@ const B3Portfolio = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold text-success tabular-nums">
-                    R$ {dividend.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    {formatCurrency(dividend.amount)}
                   </p>
                   <p className="text-xs text-muted-foreground">{dividend.date}</p>
                 </div>

@@ -9,8 +9,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const ProfitabilitySimulator = () => {
+  const { formatCurrency } = useCurrency();
   const { t } = useTranslation(['calculators', 'common']);
   const [initialAmount, setInitialAmount] = useState<number | "">("");
   const [scenarios, setScenarios] = useState([
@@ -161,7 +163,7 @@ const ProfitabilitySimulator = () => {
                       </div>
                       <div className="text-right">
                         <div className="text-lg font-bold" style={{ color: scenario.color }}>
-                          R$ {scenario.finalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          {formatCurrency(scenario.finalValue)}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           +{scenario.profitPercentage.toFixed(1)}%
@@ -169,7 +171,7 @@ const ProfitabilitySimulator = () => {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Lucro: R$ {scenario.profit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      Lucro: {formatCurrency(scenario.profit)}
                     </div>
                   </div>
                 ))}
@@ -182,7 +184,7 @@ const ProfitabilitySimulator = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`} />
+                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
                     <Legend />
                     <Bar dataKey="finalValue" fill="#3b82f6" name="Valor Final" />
                   </BarChart>

@@ -77,6 +77,7 @@ import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface TxKpiDef {
   title: string;
@@ -208,6 +209,7 @@ const TransactionHistory = () => {
   const { t, i18n } = useTranslation(["transactions", "common"]);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { formatCurrency } = useCurrency();
 
   // KPI drag-and-drop order — persisted to localStorage
   const kpiStorageKey = `tx-kpi-order-${user?.id || "guest"}`;
@@ -580,7 +582,7 @@ const TransactionHistory = () => {
   const kpiData: Record<string, TxKpiDef> = {
     "tx-total-income": {
       title: t("transactions:totalIncome"),
-      value: `$${kpiValues.income.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      value: formatCurrency(kpiValues.income),
       change: "+15.2%",
       changeType: "positive",
       icon: ArrowDownLeft,
@@ -588,7 +590,7 @@ const TransactionHistory = () => {
     },
     "tx-total-expenses": {
       title: t("transactions:totalExpenses"),
-      value: `$${kpiValues.expenses.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      value: formatCurrency(kpiValues.expenses),
       change: "-3.8%",
       changeType: "negative",
       icon: ArrowUpRight,
@@ -596,7 +598,7 @@ const TransactionHistory = () => {
     },
     "tx-net-flow": {
       title: t("transactions:netFlow"),
-      value: `${kpiValues.net >= 0 ? "+" : ""}$${Math.abs(kpiValues.net).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      value: `${kpiValues.net >= 0 ? "+" : ""}${formatCurrency(Math.abs(kpiValues.net))}`,
       change: "+8.5%",
       changeType: "positive",
       icon: Activity,
@@ -604,7 +606,7 @@ const TransactionHistory = () => {
     },
     "tx-average-amount": {
       title: t("transactions:averageAmount"),
-      value: `$${kpiValues.avg.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      value: formatCurrency(kpiValues.avg),
       changeType: "neutral",
       icon: Calculator,
       watermark: Calculator,
@@ -934,11 +936,7 @@ const TransactionHistory = () => {
                           <span
                             className={`text-sm font-semibold tabular-nums ${amountColor}`}
                           >
-                            {isCredit ? "+" : "-"}$
-                            {Math.abs(amount).toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
+                            {isCredit ? "+" : "-"}{formatCurrency(Math.abs(amount)).replace(/^-/, "")}
                           </span>
                         </td>
 

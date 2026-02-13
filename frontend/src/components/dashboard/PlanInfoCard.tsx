@@ -1,5 +1,6 @@
 import { CreditCard, Calendar, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface PlanInfoCardProps {
   planName: string;
@@ -10,12 +11,7 @@ interface PlanInfoCardProps {
 
 export function PlanInfoCard({ planName, price, status, currentPeriodEnd }: PlanInfoCardProps) {
   const { t } = useTranslation(['dashboard', 'common']);
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat(t('common:locale'), {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value / 100); // price is in cents
+  const { formatCurrency } = useCurrency();
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -61,7 +57,7 @@ export function PlanInfoCard({ planName, price, status, currentPeriodEnd }: Plan
           <span className="font-medium text-foreground">{formatDate(currentPeriodEnd)}</span>
         </div>
         <div className="text-lg font-bold text-primary">
-          {formatCurrency(price)}/
+          {formatCurrency(price / 100)}/
           <span className="text-sm font-normal text-muted-foreground">
             {t('common:month', { defaultValue: 'month' })}
           </span>

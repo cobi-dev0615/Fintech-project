@@ -3,20 +3,14 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianG
 import ChartCard from "./ChartCard";
 import { financeApi, dashboardApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const NetWorthChart = () => {
   const { t } = useTranslation(['dashboard', 'common']);
+  const { formatCurrency } = useCurrency();
   const [timeRange, setTimeRange] = useState<"7M" | "1A" | "all">("7M");
   const [data, setData] = useState<Array<{ month: string; value: number }>>([]);
   const [loading, setLoading] = useState(true);
-
-  const locale = t('common:locale');
-
-  const formatCompact = (value: number) =>
-    new Intl.NumberFormat(locale, { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 0 }).format(value);
-
-  const formatFull = (value: number) =>
-    new Intl.NumberFormat(locale, { style: 'currency', currency: 'BRL' }).format(value);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,7 +97,7 @@ const NetWorthChart = () => {
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 11, fill: "rgba(148, 163, 184, 0.8)" }}
-              tickFormatter={formatCompact}
+              tickFormatter={formatCurrency}
               width={70}
               strokeOpacity={0}
             />
@@ -127,7 +121,7 @@ const NetWorthChart = () => {
                 letterSpacing: "0.5px"
               }}
               formatter={(value: number) => [
-                formatFull(value),
+                formatCurrency(value),
                 t('chart.tooltipLabel'),
               ]}
               cursor={{ stroke: 'rgba(59, 130, 246, 0.2)', strokeWidth: 2 }}

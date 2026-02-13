@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { goalsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ const CARD_ACCENTS = [
 const Goals = () => {
   const { t } = useTranslation(['goals', 'common']);
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
 
   const CATEGORY_OPTIONS = [
     { value: "general", label: t('goals:categories.general') },
@@ -183,8 +185,7 @@ const Goals = () => {
 
   const isEdit = editingId != null;
 
-  const formatCurrency = (n: number) =>
-    n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  // formatCurrency comes from useCurrency() context
 
   return (
     <div className="space-y-6 min-w-0">

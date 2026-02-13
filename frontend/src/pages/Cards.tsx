@@ -21,6 +21,7 @@ import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   DndContext,
   closestCenter,
@@ -104,6 +105,7 @@ const Cards = () => {
   const { t } = useTranslation(["cards", "common"]);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { formatCurrency } = useCurrency();
   const [cards, setCards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -266,7 +268,7 @@ const Cards = () => {
   const kpiData: Record<string, { title: string; value: string; Icon: typeof DollarSign; change?: string; changeColor?: string }> = {
     "cards-total-balance": {
       title: t("cards:totalBalance"),
-      value: `R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      value: formatCurrency(totalBalance),
       Icon: DollarSign,
       change: "+12.5%",
       changeColor: "text-emerald-400",
@@ -278,7 +280,7 @@ const Cards = () => {
     },
     "cards-average-balance": {
       title: t("cards:averageBalance"),
-      value: `R$ ${averageBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      value: formatCurrency(averageBalance),
       Icon: TrendingUp,
       change: "+8.3%",
       changeColor: "text-emerald-400",
@@ -493,10 +495,7 @@ const Cards = () => {
                                 {t("cards:currentBalance")}
                               </p>
                               <p className="text-sm font-semibold tabular-nums">
-                                R${" "}
-                                {balance.toLocaleString("pt-BR", {
-                                  minimumFractionDigits: 2,
-                                })}
+                                {formatCurrency(balance)}
                               </p>
                             </div>
                             <div>
@@ -548,11 +547,7 @@ const Cards = () => {
                         {t("cards:currentBalance")}
                       </p>
                       <p className="text-2xl font-bold tabular-nums">
-                        R${" "}
-                        {parseFloat(selectedCard.balance || 0).toLocaleString(
-                          "pt-BR",
-                          { minimumFractionDigits: 2 }
-                        )}
+                        {formatCurrency(parseFloat(selectedCard.balance || 0))}
                       </p>
                     </div>
 

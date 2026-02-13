@@ -10,9 +10,11 @@ import { DraggableDashboard } from "@/components/dashboard/DraggableDashboard";
 import type { DashboardCard } from "@/types/dashboard";
 import { financeApi, subscriptionsApi, customerApi, goalsApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const Dashboard = () => {
   const { t } = useTranslation(['dashboard', 'common']);
+  const { formatCurrency } = useCurrency();
   const [openFinanceData, setOpenFinanceData] = useState<{
     accounts: any[];
     groupedAccounts: any[];
@@ -36,9 +38,6 @@ const Dashboard = () => {
   const [subscription, setSubscription] = useState<any>(null);
   const [consultant, setConsultant] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(value);
 
   const fetchOpenFinanceData = async () => {
     try {

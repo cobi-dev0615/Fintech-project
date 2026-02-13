@@ -8,6 +8,7 @@ import ScrollToTop from "@/components/ui/ScrollToTop";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 
 // Critical components - load immediately
 import AppLayout from "./components/layout/AppLayout";
@@ -111,6 +112,7 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <ThemeProvider>
+  <CurrencyProvider>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -218,6 +220,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </CurrencyProvider>
   </ThemeProvider>
 );
 

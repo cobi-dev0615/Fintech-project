@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { accountsApi } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 // Map category to icon
 const getCategoryIcon = (category: string | null | undefined) => {
@@ -74,6 +75,7 @@ const formatDate = (dateString: string) => {
 
 const RecentTransactions = () => {
   const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -149,7 +151,7 @@ const RecentTransactions = () => {
                     isPositive ? "text-success" : "text-foreground"
                   )}>
                     {isPositive ? "+" : ""}
-                    {amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    {formatCurrency(amount)}
                   </p>
                   <p className="text-xs text-muted-foreground">{date}</p>
                 </div>

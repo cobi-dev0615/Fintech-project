@@ -1,5 +1,6 @@
 import { Wallet, TrendingUp, CreditCard, DollarSign } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface AssetsInfoCardProps {
   netWorth: number;
@@ -10,14 +11,7 @@ interface AssetsInfoCardProps {
 
 export function AssetsInfoCard({ netWorth, available, invested, cardDebt }: AssetsInfoCardProps) {
   const { t } = useTranslation(['dashboard', 'common']);
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat(t('common:locale'), {
-      style: 'currency',
-      currency: 'BRL',
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    }).format(value);
+  const { formatCurrency } = useCurrency();
 
   const assets = [
     {

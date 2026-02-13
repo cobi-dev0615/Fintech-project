@@ -5,6 +5,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { connectionsApi, financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface Connection {
   id: string;
@@ -17,6 +18,7 @@ interface Connection {
 
 const OpenFinance = () => {
   const { t, i18n } = useTranslation(['connections', 'common']);
+  const { formatCurrency } = useCurrency();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [expandedConnectionIds, setExpandedConnectionIds] = useState<Set<string>>(new Set());
@@ -310,7 +312,7 @@ const OpenFinance = () => {
                                 <span className="text-sm truncate text-foreground">{acc.name || t('connections:openFinance.account')}</span>
                               </div>
                               <span className="text-sm font-medium tabular-nums shrink-0">
-                                R$ {parseFloat(acc.current_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                {formatCurrency(parseFloat(acc.current_balance || 0))}
                               </span>
                             </li>
                           ))}

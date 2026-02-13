@@ -40,7 +40,13 @@
     "saveProfile": "Salvar Perfil",
     "saveChanges": "Salvar Alterações",
     "saveSuccess": "Perfil atualizado com sucesso",
-    "saveError": "Erro ao atualizar perfil"
+    "saveError": "Erro ao atualizar perfil",
+    "currency": "Moeda",
+    "currencyHint": "Escolha como os valores monetários são exibidos no aplicativo.",
+    "currencyOptions": {
+      "BRL": "BRL - Real Brasileiro (R$)",
+      "USD": "USD - Dólar Americano ($)"
+    }
   },
   "notifications": {
     "title": "Preferências de Notificação",

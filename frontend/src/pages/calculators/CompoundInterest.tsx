@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const CompoundInterest = () => {
+  const { formatCurrency } = useCurrency();
   const [initialAmount, setInitialAmount] = useState<number | "">("");
   const [monthlyContribution, setMonthlyContribution] = useState<number | "">("");
   const [annualRate, setAnnualRate] = useState("");
@@ -100,7 +102,7 @@ const CompoundInterest = () => {
           {result !== null ? (
             <div className="flex flex-col gap-2 flex-1">
               <p className="text-2xl font-bold text-foreground">
-                {result.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                {formatCurrency(result)}
               </p>
               <p className="text-sm text-muted-foreground">Valor projetado ao final do prazo</p>
             </div>

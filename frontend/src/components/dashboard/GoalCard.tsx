@@ -1,5 +1,6 @@
 import { Target, Calendar, TrendingUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface GoalCardProps {
   name: string;
@@ -11,14 +12,7 @@ interface GoalCardProps {
 
 export function GoalCard({ name, target, current, deadline, category }: GoalCardProps) {
   const { t } = useTranslation(['dashboard', 'common']);
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat(t('common:locale'), {
-      style: 'currency',
-      currency: 'BRL',
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    }).format(value);
+  const { formatCurrency } = useCurrency();
 
   const progress = Math.min((current / target) * 100, 100);
   const remaining = Math.max(target - current, 0);

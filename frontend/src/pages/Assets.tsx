@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { LayoutDashboard, Wallet, TrendingUp, CreditCard, RefreshCw, Building2, ChevronDown, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { financeApi } from "@/lib/api";
@@ -18,6 +19,7 @@ import {
 
 const Assets = () => {
   const { t } = useTranslation(['accounts', 'common']);
+  const { formatCurrency } = useCurrency();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -162,7 +164,7 @@ const Assets = () => {
         <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow">
           <ProfessionalKpiCard
             title={t('assets.netWorth')}
-            value={`R$ ${netWorth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            value={formatCurrency(netWorth)}
             icon={LayoutDashboard}
             iconClassName="text-emerald-600 dark:text-emerald-400"
             changeType="neutral"
@@ -173,7 +175,7 @@ const Assets = () => {
         <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
           <ProfessionalKpiCard
             title={t('assets.available')}
-            value={`R$ ${data.totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            value={formatCurrency(data.totalBalance)}
             icon={Wallet}
             iconClassName="text-blue-600 dark:text-blue-400"
             changeType="neutral"
@@ -184,7 +186,7 @@ const Assets = () => {
         <div className="rounded-xl border-2 border-violet-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow">
           <ProfessionalKpiCard
             title={t('assets.invested')}
-            value={`R$ ${data.totalInvestments.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            value={formatCurrency(data.totalInvestments)}
             icon={TrendingUp}
             iconClassName="text-violet-600 dark:text-violet-400"
             changeType="neutral"
@@ -195,7 +197,7 @@ const Assets = () => {
         <div className="rounded-xl border-2 border-amber-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-shadow">
           <ProfessionalKpiCard
             title={t('assets.cardDebt')}
-            value={`R$ ${data.totalCardDebt.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            value={formatCurrency(data.totalCardDebt)}
             icon={CreditCard}
             iconClassName="text-amber-600 dark:text-amber-400"
             changeType="neutral"
@@ -240,7 +242,7 @@ const Assets = () => {
                               {t('assets.patrimony')}
                             </text>
                             <text x={cx} y={cy + 10} textAnchor="middle" fill="#ffffff" className="text-lg font-bold">
-                              R$ {netWorth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              {formatCurrency(netWorth)}
                             </text>
                           </g>
                         );
@@ -262,7 +264,7 @@ const Assets = () => {
                           }}
                         >
                           <div style={{ color: '#ffffff', fontWeight: 500 }}>
-                            {label} : R$ {typeof value === 'number' ? value.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : value}
+                            {label} : {typeof value === 'number' ? formatCurrency(value) : value}
                           </div>
                         </div>
                       );
@@ -289,7 +291,7 @@ const Assets = () => {
                       <p className="text-xs text-muted-foreground">{t('assets.accountCountOF', { count: data.accounts.length })}</p>
                     </div>
                   </div>
-                  <p className="font-semibold text-foreground tabular-nums shrink-0">R$ {data.totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                  <p className="font-semibold text-foreground tabular-nums shrink-0">{formatCurrency(data.totalBalance)}</p>
                 </div>
                 {accountsByBank.map(({ name: bankName, accounts: bankAccounts, total: bankTotal }) => {
                   const isExpanded = expandedBanks.has(bankName);
@@ -310,7 +312,7 @@ const Assets = () => {
                           <span className="text-sm font-medium text-foreground truncate">{bankName}</span>
                           <span className="text-xs text-muted-foreground shrink-0">{t('common:accountCount', { count: bankAccounts.length })}</span>
                         </div>
-                        <span className="text-sm font-medium tabular-nums shrink-0">R$ {bankTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                        <span className="text-sm font-medium tabular-nums shrink-0">{formatCurrency(bankTotal)}</span>
                       </button>
                       {isExpanded && (
                         <div className="border-t border-border/50">
@@ -319,7 +321,7 @@ const Assets = () => {
                               <span className="text-sm truncate text-muted-foreground">
                                 {acc.name && acc.name !== (acc.institution_name || "") ? acc.name : t('assets.accountFallback')}
                               </span>
-                              <span className="text-sm font-medium tabular-nums shrink-0">R$ {parseFloat(acc.current_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                              <span className="text-sm font-medium tabular-nums shrink-0">{formatCurrency(parseFloat(acc.current_balance || 0))}</span>
                             </div>
                           ))}
                         </div>
@@ -342,12 +344,12 @@ const Assets = () => {
                       <p className="text-xs text-muted-foreground">{t('assets.assetCountOF', { count: data.investments.length })}</p>
                     </div>
                   </div>
-                  <p className="font-semibold text-foreground">R$ {data.totalInvestments.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                  <p className="font-semibold text-foreground">{formatCurrency(data.totalInvestments)}</p>
                 </div>
                 {data.investments.slice(0, 8).map((inv: any) => (
                   <div key={inv.id || inv.pluggy_investment_id} className="flex items-center justify-between pl-4 pr-3 py-2 rounded-lg bg-muted/10 border border-border/50">
                     <div className="text-sm">{inv.name || inv.type || t('assets.investmentFallback')}</div>
-                    <span className="text-sm font-medium">R$ {parseFloat(inv.current_value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span className="text-sm font-medium">{formatCurrency(parseFloat(inv.current_value || 0))}</span>
                   </div>
                 ))}
                 {data.investments.length > 8 && (
@@ -368,7 +370,7 @@ const Assets = () => {
                       <p className="text-xs text-muted-foreground">{t('assets.openInvoices')}</p>
                     </div>
                   </div>
-                  <p className="font-semibold text-destructive">R$ {data.totalCardDebt.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                  <p className="font-semibold text-destructive">{formatCurrency(data.totalCardDebt)}</p>
                 </div>
               </div>
             )}

@@ -9,6 +9,7 @@ import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   PieChart as RechartsPieChart,
   Pie,
@@ -32,6 +33,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 const Investments = () => {
   const { t } = useTranslation(['investments', 'common']);
+  const { formatCurrency } = useCurrency();
   const { toast } = useToast();
 
   const getTypeLabel = (type: string) => {
@@ -149,7 +151,7 @@ const Investments = () => {
             <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 min-w-0 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
               <ProfessionalKpiCard
                 title={t('investments:totalValue')}
-                value={`R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                value={formatCurrency(totalValue)}
                 change=""
                 changeType="neutral"
                 icon={TrendingUp}
@@ -208,7 +210,7 @@ const Investments = () => {
                             return (
                               <g>
                                 <text x={cx} y={cy} textAnchor="middle" fill="white" className="text-sm font-medium">
-                                  {first.name}: R$ {first.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  {first.name}: {formatCurrency(first.value)}
                                 </text>
                               </g>
                             );
@@ -219,7 +221,7 @@ const Investments = () => {
                                 {t('common:total')}
                               </text>
                               <text x={cx} y={cy + 10} textAnchor="middle" fill="white" className="text-sm font-bold">
-                                R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                {formatCurrency(totalValue)}
                               </text>
                             </g>
                           );
@@ -227,7 +229,7 @@ const Investments = () => {
                       />
                     </Pie>
                     <Tooltip
-                      formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR")}`}
+                      formatter={(value: number) => formatCurrency(value)}
                       contentStyle={{
                         backgroundColor: "hsl(var(--card))",
                         border: "1px solid hsl(var(--border))",
@@ -253,7 +255,7 @@ const Investments = () => {
                       <span className="text-muted-foreground">{item.name}</span>
                     </div>
                     <span className="font-medium tabular-nums">
-                      R$ {item.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      {formatCurrency(item.value)}
                     </span>
                   </div>
                 ))}
@@ -341,11 +343,11 @@ const Investments = () => {
                           </td>
                           <td className="py-3 px-4 text-right text-sm tabular-nums">
                             {unitPrice > 0
-                              ? `R$ ${unitPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                              ? formatCurrency(unitPrice)
                               : "—"}
                           </td>
                           <td className="py-3 px-4 text-right text-sm font-medium tabular-nums">
-                            R$ {value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            {formatCurrency(value)}
                           </td>
                           <td className="py-3 px-4 text-right text-sm tabular-nums">
                             {profitability != null ? (

@@ -9,8 +9,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const UsufructCalculator = () => {
+  const { formatCurrency } = useCurrency();
   const { t } = useTranslation(['calculators', 'common']);
   const [propertyValue, setPropertyValue] = useState<number | "">("");
   const [usufructAge, setUsufructAge] = useState("");
@@ -158,7 +160,7 @@ const UsufructCalculator = () => {
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                 <div className="text-sm text-muted-foreground mb-1">Valor do Usufruto</div>
                 <div className="text-3xl font-bold text-primary">
-                  R$ {results.usufructValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {formatCurrency(results.usufructValue)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
                   {results.usufructPercentage}% do valor do imóvel
@@ -168,7 +170,7 @@ const UsufructCalculator = () => {
               <div className="p-4 rounded-lg bg-success/10 border border-success/20">
                 <div className="text-sm text-muted-foreground mb-1">Nua Propriedade</div>
                 <div className="text-3xl font-bold text-success">
-                  R$ {results.bareOwnershipValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {formatCurrency(results.bareOwnershipValue)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
                   {100 - results.usufructPercentage}% do valor do imóvel
@@ -178,7 +180,7 @@ const UsufructCalculator = () => {
               <div className="p-3 rounded-lg bg-muted">
                 <div className="text-xs text-muted-foreground">Valor Total do Imóvel</div>
                 <div className="text-lg font-semibold">
-                  R$ {results.propertyValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {formatCurrency(results.propertyValue)}
                 </div>
               </div>
             </div>

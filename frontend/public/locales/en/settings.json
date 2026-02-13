@@ -40,7 +40,13 @@
     "saveProfile": "Save Profile",
     "saveChanges": "Save Changes",
     "saveSuccess": "Profile updated successfully",
-    "saveError": "Error updating profile"
+    "saveError": "Error updating profile",
+    "currency": "Currency",
+    "currencyHint": "Choose how monetary values are displayed across the app.",
+    "currencyOptions": {
+      "BRL": "BRL - Brazilian Real (R$)",
+      "USD": "USD - US Dollar ($)"
+    }
   },
   "notifications": {
     "title": "Notification Preferences",

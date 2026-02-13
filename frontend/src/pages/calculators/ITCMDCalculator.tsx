@@ -8,8 +8,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const ITCMDCalculator = () => {
+  const { formatCurrency } = useCurrency();
   const { t } = useTranslation(['calculators', 'common']);
   const [propertyValue, setPropertyValue] = useState<number | "">("");
   const [state, setState] = useState("SP");
@@ -136,7 +138,7 @@ const ITCMDCalculator = () => {
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                 <div className="text-sm text-muted-foreground mb-1">Imposto ITCMD</div>
                 <div className="text-3xl font-bold text-primary">
-                  R$ {results.tax.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {formatCurrency(results.tax)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
                   Alíquota: {results.rate}%
@@ -146,7 +148,7 @@ const ITCMDCalculator = () => {
               <div className="p-3 rounded-lg bg-muted">
                 <div className="text-xs text-muted-foreground">Valor do Bem</div>
                 <div className="text-lg font-semibold">
-                  R$ {results.propertyValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {formatCurrency(results.propertyValue)}
                 </div>
               </div>
 

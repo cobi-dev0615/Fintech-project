@@ -53,6 +53,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PhoneCountrySelect, getCountryPrefix, COUNTRIES } from "@/components/ui/country-select";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrency, type CurrencyCode } from "@/contexts/CurrencyContext";
 
 interface ProfileState {
   firstName: string;
@@ -79,6 +80,7 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const { user, logout } = useAuth();
+  const { currency, setCurrency, formatCurrency } = useCurrency();
 
   // State for different sections
   const [profile, setProfile] = useState<ProfileState>({
@@ -544,6 +546,23 @@ const Settings = () => {
                   </div>
                 </div>
 
+                {/* Currency selector */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="currency">{t('settings:profile.currency')}</Label>
+                    <Select value={currency} onValueChange={(v) => setCurrency(v as CurrencyCode)}>
+                      <SelectTrigger id="currency">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BRL">{t('settings:profile.currencyOptions.BRL')}</SelectItem>
+                        <SelectItem value="USD">{t('settings:profile.currencyOptions.USD')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">{t('settings:profile.currencyHint')}</p>
+                  </div>
+                </div>
+
                 {/* Save button */}
                 <div className="flex justify-end pt-2">
                   <Button onClick={handleSaveProfile} disabled={saving}>
@@ -653,7 +672,7 @@ const Settings = () => {
                         {history.map((item) => (
                           <TableRow key={item.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                             <TableCell className="font-medium">{item.planName}</TableCell>
-                            <TableCell>R$ {(item.priceCents / 100).toFixed(2)}</TableCell>
+                            <TableCell>{formatCurrency(item.priceCents / 100)}</TableCell>
                             <TableCell>{format(new Date(item.createdAt), "dd/MM/yyyy")}</TableCell>
                             <TableCell>
                               <Badge variant={item.status === "active" ? "default" : "secondary"} className={cn(item.status === "active" && "bg-success/10 text-success border-0")}>
