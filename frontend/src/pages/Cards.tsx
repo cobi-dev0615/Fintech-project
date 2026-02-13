@@ -145,7 +145,16 @@ const Cards = () => {
     try {
       setLoading(true);
       const data = await financeApi.getCards().catch(() => ({ cards: [] }));
-      setCards(data.cards || []);
+      // Deduplicate cards by brand + last4
+      const raw = data.cards || [];
+      const seen = new Set<string>();
+      const unique = raw.filter((c: any) => {
+        const key = `${(c.brand || "").toLowerCase()}-${c.last4 || ""}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setCards(unique);
       setError(null);
     } catch (err: any) {
       setError(err?.error || t("cards:errorLoading"));
@@ -213,7 +222,7 @@ const Cards = () => {
   };
 
   const handleCopyNumber = (last4: string) => {
-    navigator.clipboard.writeText(getMaskedNumber(last4));
+    navigator.clipboard.writeText(last4 || "");
     toast({
       title: t("cards:copySuccess"),
       variant: "success",
@@ -480,7 +489,7 @@ const Cards = () => {
                                 {t("cards:cardNumber")}
                               </p>
                               <p className="text-sm font-medium tabular-nums">
-                                {"\u2022\u2022\u2022\u2022"} {card.last4 || "****"}
+                                {card.last4 || "----"}
                               </p>
                             </div>
                             <div>
@@ -557,13 +566,13 @@ const Cards = () => {
                         </span>
                         <div className="flex items-center gap-2">
                           <span className="font-medium font-mono text-xs">
-                            {getMaskedNumber(selectedCard.last4 || "****")}
+                            {selectedCard.last4 || "----"}
                           </span>
                           <button
                             type="button"
                             className="text-muted-foreground hover:text-foreground transition-colors"
                             onClick={() =>
-                              handleCopyNumber(selectedCard.last4 || "****")
+                              handleCopyNumber(selectedCard.last4 || "")
                             }
                           >
                             <Copy className="h-3.5 w-3.5" />
