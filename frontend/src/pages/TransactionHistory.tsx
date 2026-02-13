@@ -710,16 +710,6 @@ const TransactionHistory = () => {
 
   return (
     <div className="w-full min-w-0 overflow-x-hidden space-y-6">
-      {/* Page Header */}
-      <div className="min-w-0">
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-          {t("transactions:title")}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t("transactions:subtitle")}
-        </p>
-      </div>
-
       {/* KPI Cards Row — Draggable */}
       <DndContext
         sensors={kpiSensors}
