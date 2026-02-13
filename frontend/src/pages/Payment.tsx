@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface Plan {
   id: string;
@@ -35,6 +36,7 @@ const Payment = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
 
   const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -205,7 +207,7 @@ const Payment = () => {
   const formatPrice = (cents: number) => {
     if (cents === 0) return t('common:free');
     const reais = cents / 100;
-    return `R$ ${reais.toFixed(2).replace('.', ',')}`;
+    return formatCurrency(reais);
   };
 
   if (loading) {
@@ -432,7 +434,7 @@ const Payment = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{t('fee')}</span>
-                  <span>R$ 0,00</span>
+                  <span>{formatCurrency(0)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-lg">

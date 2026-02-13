@@ -23,6 +23,7 @@ import {
   Bar,
 } from "recharts";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const PortfolioSimulator = () => {
   const { t } = useTranslation(['consultant', 'common']);
@@ -31,6 +32,7 @@ const PortfolioSimulator = () => {
   const [timeHorizon, setTimeHorizon] = useState("10");
   const [results, setResults] = useState<any>(null);
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
 
   const clients = ["João Silva", "Maria Santos", "Pedro Costa"];
 
@@ -42,15 +44,6 @@ const PortfolioSimulator = () => {
   // Helper function for allocation labels
   const getAllocationLabel = (key: string) => {
     return t(`consultant:simulator.allocation.${key}`, { defaultValue: key });
-  };
-
-  const formatCurrency = (value: number, fractionDigits = 2) => {
-    return new Intl.NumberFormat(t('common:locale', { defaultValue: 'pt-BR' }), {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: fractionDigits,
-      maximumFractionDigits: fractionDigits,
-    }).format(value);
   };
 
   const scenarioConfig = {
@@ -278,7 +271,7 @@ const PortfolioSimulator = () => {
                       <XAxis dataKey="year" />
                       <YAxis />
                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value, 0)}
+                        formatter={(value: number) => formatCurrency(value)}
                       />
                       <Legend />
                       <Line

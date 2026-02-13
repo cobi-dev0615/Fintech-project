@@ -8,6 +8,7 @@ import { adminApi } from "@/lib/api";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   Tooltip,
   TooltipContent,
@@ -108,6 +109,7 @@ const UserGrowthChart = memo(function UserGrowthChart({ t }: { t: any }) {
 
 /** Isolated chart – year change only refetches this chart; parent page does not re-render. */
 const RevenueChart = memo(function RevenueChart({ t }: { t: any }) {
+  const { formatCurrency } = useCurrency();
   const [year, setYear] = useState(getCurrentYear());
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['admin', 'dashboard', 'revenue', year],
@@ -159,8 +161,8 @@ const RevenueChart = memo(function RevenueChart({ t }: { t: any }) {
             <BarChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 0 }).format(v)} width={70} />
-              <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px" }} formatter={(value: number) => new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(value)} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => formatCurrency(v)} width={70} />
+              <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px" }} formatter={(value: number) => formatCurrency(value)} />
               <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -174,6 +176,7 @@ const RevenueChart = memo(function RevenueChart({ t }: { t: any }) {
 
 const AdminDashboard = () => {
   const { t } = useTranslation(['admin', 'common']);
+  const { formatCurrency } = useCurrency();
   const queryClient = useQueryClient();
   const { data, isLoading, error, isFetching, refetch } = useQuery({
     queryKey: ['admin', 'dashboard', 'metrics'],
@@ -281,7 +284,7 @@ const AdminDashboard = () => {
         />
         <ProfessionalKpiCard
           title={t('admin:dashboard.kpis.monthlyRevenue')}
-          value={new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(kpiData.mrr)}
+          value={formatCurrency(kpiData.mrr)}
           change=""
           changeType="positive"
           icon={TrendingUp}

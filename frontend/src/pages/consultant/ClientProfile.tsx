@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const ClientProfile = () => {
   const { t, i18n } = useTranslation(['consultant', 'common']);
@@ -46,6 +47,7 @@ const ClientProfile = () => {
   } | null>(null);
   const [financeLoading, setFinanceLoading] = useState(false);
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
 
   // Get investment type label from translations
   const getInvestmentTypeLabel = (type: string) => {
@@ -123,13 +125,6 @@ const ClientProfile = () => {
     fetchFinance();
     return () => { cancelled = true; };
   }, [id, clientData]);
-
-  const formatCurrency = (val: number | string) =>
-    new Intl.NumberFormat(t('common:locale', { defaultValue: 'pt-BR' }), {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2,
-    }).format(Number(val || 0));
 
   const handleAddNote = async () => {
     if (!newNote.trim() || !id) return;
@@ -238,7 +233,7 @@ const ClientProfile = () => {
         <div className="rounded-xl border-2 border-blue-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-all min-h-[88px] flex flex-col justify-center">
           <ProfessionalKpiCard
             title={t('consultant:clientProfile.kpis.netWorth')}
-            value={formatCurrency(financial.netWorth)}
+            value={formatCurrency(Number(financial.netWorth || 0))}
             change=""
             changeType="neutral"
             icon={TrendingUp}
@@ -249,7 +244,7 @@ const ClientProfile = () => {
         <div className="rounded-xl border-2 border-emerald-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all min-h-[88px] flex flex-col justify-center">
           <ProfessionalKpiCard
             title={t('consultant:clientProfile.kpis.cash')}
-            value={formatCurrency(financial.cash)}
+            value={formatCurrency(Number(financial.cash || 0))}
             change=""
             changeType="neutral"
             icon={DollarSign}
@@ -260,7 +255,7 @@ const ClientProfile = () => {
         <div className="rounded-xl border-2 border-violet-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-all min-h-[88px] flex flex-col justify-center">
           <ProfessionalKpiCard
             title={t('consultant:clientProfile.kpis.investments')}
-            value={formatCurrency(financial.investments)}
+            value={formatCurrency(Number(financial.investments || 0))}
             change=""
             changeType="neutral"
             icon={TrendingUp}
@@ -271,7 +266,7 @@ const ClientProfile = () => {
         <div className="rounded-xl border-2 border-amber-500/70 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-all min-h-[88px] flex flex-col justify-center">
           <ProfessionalKpiCard
             title={t('consultant:clientProfile.kpis.debts')}
-            value={formatCurrency(financial.debt)}
+            value={formatCurrency(Number(financial.debt || 0))}
             change=""
             changeType="neutral"
             icon={CreditCard}
@@ -370,7 +365,7 @@ const ClientProfile = () => {
                               <p className="text-sm font-medium break-words">{a.name}</p>
                               <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">{t('consultant:clientProfile.type')}:</span> {a.type || "-"}</p>
                               <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">{t('consultant:clientProfile.institution')}:</span> {a.institution_name || "-"}</p>
-                              <p className="text-sm font-medium text-right">{formatCurrency(a.current_balance)}</p>
+                              <p className="text-sm font-medium text-right">{formatCurrency(Number(a.current_balance || 0))}</p>
                             </div>
                           ))}
                         </div>
@@ -390,7 +385,7 @@ const ClientProfile = () => {
                                   <td className="py-2 px-3">{a.name}</td>
                                   <td className="py-2 px-3">{a.type || "-"}</td>
                                   <td className="py-2 px-3">{a.institution_name || "-"}</td>
-                                  <td className="py-2 px-3 text-right font-medium">{formatCurrency(a.current_balance)}</td>
+                                  <td className="py-2 px-3 text-right font-medium">{formatCurrency(Number(a.current_balance || 0))}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -522,7 +517,7 @@ const ClientProfile = () => {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-sm font-medium text-destructive">{formatCurrency(card.openDebt)}</p>
+                        <p className="text-sm font-medium text-destructive">{formatCurrency(Number(card.openDebt || 0))}</p>
                         <p className="text-xs text-muted-foreground">{t('consultant:clientProfile.openBill')}</p>
                       </div>
                     </div>
@@ -567,7 +562,7 @@ const ClientProfile = () => {
                                   style={{ width: `${Math.min(pct, 100)}%` }}
                                 />
                               </div>
-                              <span className="text-sm font-medium sm:w-28 text-right shrink-0">{formatCurrency(b.total)}</span>
+                              <span className="text-sm font-medium sm:w-28 text-right shrink-0">{formatCurrency(Number(b.total || 0))}</span>
                               <span className="text-xs text-muted-foreground sm:w-12 shrink-0">{pct.toFixed(1)}%</span>
                             </div>
                           );
@@ -582,7 +577,7 @@ const ClientProfile = () => {
                           <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">{t('consultant:clientProfile.institution')}:</span> {inv.institution_name || "-"}</p>
                           <div className="flex justify-between text-sm pt-1">
                             <span className="text-muted-foreground">{t('consultant:clientProfile.quantity')}: {Number(inv.quantity || 0).toLocaleString("pt-BR")}</span>
-                            <span className="font-medium">{formatCurrency(inv.current_value)}</span>
+                            <span className="font-medium">{formatCurrency(Number(inv.current_value || 0))}</span>
                           </div>
                         </div>
                       ))}
@@ -605,7 +600,7 @@ const ClientProfile = () => {
                               <td className="py-2 px-3">{inv.name || "-"}</td>
                               <td className="py-2 px-3">{inv.institution_name || "-"}</td>
                               <td className="py-2 px-3 text-right">{Number(inv.quantity || 0).toLocaleString("pt-BR")}</td>
-                              <td className="py-2 px-3 text-right font-medium">{formatCurrency(inv.current_value)}</td>
+                              <td className="py-2 px-3 text-right font-medium">{formatCurrency(Number(inv.current_value || 0))}</td>
                             </tr>
                           ))}
                         </tbody>

@@ -9,6 +9,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { adminApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   LineChart,
   Line,
@@ -39,6 +40,7 @@ type TransactionRow = { id?: string; date: string; type: string; amount: number;
 
 const FinancialReports = () => {
   const { t, i18n } = useTranslation(['admin', 'common']);
+  const { formatCurrency } = useCurrency();
   const [period, setPeriod] = useState<"month" | "quarter" | "year">("month");
   const [year, setYear] = useState(currentYear);
   const [loading, setLoading] = useState(true);
@@ -204,7 +206,7 @@ const FinancialReports = () => {
             <div className="rounded-xl border-2 border-emerald-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all">
               <ProfessionalKpiCard
                 title={t('admin:financialReports.kpis.totalRevenue')}
-                value={new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(totalRevenue)}
+                value={formatCurrency(totalRevenue)}
                 change={periodSubtitle}
                 changeType="neutral"
                 icon={DollarSign}
@@ -215,7 +217,7 @@ const FinancialReports = () => {
             <div className="rounded-xl border-2 border-blue-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-all">
               <ProfessionalKpiCard
                 title={t('admin:financialReports.kpis.mrr')}
-                value={new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(mrr)}
+                value={formatCurrency(mrr)}
                 change={t('admin:financialReports.kpis.recurring')}
                 changeType="positive"
                 icon={TrendingUp}
@@ -226,7 +228,7 @@ const FinancialReports = () => {
             <div className="rounded-xl border-2 border-violet-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-all">
               <ProfessionalKpiCard
                 title={t('admin:financialReports.kpis.commissions')}
-                value={new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(totalCommissions)}
+                value={formatCurrency(totalCommissions)}
                 change=""
                 changeType="neutral"
                 icon={CreditCard}
@@ -237,7 +239,7 @@ const FinancialReports = () => {
             <div className="rounded-xl border-2 border-cyan-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-cyan-500/5 transition-all">
               <ProfessionalKpiCard
                 title={t('admin:financialReports.kpis.netRevenue')}
-                value={new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(netRevenue)}
+                value={formatCurrency(netRevenue)}
                 change=""
                 changeType="positive"
                 icon={DollarSign}
@@ -257,7 +259,7 @@ const FinancialReports = () => {
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 0 }).format(v)} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => formatCurrency(v)} />
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                 <Tooltip
                   contentStyle={{
@@ -267,7 +269,7 @@ const FinancialReports = () => {
                     boxShadow: "0 4px 6px -1px rgba(0,0,0,0.2)",
                   }}
                   formatter={(value: number, name: string) =>
-                    name === t('admin:financialReports.charts.revenueLabel') ? [new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(value), name] : [value, name]
+                    name === t('admin:financialReports.charts.revenueLabel') ? [formatCurrency(value), name] : [value, name]
                   }
                 />
                 <Legend />
@@ -298,7 +300,7 @@ const FinancialReports = () => {
                   textAnchor="end"
                   height={60}
                 />
-                <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 0 }).format(v)} />
+                <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => formatCurrency(v)} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
@@ -306,7 +308,7 @@ const FinancialReports = () => {
                     borderRadius: "8px",
                     boxShadow: "0 4px 6px -1px rgba(0,0,0,0.2)",
                   }}
-                  formatter={(value: number) => [new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(value), t('admin:financialReports.charts.commissionLabel')]}
+                  formatter={(value: number) => [formatCurrency(value), t('admin:financialReports.charts.commissionLabel')]}
                 />
                 <Legend />
                 <Bar dataKey="commission" fill="hsl(var(--primary))" name={t('admin:financialReports.charts.commissionLabel')} radius={[4, 4, 0, 0]} />
@@ -371,7 +373,7 @@ const FinancialReports = () => {
                     }`}
                   >
                     {transaction.amount > 0 ? "+" : ""}
-                    {new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(Math.abs(transaction.amount))}
+                    {formatCurrency(Math.abs(transaction.amount))}
                   </div>
                   <div className="text-xs text-muted-foreground">{transaction.date}</div>
                 </div>

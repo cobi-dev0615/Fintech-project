@@ -3,6 +3,7 @@ import { Search, TrendingUp, AlertCircle, CreditCard, User, Calendar, Package, D
 import { format } from "date-fns";
 import { ptBR, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -63,6 +64,7 @@ const LIMIT_OPTIONS = [5, 10, 20];
 
 const Subscriptions = () => {
   const { t, i18n } = useTranslation(['admin', 'common']);
+  const { formatCurrency } = useCurrency();
   const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -189,7 +191,7 @@ const Subscriptions = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <ProfessionalKpiCard
           title={t('admin:dashboard.kpis.monthlyRevenue')}
-          value={`R$ ${totalMRR.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`}
+          value={formatCurrency(totalMRR)}
           change=""
           changeType="neutral"
           icon={TrendingUp}
@@ -357,7 +359,7 @@ const Subscriptions = () => {
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className="text-sm font-medium text-foreground tabular-nums">
-                      R$ {sub.amount.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
+                      {formatCurrency(sub.amount)}
                     </span>
                   </td>
                   <td className="py-3 px-4">
@@ -538,7 +540,7 @@ const Subscriptions = () => {
                       {t('common:monthlyPrice')}
                     </p>
                     <p className="text-sm font-medium text-foreground">
-                      R$ {subscriptionDetail.plan.price.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
+                      {formatCurrency(subscriptionDetail.plan.price)}
                     </p>
                   </div>
                   <div>

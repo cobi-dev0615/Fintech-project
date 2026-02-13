@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,7 @@ const LIMIT_OPTIONS = [5, 10, 20];
 
 const PaymentHistory = () => {
   const { t, i18n } = useTranslation(['admin', 'common']);
+  const { formatCurrency } = useCurrency();
   const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
   const [activeTab, setActiveTab] = useState<"payments" | "subscriptions">("subscriptions");
   const [searchQuery, setSearchQuery] = useState("");
@@ -213,7 +215,7 @@ const PaymentHistory = () => {
 
   const formatPrice = (cents: number) => {
     const reais = cents / 100;
-    return new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(reais);
+    return formatCurrency(reais);
   };
 
   const handleDeleteClick = (payment: Payment) => {

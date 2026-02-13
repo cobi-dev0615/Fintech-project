@@ -8,6 +8,7 @@ import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ interface Plan {
 
 const PlanManagement = () => {
   const { t, i18n } = useTranslation(['admin', 'common']);
+  const { formatCurrency } = useCurrency();
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -312,7 +314,7 @@ const PlanManagement = () => {
                 <div className="space-y-1">
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-foreground">
-                      R$ {plan.price.toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
+                      {formatCurrency(plan.price)}
                     </span>
                     {!isFree && (
                       <span className="text-sm text-muted-foreground">/{t('common:month')}</span>

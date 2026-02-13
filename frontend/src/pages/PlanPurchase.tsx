@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +52,7 @@ interface CurrentSubscription {
 const PlanPurchase = () => {
   const { t, i18n } = useTranslation(['plans', 'common']);
   const { user } = useAuth();
+  const { formatCurrency } = useCurrency();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<CurrentSubscription | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -154,7 +156,7 @@ const PlanPurchase = () => {
   const formatPrice = (cents: number) => {
     if (cents === 0) return t('common:free');
     const reais = cents / 100;
-    return `R$ ${reais.toFixed(2).replace('.', ',')}`;
+    return formatCurrency(reais);
   };
 
   const getPlanCardColor = (code: string) => {

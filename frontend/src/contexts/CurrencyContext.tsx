@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 
 export type CurrencyCode = "BRL" | "USD";
 
@@ -15,11 +23,63 @@ const CURRENCY_CONFIG: Record<CurrencyCode, { locale: string; currency: string }
   USD: { locale: "en-US", currency: "USD" },
 };
 
+// Cache key for localStorage
+const RATE_CACHE_KEY = "exchangeRate_BRL_USD";
+const RATE_CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
+function getCachedRate(): number | null {
+  try {
+    const raw = localStorage.getItem(RATE_CACHE_KEY);
+    if (!raw) return null;
+    const { rate, timestamp } = JSON.parse(raw);
+    if (Date.now() - timestamp < RATE_CACHE_TTL) return rate;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function setCachedRate(rate: number) {
+  localStorage.setItem(
+    RATE_CACHE_KEY,
+    JSON.stringify({ rate, timestamp: Date.now() })
+  );
+}
+
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
     const stored = localStorage.getItem("userCurrency");
     return stored === "USD" || stored === "BRL" ? stored : "BRL";
   });
+
+  // Exchange rate: 1 BRL = ? USD
+  const [brlToUsd, setBrlToUsd] = useState<number>(() => getCachedRate() ?? 0.18);
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    const cached = getCachedRate();
+    if (cached) {
+      setBrlToUsd(cached);
+      return;
+    }
+
+    // Fetch live rate from free API
+    fetch("https://open.er-api.com/v6/latest/BRL")
+      .then((res) => res.json())
+      .then((data) => {
+        const rate = data?.rates?.USD;
+        if (typeof rate === "number" && rate > 0) {
+          setBrlToUsd(rate);
+          setCachedRate(rate);
+        }
+      })
+      .catch(() => {
+        // Keep fallback rate
+      });
+  }, []);
 
   const setCurrency = useCallback((code: CurrencyCode) => {
     setCurrencyState(code);
@@ -29,12 +89,14 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const formatCurrency = useCallback(
     (value: number) => {
       const config = CURRENCY_CONFIG[currency];
+      // All data from the API is in BRL — convert when displaying as USD
+      const converted = currency === "USD" ? value * brlToUsd : value;
       return new Intl.NumberFormat(config.locale, {
         style: "currency",
         currency: config.currency,
-      }).format(value);
+      }).format(converted);
     },
-    [currency]
+    [currency, brlToUsd]
   );
 
   return (

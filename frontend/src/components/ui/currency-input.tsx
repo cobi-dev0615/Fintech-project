@@ -2,6 +2,7 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { formatCurrencyBR, parseCurrencyBR } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 export interface CurrencyInputProps
   extends Omit<React.ComponentProps<typeof Input>, "value" | "onChange" | "type"> {
@@ -14,12 +15,13 @@ export interface CurrencyInputProps
 const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ value, onChange, hidePrefix, className, ...props }, ref) => {
     const [focused, setFocused] = React.useState(false);
+    const { formatCurrency } = useCurrency();
     const displayValue =
       value === "" || (typeof value === "number" && isNaN(value))
         ? ""
         : hidePrefix
           ? formatCurrencyBR(Number(value))
-          : `R$ ${formatCurrencyBR(Number(value))}`;
+          : formatCurrency(Number(value));
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;

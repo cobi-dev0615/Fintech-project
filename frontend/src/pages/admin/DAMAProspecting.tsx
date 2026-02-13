@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { adminApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ const LIMIT_OPTIONS = [5, 10, 20];
 
 const DAMAProspecting = () => {
   const { t, i18n } = useTranslation(['admin', 'common']);
+  const { formatCurrency } = useCurrency();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStage, setFilterStage] = useState<string>("all");
   const [filterPotential, setFilterPotential] = useState<string>("all");
@@ -158,7 +160,7 @@ const DAMAProspecting = () => {
         />
         <ProfessionalKpiCard
           title={t('admin:prospecting.kpis.totalNetWorth')}
-          value={`R$ ${(kpis.totalNetWorth ?? 0).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}`}
+          value={formatCurrency(kpis.totalNetWorth ?? 0)}
           change=""
           changeType="neutral"
           icon={DollarSign}
@@ -257,7 +259,7 @@ const DAMAProspecting = () => {
                       <td className="p-3">{getStageBadge(p.stage)}</td>
                       <td className="p-3">{getPotentialBadge(p.potential)}</td>
                       <td className="p-3 text-right tabular-nums">
-                        R$ {(p.netWorth ?? 0).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
+                        {formatCurrency(p.netWorth ?? 0)}
                       </td>
                       <td className="p-3 text-right">{p.engagement ?? 0}%</td>
                       <td className="p-3">
@@ -374,7 +376,7 @@ const DAMAProspecting = () => {
               <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.email')}:</span> {selectedProspect.email}</p>
               <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.stage')}:</span> {getStageBadge(selectedProspect.stage)}</p>
               <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.potential')}:</span> {getPotentialBadge(selectedProspect.potential)}</p>
-              <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.netWorth')}:</span> R$ {(selectedProspect.netWorth ?? 0).toLocaleString(i18n.language === 'pt-BR' || i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</p>
+              <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.netWorth')}:</span> {formatCurrency(selectedProspect.netWorth ?? 0)}</p>
               <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.engagement')}:</span> {selectedProspect.engagement ?? 0}%</p>
               <p><span className="text-muted-foreground">{t('admin:prospecting.detailDialog.lastActivity')}:</span> {selectedProspect.lastActivity || "—"}</p>
             </div>

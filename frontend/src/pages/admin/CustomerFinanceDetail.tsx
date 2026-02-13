@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface FinanceData {
   user: { id: string; name: string; email: string };
@@ -31,6 +32,7 @@ interface FinanceData {
 
 const CustomerFinanceDetail = () => {
   const { t, i18n } = useTranslation(['admin', 'common']);
+  const { formatCurrency } = useCurrency();
   const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -72,9 +74,6 @@ const CustomerFinanceDetail = () => {
     };
     fetchData();
   }, [id, toast]);
-
-  const formatCurrency = (val: number | string) =>
-    new Intl.NumberFormat(t('common:locale'), { style: 'currency', currency: 'BRL' }).format(Number(val || 0));
 
   if (loading) {
     return (

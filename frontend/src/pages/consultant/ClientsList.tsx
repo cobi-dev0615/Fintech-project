@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 type Client = {
   id: string;
@@ -45,6 +46,7 @@ function getStatusBadgeClass(status: string): string {
 
 const ClientsList = () => {
   const { t } = useTranslation(['consultant', 'common']);
+  const { formatCurrency } = useCurrency();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("");
@@ -150,7 +152,7 @@ const ClientsList = () => {
                     <TableCell className="font-medium">{client.name}</TableCell>
                     <TableCell className="text-muted-foreground">{client.email}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {client.netWorth.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      {formatCurrency(client.netWorth)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn("rounded-full text-xs font-medium border", getStatusBadgeClass(client.status))}>

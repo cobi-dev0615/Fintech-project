@@ -152,7 +152,7 @@ const B3Portfolio = () => {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => formatCurrency(value)}
                 width={50}
               />
               <Tooltip

@@ -4,101 +4,103 @@ import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-
-const plans = [
-  {
-    name: "Grátis",
-    price: "R$ 0",
-    period: "para sempre",
-    description: "Perfeito para começar",
-    features: [
-      { name: "Conexões bancárias", value: "3" },
-      { name: "Histórico de dados", value: "7 dias" },
-      { name: "Transações manuais", value: true },
-      { name: "Painel básico", value: true },
-      { name: "Integração B3", value: false },
-      { name: "Sincronização de cartões", value: false },
-      { name: "Relatórios personalizados", value: false },
-      { name: "Suporte prioritário", value: false },
-    ],
-    cta: "Começar grátis",
-    featured: false
-  },
-  {
-    name: "Básico",
-    price: "R$ 14",
-    period: "por mês",
-    description: "Para investidores casuais",
-    features: [
-      { name: "Conexões bancárias", value: "10" },
-      { name: "Histórico de dados", value: "1 ano" },
-      { name: "Transações manuais", value: true },
-      { name: "Painel básico", value: true },
-      { name: "Integração B3", value: true },
-      { name: "Sincronização de cartões", value: false },
-      { name: "Relatórios personalizados", value: false },
-      { name: "Suporte prioritário", value: false },
-    ],
-    cta: "Assinar Básico",
-    featured: false
-  },
-  {
-    name: "Pro",
-    price: "R$ 29",
-    period: "por mês",
-    description: "Controle financeiro total",
-    features: [
-      { name: "Conexões bancárias", value: "Ilimitadas" },
-      { name: "Histórico de dados", value: "Ilimitado" },
-      { name: "Transações manuais", value: true },
-      { name: "Painel básico", value: true },
-      { name: "Integração B3", value: true },
-      { name: "Sincronização de cartões", value: true },
-      { name: "Relatórios personalizados", value: true },
-      { name: "Suporte prioritário", value: true },
-    ],
-    cta: "Assinar Pro",
-    featured: true
-  },
-  {
-    name: "Consultor",
-    price: "R$ 99",
-    period: "por mês",
-    description: "Para assessores financeiros",
-    features: [
-      { name: "Conexões bancárias", value: "Ilimitadas" },
-      { name: "Histórico de dados", value: "Ilimitado" },
-      { name: "Contas de clientes", value: "50" },
-      { name: "Relatórios white-label", value: true },
-      { name: "Integração B3", value: true },
-      { name: "Colaboração em equipe", value: true },
-      { name: "Acesso à API", value: true },
-      { name: "Suporte dedicado", value: true },
-    ],
-    cta: "Falar com vendas",
-    featured: false
-  },
-  {
-    name: "Empresarial",
-    price: "Personalizado",
-    period: "",
-    description: "Para grandes organizações",
-    features: [
-      { name: "Conexões bancárias", value: "Ilimitadas" },
-      { name: "Histórico de dados", value: "Ilimitado" },
-      { name: "Contas de clientes", value: "Ilimitadas" },
-      { name: "Relatórios white-label", value: true },
-      { name: "Integrações personalizadas", value: true },
-      { name: "Garantia SLA", value: true },
-      { name: "Gerente de conta dedicado", value: true },
-      { name: "Opção on-premise", value: true },
-    ],
-    cta: "Falar com vendas",
-    featured: false
-  },
-];
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const Pricing = () => {
+  const { formatCurrency } = useCurrency();
+
+  const plans = [
+    {
+      name: "Grátis",
+      price: formatCurrency(0),
+      period: "para sempre",
+      description: "Perfeito para começar",
+      features: [
+        { name: "Conexões bancárias", value: "3" },
+        { name: "Histórico de dados", value: "7 dias" },
+        { name: "Transações manuais", value: true },
+        { name: "Painel básico", value: true },
+        { name: "Integração B3", value: false },
+        { name: "Sincronização de cartões", value: false },
+        { name: "Relatórios personalizados", value: false },
+        { name: "Suporte prioritário", value: false },
+      ],
+      cta: "Começar grátis",
+      featured: false
+    },
+    {
+      name: "Básico",
+      price: formatCurrency(14),
+      period: "por mês",
+      description: "Para investidores casuais",
+      features: [
+        { name: "Conexões bancárias", value: "10" },
+        { name: "Histórico de dados", value: "1 ano" },
+        { name: "Transações manuais", value: true },
+        { name: "Painel básico", value: true },
+        { name: "Integração B3", value: true },
+        { name: "Sincronização de cartões", value: false },
+        { name: "Relatórios personalizados", value: false },
+        { name: "Suporte prioritário", value: false },
+      ],
+      cta: "Assinar Básico",
+      featured: false
+    },
+    {
+      name: "Pro",
+      price: formatCurrency(29),
+      period: "por mês",
+      description: "Controle financeiro total",
+      features: [
+        { name: "Conexões bancárias", value: "Ilimitadas" },
+        { name: "Histórico de dados", value: "Ilimitado" },
+        { name: "Transações manuais", value: true },
+        { name: "Painel básico", value: true },
+        { name: "Integração B3", value: true },
+        { name: "Sincronização de cartões", value: true },
+        { name: "Relatórios personalizados", value: true },
+        { name: "Suporte prioritário", value: true },
+      ],
+      cta: "Assinar Pro",
+      featured: true
+    },
+    {
+      name: "Consultor",
+      price: formatCurrency(99),
+      period: "por mês",
+      description: "Para assessores financeiros",
+      features: [
+        { name: "Conexões bancárias", value: "Ilimitadas" },
+        { name: "Histórico de dados", value: "Ilimitado" },
+        { name: "Contas de clientes", value: "50" },
+        { name: "Relatórios white-label", value: true },
+        { name: "Integração B3", value: true },
+        { name: "Colaboração em equipe", value: true },
+        { name: "Acesso à API", value: true },
+        { name: "Suporte dedicado", value: true },
+      ],
+      cta: "Falar com vendas",
+      featured: false
+    },
+    {
+      name: "Empresarial",
+      price: "Personalizado",
+      period: "",
+      description: "Para grandes organizações",
+      features: [
+        { name: "Conexões bancárias", value: "Ilimitadas" },
+        { name: "Histórico de dados", value: "Ilimitado" },
+        { name: "Contas de clientes", value: "Ilimitadas" },
+        { name: "Relatórios white-label", value: true },
+        { name: "Integrações personalizadas", value: true },
+        { name: "Garantia SLA", value: true },
+        { name: "Gerente de conta dedicado", value: true },
+        { name: "Opção on-premise", value: true },
+      ],
+      cta: "Falar com vendas",
+      featured: false
+    },
+  ];
   return (
     <div className="min-h-screen">
       <Navbar />
