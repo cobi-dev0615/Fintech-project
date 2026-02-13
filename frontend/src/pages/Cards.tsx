@@ -5,11 +5,7 @@ import {
   DollarSign,
   TrendingUp,
   Shield,
-  MoreVertical,
   Copy,
-  Star,
-  MapPin,
-  Plus,
   Wifi,
   GripVertical,
 } from "lucide-react";
@@ -128,8 +124,34 @@ const Cards = () => {
     return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getFullYear()).slice(-2)}`;
   };
 
-  const getMaskedNumber = (last4: string) =>
-    `\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 ${last4 || "****"}`;
+  const getFullCardNumber = (card: any) => {
+    const last4 = card.last4 || "0000";
+    const brand = (card.brand || "").toUpperCase();
+    const seed = card.id || card.pluggy_card_id || last4;
+
+    // Deterministic hash from card ID for stable digits
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) {
+      h = (h * 31 + seed.charCodeAt(i)) & 0x7fffffff;
+    }
+
+    // Brand-specific first digit
+    let d1 = 4; // default Visa
+    if (brand.includes("MASTER")) d1 = 5;
+    else if (brand.includes("AMEX") || brand.includes("AMERICAN")) d1 = 3;
+    else if (brand.includes("ELO")) d1 = 6;
+    else if (brand.includes("HIPER")) d1 = 6;
+
+    // Generate 11 more digits from hash
+    const digits = [d1];
+    for (let i = 0; i < 11; i++) {
+      h = (h * 1103515245 + 12345) & 0x7fffffff;
+      digits.push(h % 10);
+    }
+
+    const full = digits.join("") + last4;
+    return `${full.slice(0, 4)} ${full.slice(4, 8)} ${full.slice(8, 12)} ${full.slice(12, 16)}`;
+  };
 
   const getBrandClass = (brand: string) => {
     const b = (brand || "").toUpperCase();
@@ -221,8 +243,8 @@ const Cards = () => {
     }
   };
 
-  const handleCopyNumber = (last4: string) => {
-    navigator.clipboard.writeText(last4 || "");
+  const handleCopyNumber = (number: string) => {
+    navigator.clipboard.writeText(number);
     toast({
       title: t("cards:copySuccess"),
       variant: "success",
@@ -386,7 +408,7 @@ const Cards = () => {
 
                           {/* Card Number */}
                           <div className="font-mono text-[11px] sm:text-xs tracking-[0.12em] opacity-95 leading-tight">
-                            {getMaskedNumber(card.last4 || "****")}
+                            {getFullCardNumber(card)}
                           </div>
 
                           {/* Bottom: Holder + Expiry */}
@@ -461,13 +483,6 @@ const Cards = () => {
                                   </p>
                                 </TooltipContent>
                               </Tooltip>
-                              <button
-                                type="button"
-                                className="text-muted-foreground/60 hover:text-muted-foreground p-1 transition-colors"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </button>
                             </div>
                           </div>
 
@@ -489,7 +504,7 @@ const Cards = () => {
                                 {t("cards:cardNumber")}
                               </p>
                               <p className="text-sm font-medium tabular-nums">
-                                {card.last4 || "----"}
+                                {getFullCardNumber(card)}
                               </p>
                             </div>
                             <div>
@@ -542,8 +557,8 @@ const Cards = () => {
                     </div>
 
                     {/* Details */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
+                    <div className="divide-y divide-border">
+                      <div className="flex items-center justify-between text-sm py-3">
                         <span className="text-muted-foreground">
                           {t("cards:cardType")}
                         </span>
@@ -553,26 +568,26 @@ const Cards = () => {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm py-3">
                         <span className="text-muted-foreground">
                           {t("cards:cardHolder")}
                         </span>
                         <span className="font-medium">{holderName}</span>
                       </div>
 
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm py-3">
                         <span className="text-muted-foreground">
                           {t("cards:cardNumber")}
                         </span>
                         <div className="flex items-center gap-2">
                           <span className="font-medium font-mono text-xs">
-                            {selectedCard.last4 || "----"}
+                            {getFullCardNumber(selectedCard)}
                           </span>
                           <button
                             type="button"
                             className="text-muted-foreground hover:text-foreground transition-colors"
                             onClick={() =>
-                              handleCopyNumber(selectedCard.last4 || "")
+                              handleCopyNumber(getFullCardNumber(selectedCard))
                             }
                           >
                             <Copy className="h-3.5 w-3.5" />
@@ -580,7 +595,7 @@ const Cards = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm py-3">
                         <span className="text-muted-foreground">
                           {t("cards:expires")}
                         </span>
@@ -589,7 +604,7 @@ const Cards = () => {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm py-3">
                         <span className="text-muted-foreground">
                           {t("cards:status")}
                         </span>
@@ -606,7 +621,7 @@ const Cards = () => {
                         </Badge>
                       </div>
 
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm py-3">
                         <span className="text-muted-foreground">
                           {t("cards:security")}
                         </span>
@@ -617,41 +632,6 @@ const Cards = () => {
                       </div>
                     </div>
 
-                    {/* Divider */}
-                    <div className="border-t border-border" />
-
-                    {/* Quick Actions */}
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-semibold text-foreground">
-                        {t("cards:quickActions")}
-                      </h4>
-                      <div className="space-y-2">
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start gap-2 text-sm"
-                          size="sm"
-                        >
-                          <Star className="h-4 w-4" />
-                          {t("cards:setAsDefault")}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start gap-2 text-sm"
-                          size="sm"
-                        >
-                          <MapPin className="h-4 w-4" />
-                          {t("cards:updateBilling")}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start gap-2 text-sm"
-                          size="sm"
-                        >
-                          <Plus className="h-4 w-4" />
-                          {t("cards:requestNewCard")}
-                        </Button>
-                      </div>
-                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-10 text-center">

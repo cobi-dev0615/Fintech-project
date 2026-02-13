@@ -5,33 +5,48 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
-// Common countries with their codes, flags, and phone prefixes
+/** Renders a country flag as an <img> from flagcdn.com (works on all platforms) */
+function CountryFlag({ code, className }: { code: string; className?: string }) {
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${code.toLowerCase()}.png`}
+      srcSet={`https://flagcdn.com/w80/${code.toLowerCase()}.png 2x`}
+      alt={code}
+      className={cn("inline-block rounded-sm object-cover", className)}
+      width={20}
+      height={15}
+      loading="lazy"
+    />
+  );
+}
+
+// Common countries with their codes and phone prefixes
 export const COUNTRIES = [
-  { code: "BR", flag: "\u{1F1E7}\u{1F1F7}", prefix: "+55" },
-  { code: "US", flag: "\u{1F1FA}\u{1F1F8}", prefix: "+1" },
-  { code: "AR", flag: "\u{1F1E6}\u{1F1F7}", prefix: "+54" },
-  { code: "CL", flag: "\u{1F1E8}\u{1F1F1}", prefix: "+56" },
-  { code: "CO", flag: "\u{1F1E8}\u{1F1F4}", prefix: "+57" },
-  { code: "MX", flag: "\u{1F1F2}\u{1F1FD}", prefix: "+52" },
-  { code: "PT", flag: "\u{1F1F5}\u{1F1F9}", prefix: "+351" },
-  { code: "ES", flag: "\u{1F1EA}\u{1F1F8}", prefix: "+34" },
-  { code: "FR", flag: "\u{1F1EB}\u{1F1F7}", prefix: "+33" },
-  { code: "DE", flag: "\u{1F1E9}\u{1F1EA}", prefix: "+49" },
-  { code: "IT", flag: "\u{1F1EE}\u{1F1F9}", prefix: "+39" },
-  { code: "GB", flag: "\u{1F1EC}\u{1F1E7}", prefix: "+44" },
-  { code: "CA", flag: "\u{1F1E8}\u{1F1E6}", prefix: "+1" },
-  { code: "AU", flag: "\u{1F1E6}\u{1F1FA}", prefix: "+61" },
-  { code: "JP", flag: "\u{1F1EF}\u{1F1F5}", prefix: "+81" },
-  { code: "CN", flag: "\u{1F1E8}\u{1F1F3}", prefix: "+86" },
-  { code: "IN", flag: "\u{1F1EE}\u{1F1F3}", prefix: "+91" },
-  { code: "RU", flag: "\u{1F1F7}\u{1F1FA}", prefix: "+7" },
-  { code: "ZA", flag: "\u{1F1FF}\u{1F1E6}", prefix: "+27" },
-  { code: "UY", flag: "\u{1F1FA}\u{1F1FE}", prefix: "+598" },
-  { code: "PY", flag: "\u{1F1F5}\u{1F1FE}", prefix: "+595" },
-  { code: "BO", flag: "\u{1F1E7}\u{1F1F4}", prefix: "+591" },
-  { code: "PE", flag: "\u{1F1F5}\u{1F1EA}", prefix: "+51" },
-  { code: "EC", flag: "\u{1F1EA}\u{1F1E8}", prefix: "+593" },
-  { code: "VE", flag: "\u{1F1FB}\u{1F1EA}", prefix: "+58" },
+  { code: "BR", prefix: "+55" },
+  { code: "US", prefix: "+1" },
+  { code: "AR", prefix: "+54" },
+  { code: "CL", prefix: "+56" },
+  { code: "CO", prefix: "+57" },
+  { code: "MX", prefix: "+52" },
+  { code: "PT", prefix: "+351" },
+  { code: "ES", prefix: "+34" },
+  { code: "FR", prefix: "+33" },
+  { code: "DE", prefix: "+49" },
+  { code: "IT", prefix: "+39" },
+  { code: "GB", prefix: "+44" },
+  { code: "CA", prefix: "+1" },
+  { code: "AU", prefix: "+61" },
+  { code: "JP", prefix: "+81" },
+  { code: "CN", prefix: "+86" },
+  { code: "IN", prefix: "+91" },
+  { code: "RU", prefix: "+7" },
+  { code: "ZA", prefix: "+27" },
+  { code: "UY", prefix: "+598" },
+  { code: "PY", prefix: "+595" },
+  { code: "BO", prefix: "+591" },
+  { code: "PE", prefix: "+51" },
+  { code: "EC", prefix: "+593" },
+  { code: "VE", prefix: "+58" },
 ];
 
 interface CountrySelectProps {
@@ -53,7 +68,7 @@ export function CountrySelect({ value, onValueChange, disabled }: CountrySelectP
           className="flex h-10 w-[180px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           <div className="flex items-center gap-2">
-            <span>{selectedCountry.flag}</span>
+            <CountryFlag code={selectedCountry.code} />
             <span>{selectedCountry.prefix}</span>
           </div>
           <ChevronDown className="h-4 w-4 opacity-50" />
@@ -77,7 +92,7 @@ export function CountrySelect({ value, onValueChange, disabled }: CountrySelectP
                     }}
                   >
                     <Check className={cn("mr-2 h-4 w-4", value === country.code ? "opacity-100" : "opacity-0")} />
-                    <span className="mr-2">{country.flag}</span>
+                    <CountryFlag code={country.code} className="mr-2" />
                     <span className="flex-1">{name}</span>
                     <span className="text-muted-foreground ml-auto">{country.prefix}</span>
                   </CommandItem>
@@ -117,9 +132,9 @@ export function PhoneCountrySelect({ value, onValueChange, disabled }: PhoneCoun
       <PopoverTrigger asChild disabled={disabled}>
         <button
           type="button"
-          className="h-full border-0 bg-transparent px-3 gap-1 rounded-none rounded-l-lg hover:bg-muted/30 transition-colors shrink-0 w-auto flex items-center cursor-pointer"
+          className="h-full border-0 bg-transparent px-3 gap-1.5 rounded-none rounded-l-lg hover:bg-muted/30 transition-colors shrink-0 w-auto flex items-center cursor-pointer"
         >
-          <span className="text-base leading-none">{selectedCountry.flag}</span>
+          <CountryFlag code={selectedCountry.code} />
           <span className="text-xs text-muted-foreground font-medium">{selectedCountry.prefix}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground opacity-60" />
         </button>
@@ -142,7 +157,7 @@ export function PhoneCountrySelect({ value, onValueChange, disabled }: PhoneCoun
                     }}
                   >
                     <Check className={cn("mr-2 h-4 w-4 shrink-0", value === country.code ? "opacity-100" : "opacity-0")} />
-                    <span className="text-base leading-none mr-2">{country.flag}</span>
+                    <CountryFlag code={country.code} className="mr-2" />
                     <span className="text-sm flex-1">{name}</span>
                     <span className="text-xs text-muted-foreground ml-1">{country.prefix}</span>
                   </CommandItem>
