@@ -477,7 +477,7 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
   if (isMobile) {
     return (
       <Sheet open={mobileOpen} onOpenChange={onMobileOpenChange}>
-        <SheetContent side="left" className="w-72 p-0 sidebar-glass text-sidebar-foreground border-sidebar-border/50">
+        <SheetContent side="left" className="w-72 p-0 sidebar-glass text-sidebar-foreground border-sidebar-border/50" data-sidebar="true">
           <VisuallyHidden.Root asChild>
             <SheetTitle>Navigation Menu</SheetTitle>
           </VisuallyHidden.Root>
@@ -492,6 +492,7 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
   // Desktop sidebar (hidden on screens < 1024px, lg = 1024px in Tailwind)
   return (
     <aside
+      data-sidebar="true"
       className={cn(
         "hidden lg:flex flex-col h-screen sidebar-glass text-sidebar-foreground transition-all duration-300 sticky top-0",
         collapsed ? "w-20" : "w-56"

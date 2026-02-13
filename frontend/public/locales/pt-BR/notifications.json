@@ -48,7 +48,8 @@
   "notifications": "notificações",
   "dropdown": {
     "title": "Notificações",
-    "viewAll": "Ver todas",
+    "markAllRead": "Marcar Tudo Lido",
+    "viewAllNotifications": "Ver Todas as Notificações",
     "loading": "Carregando...",
     "empty": "Nenhuma notificação",
     "removed": "Notificação removida",

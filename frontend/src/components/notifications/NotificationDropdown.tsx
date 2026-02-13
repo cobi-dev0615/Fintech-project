@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Trash2 } from "lucide-react";
+import { Bell, X, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,6 +25,12 @@ interface Notification {
   createdAt: string;
 }
 
+const severityDotColor: Record<string, string> = {
+  info: 'bg-blue-500',
+  warning: 'bg-amber-500',
+  critical: 'bg-red-500',
+};
+
 const NotificationDropdown = () => {
   const { t, i18n } = useTranslation('notifications');
   const location = useLocation();
@@ -46,7 +52,7 @@ const NotificationDropdown = () => {
   const { data: unreadData, refetch: refetchUnreadCount } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: () => notificationsApi.getUnreadCount(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -58,13 +64,8 @@ const NotificationDropdown = () => {
   // Listen for WebSocket notifications
   useWebSocket((message) => {
     if (message.type === 'new_comment' || message.type === 'comment_replied') {
-      // Refresh unread count when a new notification arrives
       refetchUnreadCount();
-      // If dropdown is open, refresh notifications list
-      if (open) {
-        fetchNotifications();
-      }
-      // Show toast notification
+      if (open) fetchNotifications();
       toast({
         title: message.type === 'new_comment'
           ? t('websocket.newComment')
@@ -76,36 +77,21 @@ const NotificationDropdown = () => {
           : t('websocket.commentRepliedDesc'),
       });
     } else if (message.type === 'new_registration') {
-      // Refresh unread count for admins when new registration arrives
       refetchUnreadCount();
-      if (open) {
-        fetchNotifications();
-      }
+      if (open) fetchNotifications();
       toast({
         title: t('websocket.newRegistration'),
         description: message.userName && message.userRole
-          ? t('websocket.newRegistrationDesc', {
-              userName: message.userName,
-              userRole: message.userRole
-            })
+          ? t('websocket.newRegistrationDesc', { userName: message.userName, userRole: message.userRole })
           : t('websocket.newRegistrationDescFallback'),
       });
     } else if (message.type === 'account_approved') {
-      // Refresh unread count when account is approved
       refetchUnreadCount();
-      if (open) {
-        fetchNotifications();
-      }
-      toast({
-        title: t('websocket.accountApproved'),
-        description: t('websocket.accountApprovedDesc'),
-      });
+      if (open) fetchNotifications();
+      toast({ title: t('websocket.accountApproved'), description: t('websocket.accountApprovedDesc') });
     } else if (message.type === 'account_rejected') {
-      // Refresh unread count when account is rejected
       refetchUnreadCount();
-      if (open) {
-        fetchNotifications();
-      }
+      if (open) fetchNotifications();
       toast({
         title: t('websocket.accountRejected'),
         description: message.reason
@@ -114,11 +100,8 @@ const NotificationDropdown = () => {
         variant: 'warning',
       });
     } else if (message.type === 'consultant_invitation') {
-      // Refresh unread count when consultant invitation arrives
       refetchUnreadCount();
-      if (open) {
-        fetchNotifications();
-      }
+      if (open) fetchNotifications();
       toast({
         title: t('websocket.consultantInvitation'),
         description: message.consultantName
@@ -126,11 +109,8 @@ const NotificationDropdown = () => {
           : t('websocket.consultantInvitationDescFallback'),
       });
     } else if (message.type === 'invitation_accepted') {
-      // Refresh unread count when customer accepts invitation
       refetchUnreadCount();
-      if (open) {
-        fetchNotifications();
-      }
+      if (open) fetchNotifications();
       toast({
         title: t('websocket.invitationAccepted'),
         description: message.customerName
@@ -138,11 +118,8 @@ const NotificationDropdown = () => {
           : t('websocket.invitationAcceptedDescFallback'),
       });
     } else if (message.type === 'invitation_declined') {
-      // Refresh unread count when customer declines invitation
       refetchUnreadCount();
-      if (open) {
-        fetchNotifications();
-      }
+      if (open) fetchNotifications();
       toast({
         title: t('websocket.invitationDeclined'),
         description: message.customerName
@@ -152,9 +129,7 @@ const NotificationDropdown = () => {
       });
     } else if (message.type === 'wallet_shared_updated') {
       refetchUnreadCount();
-      if (open) {
-        fetchNotifications();
-      }
+      if (open) fetchNotifications();
       toast({
         title: message.canViewAll ? t('websocket.walletShared') : t('websocket.walletUnshared'),
         description: message.message || (message.customerName
@@ -172,7 +147,6 @@ const NotificationDropdown = () => {
     try {
       setLoading(true);
       const response = await notificationsApi.getAll(1, 10);
-      // Filter notifications: only show registration-related notifications to admins
       const filteredNotifications = isAdmin
         ? response.notifications
         : response.notifications.filter(
@@ -189,7 +163,6 @@ const NotificationDropdown = () => {
     }
   }, [isAdmin]);
 
-  // Fetch notifications only when opening the dropdown and user is authenticated
   useEffect(() => {
     if (open && user) {
       fetchNotifications();
@@ -202,7 +175,8 @@ const NotificationDropdown = () => {
     }));
   }, [queryClient]);
 
-  const handleMarkAsRead = async (id: string) => {
+  const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await notificationsApi.markAsRead(id);
       setNotifications(prev =>
@@ -218,6 +192,20 @@ const NotificationDropdown = () => {
     }
   };
 
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationsApi.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (error: any) {
+      toast({
+        title: t('dropdown.error'),
+        description: t('markAllReadError'),
+        variant: getToastVariantForApiError(error),
+      });
+    }
+  };
+
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -227,11 +215,6 @@ const NotificationDropdown = () => {
         setUnreadCount((prev: number) => Math.max(0, prev - 1));
       }
       setNotifications(prev => prev.filter(n => n.id !== id));
-      toast({
-        title: t('dropdown.removed'),
-        description: t('dropdown.removedDesc'),
-        variant: "success",
-      });
     } catch (error: any) {
       toast({
         title: t('dropdown.error'),
@@ -241,14 +224,10 @@ const NotificationDropdown = () => {
     }
   };
 
-  const handleViewAll = () => {
-    setOpen(false);
-  };
-
   const formatTimeAgo = (dateString: string) => {
     try {
       return formatDistanceToNow(new Date(dateString), {
-        addSuffix: true,
+        addSuffix: false,
         locale: dateLocale,
       });
     } catch {
@@ -256,20 +235,22 @@ const NotificationDropdown = () => {
     }
   };
 
+  const getNotificationsPath = () => {
+    if (location.pathname.startsWith('/admin')) return '/admin/notifications';
+    if (location.pathname.startsWith('/consultant')) return '/consultant/notifications';
+    return '/app/notifications';
+  };
+
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
-      handleMarkAsRead(notification.id);
+      notificationsApi.markAsRead(notification.id).catch(() => {});
+      setNotifications(prev =>
+        prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+      );
+      setUnreadCount((prev: number) => Math.max(0, prev - 1));
     }
     setOpen(false);
-
-    // Navigate to the notifications page based on current route
-    const notificationsPath = location.pathname.startsWith('/admin')
-      ? '/admin/notifications'
-      : location.pathname.startsWith('/consultant')
-      ? '/consultant/notifications'
-      : '/app/notifications';
-
-    navigate(notificationsPath);
+    navigate(getNotificationsPath());
   };
 
   return (
@@ -278,95 +259,113 @@ const NotificationDropdown = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="relative text-muted-foreground hover:text-foreground hover:bg-muted"
+          className="relative h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50"
         >
-          <Bell className="h-5 w-5" />
+          <Bell className="h-[18px] w-[18px]" />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-medium flex items-center justify-center">
+            <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0 bg-popover" align="end">
-        <div className="flex flex-col h-[300px]">
+      <PopoverContent className="w-52 p-0 bg-popover border-border/50" align="end" sideOffset={8}>
+        <div className="flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h3 className="font-semibold text-foreground">{t('dropdown.title')}</h3>
-            <Link
-              to={location.pathname.startsWith('/admin')
-                ? '/admin/notifications'
-                : location.pathname.startsWith('/consultant')
-                ? '/consultant/notifications'
-                : '/app/notifications'}
-              onClick={handleViewAll}
-              className="text-sm text-primary hover:underline"
-            >
-              {t('dropdown.viewAll')}
-            </Link>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+            <h3 className="text-sm font-semibold text-foreground">{t('dropdown.title')}</h3>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                {t('dropdown.markAllRead')}
+              </button>
+            )}
           </div>
 
           {/* Notifications List */}
-          <ScrollArea className="flex-1 h-full">
-            <div>
-              {loading ? (
-                <div className="p-4 text-center text-muted-foreground">
-                  {t('dropdown.loading')}
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="p-4 text-center text-muted-foreground">
-                  {t('dropdown.empty')}
-                </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors ${
-                        !notification.isRead ? 'bg-muted/30' : ''
-                      }`}
-                      onClick={() => handleNotificationClick(notification)}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`text-sm font-medium mb-1 ${
-                              !notification.isRead
-                                ? 'text-primary'
-                                : 'text-foreground'
-                            }`}
-                          >
-                            {notification.title}
-                          </p>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                            {notification.message}
-                          </p>
-                          {notification.metadata?.project && (
-                            <p className="text-xs text-muted-foreground truncate mb-1">
-                              {notification.metadata.project}
-                            </p>
-                          )}
-                          {notification.createdAt && (
-                            <p className="text-xs text-muted-foreground">
-                              {formatTimeAgo(notification.createdAt)}
-                            </p>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
-                          onClick={(e) => handleDelete(notification.id, e)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+          <ScrollArea className="max-h-[320px]">
+            {loading ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                {t('dropdown.loading')}
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                {t('dropdown.empty')}
+              </div>
+            ) : (
+              <div>
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer transition-colors border-b border-border/30 last:border-b-0"
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    {/* Severity dot */}
+                    <div className="pt-1.5 shrink-0">
+                      <span className={`block h-2 w-2 rounded-full ${
+                        !notification.isRead
+                          ? (severityDotColor[notification.severity] || 'bg-blue-500')
+                          : 'bg-muted-foreground/30'
+                      }`} />
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium leading-tight ${
+                        !notification.isRead ? 'text-foreground' : 'text-muted-foreground'
+                      }`}>
+                        {notification.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground/80 mt-0.5 line-clamp-2">
+                        {notification.message}
+                      </p>
+                      {notification.createdAt && (
+                        <p className="text-[11px] text-muted-foreground/60 mt-1">
+                          {formatTimeAgo(notification.createdAt)}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-0.5 shrink-0 pt-0.5">
+                      {!notification.isRead && (
+                        <button
+                          type="button"
+                          className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground/60 hover:text-primary hover:bg-muted/50 transition-colors"
+                          onClick={(e) => handleMarkAsRead(notification.id, e)}
+                          title="Mark as read"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground/60 hover:text-destructive hover:bg-muted/50 transition-colors"
+                        onClick={(e) => handleDelete(notification.id, e)}
+                        title="Remove"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </ScrollArea>
+
+          {/* Footer */}
+          <div className="border-t border-border/50">
+            <Link
+              to={getNotificationsPath()}
+              onClick={() => setOpen(false)}
+              className="flex items-center justify-center gap-2 px-4 py-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+            >
+              {t('dropdown.viewAllNotifications')}
+            </Link>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

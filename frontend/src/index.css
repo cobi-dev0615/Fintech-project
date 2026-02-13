@@ -86,34 +86,48 @@
   .light {
     --background: 210 20% 98%;
     --foreground: 222 47% 11%;
-    
+
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    
+
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    
+
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-    
+
     --secondary: 210 20% 96%;
     --secondary-foreground: 222 47% 11%;
-    
+
     --muted: 210 20% 94%;
     --muted-foreground: 215 16% 47%;
-    
+
     --accent: 188 85% 53%;
     --accent-foreground: 0 0% 100%;
-    
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
+
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 217 91% 60%;
-    
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 0 0% 100%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 1) 100%);
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
     --shadow-card-hover: 0 10px 40px rgba(0, 0, 0, 0.08);
+    --shadow-blue: 0 10px 40px rgba(59, 130, 246, 0.08);
   }
 }
 
@@ -131,6 +145,14 @@
   /* Force dark theme by default */
   html {
     color-scheme: dark;
+  }
+
+  html.light {
+    color-scheme: light;
+  }
+
+  .light body {
+    background-color: #f8fafc; /* slate-50 */
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -172,11 +194,35 @@
     border-color: hsl(var(--border));
   }
   
+  /* Light mode card overrides */
+  .light .kpi-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 1) 100%);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .light .chart-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 1) 100%);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .light .alert-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 1) 100%);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+  }
+
+  .light .feature-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 1) 100%);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
   /* Fintech data display */
   .value-positive {
     @apply text-success;
   }
-  
+
   .value-negative {
     @apply text-destructive;
   }
@@ -274,6 +320,34 @@
   .card,
   [class*="card"] {
     backdrop-filter: blur(8px);
+  }
+
+  /* Lock sidebar to dark theme in light mode */
+  .light [data-sidebar="true"] {
+    --sidebar-background: 0 0% 4%;
+    --sidebar-foreground: 0 0% 70%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 100% / 0.05;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 100% / 0.05;
+    --sidebar-ring: 217 91% 60%;
+    --sidebar-section: 0 0% 40%;
+    --sidebar-active-bg: 217 91% 60% / 0.1;
+    background: #0a0a0a;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .light [data-sidebar="true"] .sidebar-glass {
+    background: #0a0a0a;
+  }
+
+  .light [data-sidebar="true"] .sidebar-nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .light [data-sidebar="true"] .sidebar-nav-item.active {
+    background: rgba(59, 130, 246, 0.1);
   }
 
   /* Smooth scrolling */

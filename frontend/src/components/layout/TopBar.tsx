@@ -1,8 +1,7 @@
-import { Menu, UserCircle, LogOut, Moon } from "lucide-react";
+import { Menu, UserCircle, LogOut, Moon, Sun, CircleUserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { CircleUserRound } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +12,7 @@ import {
 import NotificationDropdown from "@/components/notifications/NotificationDropdown";
 import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface TopBarProps {
   onMenuClick?: () => void;
@@ -26,6 +26,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, title
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation('layout');
+  const { theme, toggleTheme } = useTheme();
 
   // Get abbreviated name (First name or First + Last Initial)
   const getAbbreviatedName = () => {
@@ -66,7 +67,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, title
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/30 bg-background/80 backdrop-blur-xl px-4 lg:px-6">
+    <header className={`sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/30 backdrop-blur-xl px-4 lg:px-6 ${theme === "light" ? "bg-white" : "bg-background/80"}`}>
       <div className="flex items-center gap-4">
         {showMenuButton && (
           <Button
@@ -87,14 +88,19 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, title
         {/* Language Switcher */}
         <LanguageSwitcher />
 
-        {/* Dark Mode Toggle */}
+        {/* Dark/Light Mode Toggle */}
         <Button
           variant="ghost"
           size="icon"
           className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50"
           aria-label="Toggle theme"
+          onClick={toggleTheme}
         >
-          <Moon className="h-[18px] w-[18px]" />
+          {theme === "dark" ? (
+            <Moon className="h-[18px] w-[18px]" />
+          ) : (
+            <Sun className="h-[18px] w-[18px]" />
+          )}
         </Button>
 
         {/* Notifications */}
