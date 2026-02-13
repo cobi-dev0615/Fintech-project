@@ -259,6 +259,8 @@ const TransactionHistory = () => {
 
   // Data state
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [prevTransactions, setPrevTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -350,6 +352,44 @@ const TransactionHistory = () => {
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
+
+  // Fetch ALL transactions for the current period + previous period (for KPI calculations)
+  useEffect(() => {
+    if (!dateFrom || !dateTo) return;
+    const fetchKpiData = async () => {
+      try {
+        // Fetch all current-period transactions
+        const currentData = await financeApi.getTransactions({
+          page: 1,
+          limit: 10000,
+          q: search || undefined,
+          accountId: accountId || undefined,
+          from: dateFrom,
+          to: dateTo,
+        });
+        setAllTransactions(currentData.transactions || []);
+
+        // Calculate previous period of the same duration
+        const fromDate = new Date(dateFrom + "T00:00:00");
+        const toDate = new Date(dateTo + "T00:00:00");
+        const durationMs = toDate.getTime() - fromDate.getTime();
+        const prevTo = new Date(fromDate.getTime() - 1); // day before current "from"
+        const prevFrom = new Date(prevTo.getTime() - durationMs);
+        const prevData = await financeApi.getTransactions({
+          page: 1,
+          limit: 10000,
+          q: search || undefined,
+          accountId: accountId || undefined,
+          from: prevFrom.toISOString().slice(0, 10),
+          to: prevTo.toISOString().slice(0, 10),
+        });
+        setPrevTransactions(prevData.transactions || []);
+      } catch {
+        // Non-critical — keep empty arrays
+      }
+    };
+    fetchKpiData();
+  }, [dateFrom, dateTo, search, accountId]);
 
   useEffect(() => {
     setPage(1);
@@ -483,24 +523,39 @@ const TransactionHistory = () => {
     );
   };
 
-  // Computed KPI values
-  const kpiValues = useMemo(() => {
-    const income = transactions
+  // Helper: compute KPI totals from a list of transactions
+  const computeKpi = useCallback((txList: any[]) => {
+    const income = txList
       .filter((tx) => parseFloat(tx.amount ?? 0) >= 0)
       .reduce((s, tx) => s + parseFloat(tx.amount ?? 0), 0);
-    const expenses = transactions
+    const expenses = txList
       .filter((tx) => parseFloat(tx.amount ?? 0) < 0)
       .reduce((s, tx) => s + Math.abs(parseFloat(tx.amount ?? 0)), 0);
     const net = income - expenses;
     const avg =
-      transactions.length > 0
-        ? transactions.reduce(
-            (s, tx) => s + Math.abs(parseFloat(tx.amount ?? 0)),
-            0
-          ) / transactions.length
+      txList.length > 0
+        ? txList.reduce((s, tx) => s + Math.abs(parseFloat(tx.amount ?? 0)), 0) / txList.length
         : 0;
     return { income, expenses, net, avg };
-  }, [transactions]);
+  }, []);
+
+  // Computed KPI values from ALL transactions in the period (not just the current page)
+  const kpiValues = useMemo(() => computeKpi(allTransactions), [allTransactions, computeKpi]);
+  const prevKpiValues = useMemo(() => computeKpi(prevTransactions), [prevTransactions, computeKpi]);
+
+  // Calculate percentage change between current and previous period
+  const kpiChanges = useMemo(() => {
+    const pct = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : current < 0 ? -100 : 0;
+      return ((current - previous) / Math.abs(previous)) * 100;
+    };
+    return {
+      income: pct(kpiValues.income, prevKpiValues.income),
+      expenses: pct(kpiValues.expenses, prevKpiValues.expenses),
+      net: pct(kpiValues.net, prevKpiValues.net),
+      avg: pct(kpiValues.avg, prevKpiValues.avg),
+    };
+  }, [kpiValues, prevKpiValues]);
 
   // Sorted transactions
   const sortedTransactions = useMemo(() => {
@@ -578,36 +633,43 @@ const TransactionHistory = () => {
     return `${from} - ${to}`;
   }, [dateFrom, dateTo, i18n.language]);
 
-  // KPI data keyed by stable ID
+  // Format a percentage change for display
+  const fmtChange = (pct: number): { change?: string; changeType: "positive" | "negative" | "neutral" } => {
+    if (pct === 0) return { changeType: "neutral" };
+    const sign = pct > 0 ? "+" : "";
+    return {
+      change: `${sign}${pct.toFixed(1)}%`,
+      changeType: pct > 0 ? "positive" : "negative",
+    };
+  };
+
+  // KPI data keyed by stable ID — values from ALL period transactions, changes from previous period
   const kpiData: Record<string, TxKpiDef> = {
     "tx-total-income": {
       title: t("transactions:totalIncome"),
       value: formatCurrency(kpiValues.income),
-      change: "+15.2%",
-      changeType: "positive",
+      ...fmtChange(kpiChanges.income),
       icon: ArrowDownLeft,
       watermark: TrendingDown,
     },
     "tx-total-expenses": {
       title: t("transactions:totalExpenses"),
       value: formatCurrency(kpiValues.expenses),
-      change: "-3.8%",
-      changeType: "negative",
+      ...fmtChange(kpiChanges.expenses),
       icon: ArrowUpRight,
       watermark: TrendingUp,
     },
     "tx-net-flow": {
       title: t("transactions:netFlow"),
       value: `${kpiValues.net >= 0 ? "+" : ""}${formatCurrency(Math.abs(kpiValues.net))}`,
-      change: "+8.5%",
-      changeType: "positive",
+      ...fmtChange(kpiChanges.net),
       icon: Activity,
       watermark: Activity,
     },
     "tx-average-amount": {
       title: t("transactions:averageAmount"),
       value: formatCurrency(kpiValues.avg),
-      changeType: "neutral",
+      ...fmtChange(kpiChanges.avg),
       icon: Calculator,
       watermark: Calculator,
     },
