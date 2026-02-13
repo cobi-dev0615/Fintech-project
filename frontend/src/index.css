@@ -175,12 +175,13 @@
     border-color: hsl(var(--border));
   }
 
-  /* Credit Card Visual - gradient card rendering */
+  /* Credit Card Visual - compact thumbnail for card list */
   .credit-card-visual {
-    background: linear-gradient(135deg, #1e40af 0%, #1e3a5f 50%, #0f172a 100%);
-    border-radius: 12px;
-    padding: 1.25rem;
+    border-radius: 10px;
+    padding: 0.75rem 0.875rem;
     aspect-ratio: 1.586;
+    width: 195px;
+    min-width: 195px;
     color: white;
     position: relative;
     overflow: hidden;
@@ -189,16 +190,40 @@
   .credit-card-visual::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+    top: -40%;
+    right: -40%;
+    width: 80%;
+    height: 80%;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
     pointer-events: none;
   }
 
-  .light .credit-card-visual {
-    background: linear-gradient(135deg, #2563eb 0%, #1e40af 50%, #1e3a5f 100%);
+  /* Brand-specific gradients */
+  .credit-card-visual.brand-visa {
+    background: linear-gradient(135deg, #1a3c8f 0%, #1e40af 40%, #2563eb 100%);
+  }
+  .credit-card-visual.brand-mastercard {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 100%);
+  }
+  .credit-card-visual.brand-elo {
+    background: linear-gradient(135deg, #1c1c1c 0%, #2d2d2d 40%, #3a3a3a 100%);
+  }
+  .credit-card-visual.brand-amex {
+    background: linear-gradient(135deg, #065f46 0%, #047857 40%, #059669 100%);
+  }
+  .credit-card-visual.brand-hipercard {
+    background: linear-gradient(135deg, #7c2d12 0%, #9a3412 40%, #c2410c 100%);
+  }
+  .credit-card-visual.brand-default {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 40%, #475569 100%);
+  }
+
+  @media (max-width: 639px) {
+    .credit-card-visual {
+      width: 160px;
+      min-width: 160px;
+      padding: 0.625rem 0.75rem;
+    }
   }
 
   /* Chart Card */

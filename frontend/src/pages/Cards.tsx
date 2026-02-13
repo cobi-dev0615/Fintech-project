@@ -10,7 +10,7 @@ import {
   Star,
   MapPin,
   Plus,
-  Cpu,
+  Wifi,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +52,16 @@ const Cards = () => {
 
   const getMaskedNumber = (last4: string) =>
     `\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 ${last4 || "****"}`;
+
+  const getBrandClass = (brand: string) => {
+    const b = (brand || "").toUpperCase();
+    if (b.includes("VISA")) return "brand-visa";
+    if (b.includes("MASTER")) return "brand-mastercard";
+    if (b.includes("ELO")) return "brand-elo";
+    if (b.includes("AMEX") || b.includes("AMERICAN")) return "brand-amex";
+    if (b.includes("HIPER")) return "brand-hipercard";
+    return "brand-default";
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -245,7 +255,7 @@ const Cards = () => {
           {/* Main Content: Card List + Card Details */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Left Column: Card List */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="lg:col-span-2 space-y-3">
               <TooltipProvider>
                 {cards.map((card: any) => {
                   const cardId = card.id || card.pluggy_card_id;
@@ -258,7 +268,7 @@ const Cards = () => {
                   return (
                     <div
                       key={cardId}
-                      className={`rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${
+                      className={`rounded-xl cursor-pointer transition-all duration-200 p-4 ${
                         isSelected
                           ? "border-2 border-emerald-500 shadow-lg shadow-emerald-500/10"
                           : "border border-border hover:border-primary/40"
@@ -269,134 +279,141 @@ const Cards = () => {
                       }}
                       onClick={() => setSelectedCardId(cardId)}
                     >
-                      {/* Visual Credit Card */}
-                      <div className="credit-card-visual mx-4 mt-4">
-                        {/* Top row: Chip + Brand */}
-                        <div className="flex items-start justify-between mb-6">
-                          <Cpu className="h-8 w-8 text-amber-300/80" />
-                          <span className="text-sm font-bold tracking-widest opacity-90">
-                            {brandUpper}
-                          </span>
-                        </div>
-
-                        {/* Card Number */}
-                        <div className="text-base sm:text-lg font-mono tracking-[0.2em] mb-6 opacity-95">
-                          {getMaskedNumber(card.last4 || "****")}
-                        </div>
-
-                        {/* Bottom row: Holder + Expiry */}
-                        <div className="flex items-end justify-between">
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wider opacity-60 mb-0.5">
-                              {t("cards:cardHolder")}
-                            </p>
-                            <p className="text-xs font-medium uppercase tracking-wide">
-                              {holderName}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[10px] uppercase tracking-wider opacity-60 mb-0.5">
-                              {t("cards:expires")}
-                            </p>
-                            <p className="text-xs font-medium">
-                              {getExpiry(card)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card Info Below */}
-                      <div className="p-4 space-y-3">
-                        {/* Brand + Status + Menu */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">
+                      <div className="flex gap-4 sm:gap-5">
+                        {/* Compact Visual Credit Card (left) */}
+                        <div className={`credit-card-visual ${getBrandClass(card.brand)} shrink-0 flex flex-col justify-between`}>
+                          {/* Top: Contactless + Brand */}
+                          <div className="flex items-start justify-between">
+                            <Wifi className="h-4 w-4 opacity-70 rotate-90" />
+                            <span className="text-[10px] font-bold tracking-wider opacity-90 italic">
                               {brandUpper}
                             </span>
-                            <Badge
-                              className={
-                                cardActive
-                                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                  : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                              }
-                            >
-                              {cardActive
-                                ? t("cards:active")
-                                : t("cards:locked")}
-                            </Badge>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSyncCard(card);
-                                  }}
-                                  disabled={
-                                    isSyncingThis || syncing || !card.item_id
-                                  }
-                                >
-                                  <RefreshCw
-                                    className={`h-3.5 w-3.5 ${isSyncingThis ? "animate-spin" : ""}`}
-                                  />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
-                                  {isSyncingThis
-                                    ? t("common:syncing")
-                                    : t("cards:syncThisCard")}
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <button
-                              type="button"
-                              className="text-muted-foreground/60 hover:text-muted-foreground p-1 transition-colors"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </button>
+
+                          {/* Card Number */}
+                          <div className="font-mono text-[11px] sm:text-xs tracking-[0.12em] opacity-95 leading-tight">
+                            {getMaskedNumber(card.last4 || "****")}
                           </div>
+
+                          {/* Bottom: Holder + Expiry */}
+                          <div className="flex items-end justify-between">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[7px] uppercase tracking-wider opacity-50">
+                                {t("cards:cardHolder").toUpperCase()}
+                              </p>
+                              <p className="text-[9px] font-medium uppercase tracking-wide truncate">
+                                {holderName}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0 ml-2">
+                              <p className="text-[7px] uppercase tracking-wider opacity-50">
+                                {t("cards:expires").toUpperCase()}
+                              </p>
+                              <p className="text-[9px] font-medium">
+                                {getExpiry(card)}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Chip decoration */}
+                          <div className="absolute top-[38%] left-3.5 w-6 h-[18px] rounded-[3px] bg-amber-400/30 border border-amber-400/40" />
                         </div>
 
-                        {/* Details Grid */}
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              {t("cards:currentBalance")}
-                            </p>
-                            <p className="font-medium tabular-nums">
-                              R${" "}
-                              {balance.toLocaleString("pt-BR", {
-                                minimumFractionDigits: 2,
-                              })}
-                            </p>
+                        {/* Card Info (right) */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                          {/* Top row: Brand + Status + Actions */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-semibold text-sm truncate">
+                                {brandUpper}
+                              </span>
+                              <Badge
+                                className={
+                                  cardActive
+                                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] px-1.5 py-0"
+                                    : "bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] px-1.5 py-0"
+                                }
+                              >
+                                {cardActive
+                                  ? t("cards:active")
+                                  : t("cards:locked")}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSyncCard(card);
+                                    }}
+                                    disabled={
+                                      isSyncingThis || syncing || !card.item_id
+                                    }
+                                  >
+                                    <RefreshCw
+                                      className={`h-3.5 w-3.5 ${isSyncingThis ? "animate-spin" : ""}`}
+                                    />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>
+                                    {isSyncingThis
+                                      ? t("common:syncing")
+                                      : t("cards:syncThisCard")}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <button
+                                type="button"
+                                className="text-muted-foreground/60 hover:text-muted-foreground p-1 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              {t("cards:cardNumber")}
-                            </p>
-                            <p className="font-medium tabular-nums text-xs">
-                              {"\u2022\u2022\u2022\u2022"} {card.last4 || "****"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              {t("cards:expires")}
-                            </p>
-                            <p className="font-medium">{getExpiry(card)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              {t("cards:cardHolder")}
-                            </p>
-                            <p className="font-medium text-xs truncate">
-                              {holderName}
-                            </p>
+
+                          {/* Details Grid */}
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
+                            <div>
+                              <p className="text-[11px] text-muted-foreground">
+                                {t("cards:currentBalance")}
+                              </p>
+                              <p className="text-sm font-semibold tabular-nums">
+                                R${" "}
+                                {balance.toLocaleString("pt-BR", {
+                                  minimumFractionDigits: 2,
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] text-muted-foreground">
+                                {t("cards:cardNumber")}
+                              </p>
+                              <p className="text-sm font-medium tabular-nums">
+                                {"\u2022\u2022\u2022\u2022"} {card.last4 || "****"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] text-muted-foreground">
+                                {t("cards:expires")}
+                              </p>
+                              <p className="text-sm font-medium">
+                                {getExpiry(card)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] text-muted-foreground">
+                                {t("cards:cardHolder")}
+                              </p>
+                              <p className="text-sm font-medium truncate">
+                                {holderName}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
