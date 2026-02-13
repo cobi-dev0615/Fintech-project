@@ -31,6 +31,19 @@ const severityDotColor: Record<string, string> = {
   critical: 'bg-red-500',
 };
 
+// Map WebSocket message types to backend notification preference types
+const WS_TO_PREFERENCE_TYPE: Record<string, string> = {
+  new_comment: 'message_received',
+  comment_replied: 'message_received',
+  new_registration: 'account_activity',
+  account_approved: 'account_activity',
+  account_rejected: 'account_activity',
+  consultant_invitation: 'consultant_invitation',
+  invitation_accepted: 'consultant_assignment',
+  invitation_declined: 'consultant_assignment',
+  wallet_shared_updated: 'connection_status',
+};
+
 const NotificationDropdown = () => {
   const { t, i18n } = useTranslation('notifications');
   const location = useLocation();
@@ -41,6 +54,9 @@ const NotificationDropdown = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Cache user notification preferences for filtering WebSocket toasts
+  const [preferences, setPreferences] = useState<Record<string, { enabled: boolean; pushEnabled: boolean }>>({});
 
   // Dynamic date locale based on language
   const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
@@ -61,85 +77,118 @@ const NotificationDropdown = () => {
   });
   const unreadCount = unreadData?.count ?? 0;
 
-  // Listen for WebSocket notifications
+  // Load notification preferences once on mount
+  useEffect(() => {
+    if (!user) return;
+    notificationsApi.getPreferences()
+      .then(({ preferences: prefs }) => setPreferences(prefs))
+      .catch(() => {}); // Fail silently – defaults to showing all
+  }, [user]);
+
+  // Check if a WebSocket message type should show a toast based on user preferences
+  const isWsNotificationEnabled = useCallback((wsType: string): boolean => {
+    const prefType = WS_TO_PREFERENCE_TYPE[wsType];
+    if (!prefType || !preferences[prefType]) return true; // default: show
+    return preferences[prefType].enabled !== false && preferences[prefType].pushEnabled !== false;
+  }, [preferences]);
+
+  // Listen for WebSocket notifications (always refetch counts; toast only if preference enabled)
   useWebSocket((message) => {
+    const showToast = isWsNotificationEnabled(message.type);
+
     if (message.type === 'new_comment' || message.type === 'comment_replied') {
       refetchUnreadCount();
       if (open) fetchNotifications();
-      toast({
-        title: message.type === 'new_comment'
-          ? t('websocket.newComment')
-          : t('websocket.commentReplied'),
-        description: message.type === 'new_comment'
-          ? (message.userName
-              ? t('websocket.newCommentDesc', { userName: message.userName })
-              : t('websocket.newCommentDescFallback'))
-          : t('websocket.commentRepliedDesc'),
-      });
+      if (showToast) {
+        toast({
+          title: message.type === 'new_comment'
+            ? t('websocket.newComment')
+            : t('websocket.commentReplied'),
+          description: message.type === 'new_comment'
+            ? (message.userName
+                ? t('websocket.newCommentDesc', { userName: message.userName })
+                : t('websocket.newCommentDescFallback'))
+            : t('websocket.commentRepliedDesc'),
+        });
+      }
     } else if (message.type === 'new_registration') {
       refetchUnreadCount();
       if (open) fetchNotifications();
-      toast({
-        title: t('websocket.newRegistration'),
-        description: message.userName && message.userRole
-          ? t('websocket.newRegistrationDesc', { userName: message.userName, userRole: message.userRole })
-          : t('websocket.newRegistrationDescFallback'),
-      });
+      if (showToast) {
+        toast({
+          title: t('websocket.newRegistration'),
+          description: message.userName && message.userRole
+            ? t('websocket.newRegistrationDesc', { userName: message.userName, userRole: message.userRole })
+            : t('websocket.newRegistrationDescFallback'),
+        });
+      }
     } else if (message.type === 'account_approved') {
       refetchUnreadCount();
       if (open) fetchNotifications();
-      toast({ title: t('websocket.accountApproved'), description: t('websocket.accountApprovedDesc') });
+      if (showToast) {
+        toast({ title: t('websocket.accountApproved'), description: t('websocket.accountApprovedDesc') });
+      }
     } else if (message.type === 'account_rejected') {
       refetchUnreadCount();
       if (open) fetchNotifications();
-      toast({
-        title: t('websocket.accountRejected'),
-        description: message.reason
-          ? t('websocket.accountRejectedWithReason', { reason: message.reason })
-          : t('websocket.accountRejectedDesc'),
-        variant: 'warning',
-      });
+      if (showToast) {
+        toast({
+          title: t('websocket.accountRejected'),
+          description: message.reason
+            ? t('websocket.accountRejectedWithReason', { reason: message.reason })
+            : t('websocket.accountRejectedDesc'),
+          variant: 'warning',
+        });
+      }
     } else if (message.type === 'consultant_invitation') {
       refetchUnreadCount();
       if (open) fetchNotifications();
-      toast({
-        title: t('websocket.consultantInvitation'),
-        description: message.consultantName
-          ? t('websocket.consultantInvitationDesc', { consultantName: message.consultantName })
-          : t('websocket.consultantInvitationDescFallback'),
-      });
+      if (showToast) {
+        toast({
+          title: t('websocket.consultantInvitation'),
+          description: message.consultantName
+            ? t('websocket.consultantInvitationDesc', { consultantName: message.consultantName })
+            : t('websocket.consultantInvitationDescFallback'),
+        });
+      }
     } else if (message.type === 'invitation_accepted') {
       refetchUnreadCount();
       if (open) fetchNotifications();
-      toast({
-        title: t('websocket.invitationAccepted'),
-        description: message.customerName
-          ? t('websocket.invitationAcceptedDesc', { customerName: message.customerName })
-          : t('websocket.invitationAcceptedDescFallback'),
-      });
+      if (showToast) {
+        toast({
+          title: t('websocket.invitationAccepted'),
+          description: message.customerName
+            ? t('websocket.invitationAcceptedDesc', { customerName: message.customerName })
+            : t('websocket.invitationAcceptedDescFallback'),
+        });
+      }
     } else if (message.type === 'invitation_declined') {
       refetchUnreadCount();
       if (open) fetchNotifications();
-      toast({
-        title: t('websocket.invitationDeclined'),
-        description: message.customerName
-          ? t('websocket.invitationDeclinedDesc', { customerName: message.customerName })
-          : message.message || t('websocket.invitationDeclinedDescFallback'),
-        variant: 'warning',
-      });
+      if (showToast) {
+        toast({
+          title: t('websocket.invitationDeclined'),
+          description: message.customerName
+            ? t('websocket.invitationDeclinedDesc', { customerName: message.customerName })
+            : message.message || t('websocket.invitationDeclinedDescFallback'),
+          variant: 'warning',
+        });
+      }
     } else if (message.type === 'wallet_shared_updated') {
       refetchUnreadCount();
       if (open) fetchNotifications();
-      toast({
-        title: message.canViewAll ? t('websocket.walletShared') : t('websocket.walletUnshared'),
-        description: message.message || (message.customerName
-          ? (message.canViewAll
-            ? t('websocket.walletSharedDesc', { customerName: message.customerName })
-            : t('websocket.walletUnsharedDesc', { customerName: message.customerName }))
-          : (message.canViewAll
-              ? t('websocket.walletSharedDescFallback')
-              : t('websocket.walletUnsharedDescFallback'))),
-      });
+      if (showToast) {
+        toast({
+          title: message.canViewAll ? t('websocket.walletShared') : t('websocket.walletUnshared'),
+          description: message.message || (message.customerName
+            ? (message.canViewAll
+              ? t('websocket.walletSharedDesc', { customerName: message.customerName })
+              : t('websocket.walletUnsharedDesc', { customerName: message.customerName }))
+            : (message.canViewAll
+                ? t('websocket.walletSharedDescFallback')
+                : t('websocket.walletUnsharedDescFallback'))),
+        });
+      }
     }
   });
 

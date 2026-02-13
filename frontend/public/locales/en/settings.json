@@ -24,7 +24,7 @@
     "emailHint": "Email changes can be made through support.",
     "phone": "Phone",
     "phonePlaceholder": "+55 (XX) XXXXX-XXXX",
-    "phoneError": "Please enter a valid Brazilian phone number",
+    "phoneError": "Please enter a valid phone number",
     "birthDate": "Date of Birth",
     "riskProfile": "Risk Profile",
     "riskProfilePlaceholder": "Select your profile",
@@ -129,5 +129,33 @@
       "repliedAt": "Replied at:",
       "waitingReply": "Waiting for a reply from our team..."
     }
+  },
+  "countries": {
+    "BR": "Brazil",
+    "US": "United States",
+    "AR": "Argentina",
+    "CL": "Chile",
+    "CO": "Colombia",
+    "MX": "Mexico",
+    "PT": "Portugal",
+    "ES": "Spain",
+    "FR": "France",
+    "DE": "Germany",
+    "IT": "Italy",
+    "GB": "United Kingdom",
+    "CA": "Canada",
+    "AU": "Australia",
+    "JP": "Japan",
+    "CN": "China",
+    "IN": "India",
+    "RU": "Russia",
+    "ZA": "South Africa",
+    "UY": "Uruguay",
+    "PY": "Paraguay",
+    "BO": "Bolivia",
+    "PE": "Peru",
+    "EC": "Ecuador",
+    "VE": "Venezuela",
+    "noResults": "No country found"
   }
 }

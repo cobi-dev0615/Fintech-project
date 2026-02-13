@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { userApi, authApi, subscriptionsApi, commentsApi } from "@/lib/api";
+import { userApi, authApi, subscriptionsApi, commentsApi, notificationsApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PhoneCountrySelect, getCountryPrefix, COUNTRIES } from "@/components/ui/country-select";
 import { useAuth } from "@/hooks/useAuth";
 
 interface ProfileState {
@@ -62,6 +63,14 @@ interface ProfileState {
   birthDate: string;
   riskProfile: string;
 }
+
+// Mapping between Settings toggle keys and backend notification types
+const NOTIFICATION_TYPE_MAP: Record<string, string> = {
+  transactionAlerts: 'transaction_alert',
+  goalReminders: 'goal_milestone',
+  weeklySummary: 'report_ready',
+  marketingEmails: 'system_announcement',
+};
 
 const Settings = () => {
   const { t } = useTranslation(['settings', 'common']);
@@ -76,35 +85,31 @@ const Settings = () => {
     firstName: "",
     lastName: "",
     email: "",
-    phone: "+55 ",
+    phone: "",
     countryCode: "BR",
     birthDate: "",
     riskProfile: "",
   });
 
-  const formatPhone = (value: string) => {
-    // Keep only digits
+  // Format local phone number (without country prefix)
+  const formatLocalPhone = (value: string, countryCode: string) => {
     const digits = value.replace(/\D/g, "");
-    
-    // Always ensure it starts with 55
-    let formatted = digits;
-    if (!formatted.startsWith("55")) {
-      formatted = "55" + formatted;
+
+    if (countryCode === "BR") {
+      // Brazil: (XX) XXXXX-XXXX — max 11 digits
+      const limited = digits.slice(0, 11);
+      if (limited.length <= 2) return limited.length > 0 ? `(${limited}` : "";
+      if (limited.length <= 7) return `(${limited.slice(0, 2)}) ${limited.slice(2)}`;
+      return `(${limited.slice(0, 2)}) ${limited.slice(2, 7)}-${limited.slice(7)}`;
     }
-
-    // Limit to 13 digits (55 + 11)
-    formatted = formatted.slice(0, 13);
-
-    // Apply mask: +55 (XX) XXXXX-XXXX
-    if (formatted.length <= 2) return `+${formatted}`;
-    if (formatted.length <= 4) return `+${formatted.slice(0, 2)} (${formatted.slice(2)}`;
-    if (formatted.length <= 9) return `+${formatted.slice(0, 2)} (${formatted.slice(2, 4)}) ${formatted.slice(4)}`;
-    return `+${formatted.slice(0, 2)} (${formatted.slice(2, 4)}) ${formatted.slice(4, 9)}-${formatted.slice(9)}`;
+    // Generic: just digits, max 15
+    return digits.slice(0, 15);
   };
 
-  const validatePhone = (phone: string) => {
+  const validatePhone = (phone: string, countryCode: string) => {
     const digits = phone.replace(/\D/g, "");
-    return digits.length >= 12 && digits.length <= 13;
+    if (countryCode === "BR") return digits.length >= 10 && digits.length <= 11;
+    return digits.length >= 4 && digits.length <= 15;
   };
 
   const [notifications, setNotifications] = useState({
@@ -172,11 +177,19 @@ const Settings = () => {
         const nameParts = (user.full_name || "").trim().split(' ');
         const firstName = nameParts[0] || "";
         const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : "";
+        // Strip country prefix from stored phone to get local number
+        let localPhone = "";
+        if (user.phone) {
+          const phoneDigits = user.phone.replace(/\D/g, "");
+          const prefix = getCountryPrefix(savedCountryCode).replace("+", "");
+          localPhone = phoneDigits.startsWith(prefix) ? phoneDigits.slice(prefix.length) : phoneDigits;
+          localPhone = formatLocalPhone(localPhone, savedCountryCode);
+        }
         setProfile({
           firstName,
           lastName,
           email: user.email || "",
-          phone: user.phone ? formatPhone(user.phone) : "+55 ",
+          phone: localPhone,
           countryCode: savedCountryCode,
           birthDate: user.birth_date || "",
           riskProfile: user.risk_profile || "",
@@ -190,6 +203,27 @@ const Settings = () => {
 
     fetchProfile();
   }, []);
+
+  // Load notification preferences from backend
+  useEffect(() => {
+    if (activeStep === "notifications") {
+      const fetchPreferences = async () => {
+        try {
+          const { preferences } = await notificationsApi.getPreferences();
+          setNotifications({
+            emailNotifications: Object.values(preferences).every(p => p.emailEnabled),
+            transactionAlerts: preferences.transaction_alert?.enabled ?? true,
+            goalReminders: preferences.goal_milestone?.enabled ?? true,
+            weeklySummary: preferences.report_ready?.enabled ?? true,
+            marketingEmails: preferences.system_announcement?.enabled ?? false,
+          });
+        } catch (error) {
+          console.error("Failed to load notification preferences:", error);
+        }
+      };
+      fetchPreferences();
+    }
+  }, [activeStep]);
 
   // Fetch History
   useEffect(() => {
@@ -238,15 +272,19 @@ const Settings = () => {
   };
 
   const handleSaveProfile = async () => {
-    if (profile.phone && !validatePhone(profile.phone)) {
+    const localDigits = profile.phone.replace(/\D/g, "");
+    if (localDigits && !validatePhone(profile.phone, profile.countryCode)) {
       toast({ title: t('common:error'), description: t('settings:profile.phoneError'), variant: "destructive" });
       return;
     }
     setSaving(true);
     try {
+      // Combine country prefix + local number for storage
+      const prefix = getCountryPrefix(profile.countryCode).replace("+", "");
+      const fullPhone = localDigits ? prefix + localDigits : undefined;
       await userApi.updateProfile({
         full_name: getFullName(),
-        phone: profile.phone ? profile.phone.replace(/\D/g, "") : undefined,
+        phone: fullPhone,
         birth_date: profile.birthDate || undefined,
         risk_profile: profile.riskProfile || undefined,
       });
@@ -262,7 +300,27 @@ const Settings = () => {
   const handleSaveNotifications = async () => {
     setSaving(true);
     try {
-      localStorage.setItem("userNotifications", JSON.stringify(notifications));
+      // Update each mapped notification type's enabled state
+      const typeUpdates = Object.entries(NOTIFICATION_TYPE_MAP).map(([key, type]) =>
+        notificationsApi.updatePreference(type, {
+          enabled: notifications[key as keyof typeof notifications],
+        })
+      );
+
+      // Update emailEnabled across all backend types based on the global email toggle
+      const allTypes = [
+        'account_activity', 'transaction_alert', 'investment_update',
+        'report_ready', 'message_received', 'consultant_assignment',
+        'consultant_invitation', 'subscription_update', 'system_announcement',
+        'goal_milestone', 'connection_status',
+      ];
+      const emailUpdates = allTypes.map((type) =>
+        notificationsApi.updatePreference(type, {
+          emailEnabled: notifications.emailNotifications,
+        })
+      );
+
+      await Promise.all([...typeUpdates, ...emailUpdates]);
       toast({ title: t('common:success'), description: t('settings:notifications.saveSuccess'), variant: "success" });
     } catch (error: any) {
       toast({ title: t('common:error'), description: t('settings:notifications.saveError'), variant: "destructive" });
@@ -463,12 +521,22 @@ const Settings = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label htmlFor="phone">{t('settings:profile.phone')}</Label>
-                    <Input
-                      id="phone"
-                      value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: formatPhone(e.target.value) })}
-                      placeholder={t('settings:profile.phonePlaceholder')}
-                    />
+                    <div className="flex h-10 w-full rounded-lg border border-input bg-background overflow-hidden focus-within:ring-1 focus-within:ring-ring transition-colors">
+                      <PhoneCountrySelect
+                        value={profile.countryCode}
+                        onValueChange={(code) => {
+                          setProfile({ ...profile, countryCode: code, phone: "" });
+                        }}
+                      />
+                      <div className="w-px bg-border/50 shrink-0" />
+                      <input
+                        id="phone"
+                        value={profile.phone}
+                        onChange={(e) => setProfile({ ...profile, phone: formatLocalPhone(e.target.value, profile.countryCode) })}
+                        placeholder={profile.countryCode === "BR" ? "(XX) XXXXX-XXXX" : t('settings:profile.phonePlaceholder')}
+                        className="flex-1 bg-transparent px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none md:text-sm min-w-0"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="birthDate">{t('settings:profile.birthDate')}</Label>
@@ -504,7 +572,7 @@ const Settings = () => {
                       id={key}
                       checked={value}
                       onCheckedChange={(checked) => setNotifications({ ...notifications, [key]: checked })}
-                      className="data-[state=checked]:bg-primary shrink-0"
+                      className="shrink-0"
                     />
                   </div>
                 ))}

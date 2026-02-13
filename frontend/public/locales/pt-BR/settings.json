@@ -24,7 +24,7 @@
     "emailHint": "Alterações de e-mail podem ser feitas pelo suporte.",
     "phone": "Telefone",
     "phonePlaceholder": "+55 (XX) XXXXX-XXXX",
-    "phoneError": "Por favor, insira um telefone brasileiro válido",
+    "phoneError": "Por favor, insira um telefone válido",
     "birthDate": "Data de Nascimento",
     "riskProfile": "Perfil de Risco",
     "riskProfilePlaceholder": "Selecione seu perfil",
@@ -129,5 +129,33 @@
       "repliedAt": "Respondido em:",
       "waitingReply": "Aguardando resposta da nossa equipe..."
     }
+  },
+  "countries": {
+    "BR": "Brasil",
+    "US": "Estados Unidos",
+    "AR": "Argentina",
+    "CL": "Chile",
+    "CO": "Colômbia",
+    "MX": "México",
+    "PT": "Portugal",
+    "ES": "Espanha",
+    "FR": "França",
+    "DE": "Alemanha",
+    "IT": "Itália",
+    "GB": "Reino Unido",
+    "CA": "Canadá",
+    "AU": "Austrália",
+    "JP": "Japão",
+    "CN": "China",
+    "IN": "Índia",
+    "RU": "Rússia",
+    "ZA": "África do Sul",
+    "UY": "Uruguai",
+    "PY": "Paraguai",
+    "BO": "Bolívia",
+    "PE": "Peru",
+    "EC": "Equador",
+    "VE": "Venezuela",
+    "noResults": "Nenhum país encontrado"
   }
 }

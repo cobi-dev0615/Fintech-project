@@ -222,8 +222,21 @@
   .settings-card {
     @apply rounded-xl p-5 transition-all duration-200;
     background: linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%);
-    border: 1px solid rgba(59, 130, 246, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: var(--shadow-card);
+  }
+
+  /* Settings page: 5px border-radius for save buttons and switches */
+  .settings-card button.inline-flex {
+    border-radius: 5px !important;
+  }
+
+  .settings-card button[role="switch"] {
+    border-radius: 5px !important;
+  }
+
+  .settings-card button[role="switch"] span {
+    border-radius: 3px !important;
   }
 
   .light .settings-card {
