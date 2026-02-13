@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { DashboardCard, StoredDashboardLayout } from '@/types/dashboard';
 
 interface UseDashboardLayoutOptions {
-  dashboardType: 'customer' | 'admin' | 'consultant';
+  dashboardType: 'customer' | 'admin' | 'consultant' | 'customer-cards';
   userId: string;
   defaultCards: DashboardCard[];
 }

@@ -35,7 +35,7 @@ export interface DashboardLayout {
   userId: string;
 
   /** Type of dashboard */
-  dashboardType: 'customer' | 'admin' | 'consultant';
+  dashboardType: 'customer' | 'admin' | 'consultant' | 'customer-cards';
 
   /** Array of cards in their custom order */
   cards: DashboardCard[];
@@ -57,7 +57,7 @@ export interface StoredCardData {
  */
 export interface StoredDashboardLayout {
   userId: string;
-  dashboardType: 'customer' | 'admin' | 'consultant';
+  dashboardType: 'customer' | 'admin' | 'consultant' | 'customer-cards';
   cardOrder: string[];  // Array of card IDs in order
   lastUpdated: string;
 }

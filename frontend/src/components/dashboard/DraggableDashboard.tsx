@@ -23,7 +23,7 @@ import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 
 interface DraggableDashboardProps {
-  dashboardType: 'customer' | 'admin' | 'consultant';
+  dashboardType: 'customer' | 'admin' | 'consultant' | 'customer-cards';
   defaultCards: DashboardCard[];
   className?: string;
 }

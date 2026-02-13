@@ -11,6 +11,7 @@ import {
   MapPin,
   Plus,
   Wifi,
+  GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +21,88 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+interface KpiDef {
+  title: string;
+  value: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  change?: string;
+  changeColor?: string;
+}
+
+function SortableKpiCard({ id, kpi }: { id: string; kpi: KpiDef }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group ${isDragging ? "z-50 opacity-50 scale-105" : ""}`}
+    >
+      {/* Drag Handle */}
+      <button
+        type="button"
+        className="drag-handle absolute top-3 right-3 z-10 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground/80 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none rounded-md p-1 touch-none"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div
+        className="relative overflow-hidden rounded-xl border border-white/[0.08] p-4 sm:p-5 h-full"
+        style={{ background: "linear-gradient(180deg, #0c0c0c 0%, #111111 100%)" }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <kpi.Icon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">
+              {kpi.title}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-end gap-2">
+          <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums tracking-tight leading-none">
+            {kpi.value}
+          </span>
+          {kpi.change && (
+            <span className={`text-xs font-semibold ${kpi.changeColor} mb-0.5`}>
+              {kpi.change}
+            </span>
+          )}
+        </div>
+        <kpi.Icon className="absolute right-3 bottom-2 h-12 w-12 sm:h-14 sm:w-14 text-white/[0.04]" />
+      </div>
+    </div>
+  );
+}
 
 const Cards = () => {
   const { t } = useTranslation(["cards", "common"]);
@@ -145,45 +223,84 @@ const Cards = () => {
   // Computed values
   const totalBalance = cards.reduce((s, c) => s + parseFloat(c.balance || 0), 0);
   const activeCount = cards.filter((c) => isActive(c)).length;
+  const lockedCount = cards.length - activeCount;
   const averageBalance = cards.length > 0 ? totalBalance / cards.length : 0;
   const selectedCard = cards.find(
     (c) => (c.id || c.pluggy_card_id) === selectedCardId
   );
 
+  // KPI definitions (stable IDs, dynamic values)
+  const KPI_IDS = ["cards-total-balance", "cards-active-cards", "cards-average-balance", "cards-security-status"] as const;
+
+  const kpiData: Record<string, { title: string; value: string; Icon: typeof DollarSign; change?: string; changeColor?: string }> = {
+    "cards-total-balance": {
+      title: t("cards:totalBalance"),
+      value: `R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      Icon: DollarSign,
+      change: "+12.5%",
+      changeColor: "text-emerald-400",
+    },
+    "cards-active-cards": {
+      title: t("cards:activeCards"),
+      value: `${activeCount}/${cards.length}`,
+      Icon: CreditCard,
+    },
+    "cards-average-balance": {
+      title: t("cards:averageBalance"),
+      value: `R$ ${averageBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      Icon: TrendingUp,
+      change: "+8.3%",
+      changeColor: "text-emerald-400",
+    },
+    "cards-security-status": {
+      title: t("cards:securityStatus"),
+      value: lockedCount > 0
+        ? `${lockedCount} ${t("cards:locked")}`
+        : t("cards:protected"),
+      Icon: Shield,
+    },
+  };
+
+  // KPI order — persisted to localStorage
+  const storageKey = `cards-kpi-order-${user?.id || "guest"}`;
+  const [kpiOrder, setKpiOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as string[];
+        // Validate: must contain exactly the same IDs
+        if (parsed.length === KPI_IDS.length && KPI_IDS.every((id) => parsed.includes(id))) {
+          return parsed;
+        }
+      }
+    } catch { /* ignore */ }
+    return [...KPI_IDS];
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleKpiDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setKpiOrder((prev) => {
+      const oldIdx = prev.indexOf(active.id as string);
+      const newIdx = prev.indexOf(over.id as string);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(oldIdx, 1);
+      next.splice(newIdx, 0, moved);
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
     <div className="w-full min-w-0 overflow-x-hidden space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground break-words">
-            {t("cards:title")}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t("cards:subtitle")}
-          </p>
-        </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSyncAll}
-                disabled={syncing || loading}
-              >
-                <RefreshCw
-                  className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`}
-                />
-                {syncing ? t("common:syncing") : t("cards:syncAll")}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t("cards:syncAllTooltip")}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-
       {loading ? (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-3" />
@@ -207,50 +324,18 @@ const Cards = () => {
         </div>
       ) : (
         <>
-          {/* KPI Cards Row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="kpi-card">
-              <ProfessionalKpiCard
-                title={t("cards:totalBalance")}
-                value={`R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                icon={DollarSign}
-                accent="primary"
-                showMenu
-              />
-            </div>
-            <div className="kpi-card">
-              <ProfessionalKpiCard
-                title={t("cards:activeCards")}
-                value={String(activeCount)}
-                icon={CreditCard}
-                accent="success"
-                subtitle={t("cards:activeCount", {
-                  count: activeCount,
-                  total: cards.length,
+          {/* KPI Cards Row — Draggable */}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleKpiDragEnd}>
+            <SortableContext items={kpiOrder} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {kpiOrder.map((id) => {
+                  const kpi = kpiData[id];
+                  if (!kpi) return null;
+                  return <SortableKpiCard key={id} id={id} kpi={kpi} />;
                 })}
-                showMenu
-              />
-            </div>
-            <div className="kpi-card">
-              <ProfessionalKpiCard
-                title={t("cards:averageBalance")}
-                value={`R$ ${averageBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                icon={TrendingUp}
-                accent="info"
-                showMenu
-              />
-            </div>
-            <div className="kpi-card">
-              <ProfessionalKpiCard
-                title={t("cards:securityStatus")}
-                value={t("cards:protected")}
-                icon={Shield}
-                accent="success"
-                subtitle={t("cards:allSecure")}
-                showMenu
-              />
-            </div>
-          </div>
+              </div>
+            </SortableContext>
+          </DndContext>
 
           {/* Main Content: Card List + Card Details */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
