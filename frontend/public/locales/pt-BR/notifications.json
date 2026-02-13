@@ -145,6 +145,14 @@
       }
     }
   },
+  "totalNotifications": "Total de Notificações",
+  "unreadNotifications": "Não Lidas",
+  "todayNotifications": "Notificações de Hoje",
+  "readRate": "Taxa de Leitura",
+  "allNotifications": "Todas as Notificações",
+  "filterAll": "Todas",
+  "filterUnread": "Não Lidas",
+  "refresh": "Atualizar",
   "retry": "Tentar novamente",
   "showing": "Mostrando",
   "to": "a",

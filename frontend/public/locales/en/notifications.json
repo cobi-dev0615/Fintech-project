@@ -145,6 +145,14 @@
       }
     }
   },
+  "totalNotifications": "Total Notifications",
+  "unreadNotifications": "Unread",
+  "todayNotifications": "Today's Notifications",
+  "readRate": "Read Rate",
+  "allNotifications": "All Notifications",
+  "filterAll": "All",
+  "filterUnread": "Unread",
+  "refresh": "Refresh",
   "retry": "Try again",
   "showing": "Showing",
   "to": "to",
