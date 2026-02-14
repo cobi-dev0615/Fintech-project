@@ -22,7 +22,8 @@
       "Bash(npm run:*)",
       "Bash(npm install:*)",
       "Bash(grep:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(wc:*)"
     ]
   }
 }

@@ -1,110 +1,58 @@
-import { Link, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Calculator, TrendingUp, Home, Coins, Percent } from "lucide-react";
-import ChartCard from "@/components/dashboard/ChartCard";
+import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+import FIRECalculator from "./calculators/FIRECalculator";
+import CompoundInterest from "./calculators/CompoundInterest";
+import UsufructCalculator from "./calculators/UsufructCalculator";
+import ITCMDCalculator from "./calculators/ITCMDCalculator";
+import ProfitabilitySimulator from "./calculators/ProfitabilitySimulator";
+
+const TABS = [
+  { id: "fire", icon: TrendingUp, labelKey: "fire.title" },
+  { id: "compound", icon: Calculator, labelKey: "compoundInterest.title" },
+  { id: "usufruct", icon: Home, labelKey: "usufruct.title" },
+  { id: "itcmd", icon: Coins, labelKey: "itcmd.title" },
+  { id: "profitability", icon: Percent, labelKey: "profitability.title" },
+];
 
 const Calculators = () => {
+  const { type } = useParams();
+  const navigate = useNavigate();
   const location = useLocation();
-  const basePath = location.pathname.startsWith('/consultant') ? '/consultant' : '/app';
-
-  const calculators = [
-    {
-      id: "fire",
-      name: "Calculadora FIRE",
-      description: "Financial Independence, Retire Early - Calcule quanto precisa para alcançar independência financeira",
-      icon: TrendingUp,
-      color: "bg-blue-500/10 text-blue-500",
-      href: `${basePath}/calculators/fire`,
-    },
-    {
-      id: "compound",
-      name: "Juros Compostos",
-      description: "Calcule o valor futuro de seus investimentos com juros compostos",
-      icon: Calculator,
-      color: "bg-green-500/10 text-green-500",
-      href: `${basePath}/calculators/compound`,
-    },
-    {
-      id: "usufruct",
-      name: "Calculadora de Usufruto",
-      description: "Calcule o valor do usufruto e da nua propriedade em doações e heranças",
-      icon: Home,
-      color: "bg-purple-500/10 text-purple-500",
-      href: `${basePath}/calculators/usufruct`,
-    },
-    {
-      id: "itcmd",
-      name: "Calculadora ITCMD",
-      description: "Calcule o Imposto de Transmissão Causa Mortis e Doação",
-      icon: Coins,
-      color: "bg-orange-500/10 text-orange-500",
-      href: `${basePath}/calculators/itcmd`,
-    },
-    {
-      id: "profitability",
-      name: "Simulador de Rentabilidade",
-      description: "Compare diferentes cenários de investimento e rentabilidade",
-      icon: Percent,
-      color: "bg-pink-500/10 text-pink-500",
-      href: `${basePath}/calculators/profitability`,
-    },
-  ];
+  const { t } = useTranslation(["calculators"]);
+  const basePath = location.pathname.startsWith("/consultant") ? "/consultant" : "/app";
+  const activeTab = type || "fire";
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Calculadoras Financeiras</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Ferramentas para planejamento e análise financeira
-          </p>
-        </div>
-      </div>
-
-      {/* Calculators Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {calculators.map((calculator) => (
-          <Link key={calculator.id} to={calculator.href}>
-            <ChartCard className="p-6 hover:border-primary/50 transition-colors cursor-pointer h-full">
-              <div className="space-y-4">
-                <div className={`w-12 h-12 rounded-lg ${calculator.color} flex items-center justify-center`}>
-                  <calculator.icon className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {calculator.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {calculator.description}
-                  </p>
-                </div>
-              </div>
-            </ChartCard>
-          </Link>
+    <div className="space-y-6 min-w-0">
+      {/* Tab selector */}
+      <div className="flex flex-wrap gap-2">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => navigate(`${basePath}/calculators/${tab.id}`)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors",
+              activeTab === tab.id
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-card hover:bg-muted text-muted-foreground"
+            )}
+          >
+            <tab.icon className="h-4 w-4" />
+            {t(tab.labelKey)}
+          </button>
         ))}
       </div>
 
-      {/* Quick Access */}
-      <ChartCard title="Acesso Rápido">
-        <p className="text-sm text-muted-foreground mb-4">
-          Selecione uma calculadora acima para começar. Todas as ferramentas são gratuitas e
-          podem ser usadas quantas vezes precisar.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {calculators.map((calc) => (
-            <Link
-              key={calc.id}
-              to={calc.href}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-muted transition-colors"
-            >
-              {calc.name}
-            </Link>
-          ))}
-        </div>
-      </ChartCard>
+      {/* Calculator panels — all rendered, only active visible */}
+      <div className={activeTab === "fire" ? "space-y-6" : "hidden"}><FIRECalculator /></div>
+      <div className={activeTab === "compound" ? "space-y-6" : "hidden"}><CompoundInterest /></div>
+      <div className={activeTab === "usufruct" ? "space-y-6" : "hidden"}><UsufructCalculator /></div>
+      <div className={activeTab === "itcmd" ? "space-y-6" : "hidden"}><ITCMDCalculator /></div>
+      <div className={activeTab === "profitability" ? "space-y-6" : "hidden"}><ProfitabilitySimulator /></div>
     </div>
   );
 };
 
 export default Calculators;
-

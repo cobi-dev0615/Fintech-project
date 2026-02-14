@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ScrollToTop from "@/components/ui/ScrollToTop";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
@@ -49,11 +49,7 @@ const Reports = lazy(() => import("./pages/Reports"));
 const ReportHistory = lazy(() => import("./pages/ReportHistory"));
 const TransactionHistory = lazy(() => import("./pages/TransactionHistory"));
 const Goals = lazy(() => import("./pages/Goals"));
-const FIRECalculator = lazy(() => import("./pages/calculators/FIRECalculator"));
-const CompoundInterest = lazy(() => import("./pages/calculators/CompoundInterest"));
-const UsufructCalculator = lazy(() => import("./pages/calculators/UsufructCalculator"));
-const ITCMDCalculator = lazy(() => import("./pages/calculators/ITCMDCalculator"));
-const ProfitabilitySimulator = lazy(() => import("./pages/calculators/ProfitabilitySimulator"));
+const Calculators = lazy(() => import("./pages/Calculators"));
 const CustomerSettings = lazy(() => import("./pages/Settings"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const PlanPurchase = lazy(() => import("./pages/PlanPurchase"));
@@ -157,12 +153,8 @@ const App = () => (
               <Route path="reports" element={<Reports />} />
               <Route path="reports/history" element={<ReportHistory />} />
               <Route path="goals" element={<Goals />} />
-              <Route path="calculators" element={<Navigate to="calculators/fire" replace />} />
-              <Route path="calculators/fire" element={<FIRECalculator />} />
-              <Route path="calculators/compound" element={<CompoundInterest />} />
-              <Route path="calculators/usufruct" element={<UsufructCalculator />} />
-              <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
-              <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
+              <Route path="calculators" element={<Calculators />} />
+              <Route path="calculators/:type" element={<Calculators />} />
               <Route path="settings" element={<CustomerSettings />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="invitations" element={<Invitations />} />
@@ -181,12 +173,8 @@ const App = () => (
               <Route path="invitations" element={<SendInvitations />} />
               <Route path="messages" element={<Messages />} />
               <Route path="reports" element={<ProfessionalReports />} />
-              <Route path="calculators" element={<Navigate to="calculators/fire" replace />} />
-              <Route path="calculators/fire" element={<FIRECalculator />} />
-              <Route path="calculators/compound" element={<CompoundInterest />} />
-              <Route path="calculators/usufruct" element={<UsufructCalculator />} />
-              <Route path="calculators/itcmd" element={<ITCMDCalculator />} />
-              <Route path="calculators/profitability" element={<ProfitabilitySimulator />} />
+              <Route path="calculators" element={<Calculators />} />
+              <Route path="calculators/:type" element={<Calculators />} />
               <Route path="simulator" element={<PortfolioSimulator />} />
               <Route path="settings" element={<ConsultantSettings />} />
               <Route path="notifications" element={<Notifications />} />

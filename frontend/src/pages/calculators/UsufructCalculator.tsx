@@ -38,7 +38,6 @@ const UsufructCalculator = () => {
     let bareOwnershipValue = 0;
 
     if (usufructType === "lifelong") {
-      // Tabela de usufruto vitalício (baseada na legislação brasileira)
       if (age <= 20) usufructPercentage = 32;
       else if (age <= 30) usufructPercentage = 31;
       else if (age <= 40) usufructPercentage = 30;
@@ -61,7 +60,6 @@ const UsufructCalculator = () => {
       else if (age <= 91) usufructPercentage = 13;
       else usufructPercentage = 12;
     } else {
-      // Usufruto temporário - simplificado (2% ao ano, máximo 30%)
       const years = Math.min(age, 15);
       usufructPercentage = Math.min(years * 2, 30);
     }
@@ -79,19 +77,11 @@ const UsufructCalculator = () => {
   };
 
   return (
-    <div className="space-y-6 min-w-0">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Calculadora de Usufruto</h1>
-        <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
-          Calcule o valor do usufruto e da nua propriedade em doações e heranças
-        </p>
-      </div>
-
+    <>
       <Alert className="rounded-xl border border-primary/30 bg-primary/5">
         <Info className="h-4 w-4" />
         <AlertDescription className="text-sm">
-          O usufruto é o direito de usar e gozar de um bem pertencente a outra pessoa. A nua propriedade
-          é o direito de propriedade sem o direito de uso. Este cálculo segue a tabela do IBGE para usufruto vitalício.
+          {t("calculators:usufruct.info")}
         </AlertDescription>
       </Alert>
 
@@ -102,30 +92,30 @@ const UsufructCalculator = () => {
               <Calculator className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Parâmetros</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Valor do imóvel e tipo de usufruto</p>
+              <h2 className="text-sm font-semibold text-foreground">{t("calculators:usufruct.parameters")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:usufruct.parametersDesc")}</p>
             </div>
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="value">Valor do Imóvel (R$)</Label>
+              <Label htmlFor="value">{t("calculators:usufruct.propertyValue")}</Label>
               <CurrencyInput id="value" value={propertyValue} onChange={setPropertyValue} placeholder="500.000,00" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="type">Tipo de Usufruto</Label>
+              <Label htmlFor="type">{t("calculators:usufruct.usufructType")}</Label>
               <Select value={usufructType} onValueChange={(v: any) => setUsufructType(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="lifelong">Vitalício</SelectItem>
-                  <SelectItem value="temporary">Temporário</SelectItem>
+                  <SelectItem value="lifelong">{t("calculators:usufruct.lifelong")}</SelectItem>
+                  <SelectItem value="temporary">{t("calculators:usufruct.temporary")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="age">
-                {usufructType === "lifelong" ? "Idade do Usufrutuário" : "Anos de Duração"}
+                {usufructType === "lifelong" ? t("calculators:usufruct.ageLabel") : t("calculators:usufruct.durationLabel")}
               </Label>
               <Input
                 id="age"
@@ -135,12 +125,12 @@ const UsufructCalculator = () => {
                 onChange={(e) => setUsufructAge(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                {usufructType === "lifelong" ? "Idade na data do cálculo" : "Duração em anos (máx. 30%)"}
+                {usufructType === "lifelong" ? t("calculators:usufruct.ageHint") : t("calculators:usufruct.durationHint")}
               </p>
             </div>
             <Button onClick={calculate} className="w-full" size="lg">
               <Calculator className="h-4 w-4 mr-2" />
-              Calcular
+              {t("calculators:usufruct.calculate")}
             </Button>
           </div>
         </div>
@@ -151,34 +141,34 @@ const UsufructCalculator = () => {
               <Home className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Resultados</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Usufruto e nua propriedade</p>
+              <h2 className="text-sm font-semibold text-foreground">{t("calculators:usufruct.resultsTitle")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:usufruct.resultsDesc")}</p>
             </div>
           </div>
           {results ? (
             <div className="space-y-6">
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                <div className="text-sm text-muted-foreground mb-1">Valor do Usufruto</div>
+                <div className="text-sm text-muted-foreground mb-1">{t("calculators:usufruct.usufructValue")}</div>
                 <div className="text-3xl font-bold text-primary">
                   {formatCurrency(results.usufructValue)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
-                  {results.usufructPercentage}% do valor do imóvel
+                  {t("calculators:usufruct.ofPropertyValue", { percentage: results.usufructPercentage })}
                 </div>
               </div>
 
               <div className="p-4 rounded-lg bg-success/10 border border-success/20">
-                <div className="text-sm text-muted-foreground mb-1">Nua Propriedade</div>
+                <div className="text-sm text-muted-foreground mb-1">{t("calculators:usufruct.bareOwnership")}</div>
                 <div className="text-3xl font-bold text-success">
                   {formatCurrency(results.bareOwnershipValue)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
-                  {100 - results.usufructPercentage}% do valor do imóvel
+                  {t("calculators:usufruct.ofPropertyValue", { percentage: 100 - results.usufructPercentage })}
                 </div>
               </div>
 
               <div className="p-3 rounded-lg bg-muted">
-                <div className="text-xs text-muted-foreground">Valor Total do Imóvel</div>
+                <div className="text-xs text-muted-foreground">{t("calculators:usufruct.totalPropertyValue")}</div>
                 <div className="text-lg font-semibold">
                   {formatCurrency(results.propertyValue)}
                 </div>
@@ -187,15 +177,14 @@ const UsufructCalculator = () => {
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border bg-muted/20 min-h-[140px]">
               <Home className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <p className="text-sm font-medium text-foreground">Nenhum resultado ainda</p>
-              <p className="text-xs text-muted-foreground mt-1">Preencha os parâmetros e clique em &quot;Calcular&quot;</p>
+              <p className="text-sm font-medium text-foreground">{t("calculators:usufruct.noResult")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("calculators:usufruct.noResultHint")}</p>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
 export default UsufructCalculator;
-

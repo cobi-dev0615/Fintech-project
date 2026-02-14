@@ -6,9 +6,11 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useTranslation } from "react-i18next";
 
 const FIRECalculator = () => {
   const { formatCurrency } = useCurrency();
+  const { t } = useTranslation(["calculators", "common"]);
   const [currentSavings, setCurrentSavings] = useState<number | "">("");
   const [monthlyContribution, setMonthlyContribution] = useState<number | "">("");
   const [annualReturn, setAnnualReturn] = useState("");
@@ -34,86 +36,80 @@ const FIRECalculator = () => {
   };
 
   return (
-    <div className="space-y-6 min-w-0">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Calculadora FIRE</h1>
-        <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
-          Financial Independence, Retire Early — simule sua independência financeira
-        </p>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0")}>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+            <Calculator className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">{t("calculators:fire.parameters")}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:fire.parametersDesc")}</p>
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>{t("calculators:fire.currentSavings")}</Label>
+            <CurrencyInput value={currentSavings} onChange={setCurrentSavings} placeholder="0,00" />
+          </div>
+          <div className="space-y-2">
+            <Label>{t("calculators:fire.monthlyContribution")}</Label>
+            <CurrencyInput value={monthlyContribution} onChange={setMonthlyContribution} placeholder="0,00" />
+          </div>
+          <div className="space-y-2">
+            <Label>{t("calculators:fire.annualReturn")}</Label>
+            <Input
+              type="number"
+              min={0}
+              step={0.1}
+              value={annualReturn}
+              onChange={(e) => setAnnualReturn(e.target.value)}
+              placeholder="Ex: 8"
+            />
+            <p className="text-xs text-muted-foreground">{t("calculators:fire.annualReturnHint")}</p>
+          </div>
+          <div className="space-y-2">
+            <Label>{t("calculators:fire.monthlyExpenses")}</Label>
+            <CurrencyInput value={monthlyExpenses} onChange={setMonthlyExpenses} placeholder="0,00" />
+            <p className="text-xs text-muted-foreground">{t("calculators:fire.monthlyExpensesHint")}</p>
+          </div>
+        </div>
+        <Button onClick={calculate} className="mt-5 w-full sm:w-auto" size="lg">
+          <Calculator className="h-4 w-4 mr-2" />
+          {t("calculators:fire.calculate")}
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0")}>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-              <Calculator className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Parâmetros</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Preencha patrimônio, aportes e gastos</p>
-            </div>
+      <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[200px] flex flex-col min-w-0")}>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+            <Target className="h-5 w-5" />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Patrimônio atual (R$)</Label>
-              <CurrencyInput value={currentSavings} onChange={setCurrentSavings} placeholder="0,00" />
-            </div>
-            <div className="space-y-2">
-              <Label>Aplicação mensal (R$)</Label>
-              <CurrencyInput value={monthlyContribution} onChange={setMonthlyContribution} placeholder="0,00" />
-            </div>
-            <div className="space-y-2">
-              <Label>Rentabilidade anual (%)</Label>
-              <Input
-                type="number"
-                min={0}
-                step={0.1}
-                value={annualReturn}
-                onChange={(e) => setAnnualReturn(e.target.value)}
-                placeholder="Ex: 8"
-              />
-              <p className="text-xs text-muted-foreground">Ex.: 8 para 8% ao ano</p>
-            </div>
-            <div className="space-y-2">
-              <Label>Gastos mensais (R$)</Label>
-              <CurrencyInput value={monthlyExpenses} onChange={setMonthlyExpenses} placeholder="0,00" />
-              <p className="text-xs text-muted-foreground">Meta: 25× gastos anuais</p>
-            </div>
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">{t("calculators:fire.resultTitle")}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:fire.resultDesc")}</p>
           </div>
-          <Button onClick={calculate} className="mt-5 w-full sm:w-auto" size="lg">
-            <Calculator className="h-4 w-4 mr-2" />
-            Calcular
-          </Button>
         </div>
-
-        <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[200px] flex flex-col min-w-0")}>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
-              <Target className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Resultado</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Tempo e patrimônio para FIRE</p>
-            </div>
+        {result ? (
+          <div className="flex flex-col gap-3 flex-1">
+            <p className="text-sm text-muted-foreground">{t("calculators:fire.timeToFire")}</p>
+            <p className="text-2xl font-bold text-foreground">
+              {t("calculators:fire.yearsAndMonths", {
+                years: Math.floor(result.months / 12),
+                months: result.months % 12,
+              })}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t("calculators:fire.projectedWealth")} {formatCurrency(result.amount)}
+            </p>
           </div>
-          {result ? (
-            <div className="flex flex-col gap-3 flex-1">
-              <p className="text-sm text-muted-foreground">Tempo para atingir 25× seus gastos anuais:</p>
-              <p className="text-2xl font-bold text-foreground">
-                {Math.floor(result.months / 12)} anos e {result.months % 12} meses
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Patrimônio projetado: {formatCurrency(result.amount)}
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border bg-muted/20 min-h-[140px]">
-              <Target className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <p className="text-sm font-medium text-foreground">Nenhum resultado ainda</p>
-              <p className="text-xs text-muted-foreground mt-1">Preencha os parâmetros e clique em &quot;Calcular&quot;</p>
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border bg-muted/20 min-h-[140px]">
+            <Target className="h-12 w-12 text-muted-foreground/50 mb-3" />
+            <p className="text-sm font-medium text-foreground">{t("calculators:fire.noResult")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("calculators:fire.noResultHint")}</p>
+          </div>
+        )}
       </div>
     </div>
   );

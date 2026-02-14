@@ -16,9 +16,9 @@ const ProfitabilitySimulator = () => {
   const { t } = useTranslation(['calculators', 'common']);
   const [initialAmount, setInitialAmount] = useState<number | "">("");
   const [scenarios, setScenarios] = useState([
-    { name: "Conservador", rate: "6", color: "#10b981" },
-    { name: "Moderado", rate: "10", color: "#3b82f6" },
-    { name: "Arrojado", rate: "15", color: "#8b5cf6" },
+    { name: t("calculators:profitability.conservative"), rate: "6", color: "#10b981" },
+    { name: t("calculators:profitability.moderate"), rate: "10", color: "#3b82f6" },
+    { name: t("calculators:profitability.aggressive"), rate: "15", color: "#8b5cf6" },
   ]);
   const [timePeriod, setTimePeriod] = useState("10");
   const [results, setResults] = useState<any>(null);
@@ -61,19 +61,11 @@ const ProfitabilitySimulator = () => {
   };
 
   return (
-    <div className="space-y-6 min-w-0">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Simulador de Rentabilidade</h1>
-        <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
-          Compare diferentes cenários de investimento e rentabilidade
-        </p>
-      </div>
-
+    <>
       <Alert className="rounded-xl border border-primary/30 bg-primary/5">
         <Info className="h-4 w-4" />
         <AlertDescription className="text-sm">
-          Compare diferentes perfis de investimento (Conservador, Moderado, Arrojado) e veja como
-          seu patrimônio pode crescer em cada cenário.
+          {t("calculators:profitability.info")}
         </AlertDescription>
       </Alert>
 
@@ -84,17 +76,17 @@ const ProfitabilitySimulator = () => {
               <Calculator className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Parâmetros</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Valor inicial, período e cenários</p>
+              <h2 className="text-sm font-semibold text-foreground">{t("calculators:profitability.parameters")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:profitability.parametersDesc")}</p>
             </div>
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="amount">Valor Inicial (R$)</Label>
+              <Label htmlFor="amount">{t("calculators:profitability.initialAmount")}</Label>
               <CurrencyInput id="amount" value={initialAmount} onChange={setInitialAmount} placeholder="10.000,00" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="period">Período (anos)</Label>
+              <Label htmlFor="period">{t("calculators:profitability.period")}</Label>
               <Input
                 id="period"
                 type="number"
@@ -103,10 +95,10 @@ const ProfitabilitySimulator = () => {
                 value={timePeriod}
                 onChange={(e) => setTimePeriod(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground/90">Tempo de aplicação em anos</p>
+              <p className="text-xs text-muted-foreground/90">{t("calculators:profitability.periodHint")}</p>
             </div>
             <div className="space-y-3">
-              <Label>Cenários de Rentabilidade (% ao ano)</Label>
+              <Label>{t("calculators:profitability.scenariosLabel")}</Label>
               {scenarios.map((scenario, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <Input
@@ -136,7 +128,7 @@ const ProfitabilitySimulator = () => {
             </div>
             <Button onClick={calculate} className="w-full" size="lg">
               <Calculator className="h-4 w-4 mr-2" />
-              Simular
+              {t("calculators:profitability.simulate")}
             </Button>
           </div>
         </div>
@@ -147,8 +139,8 @@ const ProfitabilitySimulator = () => {
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Comparação de Cenários</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Valor final e lucro por perfil</p>
+              <h2 className="text-sm font-semibold text-foreground">{t("calculators:profitability.comparisonTitle")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:profitability.comparisonDesc")}</p>
             </div>
           </div>
           {results ? (
@@ -159,7 +151,7 @@ const ProfitabilitySimulator = () => {
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <div className="font-semibold text-foreground">{scenario.name}</div>
-                        <div className="text-xs text-muted-foreground">{scenario.rate}% ao ano</div>
+                        <div className="text-xs text-muted-foreground">{t("calculators:profitability.perYear", { rate: scenario.rate })}</div>
                       </div>
                       <div className="text-right">
                         <div className="text-lg font-bold" style={{ color: scenario.color }}>
@@ -171,14 +163,14 @@ const ProfitabilitySimulator = () => {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Lucro: {formatCurrency(scenario.profit)}
+                      {t("calculators:profitability.profit")} {formatCurrency(scenario.profit)}
                     </div>
                   </div>
                 ))}
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold mb-4">Comparação Visual</h3>
+                <h3 className="text-sm font-semibold mb-4">{t("calculators:profitability.visualComparison")}</h3>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={results.comparison}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -186,7 +178,7 @@ const ProfitabilitySimulator = () => {
                     <YAxis />
                     <Tooltip formatter={(value: number) => formatCurrency(value)} />
                     <Legend />
-                    <Bar dataKey="finalValue" fill="#3b82f6" name="Valor Final" />
+                    <Bar dataKey="finalValue" fill="#3b82f6" name={t("calculators:profitability.finalValue")} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -194,15 +186,14 @@ const ProfitabilitySimulator = () => {
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border bg-muted/20 min-h-[140px]">
               <TrendingUp className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <p className="text-sm font-medium text-foreground">Nenhum resultado ainda</p>
-              <p className="text-xs text-muted-foreground mt-1">Preencha os parâmetros e clique em &quot;Simular&quot;</p>
+              <p className="text-sm font-medium text-foreground">{t("calculators:profitability.noResult")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("calculators:profitability.noResultHint")}</p>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
 export default ProfitabilitySimulator;
-

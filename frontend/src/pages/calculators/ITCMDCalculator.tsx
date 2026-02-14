@@ -58,19 +58,11 @@ const ITCMDCalculator = () => {
   };
 
   return (
-    <div className="space-y-6 min-w-0">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Calculadora ITCMD</h1>
-        <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
-          Calcule o Imposto de Transmissão Causa Mortis e Doação
-        </p>
-      </div>
-
+    <>
       <Alert className="rounded-xl border border-primary/30 bg-primary/5">
         <Info className="h-4 w-4" />
         <AlertDescription className="text-sm">
-          ITCMD (Imposto de Transmissão Causa Mortis e Doação) é um imposto estadual cobrado sobre
-          heranças e doações. As alíquotas variam por estado e podem ter faixas de valor.
+          {t("calculators:itcmd.info")}
         </AlertDescription>
       </Alert>
 
@@ -81,29 +73,29 @@ const ITCMDCalculator = () => {
               <Calculator className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Parâmetros</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Valor do bem, tipo e estado</p>
+              <h2 className="text-sm font-semibold text-foreground">{t("calculators:itcmd.parameters")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:itcmd.parametersDesc")}</p>
             </div>
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="value">Valor do Bem (R$)</Label>
+              <Label htmlFor="value">{t("calculators:itcmd.propertyValue")}</Label>
               <CurrencyInput id="value" value={propertyValue} onChange={setPropertyValue} placeholder="500.000,00" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="type">Tipo de Transmissão</Label>
+              <Label htmlFor="type">{t("calculators:itcmd.transactionType")}</Label>
               <Select value={transactionType} onValueChange={(v: any) => setTransactionType(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="inheritance">Causa Mortis (Herança)</SelectItem>
-                  <SelectItem value="donation">Doação</SelectItem>
+                  <SelectItem value="inheritance">{t("calculators:itcmd.inheritance")}</SelectItem>
+                  <SelectItem value="donation">{t("calculators:itcmd.donation")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="state">Estado</Label>
+              <Label htmlFor="state">{t("calculators:itcmd.state")}</Label>
               <Select value={state} onValueChange={setState}>
                 <SelectTrigger>
                   <SelectValue />
@@ -114,11 +106,11 @@ const ITCMDCalculator = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Alíquotas variam por UF</p>
+              <p className="text-xs text-muted-foreground">{t("calculators:itcmd.stateHint")}</p>
             </div>
             <Button onClick={calculate} className="w-full" size="lg">
               <Calculator className="h-4 w-4 mr-2" />
-              Calcular
+              {t("calculators:itcmd.calculate")}
             </Button>
           </div>
         </div>
@@ -129,53 +121,52 @@ const ITCMDCalculator = () => {
               <Coins className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Resultados</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Imposto e alíquota aplicada</p>
+              <h2 className="text-sm font-semibold text-foreground">{t("calculators:itcmd.resultsTitle")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:itcmd.resultsDesc")}</p>
             </div>
           </div>
           {results ? (
             <div className="space-y-6">
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                <div className="text-sm text-muted-foreground mb-1">Imposto ITCMD</div>
+                <div className="text-sm text-muted-foreground mb-1">{t("calculators:itcmd.taxLabel")}</div>
                 <div className="text-3xl font-bold text-primary">
                   {formatCurrency(results.tax)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
-                  Alíquota: {results.rate}%
+                  {t("calculators:itcmd.rate", { rate: results.rate })}
                 </div>
               </div>
 
               <div className="p-3 rounded-lg bg-muted">
-                <div className="text-xs text-muted-foreground">Valor do Bem</div>
+                <div className="text-xs text-muted-foreground">{t("calculators:itcmd.assetValue")}</div>
                 <div className="text-lg font-semibold">
                   {formatCurrency(results.propertyValue)}
                 </div>
               </div>
 
               <div className="p-3 rounded-lg bg-muted">
-                <div className="text-xs text-muted-foreground">Estado</div>
+                <div className="text-xs text-muted-foreground">{t("calculators:itcmd.stateLabel")}</div>
                 <div className="text-lg font-semibold">{results.state}</div>
               </div>
 
               <div className="p-3 rounded-lg bg-muted">
-                <div className="text-xs text-muted-foreground">Tipo</div>
+                <div className="text-xs text-muted-foreground">{t("calculators:itcmd.typeLabel")}</div>
                 <div className="text-lg font-semibold">
-                  {results.transactionType === "inheritance" ? "Herança" : "Doação"}
+                  {results.transactionType === "inheritance" ? t("calculators:itcmd.inheritanceLabel") : t("calculators:itcmd.donationLabel")}
                 </div>
               </div>
             </div>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border bg-muted/20 min-h-[140px]">
               <Coins className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <p className="text-sm font-medium text-foreground">Nenhum resultado ainda</p>
-              <p className="text-xs text-muted-foreground mt-1">Preencha os parâmetros e clique em &quot;Calcular&quot;</p>
+              <p className="text-sm font-medium text-foreground">{t("calculators:itcmd.noResult")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("calculators:itcmd.noResultHint")}</p>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
 export default ITCMDCalculator;
-
