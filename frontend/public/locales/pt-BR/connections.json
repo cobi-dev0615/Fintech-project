@@ -29,6 +29,16 @@
     "bank": "Banco",
     "broker": "Corretora",
     "account": "Conta",
+    "kpi": {
+      "connectedInstitutions": "Instituições Conectadas",
+      "syncedAccounts": "Contas Sincronizadas",
+      "totalBalance": "Saldo Total",
+      "needsAttention": "Requer Atenção",
+      "active": "{{count}} ativas",
+      "synced": "{{count}} sincronizadas",
+      "allAccounts": "Todas as contas",
+      "requireAction": "{{count}} requerem ação"
+    },
     "status": {
       "connected": "Conectado",
       "pending": "Pendente",

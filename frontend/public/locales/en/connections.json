@@ -29,6 +29,16 @@
     "bank": "Bank",
     "broker": "Broker",
     "account": "Account",
+    "kpi": {
+      "connectedInstitutions": "Connected Institutions",
+      "syncedAccounts": "Synced Accounts",
+      "totalBalance": "Total Balance",
+      "needsAttention": "Needs Attention",
+      "active": "{{count}} active",
+      "synced": "{{count}} synced",
+      "allAccounts": "All accounts",
+      "requireAction": "{{count}} require action"
+    },
     "status": {
       "connected": "Connected",
       "pending": "Pending",
