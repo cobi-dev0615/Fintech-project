@@ -1,11 +1,40 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Send, Trash2, ChevronsUpDown, Loader2, ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle, Mail, MailPlus, History, Lightbulb } from "lucide-react";
+import {
+  Send,
+  Trash2,
+  ChevronsUpDown,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Mail,
+  GripVertical,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +63,10 @@ import { useToast } from "@/hooks/use-toast";
 import { cn, getToastVariantForApiError } from "@/lib/utils";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { useTranslation } from "react-i18next";
+import ChartCard from "@/components/dashboard/ChartCard";
+import { useAuth } from "@/hooks/useAuth";
+
+// --- Types ---
 
 interface Invitation {
   id: string;
@@ -50,8 +83,67 @@ interface AvailableCustomer {
   name: string | null;
 }
 
+interface InvKpiDef {
+  title: string;
+  value: string;
+  changeType: "positive" | "negative" | "neutral";
+  icon: LucideIcon;
+  watermark: LucideIcon;
+}
+
+// --- Inline SortableKpiCard ---
+
+function SortableInvKpiCard({ id, kpi }: { id: string; kpi: InvKpiDef }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group ${isDragging ? "z-50 opacity-50 scale-105" : ""}`}
+    >
+      <button
+        type="button"
+        className="drag-handle absolute top-3 right-3 z-10 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground/80 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none rounded-md p-1 touch-none"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="kpi-card relative overflow-hidden h-full">
+        <kpi.watermark className="absolute -bottom-3 -right-3 h-24 w-24 text-muted-foreground/[0.06] pointer-events-none" />
+
+        <div className="flex items-center gap-2.5 mb-3 relative z-10">
+          <kpi.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-xs font-medium text-muted-foreground truncate">
+            {kpi.title}
+          </span>
+        </div>
+
+        <div className="relative z-10">
+          <div className="text-2xl sm:text-[28px] font-bold text-foreground mb-1 tabular-nums tracking-tight leading-none">
+            {kpi.value}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Constants ---
+
+const INV_KPI_IDS = ["inv-total", "inv-pending", "inv-accepted", "inv-expired"] as const;
+
+// --- Component ---
+
 const SendInvitations = () => {
   const { t } = useTranslation(['consultant', 'common']);
+  const { user } = useAuth();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
@@ -67,6 +159,88 @@ const SendInvitations = () => {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; email: string } | null>(null);
   const invitationsPerPage = 5;
   const { toast } = useToast();
+
+  // --- KPI DnD ---
+
+  const kpiStorageKey = `invitations-kpi-order-${user?.id || "guest"}`;
+  const [kpiOrder, setKpiOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(kpiStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as string[];
+        if (
+          parsed.length === INV_KPI_IDS.length &&
+          INV_KPI_IDS.every((id) => parsed.includes(id))
+        ) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return [...INV_KPI_IDS];
+  });
+
+  const kpiSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleKpiDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setKpiOrder((prev) => {
+      const oldIdx = prev.indexOf(active.id as string);
+      const newIdx = prev.indexOf(over.id as string);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(oldIdx, 1);
+      next.splice(newIdx, 0, moved);
+      localStorage.setItem(kpiStorageKey, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // --- KPI Data ---
+
+  const totalSent = invitations.length;
+  const pendingCount = invitations.filter((i) => i.status === "pending" || i.status === "sent").length;
+  const acceptedCount = invitations.filter((i) => i.status === "accepted").length;
+  const expiredCount = invitations.filter((i) => i.status === "expired").length;
+
+  const kpiMap: Record<string, InvKpiDef> = {
+    "inv-total": {
+      title: t("consultant:invitations.kpis.totalSent"),
+      value: totalSent.toString(),
+      changeType: "neutral",
+      icon: Send,
+      watermark: Send,
+    },
+    "inv-pending": {
+      title: t("consultant:invitations.kpis.pending"),
+      value: pendingCount.toString(),
+      changeType: "neutral",
+      icon: Clock,
+      watermark: Clock,
+    },
+    "inv-accepted": {
+      title: t("consultant:invitations.kpis.accepted"),
+      value: acceptedCount.toString(),
+      changeType: "neutral",
+      icon: CheckCircle2,
+      watermark: CheckCircle2,
+    },
+    "inv-expired": {
+      title: t("consultant:invitations.kpis.expired"),
+      value: expiredCount.toString(),
+      changeType: "neutral",
+      icon: XCircle,
+      watermark: XCircle,
+    },
+  };
+
+  // --- Data Fetching ---
 
   const fetchAvailableCustomers = useCallback(async (search?: string) => {
     try {
@@ -127,6 +301,8 @@ const SendInvitations = () => {
     }
   }, [invitations.length, currentPage, invitationsPerPage]);
 
+  // --- Handlers ---
+
   const handleSendInvitation = async () => {
     if (!email.trim()) {
       toast({
@@ -163,7 +339,7 @@ const SendInvitations = () => {
 
   const handleDeleteInvitation = async () => {
     if (!deleteTarget) return;
-    const { id: invitationId, email } = deleteTarget;
+    const { id: invitationId } = deleteTarget;
     try {
       setDeleting(invitationId);
       await consultantApi.deleteInvitation(invitationId);
@@ -226,30 +402,27 @@ const SendInvitations = () => {
     }
   };
 
+  // --- Render ---
+
   return (
     <div className="space-y-6 min-w-0">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('consultant:invitations.title')}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
-            {t('consultant:invitations.subtitle')}
-          </p>
-        </div>
-      </div>
+      {/* KPI Grid */}
+      <DndContext sensors={kpiSensors} collisionDetection={closestCenter} onDragEnd={handleKpiDragEnd}>
+        <SortableContext items={kpiOrder} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {kpiOrder.map((id) => (
+              <SortableInvKpiCard key={id} id={id} kpi={kpiMap[id]} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Send Invitation Form */}
-        <div className="rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <MailPlus className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">{t('consultant:invitations.form.title')}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('consultant:invitations.form.description')}</p>
-            </div>
-          </div>
+        <ChartCard
+          title={t('consultant:invitations.form.title')}
+          subtitle={t('consultant:invitations.form.description')}
+        >
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="invite-email">{t('consultant:invitations.form.clientEmail')}</Label>
@@ -344,24 +517,18 @@ const SendInvitations = () => {
               {sending ? t('consultant:invitations.form.sending') : t('consultant:invitations.form.sendButton')}
             </Button>
           </div>
-        </div>
+        </ChartCard>
 
         {/* Invitations History */}
-        <div className="rounded-xl border-2 border-violet-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow min-w-0">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500">
-              <History className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">{t('consultant:invitations.history.title')}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('consultant:invitations.history.subtitle')}</p>
-            </div>
-          </div>
+        <ChartCard
+          title={t('consultant:invitations.history.title')}
+          subtitle={t('consultant:invitations.history.subtitle')}
+        >
           <div className="space-y-3">
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                  <div key={i} className="h-24 w-full rounded-lg bg-muted animate-pulse" />
                 ))}
               </div>
             ) : invitations.length === 0 ? (
@@ -436,17 +603,13 @@ const SendInvitations = () => {
               </div>
             </div>
           )}
-        </div>
+        </ChartCard>
       </div>
 
       {/* Tips */}
-      <div className="rounded-xl border-2 border-amber-500/50 bg-card p-5 shadow-sm min-w-0">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <Lightbulb className="h-5 w-5" />
-          </div>
-          <h2 className="text-sm font-semibold text-foreground">{t('consultant:invitations.tips.title')}</h2>
-        </div>
+      <ChartCard
+        title={t('consultant:invitations.tips.title')}
+      >
         <div className="space-y-4 text-sm text-muted-foreground">
           <div className="flex items-start gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
@@ -463,7 +626,7 @@ const SendInvitations = () => {
             </div>
           </div>
         </div>
-      </div>
+      </ChartCard>
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
@@ -494,4 +657,3 @@ const SendInvitations = () => {
 };
 
 export default SendInvitations;
-

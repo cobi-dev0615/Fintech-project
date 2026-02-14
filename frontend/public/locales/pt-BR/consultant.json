@@ -233,6 +233,12 @@
   "invitations": {
     "title": "Enviar Convites",
     "subtitle": "Convide clientes para conectar-se com você na plataforma zurT",
+    "kpis": {
+      "totalSent": "Total Enviados",
+      "pending": "Pendentes",
+      "accepted": "Aceitos",
+      "expired": "Expirados"
+    },
     "form": {
       "title": "Enviar Novo Convite",
       "description": "Preencha o email e opcionalmente personalize a mensagem",
