@@ -314,6 +314,12 @@
   "pipeline": {
     "title": "Pipeline de Prospecção",
     "subtitle": "Gerencie seus prospectos por estágio e avance oportunidades",
+    "kpis": {
+      "totalProspects": "Total de Prospectos",
+      "activeLeads": "Leads Ativos",
+      "won": "Ganhos",
+      "lost": "Perdidos"
+    },
     "newProspect": "Novo Prospecto",
     "quickActions": "Ações rápidas",
     "loadError": "Erro ao carregar pipeline",

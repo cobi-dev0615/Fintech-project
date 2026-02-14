@@ -1,6 +1,39 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Phone, Mail, Edit, Trash2, ChevronLeft, ChevronRight, UserPlus, GitBranch } from "lucide-react";
+import {
+  Plus,
+  Phone,
+  Mail,
+  Edit,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  UserPlus,
+  GitBranch,
+  Users,
+  Trophy,
+  TrendingDown,
+  TrendingUp,
+  GripVertical,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,9 +71,12 @@ import {
 } from "@/components/ui/select";
 import { consultantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import ChartCard from "@/components/dashboard/ChartCard";
+import { useAuth } from "@/hooks/useAuth";
+
+// --- Types ---
 
 interface Prospect {
   id: string;
@@ -51,16 +87,74 @@ interface Prospect {
   notes?: string;
 }
 
+interface PipelineKpiDef {
+  title: string;
+  value: string;
+  changeType: "positive" | "negative" | "neutral";
+  icon: LucideIcon;
+  watermark: LucideIcon;
+}
+
+// --- Inline SortableKpiCard ---
+
+function SortablePipelineKpiCard({ id, kpi }: { id: string; kpi: PipelineKpiDef }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group ${isDragging ? "z-50 opacity-50 scale-105" : ""}`}
+    >
+      <button
+        type="button"
+        className="drag-handle absolute top-3 right-3 z-10 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground/80 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none rounded-md p-1 touch-none"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="kpi-card relative overflow-hidden h-full">
+        <kpi.watermark className="absolute -bottom-3 -right-3 h-24 w-24 text-muted-foreground/[0.06] pointer-events-none" />
+
+        <div className="flex items-center gap-2.5 mb-3 relative z-10">
+          <kpi.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-xs font-medium text-muted-foreground truncate">
+            {kpi.title}
+          </span>
+        </div>
+
+        <div className="relative z-10">
+          <div className="text-2xl sm:text-[28px] font-bold text-foreground mb-1 tabular-nums tracking-tight leading-none">
+            {kpi.value}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Constants ---
+
+const PIPELINE_KPI_IDS = ["pipe-total", "pipe-active", "pipe-won", "pipe-lost"] as const;
+
 const stageOrder = ['lead', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
 
-const stageStyles: Record<string, { border: string; icon: string }> = {
-  lead: { border: 'border-blue-500/70', icon: 'text-blue-500' },
-  contacted: { border: 'border-violet-500/70', icon: 'text-violet-500' },
-  meeting: { border: 'border-emerald-500/70', icon: 'text-emerald-500' },
-  proposal: { border: 'border-amber-500/70', icon: 'text-amber-500' },
-  won: { border: 'border-green-500/70', icon: 'text-green-500' },
-  lost: { border: 'border-muted-foreground/60', icon: 'text-muted-foreground' },
+const stageStyles: Record<string, { bg: string; icon: string; badge: string }> = {
+  lead: { bg: "bg-blue-500/5", icon: "text-blue-500", badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  contacted: { bg: "bg-violet-500/5", icon: "text-violet-500", badge: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+  meeting: { bg: "bg-emerald-500/5", icon: "text-emerald-500", badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+  proposal: { bg: "bg-amber-500/5", icon: "text-amber-500", badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  won: { bg: "bg-green-500/5", icon: "text-green-500", badge: "bg-green-500/10 text-green-600 dark:text-green-400" },
+  lost: { bg: "bg-muted/20", icon: "text-muted-foreground", badge: "bg-muted text-muted-foreground" },
 };
+
+// --- Helpers ---
 
 /** Brazilian phone: 10 digits (landline) or 11 digits (mobile 9xxxxxxxx). Optional leading 55. */
 function validatePhone(value: string): boolean {
@@ -78,12 +172,14 @@ function formatPhoneInput(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+// --- Component ---
+
 const Pipeline = () => {
   const { t } = useTranslation(['consultant', 'common']);
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Helper function for stage labels
   const getStageLabel = (stage: string) => {
     return t(`consultant:stages.${stage}`, { defaultValue: stage });
   };
@@ -110,12 +206,93 @@ const Pipeline = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['consultant', 'pipeline'],
     queryFn: () => consultantApi.getPipeline(),
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const prospects = data?.prospects || [];
-  const loading = isLoading;
+
+  // --- KPI DnD ---
+
+  const kpiStorageKey = `pipeline-kpi-order-${user?.id || "guest"}`;
+  const [kpiOrder, setKpiOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(kpiStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as string[];
+        if (
+          parsed.length === PIPELINE_KPI_IDS.length &&
+          PIPELINE_KPI_IDS.every((id) => parsed.includes(id))
+        ) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return [...PIPELINE_KPI_IDS];
+  });
+
+  const kpiSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleKpiDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setKpiOrder((prev) => {
+      const oldIdx = prev.indexOf(active.id as string);
+      const newIdx = prev.indexOf(over.id as string);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(oldIdx, 1);
+      next.splice(newIdx, 0, moved);
+      localStorage.setItem(kpiStorageKey, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // --- KPI Data ---
+
+  const totalProspects = prospects.length;
+  const activeLeads = prospects.filter((p) => !['won', 'lost'].includes(p.stage)).length;
+  const wonCount = prospects.filter((p) => p.stage === 'won').length;
+  const lostCount = prospects.filter((p) => p.stage === 'lost').length;
+
+  const kpiMap: Record<string, PipelineKpiDef> = {
+    "pipe-total": {
+      title: t("consultant:pipeline.kpis.totalProspects"),
+      value: totalProspects.toString(),
+      changeType: "neutral",
+      icon: GitBranch,
+      watermark: GitBranch,
+    },
+    "pipe-active": {
+      title: t("consultant:pipeline.kpis.activeLeads"),
+      value: activeLeads.toString(),
+      changeType: "neutral",
+      icon: Users,
+      watermark: Users,
+    },
+    "pipe-won": {
+      title: t("consultant:pipeline.kpis.won"),
+      value: wonCount.toString(),
+      changeType: "neutral",
+      icon: Trophy,
+      watermark: Trophy,
+    },
+    "pipe-lost": {
+      title: t("consultant:pipeline.kpis.lost"),
+      value: lostCount.toString(),
+      changeType: "neutral",
+      icon: TrendingDown,
+      watermark: TrendingDown,
+    },
+  };
+
+  // --- Form Handlers ---
 
   const resetForm = () => {
     setFormData({
@@ -142,7 +319,6 @@ const Pipeline = () => {
     setIsCreateDialogOpen(open);
   };
 
-  // Ensure Select closes when dialog closes
   useEffect(() => {
     if (!isCreateDialogOpen) {
       setCreateSelectOpen(false);
@@ -169,7 +345,6 @@ const Pipeline = () => {
     setIsEditDialogOpen(open);
   };
 
-  // Ensure Select closes when dialog closes
   useEffect(() => {
     if (!isEditDialogOpen) {
       setEditSelectOpen(false);
@@ -283,7 +458,6 @@ const Pipeline = () => {
     if (!selectedProspect) return;
 
     setDeletingId(selectedProspect.id);
-    // Optimistic update: move to Perdido
     queryClient.setQueryData(['consultant', 'pipeline'], (old: any) => ({
       ...old,
       prospects: old.prospects.map((p: Prospect) =>
@@ -339,7 +513,6 @@ const Pipeline = () => {
       return;
     }
 
-    // Optimistic update
     queryClient.setQueryData(['consultant', 'pipeline'], (old: any) => ({
       ...old,
       prospects: old.prospects.map((p: Prospect) =>
@@ -365,9 +538,11 @@ const Pipeline = () => {
     return prospects.filter((p) => p.stage === stage);
   };
 
+  // --- Render ---
+
   return (
-    <div className="w-full min-w-0 overflow-x-hidden space-y-4 sm:space-y-6 relative">
-      {/* Mobile-only: fixed icon buttons on the right at ~1/3 viewport height */}
+    <div className="space-y-6 min-w-0">
+      {/* Mobile FAB */}
       <div
         className="fixed right-3 top-[33vh] z-50 flex flex-col gap-2 md:hidden"
         style={{ transform: "translateY(-50%)" }}
@@ -384,66 +559,77 @@ const Pipeline = () => {
         </Button>
       </div>
 
-      {/* Page Header - compact on mobile; hide main CTA on mobile (use fixed icon instead) */}
-      <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('consultant:pipeline.title')}</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-            {t('consultant:pipeline.subtitle')}
-          </p>
-        </div>
-        <Button onClick={handleOpenCreateDialog} size="sm" className="hidden md:inline-flex shrink-0">
-          <Plus className="h-4 w-4 mr-2" />
-          {t('consultant:pipeline.newProspect')}
-        </Button>
-      </div>
+      {/* KPI Grid */}
+      <DndContext sensors={kpiSensors} collisionDetection={closestCenter} onDragEnd={handleKpiDragEnd}>
+        <SortableContext items={kpiOrder} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {kpiOrder.map((id) => (
+              <SortablePipelineKpiCard key={id} id={id} kpi={kpiMap[id]} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
-      {loading && !prospects.length ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-[220px] sm:h-72 md:h-96" />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="rounded-xl border border-destructive/50 bg-destructive/5 p-6 text-center">
-          <GitBranch className="h-12 w-12 text-destructive/70 mx-auto mb-3" />
-          <p className="text-sm font-medium text-foreground">{t('consultant:pipeline.loadError')}</p>
-          <p className="text-xs text-muted-foreground mt-1 px-2">{(error as any)?.error || t('consultant:pipeline.tryAgain')}</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4 min-w-0">
-          {stageOrder.map((stage) => {
-            const stageProspects = getProspectsByStage(stage);
-            const style = stageStyles[stage] || stageStyles.lead;
-            return (
-              <div
-                key={stage}
-                className={cn(
-                  "flex flex-col rounded-xl border-2 bg-card shadow-sm min-w-0 overflow-hidden transition-shadow hover:shadow-md min-h-[280px] sm:min-h-[320px] max-h-[72vh] sm:max-h-[75vh] md:max-h-[calc(100vh-200px)]",
-                  style.border
-                )}
-              >
-                <div className="flex items-center justify-between gap-2 p-3 sm:p-4 border-b border-border shrink-0">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <GitBranch className={cn("h-4 w-4 shrink-0", style.icon)} />
-                    <h3 className="text-sm font-semibold text-foreground truncate">{getStageLabel(stage)}</h3>
-                  </div>
-                  <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
-                    {stageProspects.length}
-                  </span>
-                </div>
-                <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 sm:space-y-3 p-3 min-w-0 min-h-0 transactions-scrollbar">
-                  {stageProspects.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-6 sm:py-8 text-center px-3 rounded-lg border border-dashed border-border bg-muted/20 min-h-[120px]">
-                      <UserPlus className="h-10 w-10 text-muted-foreground/50 mb-2" />
-                      <p className="text-xs sm:text-sm font-medium text-foreground">{t('consultant:pipeline.emptyStage')}</p>
-                      <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">{t('consultant:pipeline.emptyStageDesc')}</p>
+      {/* Pipeline Board */}
+      <ChartCard
+        title={t('consultant:pipeline.title')}
+        subtitle={t('consultant:pipeline.subtitle')}
+        actions={
+          <Button onClick={handleOpenCreateDialog} size="sm" className="hidden md:inline-flex shrink-0">
+            <Plus className="h-4 w-4 mr-2" />
+            {t('consultant:pipeline.newProspect')}
+          </Button>
+        }
+      >
+        {isLoading && !prospects.length ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-[220px] sm:h-72 md:h-80 rounded-lg bg-muted animate-pulse" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <GitBranch className="h-12 w-12 text-destructive/70 mb-3" />
+            <p className="text-sm font-medium text-foreground">{t('consultant:pipeline.loadError')}</p>
+            <p className="text-xs text-muted-foreground mt-1 px-2">{(error as any)?.error || t('consultant:pipeline.tryAgain')}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3 min-w-0">
+            {stageOrder.map((stage) => {
+              const stageProspects = getProspectsByStage(stage);
+              const style = stageStyles[stage] || stageStyles.lead;
+              return (
+                <div
+                  key={stage}
+                  className={cn(
+                    "flex flex-col rounded-lg border border-border overflow-hidden min-h-[280px] sm:min-h-[320px] max-h-[72vh] sm:max-h-[75vh] md:max-h-[calc(100vh-200px)]",
+                    style.bg
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2 p-3 border-b border-border/60 shrink-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <GitBranch className={cn("h-4 w-4 shrink-0", style.icon)} />
+                      <h3 className="text-sm font-semibold text-foreground truncate">{getStageLabel(stage)}</h3>
                     </div>
-                  ) : (
+                    <span className={cn(
+                      "shrink-0 text-xs font-medium tabular-nums px-2 py-0.5 rounded-full",
+                      style.badge
+                    )}>
+                      {stageProspects.length}
+                    </span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 p-3 min-w-0 min-h-0 transactions-scrollbar">
+                    {stageProspects.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-6 sm:py-8 text-center px-3 rounded-lg border border-dashed border-border bg-muted/20 min-h-[120px]">
+                        <UserPlus className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                        <p className="text-xs sm:text-sm font-medium text-foreground">{t('consultant:pipeline.emptyStage')}</p>
+                        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">{t('consultant:pipeline.emptyStageDesc')}</p>
+                      </div>
+                    ) : (
                       stageProspects.map((prospect) => (
                         <div
                           key={prospect.id}
-                          className="p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 transition-colors w-full min-w-0 max-w-full box-border"
+                          className="p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors w-full min-w-0 max-w-full box-border"
                         >
                           <div className="flex items-start justify-between gap-2 mb-2 min-w-0">
                             <div className="flex-1 min-w-0 overflow-hidden">
@@ -527,12 +713,13 @@ const Pipeline = () => {
                     )}
                   </div>
                 </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </ChartCard>
 
-      {/* Create Prospect Dialog - scrollable on mobile, side spacing */}
+      {/* Create Prospect Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={handleCloseCreateDialog}>
         <DialogContent className="max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6 w-[calc(100%-2rem)] sm:w-[calc(100%-3rem)] max-w-lg mx-auto my-4 sm:my-0">
           <DialogHeader className="shrink-0">
@@ -622,7 +809,7 @@ const Pipeline = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Prospect Dialog - scrollable on mobile, side spacing */}
+      {/* Edit Prospect Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={handleCloseEditDialog}>
         <DialogContent className="max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6 w-[calc(100%-2rem)] sm:w-[calc(100%-3rem)] max-w-lg mx-auto my-4 sm:my-0">
           <DialogHeader className="shrink-0">
@@ -708,7 +895,7 @@ const Pipeline = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Move to Perdido Confirmation Dialog */}
+      {/* Move to Lost Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

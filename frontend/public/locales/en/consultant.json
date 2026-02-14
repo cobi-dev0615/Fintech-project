@@ -314,6 +314,12 @@
   "pipeline": {
     "title": "Prospecting Pipeline",
     "subtitle": "Manage your prospects by stage and advance opportunities",
+    "kpis": {
+      "totalProspects": "Total Prospects",
+      "activeLeads": "Active Leads",
+      "won": "Won",
+      "lost": "Lost"
+    },
     "newProspect": "New Prospect",
     "quickActions": "Quick actions",
     "loadError": "Error loading pipeline",
