@@ -207,8 +207,8 @@ const Dashboard = () => {
         />
       ),
       span: {
-        mobile: 2,
-        tablet: 2,
+        mobile: 1,
+        tablet: 1,
         desktop: 1,
       },
     });
@@ -231,8 +231,8 @@ const Dashboard = () => {
         />
       ),
       span: {
-        mobile: 2,
-        tablet: 2,
+        mobile: 1,
+        tablet: 1,
         desktop: 1,
       },
     });
