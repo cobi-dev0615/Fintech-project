@@ -38,6 +38,18 @@
     "updateError": "Error updating goal",
     "deleteError": "Error removing goal"
   },
+  "yourGoals": "Your Goals",
+  "yourGoalsSubtitle": "Track progress toward your financial targets",
+  "kpi": {
+    "totalGoals": "Total Goals",
+    "goals": "{{count}} goals",
+    "completed": "Completed",
+    "achieved": "achieved",
+    "totalSaved": "Total Saved",
+    "ofTarget": "of {{amount}} target",
+    "avgProgress": "Avg. Progress",
+    "acrossGoals": "across goals"
+  },
   "categories": {
     "general": "General",
     "emergency": "Emergency",

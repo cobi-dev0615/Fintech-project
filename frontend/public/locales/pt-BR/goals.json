@@ -38,6 +38,18 @@
     "updateError": "Erro ao atualizar meta",
     "deleteError": "Erro ao remover meta"
   },
+  "yourGoals": "Suas Metas",
+  "yourGoalsSubtitle": "Acompanhe o progresso de suas metas financeiras",
+  "kpi": {
+    "totalGoals": "Total de Metas",
+    "goals": "{{count}} metas",
+    "completed": "Concluídas",
+    "achieved": "alcançadas",
+    "totalSaved": "Total Guardado",
+    "ofTarget": "de {{amount}} alvo",
+    "avgProgress": "Progresso Médio",
+    "acrossGoals": "entre metas"
+  },
   "categories": {
     "general": "Geral",
     "emergency": "Emergência",
