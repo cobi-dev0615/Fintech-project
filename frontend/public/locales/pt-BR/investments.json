@@ -25,6 +25,16 @@
     "currentValue": "Valor atual",
     "profitability": "Rentab."
   },
+  "kpi": {
+    "totalValue": "Valor Total",
+    "positions": "Posições",
+    "types": "Tipos",
+    "avgPosition": "Posição Média",
+    "openFinance": "Open Finance",
+    "assets": "{{count}} ativos",
+    "categories": "{{count}} categorias",
+    "perPosition": "Por posição"
+  },
   "typeLabels": {
     "fund": "Fundos",
     "cdb": "CDB",

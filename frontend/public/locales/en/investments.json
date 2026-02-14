@@ -25,6 +25,16 @@
     "currentValue": "Current value",
     "profitability": "Return"
   },
+  "kpi": {
+    "totalValue": "Total Value",
+    "positions": "Positions",
+    "types": "Types",
+    "avgPosition": "Avg. Position",
+    "openFinance": "Open Finance",
+    "assets": "{{count}} assets",
+    "categories": "{{count}} categories",
+    "perPosition": "Per position"
+  },
   "typeLabels": {
     "fund": "Funds",
     "cdb": "CDB",
