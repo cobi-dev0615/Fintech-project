@@ -25,6 +25,7 @@ export const publicApi = {
         features: string[];
         isActive: boolean;
         role: string | null;
+        subscriberCount: number;
       }>;
     }>(`/plans${params.toString() ? `?${params.toString()}` : ''}`);
   },

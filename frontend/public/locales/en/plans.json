@@ -15,6 +15,7 @@
   "processing": "Processing...",
   "startFree": "Start Free",
   "subscribe": "Subscribe",
+  "getStarted": "Get Started",
   "noPlans": "No plans available",
   "noPlansDesc": "Plans are not available at the moment. Please try again later.",
   "loadError": "Failed to load plans",
@@ -23,6 +24,10 @@
   "connectionsUnlimited": "Unlimited connections",
   "planUntil": "Until",
   "currentPlanReplaced": "Your current plan will be replaced.",
+  "billedMonthly": "Billed monthly, cancel anytime",
+  "billedAnnually": "Billed annually, cancel anytime",
+  "usedByUsers": "Used by {{count}}+ users",
+  "everythingIn": "Everything in {{plan}}, plus:",
   "subtitles": {
     "free": "Ideal to get started",
     "basic": "For those who want more",
@@ -33,5 +38,18 @@
   "confirmDialog": {
     "title": "Confirm Subscription",
     "description": "You are about to subscribe to the <strong>{{name}}</strong> plan for <strong>{{price}}/{{period}}</strong>."
-  }
+  },
+  "kpi": {
+    "currentPlan": "Current Plan",
+    "status": "Status",
+    "billingPeriod": "Billing Period",
+    "renewalDate": "Renewal Date"
+  },
+  "statusActive": "Active",
+  "statusInactive": "Inactive",
+  "statusCanceled": "Canceled",
+  "statusTrial": "Trial",
+  "statusPastDue": "Past Due",
+  "noPlan": "No Plan",
+  "noSubscription": "No active subscription"
 }

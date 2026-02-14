@@ -19,6 +19,7 @@ export async function plansRoutes(fastify: FastifyInstance) {
         features: string[];
         isActive: boolean;
         role: string | null;
+        subscriberCount: number;
       };
       let plans: PlanItem[] = [];
       try {
@@ -30,18 +31,25 @@ export async function plansRoutes(fastify: FastifyInstance) {
         } catch {}
 
         const query = `
-          SELECT 
-            id, 
-            code, 
-            name, 
-            price_cents,
-            ${hasBillingColumns ? 'monthly_price_cents, annual_price_cents,' : 'price_cents as monthly_price_cents, price_cents as annual_price_cents,'}
-            connection_limit, 
-            features_json, 
-            is_active
-          FROM plans
-          WHERE is_active = true
-          ORDER BY price_cents ASC
+          SELECT
+            p.id,
+            p.code,
+            p.name,
+            p.price_cents,
+            ${hasBillingColumns ? 'p.monthly_price_cents, p.annual_price_cents,' : 'p.price_cents as monthly_price_cents, p.price_cents as annual_price_cents,'}
+            p.connection_limit,
+            p.features_json,
+            p.is_active,
+            COALESCE(sc.subscriber_count, 0)::int as subscriber_count
+          FROM plans p
+          LEFT JOIN (
+            SELECT plan_id, COUNT(*) as subscriber_count
+            FROM subscriptions
+            WHERE status = 'active'
+            GROUP BY plan_id
+          ) sc ON sc.plan_id = p.id
+          WHERE p.is_active = true
+          ORDER BY p.price_cents ASC
         `;
 
         const plansResult = await db.query(query);
@@ -62,6 +70,7 @@ export async function plansRoutes(fastify: FastifyInstance) {
             features: row.features_json?.features || [],
             isActive: row.is_active,
             role: null, // Plans are available to all users
+            subscriberCount: row.subscriber_count || 0,
           };
         });
       } catch (e: any) {

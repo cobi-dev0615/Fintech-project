@@ -15,6 +15,7 @@
   "processing": "Processando...",
   "startFree": "Começar Grátis",
   "subscribe": "Assinar",
+  "getStarted": "Começar Agora",
   "noPlans": "Nenhum plano disponível",
   "noPlansDesc": "Os planos não estão disponíveis no momento. Tente novamente mais tarde.",
   "loadError": "Falha ao carregar planos",
@@ -23,6 +24,10 @@
   "connectionsUnlimited": "Conexões ilimitadas",
   "planUntil": "Até",
   "currentPlanReplaced": "Seu plano atual será substituído.",
+  "billedMonthly": "Cobrado mensalmente, cancele a qualquer momento",
+  "billedAnnually": "Cobrado anualmente, cancele a qualquer momento",
+  "usedByUsers": "Usado por {{count}}+ usuários",
+  "everythingIn": "Tudo do {{plan}}, mais:",
   "subtitles": {
     "free": "Ideal para começar",
     "basic": "Para quem quer mais",
@@ -33,5 +38,18 @@
   "confirmDialog": {
     "title": "Confirmar Assinatura",
     "description": "Você está prestes a assinar o plano <strong>{{name}}</strong> por <strong>{{price}}/{{period}}</strong>."
-  }
+  },
+  "kpi": {
+    "currentPlan": "Plano Atual",
+    "status": "Status",
+    "billingPeriod": "Período de Cobrança",
+    "renewalDate": "Data de Renovação"
+  },
+  "statusActive": "Ativo",
+  "statusInactive": "Inativo",
+  "statusCanceled": "Cancelado",
+  "statusTrial": "Teste",
+  "statusPastDue": "Vencido",
+  "noPlan": "Sem Plano",
+  "noSubscription": "Sem assinatura ativa"
 }
