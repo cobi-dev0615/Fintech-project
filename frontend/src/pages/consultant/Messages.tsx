@@ -1,7 +1,40 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Send, Search, UserPlus, Calendar, Plus, MoreVertical, Trash2, History, Paperclip, X, Download } from "lucide-react";
+import {
+  MessageSquare,
+  Send,
+  Search,
+  Plus,
+  MoreVertical,
+  Trash2,
+  History,
+  Paperclip,
+  X,
+  Download,
+  Clock,
+  Mail,
+  Users,
+  GripVertical,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -42,10 +75,12 @@ import { consultantApi, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useWebSocket } from "@/contexts/WebSocketContext";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/useAuth";
+
+// --- Types ---
 
 interface ConversationItem {
   id: string;
@@ -79,8 +114,67 @@ interface Client {
   status: string;
 }
 
+interface MsgKpiDef {
+  title: string;
+  value: string;
+  changeType: "positive" | "negative" | "neutral";
+  icon: LucideIcon;
+  watermark: LucideIcon;
+}
+
+// --- Inline SortableKpiCard ---
+
+function SortableMsgKpiCard({ id, kpi }: { id: string; kpi: MsgKpiDef }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group ${isDragging ? "z-50 opacity-50 scale-105" : ""}`}
+    >
+      <button
+        type="button"
+        className="drag-handle absolute top-3 right-3 z-10 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground/80 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none rounded-md p-1 touch-none"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="kpi-card relative overflow-hidden h-full">
+        <kpi.watermark className="absolute -bottom-3 -right-3 h-24 w-24 text-muted-foreground/[0.06] pointer-events-none" />
+
+        <div className="flex items-center gap-2.5 mb-3 relative z-10">
+          <kpi.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-xs font-medium text-muted-foreground truncate">
+            {kpi.title}
+          </span>
+        </div>
+
+        <div className="relative z-10">
+          <div className="text-2xl sm:text-[28px] font-bold text-foreground mb-1 tabular-nums tracking-tight leading-none">
+            {kpi.value}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Constants ---
+
+const MSG_KPI_IDS = ["msg-total", "msg-unread", "msg-active", "msg-recent"] as const;
+
+// --- Component ---
+
 const Messages = () => {
   const { t, i18n } = useTranslation(['consultant', 'common']);
+  const { user } = useAuth();
   const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
   const navigate = useNavigate();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
@@ -98,29 +192,117 @@ const Messages = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Fetch conversations
+  // --- KPI DnD ---
+
+  const kpiStorageKey = `messages-kpi-order-${user?.id || "guest"}`;
+  const [kpiOrder, setKpiOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(kpiStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as string[];
+        if (
+          parsed.length === MSG_KPI_IDS.length &&
+          MSG_KPI_IDS.every((id) => parsed.includes(id))
+        ) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return [...MSG_KPI_IDS];
+  });
+
+  const kpiSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleKpiDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setKpiOrder((prev) => {
+      const oldIdx = prev.indexOf(active.id as string);
+      const newIdx = prev.indexOf(over.id as string);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(oldIdx, 1);
+      next.splice(newIdx, 0, moved);
+      localStorage.setItem(kpiStorageKey, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // --- Data Fetching ---
+
   const { data: conversationsData, isLoading: conversationsLoading } = useQuery({
     queryKey: ['consultant', 'conversations'],
     queryFn: () => consultantApi.getConversations(),
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+    staleTime: 30 * 1000,
+    gcTime: 2 * 60 * 1000,
+    refetchInterval: 30000,
   });
 
-  // Fetch clients for create conversation dialog
   const { data: clientsData } = useQuery({
     queryKey: ['consultant', 'clients', 'active'],
     queryFn: () => consultantApi.getClients({ status: 'active', limit: 100 }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   const conversations = conversationsData?.conversations || [];
   const clients = clientsData?.clients || [];
-  // Clients not yet in a conversation (hide already-connected from "Nova Conversa" dropdown)
   const connectedClientIds = new Set(conversations.map((c) => c.clientId));
   const availableClients = clients.filter((c) => !connectedClientIds.has(c.id));
 
-  // Real-time: subscribe to new messages and conversation updates
+  // --- KPI Data ---
+
+  const totalConversations = conversations.length;
+  const unreadMessages = conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
+  const activeChats = conversations.filter((c) => c.lastMessage).length;
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const recentChats = conversations.filter((c) => {
+    try {
+      return new Date(c.timestamp) >= sevenDaysAgo;
+    } catch {
+      return false;
+    }
+  }).length;
+
+  const kpiMap: Record<string, MsgKpiDef> = {
+    "msg-total": {
+      title: t("consultant:messages.kpis.totalConversations"),
+      value: totalConversations.toString(),
+      changeType: "neutral",
+      icon: MessageSquare,
+      watermark: MessageSquare,
+    },
+    "msg-unread": {
+      title: t("consultant:messages.kpis.unreadMessages"),
+      value: unreadMessages.toString(),
+      changeType: "neutral",
+      icon: Mail,
+      watermark: Mail,
+    },
+    "msg-active": {
+      title: t("consultant:messages.kpis.activeChats"),
+      value: activeChats.toString(),
+      changeType: "neutral",
+      icon: Users,
+      watermark: Users,
+    },
+    "msg-recent": {
+      title: t("consultant:messages.kpis.recentChats"),
+      value: recentChats.toString(),
+      changeType: "neutral",
+      icon: Clock,
+      watermark: Clock,
+    },
+  };
+
+  // --- WebSocket ---
+
   useWebSocket((message) => {
     if (message.type === 'new_message') {
       queryClient.invalidateQueries({ queryKey: ['consultant', 'conversations'] });
@@ -138,20 +320,18 @@ const Messages = () => {
     }
   });
 
-  // Filter conversations by search query
   const filteredConversations = conversations.filter((conv) =>
     conv.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Fetch selected conversation messages
   const { data: conversationData, isLoading: conversationLoading } = useQuery({
     queryKey: ['consultant', 'conversation', selectedConversation],
     queryFn: () => consultantApi.getConversation(selectedConversation!),
     enabled: !!selectedConversation,
-    staleTime: 10 * 1000, // 10 seconds
-    gcTime: 1 * 60 * 1000, // 1 minute
-    refetchInterval: 15000, // Refetch every 15 seconds when conversation is open
+    staleTime: 10 * 1000,
+    gcTime: 1 * 60 * 1000,
+    refetchInterval: 15000,
   });
 
   const currentConversation = conversationData ? {
@@ -161,14 +341,14 @@ const Messages = () => {
     messages: conversationData.messages || [],
   } : null;
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current && currentConversation?.messages) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [currentConversation?.messages]);
 
-  // Create conversation mutation
+  // --- Mutations ---
+
   const createConversationMutation = useMutation({
     mutationFn: (customerId: string) => consultantApi.createConversation(customerId),
     onSuccess: (data) => {
@@ -191,7 +371,6 @@ const Messages = () => {
     },
   });
 
-  // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: ({
       conversationId,
@@ -258,6 +437,8 @@ const Messages = () => {
       });
     },
   });
+
+  // --- Handlers ---
 
   const handleSendMessage = () => {
     if (!selectedConversation) return;
@@ -330,8 +511,8 @@ const Messages = () => {
   const formatMessageTime = (timestamp: string) => {
     try {
       const date = new Date(timestamp);
-      const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+      const n = new Date();
+      const diffInHours = (n.getTime() - date.getTime()) / (1000 * 60 * 60);
 
       if (diffInHours < 24) {
         return formatDistanceToNow(date, { addSuffix: true, locale: dateLocale });
@@ -349,8 +530,8 @@ const Messages = () => {
     try {
       if (timestamp === 'Nunca') return t('consultant:messages.never');
       const date = new Date(timestamp);
-      const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+      const n = new Date();
+      const diffInHours = (n.getTime() - date.getTime()) / (1000 * 60 * 60);
 
       if (diffInHours < 1) {
         return t('consultant:messages.now');
@@ -364,39 +545,34 @@ const Messages = () => {
     }
   };
 
+  // --- Render ---
+
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Page Header */}
-      <div className="flex-shrink-0 flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{t('consultant:messages.title')}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
-            {t('consultant:messages.subtitle')}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate('/consultant/invitations')}>
-            <UserPlus className="h-4 w-4 mr-2 shrink-0" />
-            {t('consultant:messages.sendInvite')}
-          </Button>
-          <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2 shrink-0" />
-            {t('consultant:messages.newConversation')}
-          </Button>
-        </div>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden gap-6">
+      {/* KPI Grid */}
+      <div className="flex-shrink-0">
+        <DndContext sensors={kpiSensors} collisionDetection={closestCenter} onDragEnd={handleKpiDragEnd}>
+          <SortableContext items={kpiOrder} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {kpiOrder.map((id) => (
+                <SortableMsgKpiCard key={id} id={id} kpi={kpiMap[id]} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 flex-1 min-h-0">
         {/* Conversations List */}
-        <div className="rounded-xl border-2 border-blue-500/70 bg-card flex flex-col min-h-0 overflow-hidden shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow">
-          <div className="flex items-center gap-3 p-3 border-b border-border shrink-0">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <MessageSquare className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
+        <div className="chart-card flex flex-col min-h-0 overflow-hidden !p-0">
+          <div className="flex items-center justify-between gap-3 p-3 border-b border-border shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
               <h2 className="text-sm font-semibold text-foreground">{t('consultant:messages.conversations')}</h2>
-              <p className="text-xs text-muted-foreground truncate">{t('consultant:messages.selectToOpen')}</p>
+              <span className="text-xs text-muted-foreground">{t('consultant:messages.selectToOpen')}</span>
             </div>
+            <Button size="sm" variant="ghost" onClick={() => setIsCreateDialogOpen(true)} className="shrink-0 h-8 w-8 p-0">
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
           <div className="p-3 border-b border-border shrink-0">
             <div className="relative">
@@ -415,7 +591,7 @@ const Messages = () => {
               {conversationsLoading ? (
                 <div className="space-y-2 p-2">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                    <div key={i} className="h-16 w-full rounded-lg bg-muted animate-pulse" />
                   ))}
                 </div>
               ) : filteredConversations.length === 0 ? (
@@ -483,13 +659,13 @@ const Messages = () => {
         </div>
 
         {/* Chat panel */}
-        <div className="lg:col-span-2 min-h-0 flex flex-col rounded-xl border-2 border-violet-500/70 bg-card overflow-hidden shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-shadow">
+        <div className="lg:col-span-2 min-h-0 flex flex-col chart-card overflow-hidden !p-0">
             {conversationLoading ? (
               <div className="flex-1 flex flex-col p-4 gap-4">
-                <Skeleton className="h-14 w-full rounded-lg" />
-                <Skeleton className="h-24 w-full rounded-lg" />
-                <Skeleton className="h-24 w-3/4 rounded-lg ml-auto" />
-                <Skeleton className="h-24 w-1/2 rounded-lg" />
+                <div className="h-14 w-full rounded-lg bg-muted animate-pulse" />
+                <div className="h-24 w-full rounded-lg bg-muted animate-pulse" />
+                <div className="h-24 w-3/4 rounded-lg ml-auto bg-muted animate-pulse" />
+                <div className="h-24 w-1/2 rounded-lg bg-muted animate-pulse" />
               </div>
             ) : currentConversation ? (
               <>
@@ -530,7 +706,7 @@ const Messages = () => {
                   </div>
                 </div>
 
-                {/* Chat area: only this part scrolls (not header, not input block) */}
+                {/* Chat area */}
                 <div
                   className="flex-1 min-h-0 max-h-[min(70vh,calc(100vh-21rem))] overflow-y-auto overflow-x-hidden overscroll-contain p-4 pb-0"
                   ref={scrollAreaRef}
@@ -589,7 +765,7 @@ const Messages = () => {
                   </div>
                 </div>
 
-                {/* Message input block - no scroll, fixed at bottom */}
+                {/* Message input block */}
                 <div className="flex-shrink-0 bg-muted/20 border-t border-border p-4">
                   {pendingAttachment && (
                     <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">

@@ -175,6 +175,12 @@
   "messages": {
     "title": "Mensagens",
     "subtitle": "Comunique-se com seus clientes pela plataforma",
+    "kpis": {
+      "totalConversations": "Conversas",
+      "unreadMessages": "Não Lidas",
+      "activeChats": "Chats Ativos",
+      "recentChats": "Recentes"
+    },
     "sendInvite": "Enviar Convite",
     "newConversation": "Nova Conversa",
     "conversations": "Conversas",
