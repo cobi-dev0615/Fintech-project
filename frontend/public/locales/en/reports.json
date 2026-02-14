@@ -11,6 +11,15 @@
     "transaction": "Transaction Report",
     "transactionDesc": "Transaction history by period"
   },
+  "kpi": {
+    "totalReports": "Total Reports",
+    "generated": "{{count}} generated",
+    "thisMonth": "This Month",
+    "thisMonthLabel": "this month",
+    "reportTypes": "Report Types",
+    "categories": "{{count}} categories",
+    "lastGenerated": "Last Generated"
+  },
   "generateForm": {
     "title": "Generate New Report",
     "subtitle": "Choose the type above and the period, then generate the PDF",
