@@ -7,6 +7,16 @@
   "chartTitle": "Accounts (Open Finance)",
   "noAccounts": "No accounts connected",
   "noAccountsDesc": "Connect your accounts in Connections → Open Finance to see balances here.",
+  "kpi": {
+    "totalBalance": "Total Balance",
+    "totalAccounts": "Total Accounts",
+    "institutions": "Institutions",
+    "avgBalance": "Avg. Balance",
+    "allAccounts": "All accounts",
+    "synced": "{{count}} synced",
+    "connected": "{{count}} connected",
+    "perAccount": "Per account"
+  },
   "assets": {
     "title": "My Assets",
     "subtitle": "Open Finance data — consolidated view of your wealth",

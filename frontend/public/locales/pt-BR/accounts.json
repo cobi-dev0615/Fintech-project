@@ -7,6 +7,16 @@
   "chartTitle": "Contas (Open Finance)",
   "noAccounts": "Nenhuma conta conectada",
   "noAccountsDesc": "Conecte suas contas em Conexões → Open Finance para ver os saldos aqui.",
+  "kpi": {
+    "totalBalance": "Saldo Total",
+    "totalAccounts": "Total de Contas",
+    "institutions": "Instituições",
+    "avgBalance": "Saldo Médio",
+    "allAccounts": "Todas as contas",
+    "synced": "{{count}} sincronizadas",
+    "connected": "{{count}} conectadas",
+    "perAccount": "Por conta"
+  },
   "assets": {
     "title": "Meus Ativos",
     "subtitle": "Dados do Open Finance — visão consolidada do seu patrimônio",
