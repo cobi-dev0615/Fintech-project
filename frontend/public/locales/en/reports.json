@@ -61,6 +61,15 @@
     "reportRemoved": "Report removed",
     "reportRemovedDesc": "The report has been deleted.",
     "removeError": "Could not remove the report.",
+    "kpi": {
+      "totalReports": "Total Reports",
+      "generated": "{{count}} generated",
+      "thisMonth": "This Month",
+      "thisMonthLabel": "this month",
+      "reportTypes": "Report Types",
+      "categories": "{{count}} categories",
+      "lastGenerated": "Last Generated"
+    },
     "typeLabels": {
       "consolidated": "Consolidated Report",
       "transactions": "Transaction Statement",

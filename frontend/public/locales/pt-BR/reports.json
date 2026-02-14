@@ -61,6 +61,15 @@
     "reportRemoved": "Relatório removido",
     "reportRemovedDesc": "O relatório foi excluído.",
     "removeError": "Não foi possível remover o relatório.",
+    "kpi": {
+      "totalReports": "Total de Relatórios",
+      "generated": "{{count}} gerados",
+      "thisMonth": "Este Mês",
+      "thisMonthLabel": "este mês",
+      "reportTypes": "Tipos de Relatório",
+      "categories": "{{count}} categorias",
+      "lastGenerated": "Último Gerado"
+    },
     "typeLabels": {
       "consolidated": "Relatório Consolidado",
       "transactions": "Extrato de Transações",
