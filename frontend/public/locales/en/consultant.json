@@ -439,6 +439,12 @@
     },
     "toast": {
       "selectClient": "Please select a client first"
+    },
+    "kpis": {
+      "scenarios": "Scenarios",
+      "expectedReturn": "Expected Return",
+      "horizon": "Horizon (yrs)",
+      "allocation": "Asset Classes"
     }
   },
   "reports": {

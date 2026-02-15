@@ -439,6 +439,12 @@
     },
     "toast": {
       "selectClient": "Selecione um cliente primeiro"
+    },
+    "kpis": {
+      "scenarios": "Cenários",
+      "expectedReturn": "Retorno Esperado",
+      "horizon": "Horizonte (anos)",
+      "allocation": "Classes de Ativos"
     }
   },
   "reports": {
