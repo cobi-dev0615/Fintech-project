@@ -507,7 +507,13 @@
     },
     "yesterday": "Ontem",
     "dateTimeFormat": "dd/MM/yyyy 'às' HH:mm",
-    "downloadFilename": "relatorio-{{id}}.pdf"
+    "downloadFilename": "relatorio-{{id}}.pdf",
+    "kpis": {
+      "totalReports": "Total de Relatórios",
+      "completed": "Concluídos",
+      "pending": "Pendentes",
+      "recentReports": "Recentes (7d)"
+    }
   },
   "settings": {
     "title": "Configurações do Consultor",

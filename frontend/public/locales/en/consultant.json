@@ -507,7 +507,13 @@
     },
     "yesterday": "Yesterday",
     "dateTimeFormat": "MM/dd/yyyy 'at' hh:mm a",
-    "downloadFilename": "report-{{id}}.pdf"
+    "downloadFilename": "report-{{id}}.pdf",
+    "kpis": {
+      "totalReports": "Total Reports",
+      "completed": "Completed",
+      "pending": "Pending",
+      "recentReports": "Recent (7d)"
+    }
   },
   "settings": {
     "title": "Consultant Settings",
