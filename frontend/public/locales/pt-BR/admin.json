@@ -13,7 +13,11 @@
       "activeSubscriptions": "Assinaturas Ativas",
       "monthlyRevenue": "Receita Mensal",
       "activityRate": "Taxa de Atividade",
-      "churnRate": "Taxa de Churn"
+      "churnRate": "Taxa de Churn",
+      "newUsers": "Novos Usuários",
+      "newUsersSubtitle": "este mês",
+      "registeredUsers": "usuários registrados",
+      "recurringRevenue": "recorrente"
     }
   },
   "userManagement": {

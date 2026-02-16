@@ -13,7 +13,11 @@
       "activeSubscriptions": "Active Subscriptions",
       "monthlyRevenue": "Monthly Revenue",
       "activityRate": "Activity Rate",
-      "churnRate": "Churn Rate"
+      "churnRate": "Churn Rate",
+      "newUsers": "New Users",
+      "newUsersSubtitle": "this month",
+      "registeredUsers": "registered users",
+      "recurringRevenue": "recurring"
     }
   },
   "userManagement": {
