@@ -624,7 +624,7 @@ const CustomerMessages = () => {
         <div className="lg:col-span-4">
           <div className="chart-card flex flex-col overflow-hidden !p-0" style={{ minHeight: "60vh" }}>
             {/* List header */}
-            <div className="flex items-center gap-3 p-3 border-b border-border/50 shrink-0">
+            <div className="flex items-center gap-3 p-3 border-b border-white/10 shrink-0">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <MessageSquare className="h-5 w-5" />
               </div>
@@ -639,7 +639,7 @@ const CustomerMessages = () => {
             </div>
 
             {/* Search */}
-            <div className="p-3 border-b border-border/50 shrink-0">
+            <div className="p-3 border-b border-white/10 shrink-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
@@ -743,7 +743,7 @@ const CustomerMessages = () => {
             ) : currentConversation ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b border-border/50 shrink-0 bg-muted/10">
+                <div className="p-4 border-b border-white/10 shrink-0 bg-muted/10">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <span className="text-sm font-semibold text-primary">
@@ -824,7 +824,7 @@ const CustomerMessages = () => {
                                 "max-w-[75%] sm:max-w-[70%] rounded-xl px-3 py-2.5 shadow-sm",
                                 message.sender === "client"
                                   ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-foreground border border-border/50"
+                                  : "bg-muted text-foreground border border-white/10"
                               )}
                             >
                               {message.content ? (
@@ -886,7 +886,7 @@ const CustomerMessages = () => {
                 </div>
 
                 {/* Message input */}
-                <div className="flex-shrink-0 bg-muted/10 border-t border-border/50 p-4">
+                <div className="flex-shrink-0 bg-muted/10 border-t border-white/10 p-4">
                   {pendingAttachment && (
                     <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
                       <Paperclip className="h-3.5 w-3.5 shrink-0" />

@@ -318,10 +318,10 @@ const NotificationDropdown = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-52 p-0 bg-popover border-border/50" align="end" sideOffset={8}>
+      <PopoverContent className="w-52 p-0 bg-popover border-white/10 dark:border-white/10" align="end" sideOffset={8}>
         <div className="flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
             <h3 className="text-sm font-semibold text-foreground">{t('dropdown.title')}</h3>
             {unreadCount > 0 && (
               <button
@@ -349,7 +349,7 @@ const NotificationDropdown = () => {
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer transition-colors border-b border-border/30 last:border-b-0"
+                    className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer transition-colors border-b border-white/10 last:border-b-0"
                     onClick={() => handleNotificationClick(notification)}
                   >
                     {/* Severity dot */}
@@ -406,7 +406,7 @@ const NotificationDropdown = () => {
           </ScrollArea>
 
           {/* Footer */}
-          <div className="border-t border-border/50">
+          <div className="border-t border-white/10">
             <Link
               to={getNotificationsPath()}
               onClick={() => setOpen(false)}
