@@ -25,12 +25,12 @@ const Calculators = () => {
   const activeTab = type || "fire";
 
   return (
-    <div className="min-w-0 max-w-full overflow-x-hidden">
-      <div className="flex flex-col lg:flex-row lg:items-stretch gap-6 min-w-0">
-        {/* Sidebar tab navigation */}
-        <div className="w-full lg:w-56 shrink-0">
-          <div className="settings-card !px-3 !pt-8 !pb-3 h-full">
-            <nav className="flex flex-row lg:flex-col gap-0.5 overflow-x-auto" aria-label={t("calculators:fire.title")}>
+    <div className="min-w-0 max-w-full overflow-x-hidden flex-1 flex flex-col justify-center">
+      <div className="chart-card !p-0 overflow-hidden min-w-0">
+        <div className="flex flex-col lg:flex-row min-w-0">
+          {/* Sidebar tab navigation */}
+          <div className="w-full lg:w-52 shrink-0 border-b lg:border-b-0 lg:border-r border-white/10">
+            <nav className="flex flex-row lg:flex-col gap-0.5 overflow-x-auto p-3 lg:py-6" aria-label={t("calculators:fire.title")}>
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -59,15 +59,15 @@ const Calculators = () => {
               })}
             </nav>
           </div>
-        </div>
 
-        {/* Content area */}
-        <div className="flex-1 min-w-0 pt-2 lg:pt-0 flex flex-col">
-          <div className={activeTab === "fire" ? "space-y-6" : "hidden"}><FIRECalculator /></div>
-          <div className={activeTab === "compound" ? "space-y-6" : "hidden"}><CompoundInterest /></div>
-          <div className={activeTab === "usufruct" ? "space-y-6" : "hidden"}><UsufructCalculator /></div>
-          <div className={activeTab === "itcmd" ? "space-y-6" : "hidden"}><ITCMDCalculator /></div>
-          <div className={activeTab === "profitability" ? "space-y-6" : "hidden"}><ProfitabilitySimulator /></div>
+          {/* Content area */}
+          <div className="flex-1 min-w-0 p-4 lg:p-6">
+            <div className={activeTab === "fire" ? "space-y-6" : "hidden"}><FIRECalculator /></div>
+            <div className={activeTab === "compound" ? "space-y-6" : "hidden"}><CompoundInterest /></div>
+            <div className={activeTab === "usufruct" ? "space-y-6" : "hidden"}><UsufructCalculator /></div>
+            <div className={activeTab === "itcmd" ? "space-y-6" : "hidden"}><ITCMDCalculator /></div>
+            <div className={activeTab === "profitability" ? "space-y-6" : "hidden"}><ProfitabilitySimulator /></div>
+          </div>
         </div>
       </div>
     </div>
