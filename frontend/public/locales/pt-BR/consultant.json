@@ -543,7 +543,13 @@
       "bio": "Biografia",
       "save": "Salvar Perfil",
       "saving": "Salvando...",
-      "phoneError": "Por favor, insira um telefone brasileiro válido",
+      "phoneError": "Por favor, insira um telefone válido",
+      "currency": "Moeda",
+      "currencyHint": "Escolha como os valores monetários são exibidos no aplicativo.",
+      "currencyOptions": {
+        "BRL": "BRL - Real Brasileiro (R$)",
+        "USD": "USD - Dólar Americano ($)"
+      },
       "updateSuccess": "Perfil profissional atualizado",
       "updateError": "Erro ao atualizar perfil"
     },

@@ -543,7 +543,13 @@
       "bio": "Biography",
       "save": "Save Profile",
       "saving": "Saving...",
-      "phoneError": "Please enter a valid Brazilian phone number",
+      "phoneError": "Please enter a valid phone number",
+      "currency": "Currency",
+      "currencyHint": "Choose how monetary values are displayed across the app.",
+      "currencyOptions": {
+        "BRL": "BRL - Brazilian Real (R$)",
+        "USD": "USD - US Dollar ($)"
+      },
       "updateSuccess": "Professional profile updated",
       "updateError": "Error updating profile"
     },
