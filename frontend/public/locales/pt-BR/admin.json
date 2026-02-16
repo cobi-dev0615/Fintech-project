@@ -603,6 +603,7 @@
       "admins": "Administradores"
     },
     "stats": {
+      "totalAttempts": "Total de Tentativas",
       "successful": "Logins com Sucesso",
       "failed": "Logins com Falha",
       "uniqueIPs": "IPs Únicos"
