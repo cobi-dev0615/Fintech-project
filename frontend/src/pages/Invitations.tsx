@@ -832,20 +832,21 @@ const Invitations = () => {
               </div>
             ) : (
               <div className="space-y-5">
-                <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
                   <Input
                     readOnly
                     value={referralLink}
-                    className="font-mono text-sm min-w-0 bg-muted/30"
+                    className="font-mono text-sm min-w-0 bg-muted/30 flex-1"
                   />
                   <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={copyReferralLink}
                     disabled={!referralLink}
-                    className="shrink-0 w-full"
+                    className="shrink-0 h-9 w-9"
                     title={t("referral.copyLink")}
                   >
-                    <Copy className="h-4 w-4 mr-2" />
-                    {t("referral.copyLink")}
+                    <Copy className="h-4 w-4" />
                   </Button>
                 </div>
                 {invitedUsers.length >= REFERRAL_DISCOUNT_THRESHOLD && (
