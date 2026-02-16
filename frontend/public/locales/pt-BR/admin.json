@@ -145,6 +145,12 @@
     },
     "empty": "Nenhum plano cadastrado",
     "loading": "Carregando...",
+    "kpis": {
+      "totalSubscribers": "Total de Assinantes",
+      "freePlan": "Plano Grátis",
+      "customerPlan": "Planos Cliente",
+      "consultantPlan": "Plano Consultor"
+    },
     "deleteConfirm": "Tem certeza que deseja excluir este plano?",
     "createSuccess": "Plano criado com sucesso",
     "updateSuccess": "Plano atualizado com sucesso",

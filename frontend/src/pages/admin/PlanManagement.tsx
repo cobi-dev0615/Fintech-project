@@ -1,14 +1,44 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Edit2, Check } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  Check,
+  Users,
+  Gift,
+  UserCheck,
+  Briefcase,
+  GripVertical,
+  Layers,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useAuth } from "@/hooks/useAuth";
+import ChartCard from "@/components/dashboard/ChartCard";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +57,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// --- Types ---
+
 interface Plan {
   id?: string;
   code: string;
@@ -37,9 +69,68 @@ interface Plan {
   isActive?: boolean;
 }
 
+interface PlanKpiDef {
+  title: string;
+  value: string;
+  changeType: "positive" | "negative" | "neutral";
+  icon: LucideIcon;
+  watermark: LucideIcon;
+}
+
+// --- Inline SortableKpiCard ---
+
+function SortablePlanKpiCard({ id, kpi }: { id: string; kpi: PlanKpiDef }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group ${isDragging ? "z-50 opacity-50 scale-105" : ""}`}
+    >
+      <button
+        type="button"
+        className="drag-handle absolute top-3 right-3 z-10 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground/80 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none rounded-md p-1 touch-none"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="kpi-card relative overflow-hidden h-full">
+        <kpi.watermark className="absolute -bottom-3 -right-3 h-24 w-24 text-muted-foreground/[0.06] pointer-events-none" />
+
+        <div className="flex items-center gap-2.5 mb-3 relative z-10">
+          <kpi.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-xs font-medium text-muted-foreground truncate">
+            {kpi.title}
+          </span>
+        </div>
+
+        <div className="relative z-10">
+          <div className="text-2xl sm:text-[28px] font-bold text-foreground mb-1 tabular-nums tracking-tight leading-none">
+            {kpi.value}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Constants ---
+
+const PLAN_KPI_IDS = ["plan-subscribers", "plan-free", "plan-customer", "plan-consultant"] as const;
+
+// --- Component ---
+
 const PlanManagement = () => {
-  const { t, i18n } = useTranslation(['admin', 'common']);
+  const { t } = useTranslation(['admin', 'common']);
   const { formatCurrency } = useCurrency();
+  const { user: authUser } = useAuth();
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -49,6 +140,48 @@ const PlanManagement = () => {
   const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
   const [newFeature, setNewFeature] = useState("");
   const { toast } = useToast();
+
+  // --- KPI DnD ---
+
+  const kpiStorageKey = `admin-plans-kpi-order-${authUser?.id || "guest"}`;
+  const [kpiOrder, setKpiOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(kpiStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as string[];
+        if (
+          parsed.length === PLAN_KPI_IDS.length &&
+          PLAN_KPI_IDS.every((id) => parsed.includes(id))
+        ) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return [...PLAN_KPI_IDS];
+  });
+
+  const kpiSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleKpiDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setKpiOrder((prev) => {
+      const oldIdx = prev.indexOf(active.id as string);
+      const newIdx = prev.indexOf(over.id as string);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(oldIdx, 1);
+      next.splice(newIdx, 0, moved);
+      localStorage.setItem(kpiStorageKey, JSON.stringify(next));
+      return next;
+    });
+  };
 
   // Fetch plans with React Query
   const { data, isLoading, error } = useQuery({
@@ -76,6 +209,78 @@ const PlanManagement = () => {
       setPlans(data);
     }
   }, [data]);
+
+  // Fetch all users to count subscribers per plan
+  const { data: allUsers } = useQuery({
+    queryKey: ['admin', 'plan-user-counts'],
+    queryFn: async () => {
+      const response = await adminApi.getUsers({ limit: 9999 });
+      return response.users;
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  // --- KPI Computation ---
+
+  const kpiData = useMemo(() => {
+    // Build plan name → code mapping
+    const nameToCode: Record<string, string> = {};
+    plans.forEach((p) => {
+      nameToCode[p.name.toLowerCase()] = p.code.toLowerCase();
+    });
+
+    const users = allUsers || [];
+    const usersWithPlan = users.filter((u) => u.plan);
+    const totalSubscribers = usersWithPlan.length;
+
+    let freeCount = 0;
+    let customerCount = 0;
+    let consultantCount = 0;
+
+    usersWithPlan.forEach((u) => {
+      const code = nameToCode[u.plan!.toLowerCase()] || u.plan!.toLowerCase();
+      if (code === "free") {
+        freeCount++;
+      } else if (code === "consultant") {
+        consultantCount++;
+      } else {
+        customerCount++;
+      }
+    });
+
+    return {
+      "plan-subscribers": {
+        title: t('admin:planManagement.kpis.totalSubscribers'),
+        value: String(totalSubscribers),
+        changeType: "neutral" as const,
+        icon: Users,
+        watermark: Users,
+      },
+      "plan-free": {
+        title: t('admin:planManagement.kpis.freePlan'),
+        value: String(freeCount),
+        changeType: "neutral" as const,
+        icon: Gift,
+        watermark: Gift,
+      },
+      "plan-customer": {
+        title: t('admin:planManagement.kpis.customerPlan'),
+        value: String(customerCount),
+        changeType: "positive" as const,
+        icon: UserCheck,
+        watermark: UserCheck,
+      },
+      "plan-consultant": {
+        title: t('admin:planManagement.kpis.consultantPlan'),
+        value: String(consultantCount),
+        changeType: "positive" as const,
+        icon: Briefcase,
+        watermark: Briefcase,
+      },
+    };
+  }, [plans, allUsers, t]);
 
   // Delete plan mutation
   const deletePlanMutation = useMutation({
@@ -112,7 +317,7 @@ const PlanManagement = () => {
           connectionLimit: plan.connectionLimit || null,
           features: plan.features,
           isActive: plan.isActive ?? true,
-          role: null, // All plans available to all users
+          role: null,
         }
       ]);
     },
@@ -171,7 +376,7 @@ const PlanManagement = () => {
 
     // Save to backend
     await savePlanMutation.mutateAsync(editingPlan);
-    
+
     setIsPlanDialogOpen(false);
     setEditingPlan(null);
     setNewFeature("");
@@ -227,160 +432,141 @@ const PlanManagement = () => {
   // Sort plans by price
   const sortedPlans = [...plans].sort((a, b) => a.price - b.price);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-96" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t('admin:planManagement.title')}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t('admin:planManagement.subtitle')}
-          </p>
-        </div>
-        <div className="flex items-center justify-center h-64">
-          <p className="text-destructive">{(error as any)?.error || t('common:errorLoading')}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">{t('admin:planManagement.title')}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t('admin:planManagement.subtitle')}
-        </p>
-      </div>
+    <div className="space-y-6 min-w-0">
+      {/* KPI Cards */}
+      <DndContext sensors={kpiSensors} collisionDetection={closestCenter} onDragEnd={handleKpiDragEnd}>
+        <SortableContext items={kpiOrder} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {kpiOrder.map((id) => (
+              <SortablePlanKpiCard key={id} id={id} kpi={kpiData[id as keyof typeof kpiData]} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
-      {/* Plan Cards Grid */}
-      <div className="flex flex-wrap gap-6">
-        {sortedPlans.map((plan) => {
-          const isFree = plan.price === 0;
-          const cardColor = getCardColor(plan.code);
-          
-          return (
-            <div
-              key={plan.id || plan.code}
-              className={`relative rounded-lg border-2 p-6 transition-all w-[280px] ${cardColor}`}
-            >
-              {/* Edit and Delete Icons */}
-              <div className="absolute top-4 right-4 flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleEditPlan(plan)}
-                  title={t('admin:planManagement.editPlan')}
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() => handleDeleteClick(plan)}
-                  title={t('common:delete')}
-                  disabled={plan.code.toLowerCase() === 'free'}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+      {/* Plans Grid */}
+      <ChartCard
+        title={t('admin:planManagement.title')}
+        subtitle={t('admin:planManagement.subtitle')}
+        actions={
+          <Button variant="outline" size="sm" onClick={handleAddPlan} className="gap-2">
+            <Plus className="h-3.5 w-3.5" />
+            {t('admin:planManagement.createPlan')}
+          </Button>
+        }
+      >
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-80 rounded-lg bg-muted/50 animate-pulse" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-16">
+            <p className="text-destructive">{(error as any)?.error || t('common:errorLoading')}</p>
+          </div>
+        ) : sortedPlans.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-2">
+            <Layers className="h-12 w-12 text-muted-foreground/50" />
+            <p className="text-sm font-medium text-foreground">{t('admin:planManagement.empty')}</p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-6">
+            {sortedPlans.map((plan) => {
+              const isFree = plan.price === 0;
+              const cardColor = getCardColor(plan.code);
 
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
-                  <p className="text-xs text-muted-foreground uppercase">{plan.code}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold text-foreground">
-                      {formatCurrency(plan.price)}
-                    </span>
-                    {!isFree && (
-                      <span className="text-sm text-muted-foreground">/{t('common:month')}</span>
+              return (
+                <div
+                  key={plan.id || plan.code}
+                  className={`relative rounded-lg border p-6 transition-all w-[280px] ${cardColor}`}
+                >
+                  {/* Edit and Delete Icons */}
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleEditPlan(plan)}
+                      title={t('admin:planManagement.editPlan')}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDeleteClick(plan)}
+                      title={t('common:delete')}
+                      disabled={plan.code.toLowerCase() === 'free'}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground uppercase">{plan.code}</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-bold text-foreground">
+                          {formatCurrency(plan.price)}
+                        </span>
+                        {!isFree && (
+                          <span className="text-sm text-muted-foreground">/{t('common:month')}</span>
+                        )}
+                      </div>
+                      {isFree && (
+                        <span className="text-sm text-muted-foreground">{t('common:forever')}</span>
+                      )}
+                    </div>
+
+                    {plan.connectionLimit !== null && (
+                      <p className="text-sm text-muted-foreground">
+                        {plan.connectionLimit} {plan.connectionLimit === 1 ? t('common:connection') : t('common:connections')}
+                      </p>
+                    )}
+                    {plan.connectionLimit === null && (
+                      <p className="text-sm text-muted-foreground">{t('common:unlimitedConnections')}</p>
+                    )}
+
+                    <ul className="space-y-2 mt-4 max-h-48 overflow-y-auto">
+                      {plan.features.slice(0, 5).map((feature, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-foreground">{feature}</span>
+                        </li>
+                      ))}
+                      {plan.features.length > 5 && (
+                        <li className="text-xs text-muted-foreground">
+                          +{plan.features.length - 5} {t('common:more')}
+                        </li>
+                      )}
+                      {plan.features.length === 0 && (
+                        <li className="text-xs text-muted-foreground italic">
+                          {t('common:noFeaturesDefined')}
+                        </li>
+                      )}
+                    </ul>
+
+                    {!plan.isActive && (
+                      <div className="mt-2">
+                        <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
+                          {t('common:inactive')}
+                        </span>
+                      </div>
                     )}
                   </div>
-                  {isFree && (
-                    <span className="text-sm text-muted-foreground">{t('common:forever')}</span>
-                  )}
                 </div>
-                
-                {plan.connectionLimit !== null && (
-                  <p className="text-sm text-muted-foreground">
-                    {plan.connectionLimit} {plan.connectionLimit === 1 ? t('common:connection') : t('common:connections')}
-                  </p>
-                )}
-                {plan.connectionLimit === null && (
-                  <p className="text-sm text-muted-foreground">{t('common:unlimitedConnections')}</p>
-                )}
-                
-                <ul className="space-y-2 mt-4 max-h-48 overflow-y-auto">
-                  {plan.features.slice(0, 5).map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-foreground">{feature}</span>
-                    </li>
-                  ))}
-                  {plan.features.length > 5 && (
-                    <li className="text-xs text-muted-foreground">
-                      +{plan.features.length - 5} {t('common:more')}
-                    </li>
-                  )}
-                  {plan.features.length === 0 && (
-                    <li className="text-xs text-muted-foreground italic">
-                      {t('common:noFeaturesDefined')}
-                    </li>
-                  )}
-                </ul>
-
-                {!plan.isActive && (
-                  <div className="mt-2">
-                    <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
-                      {t('common:inactive')}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Add Plan Card */}
-        <div
-          className="relative rounded-lg border-2 border-dashed p-6 transition-all cursor-pointer hover:border-primary w-[280px] border-primary/30 bg-primary/5"
-          onClick={handleAddPlan}
-        >
-          <div className="flex flex-col items-center justify-center h-full min-h-[300px]">
-            <div className="rounded-full bg-primary/10 p-4 mb-4">
-              <Plus className="h-8 w-8 text-primary" />
-            </div>
-            <p className="text-sm font-medium text-foreground">{t('admin:planManagement.createPlan')}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('common:clickToCreate')}
-            </p>
+              );
+            })}
           </div>
-        </div>
-      </div>
+        )}
+      </ChartCard>
 
       {/* Plan Edit Dialog */}
       <Dialog open={isPlanDialogOpen} onOpenChange={setIsPlanDialogOpen}>
