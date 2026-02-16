@@ -647,12 +647,63 @@
   "settings": {
     "title": "Administrator Settings",
     "subtitle": "Manage platform settings",
+    "saving": "Saving...",
+    "saveSuccess": "Settings saved successfully",
+    "saveError": "Error saving settings",
     "tabs": {
       "general": "General",
       "security": "Security",
       "notifications": "Notifications",
       "integrations": "Integrations",
       "billing": "Billing"
+    },
+    "steps": {
+      "emails": "Emails",
+      "platform": "Platform",
+      "language": "Language"
+    },
+    "emailSettings": {
+      "title": "Email Configuration",
+      "fromEmail": "Sender Email",
+      "fromName": "Sender Name",
+      "welcomeEmail": "Welcome Email",
+      "welcomeEmailDesc": "Send a welcome email when a new user registers",
+      "monthlyReport": "Monthly Report",
+      "monthlyReportDesc": "Send monthly performance reports to users",
+      "emailAlerts": "Email Alerts",
+      "emailAlertsDesc": "Send important system alerts via email",
+      "saveButton": "Save Email Settings"
+    },
+    "platformSettings": {
+      "title": "Platform Configuration",
+      "maintenanceMode": "Maintenance Mode",
+      "maintenanceModeDesc": "Enable maintenance mode to temporarily restrict access",
+      "allowRegistrations": "Allow Registrations",
+      "allowRegistrationsDesc": "Allow new users to register on the platform",
+      "emailVerification": "Email Verification",
+      "emailVerificationDesc": "Require email verification for new accounts",
+      "saveButton": "Save Platform Settings"
+    },
+    "languageSettings": {
+      "title": "Language Configuration",
+      "subtitle": "Configure platform language preferences",
+      "defaultLanguage": "Default Language",
+      "defaultLanguageDesc": "Set the default language for the platform. Users can override this in their own settings.",
+      "availableLanguages": "Available Languages",
+      "availableLanguagesDesc": "Select which languages are available for users to choose from",
+      "currentLanguage": "Current Language",
+      "switchLanguage": "Switch Language",
+      "languages": {
+        "pt-BR": "Portuguese (Brazil)",
+        "en": "English"
+      },
+      "saveButton": "Save Language Settings",
+      "saveSuccess": "Language settings saved successfully",
+      "saveError": "Error saving language settings"
+    },
+    "currencySettings": {
+      "title": "Currency Configuration",
+      "subtitle": "Set the default currency for displaying monetary values across the platform."
     },
     "general": {
       "title": "General Settings",

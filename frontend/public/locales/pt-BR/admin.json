@@ -647,12 +647,63 @@
   "settings": {
     "title": "Configurações do Administrador",
     "subtitle": "Gerencie configurações da plataforma",
+    "saving": "Salvando...",
+    "saveSuccess": "Configurações salvas com sucesso",
+    "saveError": "Erro ao salvar configurações",
     "tabs": {
       "general": "Geral",
       "security": "Segurança",
       "notifications": "Notificações",
       "integrations": "Integrações",
       "billing": "Faturamento"
+    },
+    "steps": {
+      "emails": "E-mails",
+      "platform": "Plataforma",
+      "language": "Idioma"
+    },
+    "emailSettings": {
+      "title": "Configuração de E-mail",
+      "fromEmail": "E-mail do Remetente",
+      "fromName": "Nome do Remetente",
+      "welcomeEmail": "E-mail de Boas-Vindas",
+      "welcomeEmailDesc": "Enviar e-mail de boas-vindas quando um novo usuário se registrar",
+      "monthlyReport": "Relatório Mensal",
+      "monthlyReportDesc": "Enviar relatórios de desempenho mensal aos usuários",
+      "emailAlerts": "Alertas por E-mail",
+      "emailAlertsDesc": "Enviar alertas importantes do sistema por e-mail",
+      "saveButton": "Salvar Configurações de E-mail"
+    },
+    "platformSettings": {
+      "title": "Configuração da Plataforma",
+      "maintenanceMode": "Modo de Manutenção",
+      "maintenanceModeDesc": "Ativar modo de manutenção para restringir o acesso temporariamente",
+      "allowRegistrations": "Permitir Registros",
+      "allowRegistrationsDesc": "Permitir que novos usuários se registrem na plataforma",
+      "emailVerification": "Verificação de E-mail",
+      "emailVerificationDesc": "Exigir verificação de e-mail para novas contas",
+      "saveButton": "Salvar Configurações da Plataforma"
+    },
+    "languageSettings": {
+      "title": "Configuração de Idioma",
+      "subtitle": "Configure as preferências de idioma da plataforma",
+      "defaultLanguage": "Idioma Padrão",
+      "defaultLanguageDesc": "Defina o idioma padrão da plataforma. Os usuários podem alterar isso nas próprias configurações.",
+      "availableLanguages": "Idiomas Disponíveis",
+      "availableLanguagesDesc": "Selecione quais idiomas estão disponíveis para os usuários escolherem",
+      "currentLanguage": "Idioma Atual",
+      "switchLanguage": "Trocar Idioma",
+      "languages": {
+        "pt-BR": "Português (Brasil)",
+        "en": "Inglês"
+      },
+      "saveButton": "Salvar Configurações de Idioma",
+      "saveSuccess": "Configurações de idioma salvas com sucesso",
+      "saveError": "Erro ao salvar configurações de idioma"
+    },
+    "currencySettings": {
+      "title": "Configuração de Moeda",
+      "subtitle": "Defina a moeda padrão para exibição de valores monetários em toda a plataforma."
     },
     "general": {
       "title": "Configurações Gerais",

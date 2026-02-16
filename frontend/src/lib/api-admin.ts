@@ -215,6 +215,9 @@ export const adminApi = {
   updatePlatformSettings: (settings: { maintenanceMode: boolean; allowRegistrations: boolean; requireEmailVerification: boolean }) =>
     api.put<{ message: string }>('/admin/settings/platform', settings),
 
+  updateLanguageSettings: (settings: { defaultLanguage: string; availableLanguages: string[] }) =>
+    api.put<{ message: string }>('/admin/settings/language', settings),
+
   updateRegistrationApprovalSetting: (registrationRequiresApproval: boolean) =>
     api.put<{ message: string }>('/admin/settings/registration-approval', { registrationRequiresApproval }),
 
