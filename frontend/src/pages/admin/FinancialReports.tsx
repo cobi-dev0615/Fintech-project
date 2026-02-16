@@ -1,15 +1,43 @@
-import { useState, useEffect, useCallback } from "react";
-import { DollarSign, TrendingUp, CreditCard, Download, Calendar, BarChart3, FileText, RefreshCw } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  DollarSign,
+  TrendingUp,
+  CreditCard,
+  Download,
+  Calendar,
+  BarChart3,
+  FileText,
+  RefreshCw,
+  GripVertical,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { adminApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useAuth } from "@/hooks/useAuth";
 import {
   LineChart,
   Line,
@@ -29,18 +57,81 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 
-const currentYear = new Date().getFullYear();
-const yearOptions = [currentYear, currentYear - 1, currentYear - 2];
+// --- Types ---
 
 type RevenueRow = { month: string; revenue: number; subscriptions: number };
 type CommissionRow = { consultant: string; clients: number; commission: number };
 type TransactionRow = { id?: string; date: string; type: string; amount: number; client: string };
 
+interface FinKpiDef {
+  title: string;
+  value: string;
+  subtitle?: string;
+  changeType: "positive" | "negative" | "neutral";
+  icon: LucideIcon;
+  watermark: LucideIcon;
+}
+
+// --- Inline SortableKpiCard ---
+
+function SortableFinKpiCard({ id, kpi }: { id: string; kpi: FinKpiDef }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group ${isDragging ? "z-50 opacity-50 scale-105" : ""}`}
+    >
+      <button
+        type="button"
+        className="drag-handle absolute top-3 right-3 z-10 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground/80 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none rounded-md p-1 touch-none"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="kpi-card relative overflow-hidden h-full">
+        <kpi.watermark className="absolute -bottom-3 -right-3 h-24 w-24 text-muted-foreground/[0.06] pointer-events-none" />
+
+        <div className="flex items-center gap-2.5 mb-3 relative z-10">
+          <kpi.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-xs font-medium text-muted-foreground truncate">
+            {kpi.title}
+          </span>
+        </div>
+
+        <div className="relative z-10">
+          <div className="text-2xl sm:text-[28px] font-bold text-foreground mb-1 tabular-nums tracking-tight leading-none">
+            {kpi.value}
+          </div>
+          {kpi.subtitle && (
+            <span className="text-xs text-muted-foreground">{kpi.subtitle}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Constants ---
+
+const FIN_KPI_IDS = ["fin-revenue", "fin-mrr", "fin-commissions", "fin-net"] as const;
+const currentYear = new Date().getFullYear();
+const yearOptions = [currentYear, currentYear - 1, currentYear - 2];
+
+// --- Component ---
+
 const FinancialReports = () => {
-  const { t, i18n } = useTranslation(['admin', 'common']);
+  const { t } = useTranslation(['admin', 'common']);
   const { formatCurrency } = useCurrency();
+  const { user: authUser } = useAuth();
   const [period, setPeriod] = useState<"month" | "quarter" | "year">("month");
   const [year, setYear] = useState(currentYear);
   const [loading, setLoading] = useState(true);
@@ -52,6 +143,50 @@ const FinancialReports = () => {
   const [dateTo, setDateTo] = useState<string>("");
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // --- KPI DnD ---
+
+  const kpiStorageKey = `admin-financial-kpi-order-${authUser?.id || "guest"}`;
+  const [kpiOrder, setKpiOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(kpiStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as string[];
+        if (
+          parsed.length === FIN_KPI_IDS.length &&
+          FIN_KPI_IDS.every((id) => parsed.includes(id))
+        ) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return [...FIN_KPI_IDS];
+  });
+
+  const kpiSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleKpiDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setKpiOrder((prev) => {
+      const oldIdx = prev.indexOf(active.id as string);
+      const newIdx = prev.indexOf(over.id as string);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(oldIdx, 1);
+      next.splice(newIdx, 0, moved);
+      localStorage.setItem(kpiStorageKey, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // --- Data fetching ---
 
   const fetchFinancialReports = useCallback(async () => {
     try {
@@ -84,6 +219,8 @@ const FinancialReports = () => {
     fetchFinancialReports();
   }, [fetchFinancialReports]);
 
+  // --- KPI Computation ---
+
   const totalRevenue = revenueData.reduce((sum, item) => sum + item.revenue, 0);
   const totalCommissions = commissionsData.reduce((sum, item) => sum + item.commission, 0);
   const netRevenue = totalRevenue - totalCommissions;
@@ -94,6 +231,43 @@ const FinancialReports = () => {
       : period === "quarter"
         ? t('admin:financialReports.periods.quarters')
         : t('admin:financialReports.periods.months');
+
+  const kpiData = useMemo(() => ({
+    "fin-revenue": {
+      title: t('admin:financialReports.kpis.totalRevenue'),
+      value: formatCurrency(totalRevenue),
+      subtitle: periodSubtitle,
+      changeType: "neutral" as const,
+      icon: DollarSign,
+      watermark: DollarSign,
+    },
+    "fin-mrr": {
+      title: t('admin:financialReports.kpis.mrr'),
+      value: formatCurrency(mrr),
+      subtitle: t('admin:financialReports.kpis.recurring'),
+      changeType: "positive" as const,
+      icon: TrendingUp,
+      watermark: TrendingUp,
+    },
+    "fin-commissions": {
+      title: t('admin:financialReports.kpis.commissions'),
+      value: formatCurrency(totalCommissions),
+      subtitle: t('admin:financialReports.kpis.paidToConsultants'),
+      changeType: "neutral" as const,
+      icon: CreditCard,
+      watermark: CreditCard,
+    },
+    "fin-net": {
+      title: t('admin:financialReports.kpis.netRevenue'),
+      value: formatCurrency(netRevenue),
+      subtitle: t('admin:financialReports.kpis.revenueMinusCommissions'),
+      changeType: "positive" as const,
+      icon: DollarSign,
+      watermark: DollarSign,
+    },
+  }), [totalRevenue, mrr, totalCommissions, netRevenue, periodSubtitle, t, formatCurrency]);
+
+  // --- Export ---
 
   const handleExport = () => {
     const rows: string[] = [];
@@ -111,9 +285,9 @@ const FinancialReports = () => {
     });
     rows.push("");
     rows.push(`${t('admin:financialReports.export.date')};${t('admin:financialReports.export.type')};${t('admin:financialReports.export.client')};${t('admin:financialReports.export.amount')}`);
-    transactionData.forEach((t) => {
+    transactionData.forEach((tx) => {
       rows.push(
-        `${t.date};${t.type};${t.client};${(t.amount ?? 0).toFixed(2).replace(".", ",")}`
+        `${tx.date};${tx.type};${tx.client};${(tx.amount ?? 0).toFixed(2).replace(".", ",")}`
       );
     });
     const csv = rows.join("\n");
@@ -140,49 +314,6 @@ const FinancialReports = () => {
 
   return (
     <div className="space-y-6 min-w-0">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('admin:financialReports.title')}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t('admin:financialReports.subtitle')}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <div className="flex items-center gap-2">
-            <Select
-              value={period}
-              onValueChange={(v: "month" | "quarter" | "year") => setPeriod(v)}
-            >
-              <SelectTrigger className="w-[130px] sm:w-[140px]" aria-label={t('admin:financialReports.periodLabel')}>
-                <SelectValue placeholder={t('admin:financialReports.periodLabel')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">{t('admin:financialReports.periodOptions.monthly')}</SelectItem>
-                <SelectItem value="quarter">{t('admin:financialReports.periodOptions.quarterly')}</SelectItem>
-                <SelectItem value="year">{t('admin:financialReports.periodOptions.yearly')}</SelectItem>
-              </SelectContent>
-            </Select>
-            {period === "year" && (
-              <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
-                <SelectTrigger className="w-[100px] sm:w-[110px]" aria-label={t('common:year')}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearOptions.map((y) => (
-                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={loading} className="gap-2">
-            <Download className="h-4 w-4" />
-            {t('common:export')}
-          </Button>
-        </div>
-      </div>
-
       {error && (
         <Alert variant="destructive" className="rounded-lg">
           <AlertDescription className="flex items-center justify-between gap-4 flex-wrap">
@@ -196,64 +327,63 @@ const FinancialReports = () => {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {loading && revenueData.length === 0 ? (
-          [1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="rounded-xl border border-border h-[100px] sm:h-[108px]" />
-          ))
-        ) : (
-          <>
-            <div className="rounded-xl border-2 border-emerald-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all">
-              <ProfessionalKpiCard
-                title={t('admin:financialReports.kpis.totalRevenue')}
-                value={formatCurrency(totalRevenue)}
-                change={periodSubtitle}
-                changeType="neutral"
-                icon={DollarSign}
-                iconClassName="text-emerald-500"
-                subtitle=""
-              />
+      {loading && revenueData.length === 0 ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-[100px] sm:h-[108px] rounded-xl bg-muted/50 animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <DndContext sensors={kpiSensors} collisionDetection={closestCenter} onDragEnd={handleKpiDragEnd}>
+          <SortableContext items={kpiOrder} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {kpiOrder.map((id) => (
+                <SortableFinKpiCard key={id} id={id} kpi={kpiData[id as keyof typeof kpiData]} />
+              ))}
             </div>
-            <div className="rounded-xl border-2 border-blue-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-all">
-              <ProfessionalKpiCard
-                title={t('admin:financialReports.kpis.mrr')}
-                value={formatCurrency(mrr)}
-                change={t('admin:financialReports.kpis.recurring')}
-                changeType="positive"
-                icon={TrendingUp}
-                iconClassName="text-blue-500"
-                subtitle={t('common:monthly')}
-              />
-            </div>
-            <div className="rounded-xl border-2 border-violet-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-violet-500/5 transition-all">
-              <ProfessionalKpiCard
-                title={t('admin:financialReports.kpis.commissions')}
-                value={formatCurrency(totalCommissions)}
-                change=""
-                changeType="neutral"
-                icon={CreditCard}
-                iconClassName="text-violet-500"
-                subtitle={t('admin:financialReports.kpis.paidToConsultants')}
-              />
-            </div>
-            <div className="rounded-xl border-2 border-cyan-500/80 bg-card p-4 shadow-sm hover:shadow-md hover:shadow-cyan-500/5 transition-all">
-              <ProfessionalKpiCard
-                title={t('admin:financialReports.kpis.netRevenue')}
-                value={formatCurrency(netRevenue)}
-                change=""
-                changeType="positive"
-                icon={DollarSign}
-                iconClassName="text-cyan-500"
-                subtitle={t('admin:financialReports.kpis.revenueMinusCommissions')}
-              />
-            </div>
-          </>
-        )}
-      </div>
+          </SortableContext>
+        </DndContext>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title={t('admin:financialReports.charts.revenueEvolution')} subtitle={t('admin:financialReports.charts.revenueVsCharges')} className="rounded-xl border border-border bg-card/50">
+        <ChartCard
+          title={t('admin:financialReports.charts.revenueEvolution')}
+          subtitle={t('admin:financialReports.charts.revenueVsCharges')}
+          actions={
+            <div className="flex items-center gap-2">
+              <Select
+                value={period}
+                onValueChange={(v: "month" | "quarter" | "year") => setPeriod(v)}
+              >
+                <SelectTrigger className="h-8 w-[120px] text-sm" aria-label={t('admin:financialReports.periodLabel')}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="month">{t('admin:financialReports.periodOptions.monthly')}</SelectItem>
+                  <SelectItem value="quarter">{t('admin:financialReports.periodOptions.quarterly')}</SelectItem>
+                  <SelectItem value="year">{t('admin:financialReports.periodOptions.yearly')}</SelectItem>
+                </SelectContent>
+              </Select>
+              {period === "year" && (
+                <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
+                  <SelectTrigger className="h-8 w-[90px] text-sm" aria-label={t('common:year')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((y) => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={loading} className="gap-1.5 h-8">
+                <Download className="h-3.5 w-3.5" />
+                {t('common:export')}
+              </Button>
+            </div>
+          }
+        >
           {revenueData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={revenueData}>
@@ -288,7 +418,10 @@ const FinancialReports = () => {
           )}
         </ChartCard>
 
-        <ChartCard title={t('admin:financialReports.charts.commissionsByConsultant')} subtitle={t('admin:financialReports.charts.commissionDistribution')} className="rounded-xl border border-border bg-card/50">
+        <ChartCard
+          title={t('admin:financialReports.charts.commissionsByConsultant')}
+          subtitle={t('admin:financialReports.charts.commissionDistribution')}
+        >
           {commissionsData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={commissionsData} margin={{ bottom: 20 }}>
@@ -327,26 +460,28 @@ const FinancialReports = () => {
       </div>
 
       {/* Transaction Statement */}
-      <ChartCard title={t('admin:financialReports.transactions.title')} subtitle={t('admin:financialReports.transactions.subtitle')} className="rounded-xl border border-border bg-card/50">
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-border">
-            <span className="text-sm font-medium text-muted-foreground">{t('admin:financialReports.transactions.list')}</span>
-            <div className="flex items-center gap-2">
-              {(dateFrom || dateTo) && (
-                <span className="text-xs text-muted-foreground truncate">
-                  {dateFrom || "..."} {t('admin:financialReports.transactions.to')} {dateTo || "..."}
-                </span>
-              )}
-              <Button variant="outline" size="sm" onClick={() => setFilterDialogOpen(true)} className="gap-2" aria-label={t('admin:financialReports.transactions.filterPeriod')}>
-                <Calendar className="h-4 w-4" />
-                {t('admin:financialReports.transactions.filterPeriod')}
-              </Button>
-            </div>
+      <ChartCard
+        title={t('admin:financialReports.transactions.title')}
+        subtitle={t('admin:financialReports.transactions.subtitle')}
+        actions={
+          <div className="flex items-center gap-2">
+            {(dateFrom || dateTo) && (
+              <span className="text-xs text-muted-foreground truncate">
+                {dateFrom || "..."} {t('admin:financialReports.transactions.to')} {dateTo || "..."}
+              </span>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setFilterDialogOpen(true)} className="gap-1.5 h-8" aria-label={t('admin:financialReports.transactions.filterPeriod')}>
+              <Calendar className="h-3.5 w-3.5" />
+              {t('admin:financialReports.transactions.filterPeriod')}
+            </Button>
           </div>
+        }
+      >
+        <div className="space-y-3">
           {transactionData.length > 0 ? (
             transactionData.map((transaction, index) => (
               <div
-                key={(transaction as TransactionRow & { id?: string }).id ?? index}
+                key={transaction.id ?? index}
                 className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-4">
