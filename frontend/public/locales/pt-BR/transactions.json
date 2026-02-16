@@ -74,5 +74,11 @@
   "expense": "Despesa",
   "transactionAdded": "Transação adicionada com sucesso",
   "transactionDeleted": "Transação excluída",
-  "confirmDelete": "Tem certeza que deseja excluir esta transação?"
+  "confirmDelete": "Tem certeza que deseja excluir esta transação?",
+  "detail": {
+    "method": "Método",
+    "merchant": "Estabelecimento",
+    "transactionId": "ID da Transação",
+    "close": "Fechar"
+  }
 }

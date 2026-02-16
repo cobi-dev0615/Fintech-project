@@ -345,10 +345,7 @@ const Investments = () => {
     return (
       <div className="space-y-6 min-w-0">
         {kpiGrid}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-64 rounded-lg w-full" />
-          <Skeleton className="h-64 rounded-lg w-full" />
-        </div>
+        <Skeleton className="h-64 rounded-lg w-full" />
       </div>
     );
   }
@@ -458,6 +455,7 @@ const Investments = () => {
 
         {/* Positions Table */}
         <ChartCard
+          className={allocationData.length === 0 ? "lg:col-span-2" : ""}
           title={t('investments:positionsOpenFinance')}
           subtitle={investments.length > 0 ? t('investments:positionCount', { count: investments.length }) : undefined}
           actions={

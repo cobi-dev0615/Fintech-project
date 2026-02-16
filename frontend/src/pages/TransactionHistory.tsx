@@ -12,15 +12,11 @@ import {
   Download,
   Plus,
   Calendar,
-  MoreHorizontal,
   Eye,
-  Pencil,
-  Trash2,
   Check,
   ArrowUpDown,
   TrendingUp,
   TrendingDown,
-  MoreVertical,
   GripVertical,
   type LucideIcon,
 } from "lucide-react";
@@ -59,13 +55,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import {
   Popover,
   PopoverContent,
@@ -297,6 +286,9 @@ const TransactionHistory = () => {
   const [newTxCategory, setNewTxCategory] = useState<string>("");
   const [newTxIsIncome, setNewTxIsIncome] = useState(false);
 
+  // Detail dialog
+  const [detailTx, setDetailTx] = useState<any>(null);
+
   // Export success dialog
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
@@ -506,21 +498,6 @@ const TransactionHistory = () => {
     setNewTxType("");
     setNewTxCategory("");
     setNewTxIsIncome(false);
-  };
-
-  // Delete transaction
-  const handleDeleteTransaction = (tx: any) => {
-    toast({
-      title: t("transactions:transactionDeleted"),
-      variant: "success",
-    });
-    setTransactions((prev) =>
-      prev.filter(
-        (item) =>
-          (item.id || item.pluggy_transaction_id) !==
-          (tx.id || tx.pluggy_transaction_id)
-      )
-    );
   };
 
   // Helper: compute KPI totals from a list of transactions
@@ -1028,38 +1005,14 @@ const TransactionHistory = () => {
 
                         {/* Actions */}
                         <td className="py-4">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                type="button"
-                                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
-                              <DropdownMenuItem className="gap-2 cursor-pointer">
-                                <Eye className="h-4 w-4" />
-                                {t("transactions:viewDetails")}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 cursor-pointer">
-                                <Download className="h-4 w-4" />
-                                {t("transactions:download")}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 cursor-pointer">
-                                <Pencil className="h-4 w-4" />
-                                {t("transactions:edit")}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="gap-2 text-red-400 focus:text-red-400 cursor-pointer"
-                                onClick={() => handleDeleteTransaction(tx)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                {t("transactions:delete")}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <button
+                            type="button"
+                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
+                            title={t("transactions:viewDetails")}
+                            onClick={() => setDetailTx(tx)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
                         </td>
                       </tr>
                     );
@@ -1265,6 +1218,118 @@ const TransactionHistory = () => {
             <Button onClick={handleExportConfirm} disabled={exporting} className="gap-2">
               <Download className={`h-4 w-4 ${exporting ? "animate-spin" : ""}`} />
               {exporting ? t("common:loading") : t("transactions:export")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transaction Detail Dialog */}
+      <Dialog open={!!detailTx} onOpenChange={(open) => { if (!open) setDetailTx(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold flex items-center gap-2.5">
+              {(() => {
+                const amt = parseFloat(detailTx?.amount ?? 0);
+                const isCredit = amt >= 0;
+                const iconBg = isCredit
+                  ? "bg-emerald-500/15 text-emerald-400"
+                  : "bg-red-500/15 text-red-400";
+                const Icon = isCredit ? ArrowUpRight : ArrowDownLeft;
+                return (
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                );
+              })()}
+              <span className="truncate">
+                {detailTx?.description || detailTx?.merchant || t("transactions:transaction")}
+              </span>
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t("transactions:viewDetails")}
+            </DialogDescription>
+          </DialogHeader>
+          {detailTx && (() => {
+            const amt = parseFloat(detailTx.amount ?? 0);
+            const isCredit = amt >= 0;
+            const txStatus = getTxStatus(detailTx);
+            return (
+              <div className="space-y-4 py-2">
+                {/* Amount */}
+                <div className="flex items-center justify-between rounded-lg bg-muted/30 p-4">
+                  <span className="text-sm text-muted-foreground">{t("transactions:amount")}</span>
+                  <span className={`text-xl font-bold tabular-nums ${isCredit ? "text-emerald-400" : "text-red-400"}`}>
+                    {isCredit ? "+" : "-"}{formatCurrency(Math.abs(amt)).replace(/^-/, "")}
+                  </span>
+                </div>
+
+                {/* Detail rows */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{t("transactions:type")}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {isCredit ? t("transactions:income") : t("transactions:expense")}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{t("transactions:category")}</span>
+                    <Badge variant="outline" className="text-xs font-normal border-border bg-muted/30">
+                      {detailTx.category || t("transactions:others")}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{t("transactions:status")}</span>
+                    <Badge
+                      className={`text-xs font-medium border ${
+                        txStatus === "completed"
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                          : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                      }`}
+                    >
+                      {txStatus === "completed" ? t("transactions:completed") : t("transactions:pending")}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{t("transactions:date")}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {detailTx.date ? formatDateForDisplay(detailTx.date, i18n.language) : "—"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{t("transactions:detail.method")}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {getTxSubtitle(detailTx)}
+                    </span>
+                  </div>
+
+                  {detailTx.merchant && detailTx.description && detailTx.merchant !== detailTx.description && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">{t("transactions:detail.merchant")}</span>
+                      <span className="text-sm font-medium text-foreground truncate max-w-[200px]">
+                        {detailTx.merchant}
+                      </span>
+                    </div>
+                  )}
+
+                  {detailTx.pluggy_transaction_id && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">{t("transactions:detail.transactionId")}</span>
+                      <span className="text-xs font-mono text-muted-foreground truncate max-w-[200px]">
+                        {detailTx.pluggy_transaction_id}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailTx(null)} className="w-full sm:w-auto">
+              {t("transactions:detail.close")}
             </Button>
           </DialogFooter>
         </DialogContent>

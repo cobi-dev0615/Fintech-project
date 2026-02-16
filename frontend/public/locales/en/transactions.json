@@ -74,5 +74,11 @@
   "expense": "Expense",
   "transactionAdded": "Transaction added successfully",
   "transactionDeleted": "Transaction deleted",
-  "confirmDelete": "Are you sure you want to delete this transaction?"
+  "confirmDelete": "Are you sure you want to delete this transaction?",
+  "detail": {
+    "method": "Method",
+    "merchant": "Merchant",
+    "transactionId": "Transaction ID",
+    "close": "Close"
+  }
 }

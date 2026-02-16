@@ -559,7 +559,7 @@ const Assets = () => {
                     return (
                       <div
                         key={bankName}
-                        className="rounded-lg border border-border/50 overflow-hidden"
+                        className="rounded-lg border border-white/10 overflow-hidden"
                       >
                         <button
                           type="button"
@@ -587,7 +587,7 @@ const Assets = () => {
                           </span>
                         </button>
                         {isExpanded && (
-                          <div className="border-t border-border/50">
+                          <div className="border-t border-white/10">
                             {bankAccounts.map((acc: any) => (
                               <div
                                 key={acc.id || acc.pluggy_account_id}
