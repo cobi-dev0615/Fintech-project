@@ -297,11 +297,34 @@
   "prospecting": {
     "title": "DAMA Prospecting",
     "subtitle": "Lead and prospect management",
+    "kpis": {
+      "totalProspects": "Total Prospects",
+      "highPotential": "High Potential",
+      "totalNetWorth": "Total Net Worth",
+      "avgEngagement": "Avg Engagement",
+      "ofTotal": "of {{total}} total",
+      "page": "Page {{page}}"
+    },
     "filters": {
       "all": "All",
       "new": "New",
       "contacted": "Contacted",
-      "converted": "Converted"
+      "converted": "Converted",
+      "stage": "Stage",
+      "allStages": "All Stages",
+      "potential": "Potential",
+      "allPotential": "All Potential"
+    },
+    "stages": {
+      "free": "Free",
+      "basic": "Basic",
+      "pro": "Pro",
+      "consultant": "Consultant"
+    },
+    "potential": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
     },
     "tableHeaders": {
       "name": "Name",
@@ -310,7 +333,11 @@
       "status": "Status",
       "consultant": "Consultant",
       "date": "Date",
-      "actions": "Actions"
+      "actions": "Actions",
+      "stage": "Stage",
+      "potential": "Potential",
+      "netWorth": "Net Worth",
+      "engagement": "Engagement"
     },
     "status": {
       "new": "New",
@@ -324,7 +351,25 @@
     "empty": "No prospects found",
     "loading": "Loading...",
     "assignSuccess": "Consultant assigned successfully",
-    "assignError": "Error assigning consultant"
+    "assignError": "Error assigning consultant",
+    "searchPlaceholder": "Search prospects...",
+    "prospect": "Prospect",
+    "prospects": "Prospects",
+    "viewDetails": "View details",
+    "funnelCard": {
+      "title": "Conversion Funnel",
+      "subtitle": "Prospects by stage"
+    },
+    "detailDialog": {
+      "title": "Prospect Details",
+      "name": "Name",
+      "email": "Email",
+      "stage": "Stage",
+      "potential": "Potential",
+      "netWorth": "Net Worth",
+      "engagement": "Engagement",
+      "lastActivity": "Last Activity"
+    }
   },
   "customerFinance": {
     "title": "Customer Financial Details",

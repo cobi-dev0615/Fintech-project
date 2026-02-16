@@ -297,11 +297,34 @@
   "prospecting": {
     "title": "Prospecção DAMA",
     "subtitle": "Gestão de prospecção e leads",
+    "kpis": {
+      "totalProspects": "Total de Prospectos",
+      "highPotential": "Alto Potencial",
+      "totalNetWorth": "Patrimônio Total",
+      "avgEngagement": "Engajamento Médio",
+      "ofTotal": "de {{total}} total",
+      "page": "Página {{page}}"
+    },
     "filters": {
       "all": "Todos",
       "new": "Novos",
       "contacted": "Contatados",
-      "converted": "Convertidos"
+      "converted": "Convertidos",
+      "stage": "Estágio",
+      "allStages": "Todos os Estágios",
+      "potential": "Potencial",
+      "allPotential": "Todo Potencial"
+    },
+    "stages": {
+      "free": "Gratuito",
+      "basic": "Básico",
+      "pro": "Pro",
+      "consultant": "Consultor"
+    },
+    "potential": {
+      "high": "Alto",
+      "medium": "Médio",
+      "low": "Baixo"
     },
     "tableHeaders": {
       "name": "Nome",
@@ -310,7 +333,11 @@
       "status": "Status",
       "consultant": "Consultor",
       "date": "Data",
-      "actions": "Ações"
+      "actions": "Ações",
+      "stage": "Estágio",
+      "potential": "Potencial",
+      "netWorth": "Patrimônio",
+      "engagement": "Engajamento"
     },
     "status": {
       "new": "Novo",
@@ -324,7 +351,25 @@
     "empty": "Nenhum prospecto encontrado",
     "loading": "Carregando...",
     "assignSuccess": "Consultor atribuído com sucesso",
-    "assignError": "Erro ao atribuir consultor"
+    "assignError": "Erro ao atribuir consultor",
+    "searchPlaceholder": "Buscar prospectos...",
+    "prospect": "Prospecto",
+    "prospects": "Prospectos",
+    "viewDetails": "Ver detalhes",
+    "funnelCard": {
+      "title": "Funil de Conversão",
+      "subtitle": "Prospectos por estágio"
+    },
+    "detailDialog": {
+      "title": "Detalhes do Prospecto",
+      "name": "Nome",
+      "email": "E-mail",
+      "stage": "Estágio",
+      "potential": "Potencial",
+      "netWorth": "Patrimônio",
+      "engagement": "Engajamento",
+      "lastActivity": "Última Atividade"
+    }
   },
   "customerFinance": {
     "title": "Detalhes Financeiros do Cliente",
