@@ -244,6 +244,8 @@
   "comments": {
     "title": "Feedback dos Usuários",
     "subtitle": "Gerencie comentários e sugestões",
+    "cardTitle": "Comentários",
+    "searchPlaceholder": "Buscar por nome, e-mail ou conteúdo...",
     "filters": {
       "all": "Todos",
       "pending": "Pendentes",
@@ -253,27 +255,44 @@
       "user": "Usuário",
       "title": "Título",
       "content": "Conteúdo",
+      "comment": "Comentário",
       "status": "Status",
       "date": "Data",
-      "actions": "Ações"
+      "actions": "Ações",
+      "action": "Ação"
     },
     "status": {
       "pending": "Pendente",
       "replied": "Respondido"
     },
+    "kpis": {
+      "totalComments": "Total de Comentários",
+      "pending": "Pendentes",
+      "replied": "Respondidos",
+      "replyRate": "Taxa de Resposta"
+    },
     "reply": "Responder",
+    "viewEdit": "Ver/Editar",
     "viewDetails": "Ver detalhes",
     "replyPlaceholder": "Digite sua resposta...",
     "send": "Enviar",
     "sending": "Enviando...",
     "empty": "Nenhum comentário encontrado",
     "loading": "Carregando...",
+    "errorLoading": "Erro ao carregar comentários",
     "replySuccess": "Resposta enviada com sucesso",
     "replyError": "Erro ao enviar resposta",
     "delete": "Excluir",
     "deleteConfirm": "Tem certeza que deseja excluir este comentário?",
     "deleteSuccess": "Comentário excluído com sucesso",
-    "deleteError": "Erro ao excluir comentário"
+    "deleteError": "Erro ao excluir comentário",
+    "replyDialog": {
+      "title": "Responder Comentário",
+      "commentFrom": "Comentário de {{name}}",
+      "yourReply": "Sua resposta",
+      "placeholder": "Digite sua resposta...",
+      "sendReply": "Enviar Resposta"
+    }
   },
   "prospecting": {
     "title": "Prospecção DAMA",
