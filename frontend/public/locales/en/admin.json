@@ -65,7 +65,13 @@
     "deleteError": "Error deleting user",
     "suspendError": "Error suspending user",
     "activateError": "Error activating user",
-    "updateError": "Error updating user"
+    "updateError": "Error updating user",
+    "kpis": {
+      "totalUsers": "Total Users",
+      "customers": "Customers",
+      "consultants": "Consultants",
+      "activeUsers": "Active"
+    }
   },
   "subscriptions": {
     "title": "Subscriptions",

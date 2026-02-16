@@ -65,7 +65,13 @@
     "deleteError": "Erro ao excluir usuário",
     "suspendError": "Erro ao suspender usuário",
     "activateError": "Erro ao ativar usuário",
-    "updateError": "Erro ao atualizar usuário"
+    "updateError": "Erro ao atualizar usuário",
+    "kpis": {
+      "totalUsers": "Total de Usuários",
+      "customers": "Clientes",
+      "consultants": "Consultores",
+      "activeUsers": "Ativos"
+    }
   },
   "subscriptions": {
     "title": "Assinaturas",
