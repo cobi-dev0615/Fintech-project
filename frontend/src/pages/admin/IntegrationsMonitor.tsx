@@ -1,10 +1,37 @@
-import { useState, useEffect } from "react";
-import { CheckCircle2, XCircle, Clock, Activity, AlertCircle } from "lucide-react";
-import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
+import { useState, useEffect, useMemo } from "react";
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Activity,
+  AlertCircle,
+  GripVertical,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Badge } from "@/components/ui/badge";
 import { adminApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/useAuth";
+
+// --- Types ---
 
 interface Integration {
   id: string;
@@ -17,8 +44,71 @@ interface Integration {
   requestsToday: number;
 }
 
+interface IntKpiDef {
+  title: string;
+  value: string;
+  subtitle?: string;
+  changeType: "positive" | "negative" | "neutral";
+  icon: LucideIcon;
+  watermark: LucideIcon;
+}
+
+// --- Inline SortableKpiCard ---
+
+function SortableIntKpiCard({ id, kpi }: { id: string; kpi: IntKpiDef }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group ${isDragging ? "z-50 opacity-50 scale-105" : ""}`}
+    >
+      <button
+        type="button"
+        className="drag-handle absolute top-3 right-3 z-10 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground/80 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none rounded-md p-1 touch-none"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className="kpi-card relative overflow-hidden h-full">
+        <kpi.watermark className="absolute -bottom-3 -right-3 h-24 w-24 text-muted-foreground/[0.06] pointer-events-none" />
+
+        <div className="flex items-center gap-2.5 mb-3 relative z-10">
+          <kpi.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-xs font-medium text-muted-foreground truncate">
+            {kpi.title}
+          </span>
+        </div>
+
+        <div className="relative z-10">
+          <div className="text-2xl sm:text-[28px] font-bold text-foreground mb-1 tabular-nums tracking-tight leading-none">
+            {kpi.value}
+          </div>
+          {kpi.subtitle && (
+            <span className="text-xs text-muted-foreground">{kpi.subtitle}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Constants ---
+
+const INT_KPI_IDS = ["int-operational", "int-degraded", "int-down", "int-uptime"] as const;
+
+// --- Component ---
+
 const IntegrationsMonitor = () => {
   const { t } = useTranslation(['admin', 'common']);
+  const { user: authUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [stats, setStats] = useState({
@@ -34,6 +124,50 @@ const IntegrationsMonitor = () => {
     message: string;
     type: "success" | "warning" | "error";
   }>>([]);
+
+  // --- KPI DnD ---
+
+  const kpiStorageKey = `admin-integrations-kpi-order-${authUser?.id || "guest"}`;
+  const [kpiOrder, setKpiOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(kpiStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as string[];
+        if (
+          parsed.length === INT_KPI_IDS.length &&
+          INT_KPI_IDS.every((id) => parsed.includes(id))
+        ) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return [...INT_KPI_IDS];
+  });
+
+  const kpiSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleKpiDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setKpiOrder((prev) => {
+      const oldIdx = prev.indexOf(active.id as string);
+      const newIdx = prev.indexOf(over.id as string);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(oldIdx, 1);
+      next.splice(newIdx, 0, moved);
+      localStorage.setItem(kpiStorageKey, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // --- Data fetching ---
 
   useEffect(() => {
     fetchIntegrations();
@@ -53,19 +187,43 @@ const IntegrationsMonitor = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground">{t('admin:integrations.loading')}</p>
-        </div>
-      </div>
-    );
-  }
+  // --- KPI Computation ---
 
-  const healthyCount = stats.healthy;
-  const degradedCount = stats.degraded;
-  const downCount = stats.down;
+  const kpiData = useMemo(() => ({
+    "int-operational": {
+      title: t('admin:integrations.kpis.operational'),
+      value: String(stats.healthy),
+      subtitle: t('admin:integrations.kpis.ofTotal', { total: stats.total }),
+      changeType: "positive" as const,
+      icon: CheckCircle2,
+      watermark: CheckCircle2,
+    },
+    "int-degraded": {
+      title: t('admin:integrations.kpis.degraded'),
+      value: String(stats.degraded),
+      subtitle: t('admin:integrations.kpis.requiresAttention'),
+      changeType: "negative" as const,
+      icon: Clock,
+      watermark: Clock,
+    },
+    "int-down": {
+      title: t('admin:integrations.kpis.down'),
+      value: String(stats.down),
+      changeType: "neutral" as const,
+      icon: XCircle,
+      watermark: XCircle,
+    },
+    "int-uptime": {
+      title: t('admin:integrations.kpis.avgUptime'),
+      value: stats.avgUptime,
+      subtitle: t('admin:integrations.kpis.last15Days'),
+      changeType: "positive" as const,
+      icon: Activity,
+      watermark: Activity,
+    },
+  }), [stats, t]);
+
+  // --- Helpers ---
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -87,7 +245,7 @@ const IntegrationsMonitor = () => {
       down: "bg-destructive/10 text-destructive",
     };
     const getStatusLabel = (s: string) => {
-      if (s === 'healthy') return t('admin:integrations.status.healthy');
+      if (s === 'healthy') return t('admin:integrations.status.operational');
       if (s === 'degraded') return t('admin:integrations.status.degraded');
       if (s === 'down') return t('admin:integrations.status.down');
       return s;
@@ -100,60 +258,48 @@ const IntegrationsMonitor = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t('admin:integrations.title')}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t('admin:integrations.subtitle')}
-          </p>
+    <div className="space-y-6 min-w-0">
+      {/* KPI Cards */}
+      {loading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-[100px] sm:h-[108px] rounded-xl bg-muted/50 animate-pulse" />
+          ))}
         </div>
-      </div>
+      ) : (
+        <DndContext sensors={kpiSensors} collisionDetection={closestCenter} onDragEnd={handleKpiDragEnd}>
+          <SortableContext items={kpiOrder} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {kpiOrder.map((id) => (
+                <SortableIntKpiCard key={id} id={id} kpi={kpiData[id as keyof typeof kpiData]} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <ProfessionalKpiCard
-          title={t('admin:integrations.kpis.operational')}
-          value={healthyCount.toString()}
-          change={t('admin:integrations.kpis.ofTotal', { total: integrations.length })}
-          changeType="neutral"
-          icon={CheckCircle2}
-          subtitle=""
-        />
-        <ProfessionalKpiCard
-          title={t('admin:integrations.kpis.degraded')}
-          value={degradedCount.toString()}
-          change={t('admin:integrations.kpis.requiresAttention')}
-          changeType="negative"
-          icon={Clock}
-          subtitle=""
-        />
-        <ProfessionalKpiCard
-          title={t('admin:integrations.kpis.down')}
-          value={downCount.toString()}
-          change=""
-          changeType="neutral"
-          icon={XCircle}
-          subtitle=""
-        />
-        <ProfessionalKpiCard
-          title={t('admin:integrations.kpis.avgUptime')}
-          value={stats.avgUptime}
-          change={t('admin:integrations.kpis.last15Days')}
-          changeType="positive"
-          icon={Activity}
-          subtitle=""
-        />
-      </div>
-
+      {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title={t('admin:integrations.integrationsCard.title')} subtitle={t('admin:integrations.integrationsCard.subtitle')}>
-          <div className="space-y-2">
-            {integrations.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
+        <ChartCard
+          title={t('admin:integrations.integrationsCard.title')}
+          subtitle={t('admin:integrations.integrationsCard.subtitle')}
+        >
+          {loading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 rounded-lg bg-muted/50 animate-pulse" />
+              ))}
+            </div>
+          ) : integrations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Activity className="h-12 w-12 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">
                 {t('admin:integrations.integrationsCard.empty')}
               </p>
-            ) : (
-              integrations.map((int) => (
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {integrations.map((int) => (
                 <div
                   key={int.id}
                   className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
@@ -167,19 +313,31 @@ const IntegrationsMonitor = () => {
                   </div>
                   {getStatusBadge(int.status)}
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </ChartCard>
 
-        <ChartCard title={t('admin:integrations.logsCard.title')} subtitle={t('admin:integrations.logsCard.subtitle')}>
-          <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {logs.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
+        <ChartCard
+          title={t('admin:integrations.logsCard.title')}
+          subtitle={t('admin:integrations.logsCard.subtitle')}
+        >
+          {loading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-14 rounded-md bg-muted/50 animate-pulse" />
+              ))}
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <AlertCircle className="h-12 w-12 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">
                 {t('admin:integrations.logsCard.empty')}
               </p>
-            ) : (
-              logs.map((log, i) => (
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {logs.map((log, i) => (
                 <div
                   key={i}
                   className="flex items-start gap-2 p-2 rounded-md text-sm border border-border/50"
@@ -193,9 +351,9 @@ const IntegrationsMonitor = () => {
                     <p className="text-xs text-muted-foreground">{log.integration}</p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </ChartCard>
       </div>
     </div>

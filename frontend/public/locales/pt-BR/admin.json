@@ -505,7 +505,26 @@
     "testSuccess": "Teste realizado com sucesso",
     "testError": "Erro ao testar integração",
     "refreshSuccess": "Status atualizado",
-    "refreshError": "Erro ao atualizar status"
+    "refreshError": "Erro ao atualizar status",
+    "kpis": {
+      "operational": "Operacional",
+      "degraded": "Degradado",
+      "down": "Fora do Ar",
+      "avgUptime": "Uptime Médio",
+      "ofTotal": "de {{total}} total",
+      "requiresAttention": "Requer atenção",
+      "last15Days": "Últimos 15 dias"
+    },
+    "integrationsCard": {
+      "title": "Integrações",
+      "subtitle": "Serviços conectados",
+      "empty": "Nenhuma integração configurada"
+    },
+    "logsCard": {
+      "title": "Logs Recentes",
+      "subtitle": "Atividade recente",
+      "empty": "Nenhum log recente"
+    }
   },
   "loginHistory": {
     "title": "Histórico de Logins",

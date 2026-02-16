@@ -505,7 +505,26 @@
     "testSuccess": "Test completed successfully",
     "testError": "Error testing integration",
     "refreshSuccess": "Status updated",
-    "refreshError": "Error updating status"
+    "refreshError": "Error updating status",
+    "kpis": {
+      "operational": "Operational",
+      "degraded": "Degraded",
+      "down": "Down",
+      "avgUptime": "Avg Uptime",
+      "ofTotal": "of {{total}} total",
+      "requiresAttention": "Requires attention",
+      "last15Days": "Last 15 days"
+    },
+    "integrationsCard": {
+      "title": "Integrations",
+      "subtitle": "Connected services",
+      "empty": "No integrations configured"
+    },
+    "logsCard": {
+      "title": "Recent Logs",
+      "subtitle": "Latest activity",
+      "empty": "No recent logs"
+    }
   },
   "loginHistory": {
     "title": "Login History",
