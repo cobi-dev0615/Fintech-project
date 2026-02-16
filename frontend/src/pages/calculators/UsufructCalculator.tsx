@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 const UsufructCalculator = () => {
@@ -34,8 +33,6 @@ const UsufructCalculator = () => {
     }
 
     let usufructPercentage = 0;
-    let usufructValue = 0;
-    let bareOwnershipValue = 0;
 
     if (usufructType === "lifelong") {
       if (age <= 20) usufructPercentage = 32;
@@ -64,8 +61,8 @@ const UsufructCalculator = () => {
       usufructPercentage = Math.min(years * 2, 30);
     }
 
-    usufructValue = (value * usufructPercentage) / 100;
-    bareOwnershipValue = value - usufructValue;
+    const usufructValue = (value * usufructPercentage) / 100;
+    const bareOwnershipValue = value - usufructValue;
 
     setResults({
       propertyValue: value,
@@ -86,11 +83,10 @@ const UsufructCalculator = () => {
       </Alert>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0")}>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-              <Calculator className="h-5 w-5" />
-            </div>
+        {/* Parameters */}
+        <div className="chart-card">
+          <div className="flex items-center gap-2.5 mb-5">
+            <Calculator className="h-4 w-4 text-muted-foreground shrink-0" />
             <div>
               <h2 className="text-sm font-semibold text-foreground">{t("calculators:usufruct.parameters")}</h2>
               <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:usufruct.parametersDesc")}</p>
@@ -135,21 +131,20 @@ const UsufructCalculator = () => {
           </div>
         </div>
 
-        <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[280px] flex flex-col min-w-0")}>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
-              <Home className="h-5 w-5" />
-            </div>
+        {/* Results */}
+        <div className="chart-card min-h-[280px] flex flex-col">
+          <div className="flex items-center gap-2.5 mb-5">
+            <Home className="h-4 w-4 text-muted-foreground shrink-0" />
             <div>
               <h2 className="text-sm font-semibold text-foreground">{t("calculators:usufruct.resultsTitle")}</h2>
               <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:usufruct.resultsDesc")}</p>
             </div>
           </div>
           {results ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                 <div className="text-sm text-muted-foreground mb-1">{t("calculators:usufruct.usufructValue")}</div>
-                <div className="text-3xl font-bold text-primary">
+                <div className="text-2xl font-bold text-primary">
                   {formatCurrency(results.usufructValue)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
@@ -157,9 +152,9 @@ const UsufructCalculator = () => {
                 </div>
               </div>
 
-              <div className="p-4 rounded-lg bg-success/10 border border-success/20">
+              <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <div className="text-sm text-muted-foreground mb-1">{t("calculators:usufruct.bareOwnership")}</div>
-                <div className="text-3xl font-bold text-success">
+                <div className="text-2xl font-bold text-emerald-400">
                   {formatCurrency(results.bareOwnershipValue)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
@@ -167,7 +162,7 @@ const UsufructCalculator = () => {
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-muted">
+              <div className="p-3 rounded-lg bg-muted/40">
                 <div className="text-xs text-muted-foreground">{t("calculators:usufruct.totalPropertyValue")}</div>
                 <div className="text-lg font-semibold">
                   {formatCurrency(results.propertyValue)}

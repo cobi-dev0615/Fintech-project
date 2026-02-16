@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 const ITCMDCalculator = () => {
@@ -67,11 +66,10 @@ const ITCMDCalculator = () => {
       </Alert>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0")}>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-              <Calculator className="h-5 w-5" />
-            </div>
+        {/* Parameters */}
+        <div className="chart-card">
+          <div className="flex items-center gap-2.5 mb-5">
+            <Calculator className="h-4 w-4 text-muted-foreground shrink-0" />
             <div>
               <h2 className="text-sm font-semibold text-foreground">{t("calculators:itcmd.parameters")}</h2>
               <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:itcmd.parametersDesc")}</p>
@@ -115,21 +113,20 @@ const ITCMDCalculator = () => {
           </div>
         </div>
 
-        <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[280px] flex flex-col min-w-0")}>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
-              <Coins className="h-5 w-5" />
-            </div>
+        {/* Results */}
+        <div className="chart-card min-h-[280px] flex flex-col">
+          <div className="flex items-center gap-2.5 mb-5">
+            <Coins className="h-4 w-4 text-muted-foreground shrink-0" />
             <div>
               <h2 className="text-sm font-semibold text-foreground">{t("calculators:itcmd.resultsTitle")}</h2>
               <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:itcmd.resultsDesc")}</p>
             </div>
           </div>
           {results ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                 <div className="text-sm text-muted-foreground mb-1">{t("calculators:itcmd.taxLabel")}</div>
-                <div className="text-3xl font-bold text-primary">
+                <div className="text-2xl font-bold text-primary">
                   {formatCurrency(results.tax)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">
@@ -137,22 +134,23 @@ const ITCMDCalculator = () => {
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-muted">
+              <div className="p-3 rounded-lg bg-muted/40">
                 <div className="text-xs text-muted-foreground">{t("calculators:itcmd.assetValue")}</div>
                 <div className="text-lg font-semibold">
                   {formatCurrency(results.propertyValue)}
                 </div>
               </div>
 
-              <div className="p-3 rounded-lg bg-muted">
-                <div className="text-xs text-muted-foreground">{t("calculators:itcmd.stateLabel")}</div>
-                <div className="text-lg font-semibold">{results.state}</div>
-              </div>
-
-              <div className="p-3 rounded-lg bg-muted">
-                <div className="text-xs text-muted-foreground">{t("calculators:itcmd.typeLabel")}</div>
-                <div className="text-lg font-semibold">
-                  {results.transactionType === "inheritance" ? t("calculators:itcmd.inheritanceLabel") : t("calculators:itcmd.donationLabel")}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg bg-muted/40">
+                  <div className="text-xs text-muted-foreground">{t("calculators:itcmd.stateLabel")}</div>
+                  <div className="text-lg font-semibold">{results.state}</div>
+                </div>
+                <div className="p-3 rounded-lg bg-muted/40">
+                  <div className="text-xs text-muted-foreground">{t("calculators:itcmd.typeLabel")}</div>
+                  <div className="text-lg font-semibold">
+                    {results.transactionType === "inheritance" ? t("calculators:itcmd.inheritanceLabel") : t("calculators:itcmd.donationLabel")}
+                  </div>
                 </div>
               </div>
             </div>

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useTranslation } from "react-i18next";
 
@@ -37,11 +36,10 @@ const FIRECalculator = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0")}>
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-            <Calculator className="h-5 w-5" />
-          </div>
+      {/* Parameters */}
+      <div className="chart-card">
+        <div className="flex items-center gap-2.5 mb-5">
+          <Calculator className="h-4 w-4 text-muted-foreground shrink-0" />
           <div>
             <h2 className="text-sm font-semibold text-foreground">{t("calculators:fire.parameters")}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:fire.parametersDesc")}</p>
@@ -80,11 +78,10 @@ const FIRECalculator = () => {
         </Button>
       </div>
 
-      <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[200px] flex flex-col min-w-0")}>
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
-            <Target className="h-5 w-5" />
-          </div>
+      {/* Result */}
+      <div className="chart-card min-h-[200px] flex flex-col">
+        <div className="flex items-center gap-2.5 mb-5">
+          <Target className="h-4 w-4 text-muted-foreground shrink-0" />
           <div>
             <h2 className="text-sm font-semibold text-foreground">{t("calculators:fire.resultTitle")}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:fire.resultDesc")}</p>

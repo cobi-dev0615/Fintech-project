@@ -30,9 +30,6 @@ import {
   ChevronUp,
   Globe,
   BarChart2,
-  Home,
-  Coins,
-  Percent,
   PieChart,
   LogOut,
 } from "lucide-react";
@@ -121,20 +118,7 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
       ],
     },
     { icon: Target, label: t('sidebar.nav.goals'), href: "/app/goals", enabled: true, section: t('sidebar.sections.relatorios') },
-    {
-      icon: Calculator,
-      label: t('sidebar.nav.calculators'),
-      id: "calculators",
-      enabled: true,
-      section: t('sidebar.sections.ferramentas'),
-      subItems: [
-        { label: t('sidebar.nav.fire'), href: "/app/calculators/fire", enabled: true, icon: TrendingUp },
-        { label: t('sidebar.nav.compoundInterest'), href: "/app/calculators/compound", enabled: true, icon: Calculator },
-        { label: t('sidebar.nav.usufruct'), href: "/app/calculators/usufruct", enabled: true, icon: Home },
-        { label: t('sidebar.nav.itcmd'), href: "/app/calculators/itcmd", enabled: true, icon: Coins },
-        { label: t('sidebar.nav.profitability'), href: "/app/calculators/profitability", enabled: true, icon: Percent },
-      ],
-    },
+    { icon: Calculator, label: t('sidebar.nav.calculators'), href: "/app/calculators", enabled: true, section: t('sidebar.sections.ferramentas') },
   ], [t]);
 
   // Consultant navigation items - all enabled
@@ -147,20 +131,7 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
     { icon: UserPlus, label: t('sidebar.nav.sendInvitations'), href: "/consultant/invitations", enabled: true, section: t('sidebar.sections.clientes') },
     { icon: MessageSquare, label: t('sidebar.nav.messages'), href: "/consultant/messages", enabled: true, section: t('sidebar.sections.clientes') },
     { icon: FileText, label: t('sidebar.nav.reports'), href: "/consultant/reports", enabled: true, section: t('sidebar.sections.relatorios') },
-    {
-      icon: Calculator,
-      label: t('sidebar.nav.calculators'),
-      id: "calculators",
-      enabled: true,
-      section: t('sidebar.sections.ferramentas'),
-      subItems: [
-        { label: t('sidebar.nav.fire'), href: "/consultant/calculators/fire", enabled: true, icon: TrendingUp },
-        { label: t('sidebar.nav.compoundInterest'), href: "/consultant/calculators/compound", enabled: true, icon: Calculator },
-        { label: t('sidebar.nav.usufruct'), href: "/consultant/calculators/usufruct", enabled: true, icon: Home },
-        { label: t('sidebar.nav.itcmd'), href: "/consultant/calculators/itcmd", enabled: true, icon: Coins },
-        { label: t('sidebar.nav.profitability'), href: "/consultant/calculators/profitability", enabled: true, icon: Percent },
-      ],
-    },
+    { icon: Calculator, label: t('sidebar.nav.calculators'), href: "/consultant/calculators", enabled: true, section: t('sidebar.sections.ferramentas') },
     { icon: TrendingUp, label: t('sidebar.nav.simulator'), href: "/consultant/simulator", enabled: true, section: t('sidebar.sections.ferramentas') },
   ], [t]);
 
@@ -285,7 +256,9 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
           const itemKey = item.id || item.label;
           const isExpanded = expandedItems.has(itemKey);
           const isSubActive = isSubItemActive(item.subItems);
-          const isActive = item.href ? location.pathname === item.href : isSubActive;
+          const isActive = item.href
+            ? location.pathname === item.href || location.pathname.startsWith(item.href + "/")
+            : isSubActive;
           
           const sectionLabel = showSectionLabel && item.section ? (
             <div key={`section-${item.section}`} className="pt-3 pb-1.5 px-3">

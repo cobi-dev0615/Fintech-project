@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 const ProfitabilitySimulator = () => {
@@ -70,11 +69,10 @@ const ProfitabilitySimulator = () => {
       </Alert>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={cn("rounded-xl border-2 border-blue-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-blue-500/5 transition-shadow min-w-0")}>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-              <Calculator className="h-5 w-5" />
-            </div>
+        {/* Parameters */}
+        <div className="chart-card">
+          <div className="flex items-center gap-2.5 mb-5">
+            <Calculator className="h-4 w-4 text-muted-foreground shrink-0" />
             <div>
               <h2 className="text-sm font-semibold text-foreground">{t("calculators:profitability.parameters")}</h2>
               <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:profitability.parametersDesc")}</p>
@@ -133,11 +131,10 @@ const ProfitabilitySimulator = () => {
           </div>
         </div>
 
-        <div className={cn("rounded-xl border-2 border-emerald-500/70 bg-card p-5 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-shadow min-h-[320px] flex flex-col min-w-0")}>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
-              <TrendingUp className="h-5 w-5" />
-            </div>
+        {/* Results */}
+        <div className="chart-card min-h-[320px] flex flex-col">
+          <div className="flex items-center gap-2.5 mb-5">
+            <TrendingUp className="h-4 w-4 text-muted-foreground shrink-0" />
             <div>
               <h2 className="text-sm font-semibold text-foreground">{t("calculators:profitability.comparisonTitle")}</h2>
               <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:profitability.comparisonDesc")}</p>
@@ -145,12 +142,15 @@ const ProfitabilitySimulator = () => {
           </div>
           {results ? (
             <div className="space-y-6">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {results.comparison.map((scenario: any, index: number) => (
-                  <div key={index} className="p-4 rounded-lg border" style={{ borderColor: scenario.color }}>
+                  <div key={index} className="p-4 rounded-lg border border-border/50 bg-muted/20">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <div className="font-semibold text-foreground">{scenario.name}</div>
+                        <div className="font-semibold text-foreground flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: scenario.color }} />
+                          {scenario.name}
+                        </div>
                         <div className="text-xs text-muted-foreground">{t("calculators:profitability.perYear", { rate: scenario.rate })}</div>
                       </div>
                       <div className="text-right">

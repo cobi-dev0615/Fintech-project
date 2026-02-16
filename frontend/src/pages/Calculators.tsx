@@ -25,32 +25,51 @@ const Calculators = () => {
   const activeTab = type || "fire";
 
   return (
-    <div className="space-y-6 min-w-0">
-      {/* Tab selector */}
-      <div className="flex flex-wrap gap-2">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => navigate(`${basePath}/calculators/${tab.id}`)}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors",
-              activeTab === tab.id
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-card hover:bg-muted text-muted-foreground"
-            )}
-          >
-            <tab.icon className="h-4 w-4" />
-            {t(tab.labelKey)}
-          </button>
-        ))}
-      </div>
+    <div className="min-w-0 max-w-full overflow-x-hidden">
+      <div className="flex flex-col lg:flex-row lg:items-stretch gap-6 min-w-0">
+        {/* Sidebar tab navigation */}
+        <div className="w-full lg:w-56 shrink-0">
+          <div className="settings-card !px-3 !pt-8 !pb-3 h-full">
+            <nav className="flex flex-row lg:flex-col gap-0.5 overflow-x-auto" aria-label={t("calculators:fire.title")}>
+              {TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => navigate(`${basePath}/calculators/${tab.id}`)}
+                    className={cn(
+                      "relative text-left px-4 py-2.5 text-sm font-medium transition-colors shrink-0 lg:shrink rounded-md flex items-center gap-2.5",
+                      isActive
+                        ? "text-primary bg-primary/15 dark:bg-primary/20"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                    )}
+                  >
+                    {/* Active left border indicator (desktop) */}
+                    {isActive && (
+                      <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-full bg-primary hidden lg:block" />
+                    )}
+                    {/* Active bottom border (mobile) */}
+                    {isActive && (
+                      <span className="absolute left-1 right-1 bottom-0 h-[2px] rounded-full bg-primary lg:hidden" />
+                    )}
+                    <tab.icon className="h-4 w-4 shrink-0" />
+                    {t(tab.labelKey)}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
 
-      {/* Calculator panels — all rendered, only active visible */}
-      <div className={activeTab === "fire" ? "space-y-6" : "hidden"}><FIRECalculator /></div>
-      <div className={activeTab === "compound" ? "space-y-6" : "hidden"}><CompoundInterest /></div>
-      <div className={activeTab === "usufruct" ? "space-y-6" : "hidden"}><UsufructCalculator /></div>
-      <div className={activeTab === "itcmd" ? "space-y-6" : "hidden"}><ITCMDCalculator /></div>
-      <div className={activeTab === "profitability" ? "space-y-6" : "hidden"}><ProfitabilitySimulator /></div>
+        {/* Content area */}
+        <div className="flex-1 min-w-0 pt-2 lg:pt-0 flex flex-col">
+          <div className={activeTab === "fire" ? "space-y-6" : "hidden"}><FIRECalculator /></div>
+          <div className={activeTab === "compound" ? "space-y-6" : "hidden"}><CompoundInterest /></div>
+          <div className={activeTab === "usufruct" ? "space-y-6" : "hidden"}><UsufructCalculator /></div>
+          <div className={activeTab === "itcmd" ? "space-y-6" : "hidden"}><ITCMDCalculator /></div>
+          <div className={activeTab === "profitability" ? "space-y-6" : "hidden"}><ProfitabilitySimulator /></div>
+        </div>
+      </div>
     </div>
   );
 };
