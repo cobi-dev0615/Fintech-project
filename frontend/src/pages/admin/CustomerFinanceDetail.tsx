@@ -8,6 +8,7 @@ import {
   Wallet,
   Building2,
   Loader2,
+  Wifi,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChartCard from "@/components/dashboard/ChartCard";
@@ -51,6 +52,38 @@ const CustomerFinanceDetail = () => {
     if (type === 'reit') return t('admin:customerFinance.investmentTypes.reit');
     if (type === 'other') return t('admin:customerFinance.investmentTypes.other');
     return type;
+  };
+
+  // ── Card visual helpers (matching customer Cards page) ──
+  const getBrandClass = (brand: string) => {
+    const b = (brand || "").toUpperCase();
+    if (b.includes("VISA")) return "brand-visa";
+    if (b.includes("MASTER")) return "brand-mastercard";
+    if (b.includes("ELO")) return "brand-elo";
+    if (b.includes("AMEX") || b.includes("AMERICAN")) return "brand-amex";
+    if (b.includes("HIPER")) return "brand-hipercard";
+    return "brand-default";
+  };
+
+  const getCardNumber = (card: any) => {
+    const last4 = card.last4 || "0000";
+    const seed = card.id || last4;
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) {
+      h = (h * 31 + seed.charCodeAt(i)) & 0x7fffffff;
+    }
+    const brand = (card.brand || "").toUpperCase();
+    let d1 = 4;
+    if (brand.includes("MASTER")) d1 = 5;
+    else if (brand.includes("AMEX") || brand.includes("AMERICAN")) d1 = 3;
+    else if (brand.includes("ELO") || brand.includes("HIPER")) d1 = 6;
+    const digits = [d1];
+    for (let i = 0; i < 11; i++) {
+      h = (h * 1103515245 + 12345) & 0x7fffffff;
+      digits.push(h % 10);
+    }
+    const full = digits.join("") + last4;
+    return `${full.slice(0, 4)} ${full.slice(4, 8)} ${full.slice(8, 12)} ${full.slice(12, 16)}`;
   };
 
   useEffect(() => {
@@ -274,26 +307,103 @@ const CustomerFinanceDetail = () => {
           <p className="text-sm text-muted-foreground py-4">{t('admin:customerFinance.cards.empty')}</p>
         ) : (
           <div className="space-y-3">
-            {cards.map((card) => (
-              <div
-                key={card.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border"
-              >
-                <div className="flex items-center gap-3">
-                  <CreditCard className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      {card.brand || t('admin:customerFinance.cards.card')} ****{card.last4 || "****"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{card.institution_name || "-"}</p>
+            {cards.map((card) => {
+              const brandUpper = (card.brand || "VISA").toUpperCase();
+              const holderName = user.name || "Card Holder";
+
+              return (
+                <div
+                  key={card.id}
+                  className="rounded-xl p-4 border border-white/[0.08] transition-colors hover:border-primary/30"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%)",
+                  }}
+                >
+                  <div className="flex gap-4 sm:gap-5">
+                    {/* Visual Credit Card */}
+                    <div
+                      className={`credit-card-visual ${getBrandClass(card.brand)} shrink-0 flex flex-col justify-between`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <Wifi className="h-4 w-4 opacity-70 rotate-90" />
+                        <span className="text-[10px] font-bold tracking-wider opacity-90 italic">
+                          {brandUpper}
+                        </span>
+                      </div>
+                      <div className="font-mono text-[11px] sm:text-xs tracking-[0.12em] opacity-95 leading-tight">
+                        {getCardNumber(card)}
+                      </div>
+                      <div className="flex items-end justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[7px] uppercase tracking-wider opacity-50">
+                            CARD HOLDER
+                          </p>
+                          <p className="text-[9px] font-medium uppercase tracking-wide truncate">
+                            {holderName}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0 ml-2">
+                          <p className="text-[7px] uppercase tracking-wider opacity-50">
+                            LAST 4
+                          </p>
+                          <p className="text-[9px] font-medium">
+                            •••• {card.last4 || "****"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="absolute top-[38%] left-3.5 w-6 h-[18px] rounded-[3px] bg-amber-400/30 border border-amber-400/40" />
+                    </div>
+
+                    {/* Card Info */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-semibold text-sm truncate">
+                          {brandUpper}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate">
+                          •••• {card.last4 || "****"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
+                        <div>
+                          <p className="text-[11px] text-muted-foreground">
+                            {t('admin:customerFinance.cards.openInvoice')}
+                          </p>
+                          <p className="text-sm font-semibold tabular-nums text-red-400">
+                            {formatCurrency(Number(card.openDebt || 0))}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground">
+                            {t('admin:customerFinance.accounts.tableHeaders.institution')}
+                          </p>
+                          <p className="text-sm font-medium truncate">
+                            {card.institution_name || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground">
+                            {t('admin:customerFinance.accounts.tableHeaders.name')}
+                          </p>
+                          <p className="text-sm font-medium truncate">
+                            {holderName}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground">
+                            {t('admin:customerFinance.accounts.tableHeaders.type')}
+                          </p>
+                          <p className="text-sm font-medium">
+                            {t('admin:customerFinance.cards.card')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-destructive">{formatCurrency(card.openDebt)}</p>
-                  <p className="text-xs text-muted-foreground">{t('admin:customerFinance.cards.openInvoice')}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </ChartCard>
