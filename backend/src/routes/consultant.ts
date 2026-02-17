@@ -1591,6 +1591,82 @@ export async function consultantRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // ── Download Report File ──────────────────────────────────────────────
+  fastify.get('/reports/:id/file', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { id } = request.params as { id: string };
+
+      const result = await db.query(
+        `SELECT id, type, file_url, params_json, created_at
+         FROM reports
+         WHERE id = $1 AND owner_user_id = $2`,
+        [id, consultantId]
+      );
+
+      if (result.rows.length === 0) {
+        return reply.code(404).send({ error: 'Report not found' });
+      }
+
+      const report = result.rows[0];
+
+      if (!report.file_url) {
+        // Report is still processing or has no file yet – return a simple placeholder PDF
+        const reportType = report.type || 'consolidated';
+        const createdAt = new Date(report.created_at).toLocaleDateString('en-US');
+        const params = report.params_json || {};
+
+        // Generate a minimal text-based report as a placeholder
+        const content = [
+          `Report: ${reportType.replace(/_/g, ' ').toUpperCase()}`,
+          `Generated: ${createdAt}`,
+          `Report ID: ${report.id}`,
+          params.dateRange ? `Date Range: ${params.dateRange}` : '',
+          '',
+          'This report is being generated. Full content will be available shortly.',
+        ].filter(Boolean).join('\n');
+
+        const filename = `report-${reportType}-${report.id.slice(0, 8)}.txt`;
+
+        reply.header('Content-Type', 'text/plain; charset=utf-8');
+        reply.header('Content-Disposition', `attachment; filename="${filename}"`);
+        return reply.send(content);
+      }
+
+      // If file_url is an external URL, redirect to it
+      if (report.file_url.startsWith('http')) {
+        return reply.redirect(report.file_url);
+      }
+
+      // If file_url is a local path, send the file
+      const fs = await import('fs');
+      const path = await import('path');
+      const filePath = path.resolve(report.file_url);
+
+      if (!fs.existsSync(filePath)) {
+        return reply.code(404).send({ error: 'Report file not found on disk' });
+      }
+
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.pdf': 'application/pdf',
+        '.csv': 'text/csv',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.txt': 'text/plain',
+      };
+
+      reply.header('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+      reply.header('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`);
+      const stream = fs.createReadStream(filePath);
+      return reply.send(stream);
+    } catch (err) {
+      fastify.log.error(`Consultant download report file error: ${err}`);
+      reply.code(500).send({ error: 'Failed to download report file' });
+    }
+  });
+
   // ── Delete Report ─────────────────────────────────────────────────────
   fastify.delete('/reports/:id', {
     preHandler: [requireConsultant],

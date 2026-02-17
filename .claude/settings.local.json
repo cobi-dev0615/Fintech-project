@@ -23,7 +23,8 @@
       "Bash(npm install:*)",
       "Bash(grep:*)",
       "Bash(find:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(git status:*)"
     ]
   }
 }
