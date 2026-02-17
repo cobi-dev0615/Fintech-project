@@ -23,7 +23,7 @@ export const adminApi = {
   getDashboardMetrics: (year?: number) => {
     const params = year ? `?year=${year}` : '';
     return api.get<{
-      kpis: { activeUsers: number; newUsers: number; mrr: number; churnRate: number };
+      kpis: { activeUsers: number; newUsers: number; mrr: number; churnRate: number; usersGrowth: number; newUsersGrowth: number; mrrGrowth: number; churnGrowth: number };
       userGrowth: Array<{ month: string; users: number }>;
       revenue: Array<{ month: string; revenue: number }>;
       alerts: Array<{ id: string; type: string; message: string; time: string }>;

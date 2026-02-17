@@ -67,6 +67,9 @@ interface AdminKpiDef {
   title: string;
   value: string;
   subtitle?: string;
+  growth?: number;
+  growthSuffix?: string;
+  invertGrowthColor?: boolean;
   changeType: "positive" | "negative" | "neutral";
   icon: LucideIcon;
   watermark: LucideIcon;
@@ -110,9 +113,21 @@ function SortableAdminKpiCard({ id, kpi }: { id: string; kpi: AdminKpiDef }) {
           <div className="text-2xl sm:text-[28px] font-bold text-foreground mb-1 tabular-nums tracking-tight leading-none">
             {kpi.value}
           </div>
-          {kpi.subtitle && (
-            <span className="text-xs text-muted-foreground">{kpi.subtitle}</span>
-          )}
+          <div className="flex items-center gap-2">
+            {kpi.subtitle && (
+              <span className="text-xs text-muted-foreground">{kpi.subtitle}</span>
+            )}
+            {kpi.growth !== undefined && kpi.growth !== 0 && (
+              <span className={cn(
+                "text-xs font-medium tabular-nums",
+                kpi.invertGrowthColor
+                  ? (kpi.growth > 0 ? "text-destructive" : "text-success")
+                  : (kpi.growth > 0 ? "text-success" : "text-destructive")
+              )}>
+                {kpi.growth > 0 ? "+" : ""}{kpi.growth}{kpi.growthSuffix ?? "%"}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -340,13 +355,14 @@ const AdminDashboard = () => {
   }, [queryClient, refetch]);
 
   // KPI data
-  const kpiData = data?.kpis ?? { activeUsers: 0, newUsers: 0, mrr: 0, churnRate: 0 };
+  const kpiData = data?.kpis ?? { activeUsers: 0, newUsers: 0, mrr: 0, churnRate: 0, usersGrowth: 0, newUsersGrowth: 0, mrrGrowth: 0, churnGrowth: 0 };
 
   const kpiMap = useMemo<Record<string, AdminKpiDef>>(() => ({
     "adm-users": {
       title: t('admin:dashboard.kpis.totalUsers'),
       value: kpiData.activeUsers.toLocaleString(),
       subtitle: t('admin:dashboard.kpis.registeredUsers'),
+      growth: kpiData.usersGrowth,
       changeType: "positive",
       icon: Users,
       watermark: Users,
@@ -355,6 +371,7 @@ const AdminDashboard = () => {
       title: t('admin:dashboard.kpis.monthlyRevenue'),
       value: formatCurrency(kpiData.mrr),
       subtitle: t('admin:dashboard.kpis.recurringRevenue'),
+      growth: kpiData.mrrGrowth,
       changeType: "positive",
       icon: DollarSign,
       watermark: DollarSign,
@@ -363,6 +380,9 @@ const AdminDashboard = () => {
       title: t('admin:dashboard.kpis.churnRate'),
       value: `${kpiData.churnRate}%`,
       subtitle: t('common:vsPreviousMonth'),
+      growth: kpiData.churnGrowth,
+      growthSuffix: "pp",
+      invertGrowthColor: true,
       changeType: kpiData.churnRate > 5 ? "negative" : "neutral",
       icon: Activity,
       watermark: Activity,
@@ -371,6 +391,7 @@ const AdminDashboard = () => {
       title: t('admin:dashboard.kpis.newUsers'),
       value: kpiData.newUsers.toLocaleString(),
       subtitle: t('admin:dashboard.kpis.newUsersSubtitle'),
+      growth: kpiData.newUsersGrowth,
       changeType: kpiData.newUsers > 0 ? "positive" : "neutral",
       icon: UserPlus,
       watermark: UserPlus,

@@ -104,6 +104,72 @@ export async function adminRoutes(fastify: FastifyInstance) {
         churnRate = 0;
       }
 
+      // --- Previous month comparisons for growth rates ---
+
+      // Previous month total users (total at end of last month)
+      const prevTotalUsersResult = await db.query(
+        `SELECT COUNT(*) as count FROM users
+         WHERE role IN ('customer', 'consultant')
+         AND created_at < DATE_TRUNC('month', CURRENT_DATE)`
+      );
+      const prevTotalUsers = parseInt(prevTotalUsersResult.rows[0].count) || 0;
+
+      // Previous month new users
+      const prevNewUsersResult = await db.query(
+        `SELECT COUNT(*) as count FROM users
+         WHERE role IN ('customer', 'consultant')
+         AND created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
+         AND created_at < DATE_TRUNC('month', CURRENT_DATE)`
+      );
+      const prevNewUsers = parseInt(prevNewUsersResult.rows[0].count) || 0;
+
+      // Previous month MRR (revenue from payments in the previous month)
+      let prevMrr = 0;
+      try {
+        const prevMrrResult = await db.query(
+          `SELECT COALESCE(SUM(p.amount_cents), 0) / 100.0 as revenue
+           FROM payments p
+           JOIN subscriptions s ON p.subscription_id = s.id
+           WHERE p.status = 'paid'
+           AND p.created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
+           AND p.created_at < DATE_TRUNC('month', CURRENT_DATE)`
+        );
+        prevMrr = parseFloat(prevMrrResult.rows[0].revenue) || 0;
+      } catch (e) {
+        prevMrr = 0;
+      }
+
+      // Previous month churn rate
+      let prevChurnRate = 0;
+      try {
+        const prevChurnResult = await db.query(
+          `SELECT
+             COUNT(*) FILTER (WHERE s.status = 'canceled'
+               AND s.canceled_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
+               AND s.canceled_at < DATE_TRUNC('month', CURRENT_DATE)) as canceled,
+             COUNT(*) FILTER (WHERE s.current_period_start >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
+               AND s.current_period_start < DATE_TRUNC('month', CURRENT_DATE)) as active_start
+           FROM subscriptions s`
+        );
+        const prevCanceled = parseInt(prevChurnResult.rows[0].canceled) || 0;
+        const prevActiveStart = parseInt(prevChurnResult.rows[0].active_start) || 0;
+        const prevTotal = prevActiveStart + prevCanceled;
+        prevChurnRate = prevTotal > 0 ? (prevCanceled / prevTotal) * 100 : 0;
+      } catch (e) {
+        prevChurnRate = 0;
+      }
+
+      // Calculate growth percentages
+      const calcGrowth = (current: number, previous: number): number => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return parseFloat(((current - previous) / previous * 100).toFixed(1));
+      };
+
+      const usersGrowth = calcGrowth(activeUsers, prevTotalUsers);
+      const newUsersGrowth = calcGrowth(newUsers, prevNewUsers);
+      const mrrGrowth = calcGrowth(mrr, prevMrr);
+      const churnGrowth = parseFloat((churnRate - prevChurnRate).toFixed(2));
+
       // Get user growth data for the selected year (all 12 months)
       const growthResult = await db.query(
         `SELECT 
@@ -163,6 +229,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
           newUsers,
           mrr,
           churnRate: parseFloat(churnRate.toFixed(2)),
+          usersGrowth,
+          newUsersGrowth,
+          mrrGrowth,
+          churnGrowth,
         },
         userGrowth: growthResult.rows.map(row => ({
           month: row.month,
@@ -2951,13 +3021,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       // Get all comments with user info
       const result = await db.query(
-        `SELECT 
-          c.id, 
-          c.title,
-          c.content, 
-          c.reply, 
-          c.status,
-          c.processed_at, 
+        `SELECT
+          c.id,
+          c.content,
+          c.reply,
+          c.replied_at,
           c.created_at,
           u.full_name as user_name,
           u.email as user_email
@@ -2969,7 +3037,12 @@ export async function adminRoutes(fastify: FastifyInstance) {
       );
 
       return reply.send({
-        comments: result.rows,
+        comments: result.rows.map((row: any) => ({
+          ...row,
+          title: null,
+          status: row.reply ? 'replied' : 'pending',
+          processed_at: row.replied_at || null,
+        })),
         pagination: {
           total,
           totalPages: Math.ceil(total / parseInt(limit)),
