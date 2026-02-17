@@ -1465,4 +1465,153 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       reply.code(500).send({ error: 'Failed to delete prospect' });
     }
   });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  CONSULTANT REPORTS
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── List Reports ──────────────────────────────────────────────────────
+  fastify.get('/reports', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { clientId } = request.query as { clientId?: string };
+
+      // Check if reports table exists
+      try {
+        await db.query('SELECT 1 FROM reports LIMIT 1');
+      } catch {
+        return { reports: [] };
+      }
+
+      let query: string;
+      let params: any[];
+
+      if (clientId) {
+        query = `SELECT r.id, r.type, r.params_json, r.file_url, r.created_at, r.target_user_id,
+                        u.full_name as client_name
+                 FROM reports r
+                 LEFT JOIN users u ON u.id = r.target_user_id
+                 WHERE r.owner_user_id = $1 AND r.target_user_id = $2
+                 ORDER BY r.created_at DESC
+                 LIMIT 100`;
+        params = [consultantId, clientId];
+      } else {
+        query = `SELECT r.id, r.type, r.params_json, r.file_url, r.created_at, r.target_user_id,
+                        u.full_name as client_name
+                 FROM reports r
+                 LEFT JOIN users u ON u.id = r.target_user_id
+                 WHERE r.owner_user_id = $1
+                 ORDER BY r.created_at DESC
+                 LIMIT 100`;
+        params = [consultantId];
+      }
+
+      const result = await db.query(query, params);
+
+      const reports = result.rows.map((row: any) => ({
+        id: row.id,
+        clientName: row.client_name || 'N/A',
+        type: row.type,
+        generatedAt: row.created_at,
+        status: row.file_url ? 'completed' : 'processing',
+        hasWatermark: row.params_json?.includeWatermark ?? false,
+        downloadUrl: row.file_url || null,
+      }));
+
+      return { reports };
+    } catch (err) {
+      fastify.log.error(`Consultant list reports error: ${err}`);
+      reply.code(500).send({ error: 'Failed to list reports' });
+    }
+  });
+
+  // ── Generate Report ───────────────────────────────────────────────────
+  fastify.post('/reports/generate', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { clientId, type, includeWatermark, customBranding } = request.body as {
+        clientId?: string;
+        type: string;
+        includeWatermark?: boolean;
+        customBranding?: boolean;
+      };
+
+      if (!type) {
+        return reply.code(400).send({ error: 'Report type is required' });
+      }
+
+      // Check if reports table exists
+      try {
+        await db.query('SELECT 1 FROM reports LIMIT 1');
+      } catch {
+        return reply.code(500).send({ error: 'Reports table not available' });
+      }
+
+      const paramsJson = { includeWatermark: includeWatermark ?? false, customBranding: customBranding ?? false };
+
+      // Try with exact type, fallback to 'advisor_custom' if enum rejects
+      let result;
+      try {
+        result = await db.query(
+          `INSERT INTO reports (owner_user_id, target_user_id, type, params_json)
+           VALUES ($1, $2, $3, $4)
+           RETURNING id, type, created_at`,
+          [consultantId, clientId || null, type, JSON.stringify(paramsJson)]
+        );
+      } catch (enumErr: any) {
+        if (enumErr.code === '22P02') {
+          result = await db.query(
+            `INSERT INTO reports (owner_user_id, target_user_id, type, params_json)
+             VALUES ($1, $2, 'advisor_custom', $3)
+             RETURNING id, type, created_at`,
+            [consultantId, clientId || null, JSON.stringify({ ...paramsJson, originalType: type })]
+          );
+        } else {
+          throw enumErr;
+        }
+      }
+
+      const row = result.rows[0];
+      return {
+        report: {
+          id: row.id,
+          type: row.type,
+          generatedAt: row.created_at,
+          status: 'processing',
+        },
+        message: 'Report generation started successfully',
+      };
+    } catch (err) {
+      fastify.log.error(`Consultant generate report error: ${err}`);
+      reply.code(500).send({ error: 'Failed to generate report' });
+    }
+  });
+
+  // ── Delete Report ─────────────────────────────────────────────────────
+  fastify.delete('/reports/:id', {
+    preHandler: [requireConsultant],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const consultantId = getConsultantId(request);
+      const { id } = request.params as { id: string };
+
+      const result = await db.query(
+        `DELETE FROM reports WHERE id = $1 AND owner_user_id = $2 RETURNING id`,
+        [id, consultantId]
+      );
+
+      if (result.rowCount === 0) {
+        return reply.code(404).send({ error: 'Report not found' });
+      }
+
+      return { message: 'Report deleted successfully' };
+    } catch (err) {
+      fastify.log.error(`Consultant delete report error: ${err}`);
+      reply.code(500).send({ error: 'Failed to delete report' });
+    }
+  });
 }
