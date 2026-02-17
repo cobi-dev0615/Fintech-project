@@ -514,7 +514,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           [userId]
         ),
 
-        // 5. Recent transactions (latest 10)
+        // 5. Recent transactions (latest 10) — same fields/joins as /finance/transactions
         db.query(
           `SELECT
             pt.id,
@@ -522,9 +522,14 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
             pt.amount::float AS amount,
             pt.description,
             pt.category,
-            COALESCE(pt.merchant, pt.description, 'Unknown') AS merchant,
-            COALESCE(pt.status, 'completed') AS status
+            pt.merchant,
+            pt.status,
+            pa.name AS account_name,
+            i.name AS institution_name
           FROM pluggy_transactions pt
+          LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
+          LEFT JOIN connections c ON pt.item_id = c.external_consent_id
+          LEFT JOIN institutions i ON c.institution_id = i.id
           WHERE pt.user_id = $1
           ORDER BY pt.date DESC, pt.created_at DESC
           LIMIT 10`,
@@ -564,15 +569,17 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       const activityTrend = prevCount > 0 ? parseFloat((((totalTransactions - prevCount) / prevCount) * 100).toFixed(1)) : 0;
       const spendingTrend = prevSpent > 0 ? parseFloat((((totalSpent - prevSpent) / prevSpent) * 100).toFixed(1)) : 0;
 
-      // Process recent transactions
+      // Process recent transactions — same shape as /finance/transactions
       const recentTransactions = recentResult.rows.map((row: any) => ({
         id: row.id,
         date: row.date,
         amount: row.amount,
         description: row.description,
         category: row.category,
-        merchant: row.merchant,
-        status: row.status,
+        merchant: row.merchant || row.description || 'Unknown',
+        status: row.status || 'completed',
+        account_name: row.account_name,
+        institution_name: row.institution_name,
       }));
 
       return reply.send({

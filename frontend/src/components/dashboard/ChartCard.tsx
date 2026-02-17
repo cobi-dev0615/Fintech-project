@@ -11,9 +11,9 @@ interface ChartCardProps {
 
 const ChartCard = ({ title, subtitle, children, className, actions }: ChartCardProps) => {
   return (
-    <div className={cn("chart-card min-w-0 h-full", className)}>
+    <div className={cn("chart-card min-w-0 h-full flex flex-col", className)}>
       {(title || actions) && (
-        <div className="flex items-start justify-between gap-3 mb-5 min-w-0">
+        <div className="flex items-start justify-between gap-3 mb-5 min-w-0 shrink-0">
           {title && (
             <div className="min-w-0 flex-1">
               <h3 className="text-base font-bold text-foreground tracking-tight">{title}</h3>
@@ -25,7 +25,7 @@ const ChartCard = ({ title, subtitle, children, className, actions }: ChartCardP
           {actions && <div className="flex items-center gap-1.5 shrink-0">{actions}</div>}
         </div>
       )}
-      <div className="w-full h-full min-w-0 overflow-hidden">{children}</div>
+      <div className="w-full flex-1 min-w-0 min-h-0">{children}</div>
     </div>
   );
 };
