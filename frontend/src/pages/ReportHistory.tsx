@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   FileText,
@@ -13,8 +13,11 @@ import {
   Clock,
   GripVertical,
   PieChart,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   DndContext,
   closestCenter,
@@ -47,7 +50,10 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import ChartCard from "@/components/dashboard/ChartCard";
-import { reportsApi, getApiBaseUrl } from "@/lib/api";
+import { reportsApi, financeApi, dashboardApi } from "@/lib/api";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { format } from "date-fns";
+import { ptBR, enUS } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -155,11 +161,6 @@ interface Report {
   downloadUrl?: string | null;
 }
 
-function reportDownloadUrl(reportId: string): string {
-  const base = getApiBaseUrl();
-  return `${base}/reports/${reportId}/file`;
-}
-
 const PAGE_SIZE_OPTIONS = [5, 10, 20] as const;
 
 const FILTER_ALL = "all";
@@ -176,6 +177,9 @@ const ReportHistory = () => {
   const [typeFilter, setTypeFilter] = useState<string>(FILTER_ALL);
   const [deleteReportId, setDeleteReportId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const { formatCurrency } = useCurrency();
+  const dateLocale = i18n.language === 'pt-BR' || i18n.language === 'pt' ? ptBR : enUS;
 
   const reportTypeLabels: Record<string, string> = {
     consolidated: t("history.typeLabels.consolidated"),
@@ -258,7 +262,7 @@ const ReportHistory = () => {
           typeKey: r.type,
           date: r.generatedAt,
           status: r.status === "generated" ? "generated" : "pending",
-          downloadUrl: r.downloadUrl || reportDownloadUrl(r.id),
+          downloadUrl: r.downloadUrl || null,
         }))
       );
     } catch (err: any) {
@@ -272,34 +276,409 @@ const ReportHistory = () => {
     fetchReports();
   }, []);
 
-  const handleDownload = async (reportId: string) => {
-    const url = reportDownloadUrl(reportId);
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+  const handleDownload = useCallback(async (reportId: string) => {
+    const report = reports.find((r) => r.id === reportId);
+    if (!report) return;
+    setDownloadingId(reportId);
+
     try {
-      const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error(t("history.downloadError"));
-      const blob = await res.blob();
-      const name =
-        res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ??
-        `relatorio-${reportId}.pdf`;
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
-      a.click();
-      URL.revokeObjectURL(a.href);
+      // Fetch financial data in parallel
+      const [summaryRes, accountsRes, investmentsRes, cardsRes, txRes] = await Promise.allSettled([
+        dashboardApi.getSummary(),
+        financeApi.getAccounts(),
+        financeApi.getInvestments(),
+        financeApi.getCards(),
+        financeApi.getTransactions({ limit: 50 }),
+      ]);
+
+      const summary = summaryRes.status === "fulfilled" ? summaryRes.value : null;
+      const accountsData = accountsRes.status === "fulfilled" ? accountsRes.value : null;
+      const investmentsData = investmentsRes.status === "fulfilled" ? investmentsRes.value : null;
+      const cardsData = cardsRes.status === "fulfilled" ? cardsRes.value : null;
+      const txData = txRes.status === "fulfilled" ? txRes.value : null;
+
+      // --- PDF ---
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 14;
+      const contentW = pageW - margin * 2;
+      let y = 0;
+
+      // Color palette
+      const C = {
+        primary: [37, 99, 235] as [number, number, number],
+        primaryLight: [219, 234, 254] as [number, number, number],
+        success: [16, 185, 129] as [number, number, number],
+        successLight: [209, 250, 229] as [number, number, number],
+        warning: [245, 158, 11] as [number, number, number],
+        warningLight: [254, 243, 199] as [number, number, number],
+        danger: [239, 68, 68] as [number, number, number],
+        dangerLight: [254, 226, 226] as [number, number, number],
+        purple: [139, 92, 246] as [number, number, number],
+        purpleLight: [237, 233, 254] as [number, number, number],
+        dark: [15, 23, 42] as [number, number, number],
+        text: [30, 41, 59] as [number, number, number],
+        muted: [100, 116, 139] as [number, number, number],
+        white: [255, 255, 255] as [number, number, number],
+        border: [226, 232, 240] as [number, number, number],
+      };
+
+      const typeLabel = reportTypeLabels[report.typeKey] || report.type;
+      const dateStr = (() => {
+        try { return format(new Date(report.date), "PPP", { locale: dateLocale }); }
+        catch { return report.date; }
+      })();
+
+      // ═══ HEADER ═══
+      const headerH = 42;
+      doc.setFillColor(...C.dark);
+      doc.rect(0, 0, pageW, headerH, "F");
+      doc.setFillColor(...C.primary);
+      doc.rect(0, headerH - 2, pageW, 2, "F");
+
+      doc.setTextColor(...C.white);
+      doc.setFontSize(21);
+      doc.setFont("helvetica", "bold");
+      doc.text(typeLabel, margin, 17);
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(180, 200, 230);
+      doc.text(`${t("reports:pdf.generated", { defaultValue: "Generated" })}: ${dateStr}`, margin, 27);
+      doc.text(`${t("reports:pdf.reportId", { defaultValue: "Report ID" })}: ${report.id.slice(0, 8).toUpperCase()}`, margin, 33);
+      if (user?.name || user?.email) {
+        doc.text(`${t("reports:pdf.owner", { defaultValue: "Owner" })}: ${user.name || user.email}`, margin, 39);
+      }
+
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...C.white);
+      doc.text("zurT", pageW - margin, 18, { align: "right" });
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(160, 180, 210);
+      doc.text(t("reports:pdf.financialReport", { defaultValue: "Financial Report" }), pageW - margin, 25, { align: "right" });
+
+      y = headerH + 10;
+
+      // ═══ FINANCIAL SUMMARY CARDS ═══
+      if (summary) {
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...C.dark);
+        doc.text(t("reports:pdf.financialSummary", { defaultValue: "Financial Summary" }), margin, y);
+        y += 7;
+
+        const cardW = (contentW - 9) / 4;
+        const cardH = 24;
+        const cards = [
+          { label: t("reports:pdf.netWorth", { defaultValue: "Net Worth" }), value: formatCurrency(summary.netWorth || 0), color: C.primary, bg: C.primaryLight },
+          { label: t("reports:pdf.cash", { defaultValue: "Cash" }), value: formatCurrency(summary.cashBalance || 0), color: C.success, bg: C.successLight },
+          { label: t("reports:pdf.investments", { defaultValue: "Investments" }), value: formatCurrency(summary.investmentValue || 0), color: C.purple, bg: C.purpleLight },
+          { label: t("reports:pdf.transactions", { defaultValue: "Transactions" }), value: String(summary.recentTransactionsCount || 0), color: C.warning, bg: C.warningLight },
+        ];
+
+        cards.forEach((card, i) => {
+          const cx = margin + i * (cardW + 3);
+          doc.setFillColor(...card.bg);
+          doc.setDrawColor(...card.color);
+          doc.setLineWidth(0.5);
+          doc.roundedRect(cx, y, cardW, cardH, 2, 2, "FD");
+          doc.setFillColor(...card.color);
+          doc.rect(cx, y + 2, 2, cardH - 4, "F");
+          doc.setFontSize(7);
+          doc.setTextColor(...C.muted);
+          doc.setFont("helvetica", "normal");
+          doc.text(card.label, cx + 6, y + 8);
+          doc.setFontSize(11);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...card.color);
+          doc.text(card.value, cx + 6, y + 17);
+        });
+        y += cardH + 10;
+      }
+
+      // ═══ ACCOUNTS TABLE ═══
+      const accounts = accountsData?.accounts;
+      if (accounts?.length > 0) {
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...C.dark);
+        doc.text(t("reports:pdf.bankAccounts", { defaultValue: "Bank Accounts" }), margin, y);
+        y += 5;
+
+        autoTable(doc, {
+          startY: y,
+          margin: { left: margin, right: margin },
+          head: [[
+            t("reports:pdf.accountName", { defaultValue: "Account" }),
+            t("reports:pdf.type", { defaultValue: "Type" }),
+            t("reports:pdf.institution", { defaultValue: "Institution" }),
+            t("reports:pdf.balance", { defaultValue: "Balance" }),
+          ]],
+          body: accounts.map((a: any) => [
+            a.name || "—",
+            a.type || a.subtype || "—",
+            a.institution_name || "—",
+            formatCurrency(Number(a.current_balance ?? a.balance) || 0),
+          ]),
+          theme: "grid",
+          headStyles: { fillColor: C.primary, textColor: C.white, fontStyle: "bold", fontSize: 8, cellPadding: 3.5 },
+          bodyStyles: { textColor: C.text, fontSize: 8, cellPadding: 3 },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          columnStyles: { 3: { halign: "right", fontStyle: "bold" } },
+        });
+        y = (doc as any).lastAutoTable.finalY + 8;
+      }
+
+      // ═══ INVESTMENTS TABLE ═══
+      const investments = investmentsData?.investments;
+      if (investments?.length > 0 && report.typeKey !== "transactions") {
+        if (y > pageH - 50) { doc.addPage(); y = margin; }
+
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...C.dark);
+        doc.text(t("reports:pdf.investmentPortfolio", { defaultValue: "Investment Portfolio" }), margin, y);
+        y += 5;
+
+        autoTable(doc, {
+          startY: y,
+          margin: { left: margin, right: margin },
+          head: [[
+            t("reports:pdf.investmentName", { defaultValue: "Name" }),
+            t("reports:pdf.type", { defaultValue: "Type" }),
+            t("reports:pdf.institution", { defaultValue: "Institution" }),
+            t("reports:pdf.quantity", { defaultValue: "Qty" }),
+            t("reports:pdf.currentValue", { defaultValue: "Value" }),
+          ]],
+          body: investments.map((inv: any) => [
+            inv.name || "—",
+            inv.type || "—",
+            inv.institution_name || "—",
+            inv.quantity?.toString() || "—",
+            formatCurrency(Number(inv.current_value ?? inv.value) || 0),
+          ]),
+          theme: "grid",
+          headStyles: { fillColor: C.purple, textColor: C.white, fontStyle: "bold", fontSize: 8, cellPadding: 3.5 },
+          bodyStyles: { textColor: C.text, fontSize: 8, cellPadding: 3 },
+          alternateRowStyles: { fillColor: [248, 245, 255] },
+          columnStyles: { 3: { halign: "center" }, 4: { halign: "right", fontStyle: "bold" } },
+        });
+        y = (doc as any).lastAutoTable.finalY + 8;
+
+        // Breakdown
+        const breakdown = investmentsData?.breakdown;
+        if (breakdown?.length > 0) {
+          if (y > pageH - 40) { doc.addPage(); y = margin; }
+
+          const breakdownColors: [number, number, number][] = [
+            C.primary, C.success, C.purple, C.warning, C.danger,
+            [6, 182, 212], [236, 72, 153], [34, 197, 94], [249, 115, 22], [99, 102, 241],
+          ];
+          const totalInv = breakdown.reduce((s: number, b: any) => s + (b.total || 0), 0);
+
+          doc.setFontSize(11);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...C.dark);
+          doc.text(t("reports:pdf.investmentBreakdown", { defaultValue: "Investment Breakdown" }), margin, y);
+          y += 5;
+
+          autoTable(doc, {
+            startY: y,
+            margin: { left: margin, right: margin },
+            head: [[
+              t("reports:pdf.assetType", { defaultValue: "Asset Type" }),
+              t("reports:pdf.count", { defaultValue: "Count" }),
+              t("reports:pdf.totalValue", { defaultValue: "Total Value" }),
+              t("reports:pdf.share", { defaultValue: "% Share" }),
+            ]],
+            body: breakdown.map((b: any) => [
+              b.type || "—",
+              String(b.count || 0),
+              formatCurrency(b.total || 0),
+              totalInv > 0 ? `${((b.total / totalInv) * 100).toFixed(1)}%` : "—",
+            ]),
+            theme: "grid",
+            headStyles: { fillColor: C.success, textColor: C.white, fontStyle: "bold", fontSize: 8, cellPadding: 3.5 },
+            bodyStyles: { textColor: C.text, fontSize: 8, cellPadding: 3 },
+            alternateRowStyles: { fillColor: [240, 253, 244] },
+            columnStyles: { 1: { halign: "center" }, 2: { halign: "right", fontStyle: "bold" }, 3: { halign: "center" } },
+            didDrawCell: (data: any) => {
+              if (data.section === "body" && data.column.index === 0) {
+                const dotColor = breakdownColors[data.row.index % breakdownColors.length];
+                doc.setFillColor(...dotColor);
+                doc.circle(data.cell.x + 3, data.cell.y + data.cell.height / 2, 1.5, "F");
+              }
+            },
+          });
+          y = (doc as any).lastAutoTable.finalY + 8;
+        }
+      }
+
+      // ═══ CREDIT CARDS ═══
+      const cardsArr = cardsData?.cards;
+      if (cardsArr?.length > 0 && report.typeKey !== "transactions") {
+        if (y > pageH - 50) { doc.addPage(); y = margin; }
+
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...C.dark);
+        doc.text(t("reports:pdf.creditCards", { defaultValue: "Credit Cards" }), margin, y);
+        y += 5;
+
+        autoTable(doc, {
+          startY: y,
+          margin: { left: margin, right: margin },
+          head: [[
+            t("reports:pdf.card", { defaultValue: "Card" }),
+            t("reports:pdf.institution", { defaultValue: "Institution" }),
+            t("reports:pdf.openDebt", { defaultValue: "Open Debt" }),
+          ]],
+          body: cardsArr.map((c: any) => [
+            `${c.brand || ""} •••• ${c.last4 || "****"}`.trim(),
+            c.institution_name || "—",
+            formatCurrency(Number(c.openDebt ?? c.open_debt) || 0),
+          ]),
+          theme: "grid",
+          headStyles: { fillColor: C.warning, textColor: C.white, fontStyle: "bold", fontSize: 8, cellPadding: 3.5 },
+          bodyStyles: { textColor: C.text, fontSize: 8, cellPadding: 3 },
+          alternateRowStyles: { fillColor: [255, 251, 235] },
+          columnStyles: { 2: { halign: "right", fontStyle: "bold", textColor: C.danger } },
+        });
+        y = (doc as any).lastAutoTable.finalY + 8;
+      }
+
+      // ═══ TRANSACTIONS TABLE ═══
+      const transactions = txData?.transactions;
+      if (transactions?.length > 0) {
+        if (y > pageH - 50) { doc.addPage(); y = margin; }
+
+        // Period summary for transaction reports
+        if (report.typeKey === "transactions") {
+          const income = transactions.filter((tx: any) => Number(tx.amount) > 0).reduce((s: number, tx: any) => s + Number(tx.amount), 0);
+          const expenses = transactions.filter((tx: any) => Number(tx.amount) < 0).reduce((s: number, tx: any) => s + Math.abs(Number(tx.amount)), 0);
+          const balance = income - expenses;
+
+          doc.setFontSize(12);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...C.dark);
+          doc.text(t("reports:pdf.periodSummary", { defaultValue: "Period Summary" }), margin, y);
+          y += 7;
+
+          const sumW = (contentW - 6) / 3;
+          const sumH = 22;
+          const sumCards = [
+            { label: t("reports:pdf.income", { defaultValue: "Income" }), value: formatCurrency(income), color: C.success, bg: C.successLight },
+            { label: t("reports:pdf.expenses", { defaultValue: "Expenses" }), value: formatCurrency(expenses), color: C.danger, bg: C.dangerLight },
+            { label: t("reports:pdf.balance", { defaultValue: "Balance" }), value: formatCurrency(balance), color: balance >= 0 ? C.primary : C.danger, bg: balance >= 0 ? C.primaryLight : C.dangerLight },
+          ];
+
+          sumCards.forEach((card, i) => {
+            const cx = margin + i * (sumW + 3);
+            doc.setFillColor(...card.bg);
+            doc.setDrawColor(...card.color);
+            doc.setLineWidth(0.4);
+            doc.roundedRect(cx, y, sumW, sumH, 2, 2, "FD");
+            doc.setFillColor(...card.color);
+            doc.rect(cx, y + 2, 2, sumH - 4, "F");
+            doc.setFontSize(7);
+            doc.setTextColor(...C.muted);
+            doc.setFont("helvetica", "normal");
+            doc.text(card.label, cx + 6, y + 8);
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(...card.color);
+            doc.text(card.value, cx + 6, y + 17);
+          });
+          y += sumH + 10;
+          if (y > pageH - 50) { doc.addPage(); y = margin; }
+        }
+
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...C.dark);
+        doc.text(t("reports:pdf.recentTransactions", { defaultValue: "Recent Transactions" }), margin, y);
+        y += 5;
+
+        const txRows = transactions.slice(0, 50).map((tx: any) => {
+          const amt = Number(tx.amount) || 0;
+          const d = (() => { try { return format(new Date(tx.date), "dd/MM/yyyy"); } catch { return tx.date || "—"; } })();
+          return [d, tx.description || tx.merchant || "—", tx.account_name || tx.institution_name || "—", formatCurrency(amt)];
+        });
+
+        autoTable(doc, {
+          startY: y,
+          margin: { left: margin, right: margin },
+          head: [[
+            t("reports:pdf.date", { defaultValue: "Date" }),
+            t("reports:pdf.description", { defaultValue: "Description" }),
+            t("reports:pdf.account", { defaultValue: "Account" }),
+            t("reports:pdf.amount", { defaultValue: "Amount" }),
+          ]],
+          body: txRows,
+          theme: "striped",
+          headStyles: { fillColor: C.dark, textColor: C.white, fontStyle: "bold", fontSize: 8, cellPadding: 3 },
+          bodyStyles: { textColor: C.text, fontSize: 7.5, cellPadding: 2.5 },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          columnStyles: { 0: { cellWidth: 22 }, 3: { halign: "right", fontStyle: "bold" } },
+          didParseCell: (data: any) => {
+            if (data.section === "body" && data.column.index === 3) {
+              const rawVal = transactions[data.row.index]?.amount;
+              if (rawVal != null && Number(rawVal) < 0) data.cell.styles.textColor = C.danger;
+              else if (rawVal != null && Number(rawVal) > 0) data.cell.styles.textColor = C.success;
+            }
+          },
+        });
+        y = (doc as any).lastAutoTable.finalY + 8;
+      }
+
+      // ═══ NO DATA ═══
+      if (!summary && !accounts?.length && !investments?.length && !transactions?.length) {
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...C.muted);
+        const msg = t("reports:pdf.noData", { defaultValue: "No financial data available. Connect your bank via Open Finance to generate detailed reports." });
+        const lines = doc.splitTextToSize(msg, contentW);
+        doc.text(lines, margin, y + 4);
+        y += lines.length * 6 + 10;
+      }
+
+      // ═══ FOOTER ═══
+      const pageCount = doc.getNumberOfPages();
+      for (let p = 1; p <= pageCount; p++) {
+        doc.setPage(p);
+        doc.setDrawColor(...C.border);
+        doc.setLineWidth(0.3);
+        doc.line(margin, pageH - 16, pageW - margin, pageH - 16);
+        doc.setFillColor(...C.primary);
+        doc.circle(margin + 1, pageH - 11, 1, "F");
+        doc.setFontSize(6.5);
+        doc.setTextColor(...C.muted);
+        doc.setFont("helvetica", "normal");
+        doc.text(
+          t("reports:pdf.footer", { defaultValue: "Confidential — zurT Financial Platform. Generated automatically." }),
+          margin + 5, pageH - 10,
+        );
+        doc.text(`${p} / ${pageCount}`, pageW - margin, pageH - 10, { align: "right" });
+        doc.setFontSize(6);
+        doc.setTextColor(...C.primary);
+        doc.text(typeLabel.toUpperCase(), pageW - margin, pageH - 6, { align: "right" });
+      }
+
+      // Save
+      const filename = `${report.typeKey}-${new Date().toISOString().slice(0, 10)}-${report.id.slice(0, 8)}.pdf`;
+      doc.save(filename);
+
       toast({ title: t("history.downloadStarted"), description: t("history.downloadDesc"), variant: "success" });
-    } catch (e) {
-      toast({
-        title: t("common:error"),
-        description: t("history.downloadError"),
-        variant: "destructive",
-      });
+    } catch (err) {
+      console.error("PDF export error:", err);
+      toast({ title: t("common:error"), description: t("history.downloadError"), variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
     }
-  };
+  }, [reports, reportTypeLabels, user, formatCurrency, t, toast, dateLocale]);
 
   const handleDeleteReport = async () => {
     if (!deleteReportId) return;
@@ -528,8 +907,12 @@ const ReportHistory = () => {
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={() => handleDownload(report.id)}
+                                disabled={downloadingId === report.id}
                               >
-                                <Download className="h-4 w-4" />
+                                {downloadingId === report.id
+                                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                                  : <Download className="h-4 w-4" />
+                                }
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -578,9 +961,13 @@ const ReportHistory = () => {
                         variant="outline"
                         size="icon"
                         onClick={() => handleDownload(report.id)}
+                        disabled={downloadingId === report.id}
                         aria-label={t("history.downloadPdf")}
                       >
-                        <Download className="h-4 w-4" />
+                        {downloadingId === report.id
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <Download className="h-4 w-4" />
+                        }
                       </Button>
                       <Button
                         variant="ghost"
