@@ -9,6 +9,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import ThemeColorPicker from "@/components/ui/ThemeColorPicker";
 
 // Critical components - load immediately
 import AppLayout from "./components/layout/AppLayout";
@@ -209,6 +210,7 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
   </CurrencyProvider>
+  <ThemeColorPicker />
   </ThemeProvider>
 );
 

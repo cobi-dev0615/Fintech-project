@@ -71,5 +71,10 @@
   "year": "Year",
   "month": "month",
   "days": "days",
-  "active": "Active"
+  "active": "Active",
+  "themeColor": "Theme Color",
+  "colorBlue": "Blue",
+  "colorGreen": "Green",
+  "colorPurple": "Purple",
+  "colorAmber": "Amber"
 }

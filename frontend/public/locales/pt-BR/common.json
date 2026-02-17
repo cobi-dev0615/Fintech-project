@@ -71,5 +71,10 @@
   "year": "Ano",
   "month": "mês",
   "days": "dias",
-  "active": "Ativo"
+  "active": "Ativo",
+  "themeColor": "Cor do Tema",
+  "colorBlue": "Azul",
+  "colorGreen": "Verde",
+  "colorPurple": "Roxo",
+  "colorAmber": "Âmbar"
 }

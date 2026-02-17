@@ -82,6 +82,71 @@
     --sidebar-active-bg: 217 91% 60% / 0.1; /* Blue tint for active item - rgba(59, 130, 246, 0.1) */
   }
 
+  /* Color theme overrides — applied via data-color attribute on <html> */
+  [data-color="green"] {
+    --background: 150 40% 4%;
+    --card: 150 30% 14% / 0.50;
+    --popover: 150 40% 5%;
+    --secondary: 150 40% 6%;
+    --muted: 150 40% 6%;
+    --input: 150 40% 6%;
+    --gradient-card: linear-gradient(180deg, rgba(10, 30, 20, 0.55) 0%, rgba(10, 30, 20, 0.50) 100%);
+    --primary: 142 76% 36%;
+    --accent: 160 84% 39%;
+    --ring: 142 76% 36%;
+    --info: 142 76% 36%;
+    --sidebar-primary: 142 76% 36%;
+    --sidebar-ring: 142 76% 36%;
+    --sidebar-active-bg: 142 76% 36% / 0.1;
+    --gradient-primary: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+    --gradient-accent: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+    --gradient-hero: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+    --shadow-blue: 0 10px 40px rgba(34, 197, 94, 0.15);
+  }
+
+  [data-color="purple"] {
+    --background: 270 40% 4%;
+    --card: 270 30% 16% / 0.50;
+    --popover: 270 40% 6%;
+    --secondary: 270 40% 7%;
+    --muted: 270 40% 7%;
+    --input: 270 40% 7%;
+    --gradient-card: linear-gradient(180deg, rgba(25, 15, 40, 0.55) 0%, rgba(25, 15, 40, 0.50) 100%);
+    --primary: 271 91% 65%;
+    --accent: 258 90% 66%;
+    --ring: 271 91% 65%;
+    --info: 271 91% 65%;
+    --sidebar-primary: 271 91% 65%;
+    --sidebar-ring: 271 91% 65%;
+    --sidebar-active-bg: 271 91% 65% / 0.1;
+    --gradient-primary: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+    --gradient-accent: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+    --gradient-hero: linear-gradient(135deg, #a855f7 0%, #8b5cf6 100%);
+    --shadow-blue: 0 10px 40px rgba(168, 85, 247, 0.15);
+  }
+
+  [data-color="amber"] {
+    --background: 35 40% 4%;
+    --card: 35 30% 15% / 0.50;
+    --popover: 35 40% 6%;
+    --secondary: 35 40% 7%;
+    --muted: 35 40% 7%;
+    --input: 35 40% 7%;
+    --gradient-card: linear-gradient(180deg, rgba(30, 25, 10, 0.55) 0%, rgba(30, 25, 10, 0.50) 100%);
+    --primary: 43 96% 56%;
+    --accent: 33 100% 50%;
+    --ring: 43 96% 56%;
+    --info: 43 96% 56%;
+    --primary-foreground: 0 0% 0%;
+    --sidebar-primary: 43 96% 56%;
+    --sidebar-ring: 43 96% 56%;
+    --sidebar-active-bg: 43 96% 56% / 0.1;
+    --gradient-primary: linear-gradient(135deg, #eab308 0%, #f59e0b 100%);
+    --gradient-accent: linear-gradient(135deg, #eab308 0%, #f59e0b 100%);
+    --gradient-hero: linear-gradient(135deg, #eab308 0%, #f59e0b 100%);
+    --shadow-blue: 0 10px 40px rgba(234, 179, 8, 0.15);
+  }
+
   /* Keep dark as default, but allow light mode override */
   .light {
     --background: 210 20% 98%;
@@ -129,6 +194,72 @@
     --shadow-card-hover: 0 10px 40px rgba(0, 0, 0, 0.08);
     --shadow-blue: 0 10px 40px rgba(59, 130, 246, 0.08);
   }
+
+  /* Light mode + color theme overrides */
+  .light[data-color="green"] {
+    --background: 145 30% 97%;
+    --card: 145 20% 99%;
+    --popover: 145 20% 99%;
+    --secondary: 145 25% 95%;
+    --muted: 145 20% 93%;
+    --input: 145 25% 90%;
+    --border: 145 20% 88%;
+    --primary: 142 76% 36%;
+    --accent: 160 84% 39%;
+    --ring: 142 76% 36%;
+    --info: 142 76% 36%;
+    --shadow-blue: 0 10px 40px rgba(34, 197, 94, 0.08);
+  }
+
+  .light[data-color="purple"] {
+    --background: 270 30% 98%;
+    --card: 270 20% 99%;
+    --popover: 270 20% 99%;
+    --secondary: 270 25% 96%;
+    --muted: 270 20% 94%;
+    --input: 270 25% 91%;
+    --border: 270 20% 89%;
+    --primary: 271 91% 65%;
+    --accent: 258 90% 66%;
+    --ring: 271 91% 65%;
+    --info: 271 91% 65%;
+    --shadow-blue: 0 10px 40px rgba(168, 85, 247, 0.08);
+  }
+
+  .light[data-color="amber"] {
+    --background: 40 35% 97%;
+    --card: 40 25% 99%;
+    --popover: 40 25% 99%;
+    --secondary: 40 30% 95%;
+    --muted: 40 25% 93%;
+    --input: 40 30% 90%;
+    --border: 40 25% 88%;
+    --primary: 43 96% 56%;
+    --accent: 33 100% 50%;
+    --ring: 43 96% 56%;
+    --info: 43 96% 56%;
+    --primary-foreground: 0 0% 0%;
+    --shadow-blue: 0 10px 40px rgba(234, 179, 8, 0.08);
+  }
+
+  /* Light mode sidebar color overrides */
+  .light[data-color="green"] [data-sidebar="true"] {
+    --sidebar-primary: 142 76% 36%;
+    --sidebar-ring: 142 76% 36%;
+    --sidebar-active-bg: 142 76% 36% / 0.1;
+  }
+
+  .light[data-color="purple"] [data-sidebar="true"] {
+    --sidebar-primary: 271 91% 65%;
+    --sidebar-ring: 271 91% 65%;
+    --sidebar-active-bg: 271 91% 65% / 0.1;
+  }
+
+  .light[data-color="amber"] [data-sidebar="true"] {
+    --sidebar-primary: 43 96% 56%;
+    --sidebar-ring: 43 96% 56%;
+    --sidebar-active-bg: 43 96% 56% / 0.1;
+  }
 }
 
 @layer base {
@@ -139,7 +270,6 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', system-ui, sans-serif;
-    background-color: #030712; /* gray-950 - MyRenda dark background */
   }
   
   /* Force dark theme by default */
@@ -152,7 +282,7 @@
   }
 
   .light body {
-    background-color: #f8fafc; /* slate-50 */
+    background-color: hsl(var(--background));
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -165,7 +295,7 @@
   .kpi-card {
     @apply rounded-xl p-5 transition-all duration-200 h-full;
     background: linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%);
-    border: 1px solid rgba(59, 130, 246, 0.4);
+    border: 1px solid hsl(var(--primary) / 0.4);
     box-shadow: var(--shadow-card);
     min-height: 160px;
   }
@@ -230,15 +360,15 @@
   .chart-card {
     @apply rounded-xl p-5 sm:p-6;
     background: linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%);
-    border: 1px solid rgba(59, 130, 246, 0.4);
+    border: 1px solid hsl(var(--primary) / 0.4);
     box-shadow: var(--shadow-card);
   }
-  
+
   /* Alert Card */
   .alert-card {
     @apply rounded-lg p-4 transition-all duration-200;
     background: linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%);
-    border: 1px solid rgba(59, 130, 246, 0.4);
+    border: 1px solid hsl(var(--primary) / 0.4);
   }
   
   .alert-card:hover {
@@ -319,10 +449,10 @@
   .feature-card {
     @apply rounded-2xl p-6 transition-all duration-300;
     background: linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%);
-    border: 1px solid rgba(59, 130, 246, 0.4);
+    border: 1px solid hsl(var(--primary) / 0.4);
     box-shadow: var(--shadow-card);
   }
-  
+
   .feature-card:hover {
     box-shadow: var(--shadow-lg);
     transform: translateY(-4px);
@@ -351,12 +481,12 @@
     min-width: 24px;
     height: 24px;
     padding: 0 6px;
-    background: rgba(59, 130, 246, 0.15);
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: hsl(var(--sidebar-primary) / 0.15);
+    border: 1px solid hsl(var(--sidebar-primary) / 0.3);
     border-radius: 6px;
     font-size: 12px;
     font-weight: 600;
-    color: #60A5FA;
+    color: hsl(var(--sidebar-primary));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -373,7 +503,7 @@
   }
 
   .sidebar-nav-item.active {
-    background: rgba(59, 130, 246, 0.1);
+    background: hsl(var(--sidebar-primary) / 0.1);
     font-weight: 600;
   }
 
@@ -429,7 +559,7 @@
   }
 
   .light [data-sidebar="true"] .sidebar-nav-item.active {
-    background: rgba(59, 130, 246, 0.1);
+    background: hsl(var(--sidebar-primary) / 0.1);
   }
 
   /* Smooth scrolling */
@@ -458,15 +588,15 @@
   /* Professional Fintech Gradient Text */
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  
+
   .gradient-accent-text {
     @apply bg-clip-text text-transparent;
-    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

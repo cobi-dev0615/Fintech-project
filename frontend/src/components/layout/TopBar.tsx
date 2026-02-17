@@ -67,7 +67,7 @@ const TopBar = ({ onMenuClick, showMenuButton = false, hideSearch = false, title
   };
 
   return (
-    <header className={`sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[rgba(255,255,255,0.15)] card-border-color backdrop-blur-xl px-4 lg:px-6 ${theme === "light" ? "bg-white" : "bg-background/80"}`}>
+    <header className={`sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[rgba(255,255,255,0.15)] card-border-color backdrop-blur-xl px-4 lg:px-6 ${theme === "light" ? "bg-background" : "bg-background/80"}`}>
       <div className="flex items-center gap-4">
         {showMenuButton && (
           <Button
