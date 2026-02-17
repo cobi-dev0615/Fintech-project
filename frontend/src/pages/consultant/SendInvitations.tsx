@@ -425,69 +425,60 @@ const SendInvitations = () => {
         >
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="invite-email">{t('consultant:invitations.form.clientEmail')}</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="invite-email"
-                  type="email"
-                  placeholder={t('consultant:invitations.form.clientEmailPlaceholder')}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 min-w-0"
-                />
-                <Popover open={emailOpen} onOpenChange={handleOpenChange}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="icon" type="button" aria-label={t('consultant:invitations.form.searchCustomer')} title={t('consultant:invitations.form.searchCustomer')}>
-                      <ChevronsUpDown className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[min(100vw-2rem,320px)] p-0" align="end">
-                    <Command shouldFilter={false}>
-                      <CommandInput
-                        placeholder={t('consultant:invitations.form.searchPlaceholder')}
-                        value={searchQuery}
-                        onValueChange={setSearchQuery}
-                      />
-                      <CommandList>
-                        <CommandEmpty>
-                          {customersLoading ? (
-                            <div className="flex items-center justify-center py-6">
-                              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Label>{t('consultant:invitations.form.clientEmail')}</Label>
+              <Popover open={emailOpen} onOpenChange={handleOpenChange}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={emailOpen}
+                    className="w-full justify-between font-normal h-10"
+                  >
+                    <span className={cn("truncate", !email && "text-muted-foreground")}>
+                      {email || t('consultant:invitations.form.clientEmailPlaceholder')}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder={t('consultant:invitations.form.searchPlaceholder')}
+                      value={searchQuery}
+                      onValueChange={setSearchQuery}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {customersLoading ? (
+                          <div className="flex items-center justify-center py-6">
+                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : (
+                          t('consultant:invitations.form.noCustomersAvailable')
+                        )}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {availableCustomers.map((customer) => (
+                          <CommandItem
+                            key={customer.id}
+                            value={`${customer.email} ${customer.name || ""}`}
+                            onSelect={() => {
+                              setEmail(customer.email);
+                              setName(customer.name || "");
+                              setEmailOpen(false);
+                            }}
+                          >
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-medium truncate text-sm">{customer.name || customer.email}</span>
+                              <span className="text-xs text-muted-foreground truncate">{customer.email}</span>
                             </div>
-                          ) : (
-                            t('consultant:invitations.form.noCustomersAvailable')
-                          )}
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {availableCustomers.map((customer) => (
-                            <CommandItem
-                              key={customer.id}
-                              value={`${customer.email} ${customer.name || ""}`}
-                              onSelect={() => {
-                                setEmail(customer.email);
-                                setName(customer.name || "");
-                                setEmailOpen(false);
-                              }}
-                            >
-                              <div className="flex flex-1 min-w-0 truncate">
-                                <span className="font-medium truncate">{customer.email}</span>
-                                {customer.name && (
-                                  <span className="ml-2 text-xs text-muted-foreground truncate hidden sm:inline">
-                                    {customer.name}
-                                  </span>
-                                )}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t('consultant:invitations.form.searchHelpText')}
-              </p>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">

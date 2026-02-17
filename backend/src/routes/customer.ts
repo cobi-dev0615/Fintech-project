@@ -272,6 +272,19 @@ export async function customerRoutes(fastify: FastifyInstance) {
       // Clear consultant dashboard cache
       cache.delete(`consultant:${consultantId}:dashboard:metrics`);
 
+      // Create persistent notification for consultant
+      try {
+        await createAlert({
+          userId: consultantId,
+          severity: 'warning',
+          title: 'Invitation Declined',
+          message: `${customerName} declined your invitation`,
+          notificationType: 'consultant_invitation',
+          linkUrl: '/consultant/invitations',
+          metadata: { invitationId: id, customerId, action: 'declined' },
+        });
+      } catch { /* notification not critical */ }
+
       // Notify consultant in real time
       const websocket = (fastify as any).websocket;
       if (websocket?.broadcastToUser) {
