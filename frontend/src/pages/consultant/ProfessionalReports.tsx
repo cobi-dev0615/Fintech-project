@@ -70,6 +70,7 @@ const REPORTS_PAGE_SIZE = 6;
 
 interface Report {
   id: string;
+  clientId: string | null;
   clientName: string;
   type: string;
   generatedAt: string;
@@ -308,13 +309,13 @@ const ProfessionalReports = () => {
     setDownloadingReportId(reportId);
 
     try {
-      // Find client ID from name
-      const client = clients.find((c: any) => c.name === report.clientName);
+      // Use clientId directly from the report record
       let finance: any = null;
+      const clientId = report.clientId || clients.find((c: any) => c.name === report.clientName)?.id;
 
-      if (client?.id) {
+      if (clientId) {
         try {
-          finance = await consultantApi.getClientFinance(client.id);
+          finance = await consultantApi.getClientFinance(clientId);
         } catch {
           // Continue without finance data
         }

@@ -50,7 +50,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import ChartCard from "@/components/dashboard/ChartCard";
-import { reportsApi, financeApi, dashboardApi } from "@/lib/api";
+import { reportsApi, dashboardApi } from "@/lib/api";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { format } from "date-fns";
 import { ptBR, enUS } from "date-fns/locale";
@@ -282,20 +282,20 @@ const ReportHistory = () => {
     setDownloadingId(reportId);
 
     try {
-      // Fetch financial data in parallel
-      const [summaryRes, accountsRes, investmentsRes, cardsRes, txRes] = await Promise.allSettled([
-        dashboardApi.getSummary(),
-        financeApi.getAccounts(),
-        financeApi.getInvestments(),
-        financeApi.getCards(),
-        financeApi.getTransactions({ limit: 50 }),
-      ]);
+      // Fetch full financial data from unified endpoint
+      let finance: any = null;
+      try {
+        finance = await dashboardApi.getFinance();
+      } catch {
+        // Continue without finance data
+      }
 
-      const summary = summaryRes.status === "fulfilled" ? summaryRes.value : null;
-      const accountsData = accountsRes.status === "fulfilled" ? accountsRes.value : null;
-      const investmentsData = investmentsRes.status === "fulfilled" ? investmentsRes.value : null;
-      const cardsData = cardsRes.status === "fulfilled" ? cardsRes.value : null;
-      const txData = txRes.status === "fulfilled" ? txRes.value : null;
+      const summary = finance?.summary || null;
+      const accounts = finance?.accounts || [];
+      const investments = finance?.investments || [];
+      const breakdown = finance?.breakdown || [];
+      const cards = finance?.cards || [];
+      const transactions = finance?.transactions || [];
 
       // --- PDF ---
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -372,14 +372,14 @@ const ReportHistory = () => {
 
         const cardW = (contentW - 9) / 4;
         const cardH = 24;
-        const cards = [
+        const summaryCards = [
           { label: t("reports:pdf.netWorth", { defaultValue: "Net Worth" }), value: formatCurrency(summary.netWorth || 0), color: C.primary, bg: C.primaryLight },
-          { label: t("reports:pdf.cash", { defaultValue: "Cash" }), value: formatCurrency(summary.cashBalance || 0), color: C.success, bg: C.successLight },
-          { label: t("reports:pdf.investments", { defaultValue: "Investments" }), value: formatCurrency(summary.investmentValue || 0), color: C.purple, bg: C.purpleLight },
-          { label: t("reports:pdf.transactions", { defaultValue: "Transactions" }), value: String(summary.recentTransactionsCount || 0), color: C.warning, bg: C.warningLight },
+          { label: t("reports:pdf.cash", { defaultValue: "Cash" }), value: formatCurrency(summary.cash || 0), color: C.success, bg: C.successLight },
+          { label: t("reports:pdf.investments", { defaultValue: "Investments" }), value: formatCurrency(summary.investments || 0), color: C.purple, bg: C.purpleLight },
+          { label: t("reports:pdf.transactions", { defaultValue: "Transactions" }), value: String(transactions.length), color: C.warning, bg: C.warningLight },
         ];
 
-        cards.forEach((card, i) => {
+        summaryCards.forEach((card, i) => {
           const cx = margin + i * (cardW + 3);
           doc.setFillColor(...card.bg);
           doc.setDrawColor(...card.color);
@@ -400,8 +400,7 @@ const ReportHistory = () => {
       }
 
       // ═══ ACCOUNTS TABLE ═══
-      const accounts = accountsData?.accounts;
-      if (accounts?.length > 0) {
+      if (accounts.length > 0) {
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(...C.dark);
@@ -421,7 +420,7 @@ const ReportHistory = () => {
             a.name || "—",
             a.type || a.subtype || "—",
             a.institution_name || "—",
-            formatCurrency(Number(a.current_balance ?? a.balance) || 0),
+            formatCurrency(Number(a.current_balance) || 0),
           ]),
           theme: "grid",
           headStyles: { fillColor: C.primary, textColor: C.white, fontStyle: "bold", fontSize: 8, cellPadding: 3.5 },
@@ -433,8 +432,7 @@ const ReportHistory = () => {
       }
 
       // ═══ INVESTMENTS TABLE ═══
-      const investments = investmentsData?.investments;
-      if (investments?.length > 0 && report.typeKey !== "transactions") {
+      if (investments.length > 0 && report.typeKey !== "transactions") {
         if (y > pageH - 50) { doc.addPage(); y = margin; }
 
         doc.setFontSize(12);
@@ -458,7 +456,7 @@ const ReportHistory = () => {
             inv.type || "—",
             inv.institution_name || "—",
             inv.quantity?.toString() || "—",
-            formatCurrency(Number(inv.current_value ?? inv.value) || 0),
+            formatCurrency(Number(inv.current_value) || 0),
           ]),
           theme: "grid",
           headStyles: { fillColor: C.purple, textColor: C.white, fontStyle: "bold", fontSize: 8, cellPadding: 3.5 },
@@ -469,8 +467,7 @@ const ReportHistory = () => {
         y = (doc as any).lastAutoTable.finalY + 8;
 
         // Breakdown
-        const breakdown = investmentsData?.breakdown;
-        if (breakdown?.length > 0) {
+        if (breakdown.length > 0) {
           if (y > pageH - 40) { doc.addPage(); y = margin; }
 
           const breakdownColors: [number, number, number][] = [
@@ -518,8 +515,7 @@ const ReportHistory = () => {
       }
 
       // ═══ CREDIT CARDS ═══
-      const cardsArr = cardsData?.cards;
-      if (cardsArr?.length > 0 && report.typeKey !== "transactions") {
+      if (cards.length > 0 && report.typeKey !== "transactions") {
         if (y > pageH - 50) { doc.addPage(); y = margin; }
 
         doc.setFontSize(12);
@@ -536,10 +532,10 @@ const ReportHistory = () => {
             t("reports:pdf.institution", { defaultValue: "Institution" }),
             t("reports:pdf.openDebt", { defaultValue: "Open Debt" }),
           ]],
-          body: cardsArr.map((c: any) => [
+          body: cards.map((c: any) => [
             `${c.brand || ""} •••• ${c.last4 || "****"}`.trim(),
             c.institution_name || "—",
-            formatCurrency(Number(c.openDebt ?? c.open_debt) || 0),
+            formatCurrency(Number(c.openDebt) || 0),
           ]),
           theme: "grid",
           headStyles: { fillColor: C.warning, textColor: C.white, fontStyle: "bold", fontSize: 8, cellPadding: 3.5 },
@@ -551,8 +547,7 @@ const ReportHistory = () => {
       }
 
       // ═══ TRANSACTIONS TABLE ═══
-      const transactions = txData?.transactions;
-      if (transactions?.length > 0) {
+      if (transactions.length > 0) {
         if (y > pageH - 50) { doc.addPage(); y = margin; }
 
         // Period summary for transaction reports
@@ -635,7 +630,7 @@ const ReportHistory = () => {
       }
 
       // ═══ NO DATA ═══
-      if (!summary && !accounts?.length && !investments?.length && !transactions?.length) {
+      if (!summary && !accounts.length && !investments.length && !transactions.length) {
         doc.setFontSize(11);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...C.muted);
@@ -678,7 +673,8 @@ const ReportHistory = () => {
     } finally {
       setDownloadingId(null);
     }
-  }, [reports, reportTypeLabels, user, formatCurrency, t, toast, dateLocale]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reports, user, formatCurrency, t, toast, dateLocale]);
 
   const handleDeleteReport = async () => {
     if (!deleteReportId) return;

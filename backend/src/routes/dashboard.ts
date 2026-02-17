@@ -228,4 +228,177 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       return reply.send({ data: [] });
     }
   });
+
+  // ── Get full financial data for report PDF generation ─────────────────
+  fastify.get('/finance', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+
+      // Accounts from bank_accounts
+      let accounts: any[] = [];
+      try {
+        const accResult = await db.query(
+          `SELECT ba.id, ba.name, ba.type, ba.balance_cents AS current_balance,
+                  COALESCE(oi.connector_name, '') AS institution_name
+           FROM bank_accounts ba
+           LEFT JOIN open_finance_items oi ON oi.id = ba.item_id
+           WHERE ba.user_id = $1
+           ORDER BY ba.name`,
+          [userId]
+        );
+        accounts = accResult.rows.map((r: any) => ({
+          ...r,
+          current_balance: (parseInt(r.current_balance) || 0) / 100,
+        }));
+      } catch { /* table may not exist */ }
+
+      // Fallback: also check pluggy_accounts if main table is empty
+      if (accounts.length === 0) {
+        try {
+          const pluggyAccResult = await db.query(
+            `SELECT pa.id, pa.name, pa.type, pa.current_balance,
+                    i.name AS institution_name
+             FROM pluggy_accounts pa
+             LEFT JOIN connections c ON pa.item_id = c.external_consent_id
+             LEFT JOIN institutions i ON c.institution_id = i.id
+             WHERE pa.user_id = $1
+             ORDER BY pa.name`,
+            [userId]
+          );
+          accounts = pluggyAccResult.rows;
+        } catch { /* table may not exist */ }
+      }
+
+      // Investments from holdings
+      let investments: any[] = [];
+      try {
+        const invResult = await db.query(
+          `SELECT h.id, h.type, h.name, h.market_value_cents AS current_value,
+                  h.quantity, COALESCE(oi.connector_name, '') AS institution_name
+           FROM holdings h
+           LEFT JOIN open_finance_items oi ON oi.id = h.item_id
+           WHERE h.user_id = $1
+           ORDER BY h.market_value_cents DESC`,
+          [userId]
+        );
+        investments = invResult.rows.map((r: any) => ({
+          ...r,
+          current_value: (parseInt(r.current_value) || 0) / 100,
+        }));
+      } catch { /* table may not exist */ }
+
+      // Fallback: pluggy_investments
+      if (investments.length === 0) {
+        try {
+          const pluggyInvResult = await db.query(
+            `SELECT pi.id, pi.type, pi.name, pi.current_value,
+                    pi.quantity, i.name AS institution_name
+             FROM pluggy_investments pi
+             LEFT JOIN connections c ON pi.item_id = c.external_consent_id
+             LEFT JOIN institutions i ON c.institution_id = i.id
+             WHERE pi.user_id = $1
+             ORDER BY pi.current_value DESC`,
+            [userId]
+          );
+          investments = pluggyInvResult.rows;
+        } catch { /* table may not exist */ }
+      }
+
+      // Cards
+      let cards: any[] = [];
+      try {
+        const cardsResult = await db.query(
+          `SELECT c.id, c.brand, c.last4, COALESCE(oi.connector_name, '') AS institution_name, 0 AS "openDebt"
+           FROM cards c
+           LEFT JOIN open_finance_items oi ON oi.id = c.item_id
+           WHERE c.user_id = $1`,
+          [userId]
+        );
+        cards = cardsResult.rows;
+      } catch { /* table may not exist */ }
+
+      // Fallback: pluggy_credit_cards
+      if (cards.length === 0) {
+        try {
+          const pluggyCardsResult = await db.query(
+            `SELECT pc.id, pc.brand, pc.last4, i.name AS institution_name,
+                    COALESCE(pc.balance, 0) AS "openDebt"
+             FROM pluggy_credit_cards pc
+             LEFT JOIN connections c ON pc.item_id = c.external_consent_id
+             LEFT JOIN institutions i ON c.institution_id = i.id
+             WHERE pc.user_id = $1`,
+            [userId]
+          );
+          cards = pluggyCardsResult.rows;
+        } catch { /* table may not exist */ }
+      }
+
+      // Transactions (recent 50)
+      let transactions: any[] = [];
+      try {
+        const txResult = await db.query(
+          `SELECT t.id, t.occurred_at AS date, t.amount_cents AS amount, t.description, t.merchant,
+                  ba.name AS account_name, COALESCE(oi.connector_name, '') AS institution_name
+           FROM transactions t
+           LEFT JOIN bank_accounts ba ON ba.id = t.account_id
+           LEFT JOIN open_finance_items oi ON oi.id = ba.item_id
+           WHERE t.user_id = $1
+           ORDER BY t.occurred_at DESC
+           LIMIT 50`,
+          [userId]
+        );
+        transactions = txResult.rows.map((r: any) => ({
+          ...r,
+          amount: (parseInt(r.amount) || 0) / 100,
+        }));
+      } catch { /* table may not exist */ }
+
+      // Fallback: pluggy_transactions
+      if (transactions.length === 0) {
+        try {
+          const pluggyTxResult = await db.query(
+            `SELECT pt.id, pt.date, pt.amount, pt.description, pt.merchant,
+                    pa.name AS account_name, i.name AS institution_name
+             FROM pluggy_transactions pt
+             LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
+             LEFT JOIN connections c ON pt.item_id = c.external_consent_id
+             LEFT JOIN institutions i ON c.institution_id = i.id
+             WHERE pt.user_id = $1
+             ORDER BY pt.date DESC
+             LIMIT 50`,
+            [userId]
+          );
+          transactions = pluggyTxResult.rows;
+        } catch { /* table may not exist */ }
+      }
+
+      // Summary
+      const cash = accounts.reduce((s: number, a: any) => s + (parseFloat(a.current_balance) || 0), 0);
+      const investTotal = investments.reduce((s: number, i: any) => s + (parseFloat(i.current_value) || 0), 0);
+
+      // Breakdown by investment type
+      const breakdownMap: Record<string, { count: number; total: number }> = {};
+      for (const inv of investments) {
+        const t = inv.type || 'other';
+        if (!breakdownMap[t]) breakdownMap[t] = { count: 0, total: 0 };
+        breakdownMap[t].count++;
+        breakdownMap[t].total += parseFloat(inv.current_value) || 0;
+      }
+      const breakdown = Object.entries(breakdownMap).map(([type, v]) => ({ type, ...v }));
+
+      return reply.send({
+        summary: { cash, investments: investTotal, debt: 0, netWorth: cash + investTotal },
+        accounts,
+        investments,
+        breakdown,
+        cards,
+        transactions,
+      });
+    } catch (error) {
+      fastify.log.error('Error fetching dashboard finance:', error);
+      return reply.code(500).send({ error: 'Failed to load financial data' });
+    }
+  });
 }

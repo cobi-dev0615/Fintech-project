@@ -1512,6 +1512,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
 
       const reports = result.rows.map((row: any) => ({
         id: row.id,
+        clientId: row.target_user_id || null,
         clientName: row.client_name || 'N/A',
         type: row.type,
         generatedAt: row.created_at,

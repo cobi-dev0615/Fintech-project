@@ -197,6 +197,7 @@ export const consultantApi = {
     return api.get<{
       reports: Array<{
         id: string;
+        clientId: string | null;
         clientName: string;
         type: string;
         generatedAt: string;
