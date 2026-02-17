@@ -273,6 +273,29 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         walletShared: r.wallet_shared ?? true,
       }));
 
+      // Fallback: for clients with zero net worth, check pluggy tables
+      const zeroIds = clients.filter((c: any) => c.netWorth === 0).map((c: any) => c.id);
+      if (zeroIds.length > 0) {
+        try {
+          const pluggyNW = await db.query(
+            `SELECT user_id,
+                    COALESCE((SELECT SUM(current_balance)::float FROM pluggy_accounts WHERE user_id = sub.user_id), 0) +
+                    COALESCE((SELECT SUM(current_value)::float FROM pluggy_investments WHERE user_id = sub.user_id), 0) AS nw
+             FROM unnest($1::uuid[]) AS sub(user_id)`,
+            [zeroIds]
+          );
+          const nwMap: Record<string, number> = {};
+          for (const row of pluggyNW.rows) {
+            nwMap[row.user_id] = parseFloat(row.nw) || 0;
+          }
+          for (const c of clients) {
+            if (c.netWorth === 0 && nwMap[c.id]) {
+              c.netWorth = nwMap[c.id];
+            }
+          }
+        } catch { /* pluggy tables may not exist */ }
+      }
+
       return {
         clients,
         pagination: {
@@ -323,19 +346,50 @@ export async function consultantRoutes(fastify: FastifyInstance) {
 
       const u = userResult.rows[0];
 
-      // Financial summary
+      // Financial summary (main tables first, pluggy fallback)
       let financial = null;
       try {
-        const cashResult = await db.query(
-          `SELECT COALESCE(SUM(balance_cents), 0) AS total FROM bank_accounts WHERE user_id = $1`,
-          [id]
-        );
-        const investResult = await db.query(
-          `SELECT COALESCE(SUM(market_value_cents), 0) AS total FROM holdings WHERE user_id = $1`,
-          [id]
-        );
-        const cash = (parseInt(cashResult.rows[0].total) || 0) / 100;
-        const investments = (parseInt(investResult.rows[0].total) || 0) / 100;
+        let cash = 0;
+        let investments = 0;
+
+        // Try main tables
+        try {
+          const cashResult = await db.query(
+            `SELECT COALESCE(SUM(balance_cents), 0) AS total FROM bank_accounts WHERE user_id = $1`,
+            [id]
+          );
+          cash = (parseInt(cashResult.rows[0].total) || 0) / 100;
+        } catch { /* table may not exist */ }
+
+        try {
+          const investResult = await db.query(
+            `SELECT COALESCE(SUM(market_value_cents), 0) AS total FROM holdings WHERE user_id = $1`,
+            [id]
+          );
+          investments = (parseInt(investResult.rows[0].total) || 0) / 100;
+        } catch { /* table may not exist */ }
+
+        // Fallback: pluggy tables if main tables returned zero
+        if (cash === 0) {
+          try {
+            const pluggyCash = await db.query(
+              `SELECT COALESCE(SUM(current_balance), 0)::float AS total FROM pluggy_accounts WHERE user_id = $1`,
+              [id]
+            );
+            cash = parseFloat(pluggyCash.rows[0]?.total) || 0;
+          } catch { /* table may not exist */ }
+        }
+
+        if (investments === 0) {
+          try {
+            const pluggyInv = await db.query(
+              `SELECT COALESCE(SUM(current_value), 0)::float AS total FROM pluggy_investments WHERE user_id = $1`,
+              [id]
+            );
+            investments = parseFloat(pluggyInv.rows[0]?.total) || 0;
+          } catch { /* table may not exist */ }
+        }
+
         financial = { netWorth: cash + investments, cash, investments, debt: 0 };
       } catch { /* tables may not exist */ }
 
@@ -474,6 +528,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       }
 
       // Connections
+      // Connections from open_finance_items
       let connections: any[] = [];
       try {
         const connResult = await db.query(
@@ -483,6 +538,22 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         );
         connections = connResult.rows;
       } catch { /* table may not exist */ }
+
+      // Fallback: connections table (Pluggy)
+      if (connections.length === 0) {
+        try {
+          const pluggyConnResult = await db.query(
+            `SELECT c.id, c.external_consent_id AS item_id, c.status,
+                    i.name AS institution_name, i.logo_url AS institution_logo
+             FROM connections c
+             LEFT JOIN institutions i ON c.institution_id = i.id
+             WHERE c.user_id = $1
+             ORDER BY c.created_at DESC`,
+            [clientId]
+          );
+          connections = pluggyConnResult.rows;
+        } catch { /* table may not exist */ }
+      }
 
       // Cards
       let cards: any[] = [];
