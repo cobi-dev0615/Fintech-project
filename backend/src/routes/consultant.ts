@@ -1658,6 +1658,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         generatedAt: row.created_at,
         status: row.file_url ? 'completed' : 'processing',
         hasWatermark: row.params_json?.includeWatermark ?? false,
+        customBranding: row.params_json?.customBranding ?? false,
         downloadUrl: row.file_url || null,
       }));
 

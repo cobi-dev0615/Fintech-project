@@ -13,7 +13,7 @@ import {
   GripVertical,
   type LucideIcon,
 } from "lucide-react";
-import jsPDF from "jspdf";
+import jsPDF, { GState } from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
   DndContext,
@@ -76,6 +76,7 @@ interface Report {
   generatedAt: string;
   status: string;
   hasWatermark: boolean;
+  customBranding: boolean;
   downloadUrl?: string | null;
 }
 
@@ -378,14 +379,33 @@ const ProfessionalReports = () => {
       doc.text(`${t('consultant:reports.pdf.reportId', { defaultValue: 'Report ID' })}: ${report.id.slice(0, 8).toUpperCase()}`, margin, 39);
 
       // Logo / brand text right
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...colors.white);
-      doc.text("zurT", pageW - margin, 20, { align: "right" });
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(160, 180, 210);
-      doc.text(t('consultant:reports.pdf.professionalReport', { defaultValue: 'Professional Report' }), pageW - margin, 27, { align: "right" });
+      const consultantName = user?.full_name || 'Consultant';
+      if (report.customBranding) {
+        // Custom branding: show consultant's name instead of zurT
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...colors.white);
+        const brandName = consultantName;
+        doc.text(brandName, pageW - margin, 18, { align: "right" });
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(160, 180, 210);
+        doc.text(t('consultant:reports.pdf.financialConsultant', { defaultValue: 'Financial Consultant' }), pageW - margin, 25, { align: "right" });
+        // Accent line under brand name
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.3);
+        const brandTextW = doc.getTextWidth(brandName);
+        doc.line(pageW - margin - brandTextW, 20, pageW - margin, 20);
+      } else {
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...colors.white);
+        doc.text("zurT", pageW - margin, 20, { align: "right" });
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(160, 180, 210);
+        doc.text(t('consultant:reports.pdf.professionalReport', { defaultValue: 'Professional Report' }), pageW - margin, 27, { align: "right" });
+      }
 
       y = headerH + 10;
 
@@ -757,11 +777,33 @@ const ProfessionalReports = () => {
       }
 
       // ════════════════════════════════════════════════════
-      // FOOTER on every page
+      // FOOTER + WATERMARK on every page
       // ════════════════════════════════════════════════════
       const pageCount = doc.getNumberOfPages();
+      const watermarkName = user?.full_name || 'Consultant';
+
       for (let p = 1; p <= pageCount; p++) {
         doc.setPage(p);
+
+        // ── Watermark (diagonal, semi-transparent) ──
+        if (report.hasWatermark) {
+          doc.saveGraphicsState();
+          doc.setGState(new GState({ opacity: 0.06 }));
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...colors.dark);
+          doc.setFontSize(54);
+
+          // Center of page, rotated -45°
+          const cx = pageW / 2;
+          const cy = pageH / 2;
+          doc.text(watermarkName, cx, cy, {
+            align: "center",
+            angle: 45,
+          });
+          doc.restoreGraphicsState();
+        }
+
+        // ── Footer ──
         // Separator line
         doc.setDrawColor(...colors.border);
         doc.setLineWidth(0.3);
@@ -774,13 +816,17 @@ const ProfessionalReports = () => {
         doc.setFontSize(6.5);
         doc.setTextColor(...colors.muted);
         doc.setFont("helvetica", "normal");
-        doc.text(
-          t('consultant:reports.pdf.footer', {
-            defaultValue: 'This report is confidential and intended for the named client only. zurT Financial Platform.',
-          }),
-          margin + 5,
-          pageH - 10,
-        );
+
+        // Footer text — adjust for custom branding
+        const footerText = report.customBranding
+          ? t('consultant:reports.pdf.footerBranded', {
+              defaultValue: `This report is confidential and intended for the named client only. Prepared by ${watermarkName}.`,
+              name: watermarkName,
+            })
+          : t('consultant:reports.pdf.footer', {
+              defaultValue: 'This report is confidential and intended for the named client only. zurT Financial Platform.',
+            });
+        doc.text(footerText, margin + 5, pageH - 10);
         doc.text(`${p} / ${pageCount}`, pageW - margin, pageH - 10, { align: "right" });
 
         // Report type tag at bottom right
@@ -1049,6 +1095,11 @@ const ProfessionalReports = () => {
                           <Badge variant="secondary" className="text-xs shrink-0">
                             <User className="h-3 w-3 mr-1" />
                             {t('consultant:reports.history.watermark')}
+                          </Badge>
+                        )}
+                        {report.customBranding && (
+                          <Badge variant="secondary" className="text-xs shrink-0 bg-violet-500/15 text-violet-400 border-violet-500/30">
+                            {t('consultant:reports.history.branded', { defaultValue: 'Branded' })}
                           </Badge>
                         )}
                       </div>

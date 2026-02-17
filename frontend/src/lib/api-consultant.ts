@@ -203,6 +203,7 @@ export const consultantApi = {
         generatedAt: string;
         status: string;
         hasWatermark: boolean;
+        customBranding: boolean;
         downloadUrl: string | null;
       }>;
     }>(`/consultant/reports${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
