@@ -445,6 +445,21 @@
       "expectedReturn": "Expected Return",
       "horizon": "Horizon (yrs)",
       "allocation": "Asset Classes"
+    },
+    "pdf": {
+      "generatedAt": "Generated on {{date}}",
+      "clientLabel": "Client: {{client}}",
+      "years": "years",
+      "assetClass": "Asset Class",
+      "percentage": "Allocation (%)",
+      "year": "Year",
+      "profit": "Profit",
+      "growth": "Growth (%)",
+      "returnRate": "Return Rate",
+      "footer": "This simulation is for illustrative purposes only and does not constitute financial advice.",
+      "exportSuccess": "Simulation exported",
+      "exportSuccessDesc": "The PDF has been downloaded successfully.",
+      "exportError": "Failed to export simulation. Please try again."
     }
   },
   "reports": {

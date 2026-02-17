@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   TrendingUp,
   PieChart,
@@ -9,8 +9,11 @@ import {
   Clock,
   Layers,
   GripVertical,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   DndContext,
   closestCenter,
@@ -149,19 +152,20 @@ const PortfolioSimulator = () => {
   const [scenario, setScenario] = useState<"conservative" | "moderate" | "bold">("moderate");
   const [timeHorizon, setTimeHorizon] = useState("10");
   const [results, setResults] = useState<any>(null);
+  const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
 
   const clients = ["João Silva", "Maria Santos", "Pedro Costa"];
 
   // Helper functions
-  const getScenarioLabel = (scenario: string) => {
-    return t(`consultant:simulator.scenarios.${scenario}`, { defaultValue: scenario });
-  };
+  const getScenarioLabel = useCallback((s: string) => {
+    return t(`consultant:simulator.scenarios.${s}`, { defaultValue: s });
+  }, [t]);
 
-  const getAllocationLabel = (key: string) => {
+  const getAllocationLabel = useCallback((key: string) => {
     return t(`consultant:simulator.allocation.${key}`, { defaultValue: key });
-  };
+  }, [t]);
 
   // --- KPI DnD ---
 
@@ -273,6 +277,7 @@ const PortfolioSimulator = () => {
     setResults({
       client: selectedClient,
       scenario: getScenarioLabel(scenario),
+      scenarioKey: scenario,
       currentValue,
       finalValue: value,
       totalReturn: ((value - currentValue) / currentValue) * 100,
@@ -280,6 +285,282 @@ const PortfolioSimulator = () => {
       projection,
     });
   };
+
+  // --- Export PDF ---
+
+  const exportPDF = useCallback(async () => {
+    if (!results) return;
+    setExporting(true);
+
+    try {
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 16;
+      const contentW = pageW - margin * 2;
+      let y = margin;
+
+      // --- Colors ---
+      const primary: [number, number, number] = [59, 130, 246];   // blue-500
+      const dark: [number, number, number] = [15, 23, 42];        // slate-900
+      const muted: [number, number, number] = [100, 116, 139];    // slate-500
+      const success: [number, number, number] = [16, 185, 129];   // emerald-500
+
+      // --- Header ---
+      doc.setFillColor(...dark);
+      doc.rect(0, 0, pageW, 40, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text(t('consultant:simulator.title'), margin, 18);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(t('consultant:simulator.pdf.generatedAt', {
+        date: new Date().toLocaleDateString(),
+        defaultValue: `Generated on ${new Date().toLocaleDateString()}`,
+      }), margin, 28);
+      doc.text(t('consultant:simulator.pdf.clientLabel', {
+        client: results.client,
+        defaultValue: `Client: ${results.client}`,
+      }), margin, 34);
+
+      y = 50;
+
+      // --- Summary Cards ---
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...dark);
+      doc.text(t('consultant:simulator.results.title'), margin, y);
+      y += 8;
+
+      const cardW = (contentW - 8) / 3;
+      const cardH = 22;
+
+      // Final Value card
+      doc.setFillColor(59, 130, 246, 0.1);
+      doc.setDrawColor(...primary);
+      doc.roundedRect(margin, y, cardW, cardH, 2, 2, "FD");
+      doc.setFontSize(8);
+      doc.setTextColor(...muted);
+      doc.text(t('consultant:simulator.results.finalValue'), margin + 4, y + 7);
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...primary);
+      doc.text(formatCurrency(results.finalValue), margin + 4, y + 16);
+
+      // Total Return card
+      const card2x = margin + cardW + 4;
+      doc.setFillColor(16, 185, 129, 0.1);
+      doc.setDrawColor(...success);
+      doc.roundedRect(card2x, y, cardW, cardH, 2, 2, "FD");
+      doc.setFontSize(8);
+      doc.setTextColor(...muted);
+      doc.text(t('consultant:simulator.results.totalReturn'), card2x + 4, y + 7);
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...success);
+      doc.text(`+${results.totalReturn.toFixed(1)}%`, card2x + 4, y + 16);
+
+      // Current Value card
+      const card3x = card2x + cardW + 4;
+      doc.setFillColor(241, 245, 249);
+      doc.setDrawColor(203, 213, 225);
+      doc.roundedRect(card3x, y, cardW, cardH, 2, 2, "FD");
+      doc.setFontSize(8);
+      doc.setTextColor(...muted);
+      doc.text(t('consultant:simulator.results.currentValue'), card3x + 4, y + 7);
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...dark);
+      doc.text(formatCurrency(results.currentValue), card3x + 4, y + 16);
+
+      y += cardH + 12;
+
+      // --- Configuration Summary ---
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...dark);
+      doc.text(t('consultant:simulator.config.title'), margin, y);
+      y += 6;
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [[
+          t('consultant:simulator.config.scenario'),
+          t('consultant:simulator.config.horizon'),
+          t('consultant:simulator.kpis.expectedReturn'),
+        ]],
+        body: [[
+          results.scenario,
+          `${timeHorizon} ${t('consultant:simulator.pdf.years', { defaultValue: 'years' })}`,
+          `${scenarioConfig[results.scenarioKey as keyof typeof scenarioConfig]?.expectedReturn || 0}% p.a.`,
+        ]],
+        theme: "grid",
+        headStyles: { fillColor: primary, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+        bodyStyles: { textColor: dark, fontSize: 9 },
+        styles: { cellPadding: 4 },
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 10;
+
+      // --- Allocation Table ---
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...dark);
+      doc.text(t('consultant:simulator.allocation.title'), margin, y);
+      y += 6;
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [[
+          t('consultant:simulator.pdf.assetClass', { defaultValue: 'Asset Class' }),
+          t('consultant:simulator.pdf.percentage', { defaultValue: 'Allocation (%)' }),
+        ]],
+        body: results.allocation.map((item: any) => [
+          getAllocationLabel(item.name),
+          `${item.value}%`,
+        ]),
+        theme: "grid",
+        headStyles: { fillColor: primary, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+        bodyStyles: { textColor: dark, fontSize: 9 },
+        styles: { cellPadding: 4 },
+        columnStyles: { 1: { halign: "center" } },
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 10;
+
+      // --- Growth Projection Table ---
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...dark);
+      doc.text(t('consultant:simulator.results.growthProjection'), margin, y);
+      y += 6;
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [[
+          t('consultant:simulator.pdf.year', { defaultValue: 'Year' }),
+          t('consultant:simulator.results.portfolioValue'),
+          t('consultant:simulator.pdf.profit', { defaultValue: 'Profit' }),
+          t('consultant:simulator.pdf.growth', { defaultValue: 'Growth (%)' }),
+        ]],
+        body: results.projection.map((row: any) => [
+          row.year,
+          formatCurrency(row.value),
+          formatCurrency(row.profit),
+          row.year === 0 ? "—" : `+${((row.value / results.currentValue - 1) * 100).toFixed(1)}%`,
+        ]),
+        theme: "striped",
+        headStyles: { fillColor: primary, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+        bodyStyles: { textColor: dark, fontSize: 8 },
+        styles: { cellPadding: 3 },
+        columnStyles: {
+          0: { halign: "center", cellWidth: 16 },
+          1: { halign: "right" },
+          2: { halign: "right" },
+          3: { halign: "center" },
+        },
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 10;
+
+      // --- Scenario Comparison ---
+      // Check if we need a new page
+      if (y > doc.internal.pageSize.getHeight() - 60) {
+        doc.addPage();
+        y = margin;
+      }
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...dark);
+      doc.text(t('consultant:simulator.analysis.title'), margin, y);
+      y += 3;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...muted);
+      doc.text(t('consultant:simulator.analysis.comparison', { client: results.client }), margin, y + 4);
+      y += 10;
+
+      const scenarioRows = Object.entries(scenarioConfig).map(([key, config]) => {
+        const years = parseFloat(timeHorizon) || 10;
+        const finalVal = results.currentValue * Math.pow(1 + config.expectedReturn / 100, years);
+        const returnPct = ((finalVal / results.currentValue - 1) * 100).toFixed(1);
+        return [
+          getScenarioLabel(key),
+          `${config.expectedReturn}% p.a.`,
+          config.allocation.map((a: any) => `${getAllocationLabel(a.name)} ${a.value}%`).join(", "),
+          formatCurrency(finalVal),
+          `+${returnPct}%`,
+        ];
+      });
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [[
+          t('consultant:simulator.config.scenario'),
+          t('consultant:simulator.pdf.returnRate', { defaultValue: 'Return Rate' }),
+          t('consultant:simulator.allocation.title'),
+          t('consultant:simulator.results.finalValue'),
+          t('consultant:simulator.results.totalReturn'),
+        ]],
+        body: scenarioRows,
+        theme: "grid",
+        headStyles: { fillColor: primary, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+        bodyStyles: { textColor: dark, fontSize: 8 },
+        styles: { cellPadding: 3 },
+        columnStyles: {
+          1: { halign: "center" },
+          3: { halign: "right" },
+          4: { halign: "center" },
+        },
+      });
+
+      // --- Footer ---
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        const pageH = doc.internal.pageSize.getHeight();
+        doc.setDrawColor(203, 213, 225);
+        doc.line(margin, pageH - 14, pageW - margin, pageH - 14);
+        doc.setFontSize(7);
+        doc.setTextColor(...muted);
+        doc.text(
+          t('consultant:simulator.pdf.footer', {
+            defaultValue: 'This simulation is for illustrative purposes only and does not constitute financial advice.',
+          }),
+          margin,
+          pageH - 9,
+        );
+        doc.text(`${i} / ${pageCount}`, pageW - margin, pageH - 9, { align: "right" });
+      }
+
+      // --- Save ---
+      const filename = `simulation-${results.client.replace(/\s+/g, "_")}-${scenario}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      doc.save(filename);
+
+      toast({
+        title: t('consultant:simulator.pdf.exportSuccess', { defaultValue: 'Simulation exported' }),
+        description: t('consultant:simulator.pdf.exportSuccessDesc', {
+          defaultValue: 'The PDF has been downloaded successfully.',
+        }),
+      });
+    } catch (err) {
+      console.error("PDF export error:", err);
+      toast({
+        title: t('common:error'),
+        description: t('consultant:simulator.pdf.exportError', {
+          defaultValue: 'Failed to export simulation. Please try again.',
+        }),
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  }, [results, scenario, timeHorizon, formatCurrency, t, toast, getScenarioLabel, getAllocationLabel]);
 
   return (
     <div className="space-y-6 min-w-0">
@@ -386,8 +667,12 @@ const PortfolioSimulator = () => {
                 title={t('consultant:simulator.results.title')}
                 subtitle={t('consultant:simulator.results.subtitle')}
                 actions={
-                  <Button variant="outline" size="sm">
-                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                  <Button variant="outline" size="sm" onClick={exportPDF} disabled={exporting}>
+                    {exporting ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                    )}
                     {t('consultant:simulator.exportButton')}
                   </Button>
                 }
