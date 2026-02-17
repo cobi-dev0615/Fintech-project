@@ -85,23 +85,22 @@ const ClientProfile = () => {
 
   const getCardNumber = (card: any) => {
     const last4 = card.last4 || "0000";
-    const seed = card.id || last4;
-    let h = 0;
-    for (let i = 0; i < seed.length; i++) {
-      h = (h * 31 + seed.charCodeAt(i)) & 0x7fffffff;
-    }
     const brand = (card.brand || "").toUpperCase();
     let d1 = 4;
     if (brand.includes("MASTER")) d1 = 5;
     else if (brand.includes("AMEX") || brand.includes("AMERICAN")) d1 = 3;
     else if (brand.includes("ELO") || brand.includes("HIPER")) d1 = 6;
-    const digits = [d1];
-    for (let i = 0; i < 11; i++) {
-      h = (h * 1103515245 + 12345) & 0x7fffffff;
-      digits.push(h % 10);
+    const seed = card.id || last4;
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) {
+      h = (h * 31 + seed.charCodeAt(i)) & 0x7fffffff;
     }
-    const full = digits.join("") + last4;
-    return `${full.slice(0, 4)} ${full.slice(4, 8)} ${full.slice(8, 12)} ${full.slice(12, 16)}`;
+    const first = [d1];
+    for (let i = 0; i < 3; i++) {
+      h = (h * 1103515245 + 12345) & 0x7fffffff;
+      first.push(h % 10);
+    }
+    return `${first.join("")} **** **** ${last4}`;
   };
 
   useEffect(() => {
@@ -648,7 +647,7 @@ const ClientProfile = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {financeDetail.cards.map((card) => {
                     const brandUpper = (card.brand || "VISA").toUpperCase();
                     const holderName = client?.name || "Card Holder";
