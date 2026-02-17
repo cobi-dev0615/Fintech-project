@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle, Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,10 +60,19 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-b from-blue-500 via-blue-600 to-teal-600 relative">
-      {/* Language Switcher */}
-      <div className="absolute top-4 right-4 z-50">
-        <LanguageSwitcher />
+    <div className="min-h-screen flex bg-gradient-to-b from-primary via-primary/90 to-accent relative">
+      {/* Top bar: Home link + Language Switcher */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition-colors text-sm font-medium"
+        >
+          <Home className="h-4 w-4" />
+          <span className="hidden sm:inline">{t('login.backToHome')}</span>
+        </Link>
+        <div className="bg-black/30 backdrop-blur-sm rounded-lg [&_button]:text-white [&_button:hover]:text-white/80 [&_button:hover]:bg-white/10">
+          <LanguageSwitcher />
+        </div>
       </div>
       {/* Left side - Branding with Financial Capital Background */}
       <div className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-center items-center relative overflow-hidden">
@@ -75,14 +84,14 @@ const Login = () => {
           }}
         >
           {/* Fallback gradient if image doesn't load */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-teal-700" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-accent" />
         </div>
 
         {/* Dark overlay for better text contrast */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/60 to-black/70" />
 
         {/* Subtle gradient overlay for depth */}
-        <div className="absolute inset-0 bg-gradient-to-t from-blue-900/30 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/30 via-transparent to-transparent" />
 
         {/* Logo - Always visible at top */}
         <Link to="/" className="absolute top-12 left-12 flex items-center gap-2 relative z-20">
@@ -237,7 +246,7 @@ const Login = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-black">{t('login.password')}</Label>
-                  <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                     {t('login.forgotPassword')}
                   </Link>
                 </div>
@@ -264,7 +273,7 @@ const Login = () => {
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg"
                 size="lg"
                 disabled={isLoggingIn}
               >
@@ -275,7 +284,7 @@ const Login = () => {
             <div className="mt-6 text-center">
               <p className="text-sm text-black">
                 {t('login.noAccount')}{" "}
-                <Link to="/register" className="text-blue-600 font-medium hover:underline">
+                <Link to="/register" className="text-primary font-medium hover:underline">
                   {t('login.createOne')}
                 </Link>
               </p>

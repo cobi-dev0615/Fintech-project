@@ -1,5 +1,6 @@
-import { Check } from "lucide-react";
+import { Check, Crown, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { publicApi } from "@/lib/api";
@@ -7,17 +8,43 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 
-// PricingSection component - displays plans with smart routing based on auth status
-
 interface Plan {
   name: string;
+  code: string;
   subtitle: string;
   price: string;
   period: string;
   features: string[];
   cta: string;
   featured: boolean;
+  connectionLimit: number | null;
+  subscriberCount: number;
 }
+
+// Minimum display counts per plan index
+const MIN_USER_COUNTS = [50, 70, 80];
+
+// Simulated user avatars
+const AVATAR_SETS = [
+  [
+    { initials: "MR", from: "from-violet-500", to: "to-purple-600" },
+    { initials: "AL", from: "from-rose-500", to: "to-pink-600" },
+    { initials: "JS", from: "from-amber-500", to: "to-orange-600" },
+    { initials: "KT", from: "from-cyan-500", to: "to-blue-600" },
+  ],
+  [
+    { initials: "RP", from: "from-emerald-500", to: "to-teal-600" },
+    { initials: "FS", from: "from-blue-500", to: "to-indigo-600" },
+    { initials: "LM", from: "from-pink-500", to: "to-rose-600" },
+    { initials: "DC", from: "from-orange-500", to: "to-red-600" },
+  ],
+  [
+    { initials: "TC", from: "from-indigo-500", to: "to-violet-600" },
+    { initials: "NA", from: "from-teal-500", to: "to-emerald-600" },
+    { initials: "GH", from: "from-fuchsia-500", to: "to-purple-600" },
+    { initials: "WB", from: "from-sky-500", to: "to-blue-600" },
+  ],
+];
 
 const PricingSection = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -25,7 +52,7 @@ const PricingSection = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation('landing');
+  const { t } = useTranslation(['landing', 'plans']);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -33,13 +60,11 @@ const PricingSection = () => {
         setLoading(true);
         setError(null);
         const response = await publicApi.getPlans();
-        
+
         const displayCodes = ['basic', 'pro', 'consultant'];
-        // Map backend plans to frontend format (only Basic, Pro, Consultant)
         const mappedPlans: Plan[] = response.plans
           .filter(plan => plan.isActive && displayCodes.includes((plan.code || '').toLowerCase()))
           .map((plan) => {
-            // Determine subtitle and CTA based on plan code
             const getSubtitle = (code: string, name: string) => {
               if (code === 'free') return t('pricing.subtitleFree');
               if (code === 'basic') return t('pricing.subtitleBasic');
@@ -54,31 +79,29 @@ const PricingSection = () => {
               return t('pricing.ctaDefault', { name });
             };
 
-            // Format price
             const formatPrice = (cents: number) => {
               if (cents === 0) return 'R$ 0';
               const reais = cents / 100;
               return `R$ ${reais.toFixed(2).replace('.', ',')}`;
             };
 
-            // Determine period
             const period = plan.priceCents === 0 ? t('pricing.periodForever') : t('pricing.periodMonth');
-
-            // Determine if featured (pro/professional is usually featured)
             const featured = plan.code === 'pro' || plan.code === 'professional';
 
             return {
               name: plan.name,
+              code: plan.code,
               subtitle: getSubtitle(plan.code, plan.name),
               price: formatPrice(plan.priceCents),
               period,
               features: plan.features || [],
               cta: getCta(plan.code, plan.name),
               featured,
+              connectionLimit: plan.connectionLimit,
+              subscriberCount: plan.subscriberCount,
             };
           })
           .sort((a, b) => {
-            // Sort by featured first, then by price
             if (a.featured && !b.featured) return -1;
             if (!a.featured && b.featured) return 1;
             return 0;
@@ -88,7 +111,6 @@ const PricingSection = () => {
       } catch (err: any) {
         console.error('Failed to fetch plans:', err);
         setError(t('pricing.errorLoading'));
-        // Fallback to empty array or default plans if needed
         setPlans([]);
       } finally {
         setLoading(false);
@@ -97,6 +119,7 @@ const PricingSection = () => {
 
     fetchPlans();
   }, []);
+
   return (
     <section id="tools" className="py-20 bg-background scroll-mt-20">
       <div className="container mx-auto px-6 sm:px-4">
@@ -122,170 +145,129 @@ const PricingSection = () => {
           </div>
         ) : plans.length === 0 ? (
           <div className="flex justify-center items-center py-12">
+            <Package className="h-12 w-12 text-muted-foreground/50 mr-3" />
             <div className="text-muted-foreground">{t('pricing.noPlans')}</div>
           </div>
         ) : (
-          <div 
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto"
-            style={{ perspective: '1200px', transformStyle: 'preserve-3d' }}
-          >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {plans.map((plan, index) => {
-            // Different 3D rotations for each card
-            const rotations = [
-              { rotateX: '1deg', rotateY: '-2deg' }, // Left card
-              { rotateX: '0deg', rotateY: '0deg' },  // Middle card (featured) - center
-              { rotateX: '1deg', rotateY: '2deg' },  // Right card
-            ];
-            const hoverRotations = [
-              { rotateX: '3deg', rotateY: '-4deg', translateZ: '25px' }, // Left card
-              { rotateX: '0deg', rotateY: '0deg', translateZ: '30px' },  // Middle card (featured) - more lift
-              { rotateX: '3deg', rotateY: '4deg', translateZ: '25px' },  // Right card
-            ];
-            const rotation = rotations[index % rotations.length];
-            const hoverRotation = hoverRotations[index % hoverRotations.length];
-            
-            // Different gradient colors for each card
-            const gradientShadows = [
-              'from-primary/20 via-accent/10 to-transparent', // Left card
-              'from-primary/30 via-primary/15 to-transparent', // Middle card (featured)
-              'from-accent/20 via-primary/10 to-transparent', // Right card
-            ];
-            const gradientShadow = gradientShadows[index % gradientShadows.length];
-            
-            return (
-            <div
-              key={plan.name}
-              className={cn(
-                "bg-card border rounded-lg p-6 flex flex-col relative transition-all duration-300",
-                plan.featured
-                  ? "border-primary shadow-lg shadow-primary/10"
-                  : "border-border hover:border-primary/30"
-              )}
-              style={{
-                transform: `perspective(1200px) rotateX(${rotation.rotateX}) rotateY(${rotation.rotateY}) translateZ(0)`,
-                transformStyle: 'preserve-3d',
-                willChange: 'transform',
-              }}
-              onMouseEnter={(e) => {
-                const target = e.currentTarget;
-                target.style.transform = `perspective(1200px) rotateX(${hoverRotation.rotateX}) rotateY(${hoverRotation.rotateY}) translateZ(${hoverRotation.translateZ}) scale(${plan.featured ? '1.05' : '1.03'})`;
-                target.style.boxShadow = plan.featured 
-                  ? '0 25px 50px rgba(0, 0, 0, 0.4), 0 0 40px rgba(var(--primary), 0.2)'
-                  : '0 20px 40px rgba(0, 0, 0, 0.3)';
-                // Enhance gradient shadow on hover
-                const shadowElement = target.querySelector('.gradient-shadow') as HTMLElement;
-                if (shadowElement) {
-                  shadowElement.style.opacity = '0.8';
-                  shadowElement.style.transform = 'scale(1.1)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                const target = e.currentTarget;
-                target.style.transform = `perspective(1200px) rotateX(${rotation.rotateX}) rotateY(${rotation.rotateY}) translateZ(0)`;
-                target.style.boxShadow = '';
-                // Reset gradient shadow
-                const shadowElement = target.querySelector('.gradient-shadow') as HTMLElement;
-                if (shadowElement) {
-                  shadowElement.style.opacity = '0.5';
-                  shadowElement.style.transform = 'scale(1)';
-                }
-              }}
-            >
-              {/* Gradient Shadow Behind Card */}
-              <div 
-                className={`gradient-shadow absolute inset-0 bg-gradient-to-br ${gradientShadow} rounded-lg blur-2xl -z-10 transition-all duration-300`}
-                style={{
-                  top: '10%',
-                  left: '10%',
-                  right: '10%',
-                  bottom: '10%',
-                  opacity: 0.5,
-                  transform: 'scale(1)',
-                }}
-              />
-              {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">
-                  {t('pricing.mostPopular')}
-                </div>
-              )}
+              const minCount = MIN_USER_COUNTS[index] ?? 80;
+              const userCount = Math.max(plan.subscriberCount, minCount);
+              const avatars = AVATAR_SETS[index % AVATAR_SETS.length];
 
-              {/* Plan Header */}
-              <div 
-                className="mb-6"
-                style={{ transformStyle: 'preserve-3d' }}
-              >
-                <h3 
-                  className="text-xl font-bold text-foreground mb-1"
-                  style={{
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-                    transform: 'translateZ(10px)',
-                  }}
-                >
-                  {plan.name}
-                </h3>
-                <p 
-                  className="text-sm text-muted-foreground mb-4"
-                  style={{ transform: 'translateZ(5px)' }}
-                >
-                  {plan.subtitle}
-                </p>
-                <div 
-                  className="flex items-baseline gap-1"
-                  style={{ transform: 'translateZ(15px)' }}
-                >
-                  <span className="text-3xl font-bold text-foreground">
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className="text-sm text-muted-foreground">
-                      {plan.period}
-                    </span>
+              return (
+                <div
+                  key={plan.name}
+                  className={cn(
+                    "chart-card relative flex flex-col transition-all duration-300 overflow-visible hover:scale-[1.02]",
+                    plan.featured &&
+                      "ring-2 ring-primary/60 shadow-lg shadow-primary/10"
                   )}
+                >
+                  {/* Featured Badge */}
+                  {plan.featured && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                      <Badge className="bg-primary text-primary-foreground shadow-md px-3 py-1 text-xs font-semibold whitespace-nowrap">
+                        <Crown className="h-3 w-3 mr-1" />
+                        {t('pricing.mostPopular')}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Plan Header */}
+                  <div className="pt-2 pb-4">
+                    <h3 className="text-lg font-bold text-foreground">
+                      {plan.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {plan.subtitle}
+                    </p>
+                  </div>
+
+                  {/* Price Section */}
+                  <div className="pb-4">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-foreground tracking-tight">
+                        {plan.price}
+                      </span>
+                      {plan.period && (
+                        <span className="text-sm text-muted-foreground">
+                          {plan.period}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* User Avatars */}
+                  <div className="flex items-center gap-2 py-3">
+                    <div className="flex -space-x-2">
+                      {avatars.map((av, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "h-7 w-7 rounded-full border-2 border-background flex items-center justify-center bg-gradient-to-br",
+                            av.from,
+                            av.to
+                          )}
+                        >
+                          <span className="text-[9px] font-bold text-white leading-none">
+                            {av.initials}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {t('plans:usedByUsers', { count: userCount })}
+                    </span>
+                  </div>
+
+                  {/* Connections */}
+                  <p className="text-xs font-medium text-muted-foreground pb-3">
+                    {plan.connectionLimit !== null
+                      ? t('plans:connections', { count: plan.connectionLimit })
+                      : t('plans:connectionsUnlimited')}
+                  </p>
+
+                  {/* Features */}
+                  <ul className="space-y-2.5 flex-1 pb-5">
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <Check className="h-3 w-3 text-primary" />
+                        </div>
+                        <span className="text-sm text-foreground/80">
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <Button
+                    onClick={() => {
+                      if (user) {
+                        if (user.role === 'consultant') {
+                          navigate('/consultant/plans');
+                        } else {
+                          navigate('/app/plans');
+                        }
+                      } else {
+                        navigate('/login');
+                      }
+                    }}
+                    variant={plan.featured ? "default" : "outline"}
+                    className={cn(
+                      "w-full mt-auto h-11",
+                      plan.featured &&
+                        "bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
+                    )}
+                    size="lg"
+                  >
+                    {plan.cta}
+                  </Button>
                 </div>
-              </div>
-
-              {/* Features */}
-              <ul className="space-y-3 mb-6 flex-1">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                    <span className="text-sm text-foreground">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <div
-                style={{
-                  transform: 'translateZ(20px)',
-                  transformStyle: 'preserve-3d',
-                }}
-              >
-              <Button
-                onClick={() => {
-                  // If user is authenticated, go to purchase page
-                  // Otherwise, go to login page
-                  if (user) {
-                    // Determine the correct purchase page based on user role
-                    if (user.role === 'consultant') {
-                      navigate('/consultant/plans');
-                    } else {
-                      navigate('/app/plans');
-                    }
-                  } else {
-                    navigate('/login');
-                  }
-                }}
-                variant={plan.featured ? "default" : "outline"}
-                className="w-full transition-transform duration-300 hover:scale-105"
-                size="lg"
-              >
-                {plan.cta}
-              </Button>
-            </div>
-            </div>
-          );
-          })}
+              );
+            })}
           </div>
         )}
       </div>
