@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const Footer = () => {
+  const { t } = useTranslation('landing');
+
   return (
     <footer className="bg-card border-t border-border py-16">
       <div className="container px-6 sm:px-4">
@@ -12,41 +15,41 @@ const Footer = () => {
             </span>
             </Link>
             <p className="text-muted-foreground text-sm">
-              Sua plataforma completa de consolidação financeira.
+              {t('footer.tagline')}
             </p>
           </div>
-          
+
           <div>
-            <h4 className="font-semibold mb-4 text-foreground">Produto</h4>
+            <h4 className="font-semibold mb-4 text-foreground">{t('footer.product')}</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/pricing" className="hover:text-foreground transition-colors">Preços</Link></li>
-              <li><Link to="/features" className="hover:text-foreground transition-colors">Funcionalidades</Link></li>
-              <li><Link to="/security" className="hover:text-foreground transition-colors">Segurança</Link></li>
+              <li><Link to="/pricing" className="hover:text-foreground transition-colors">{t('footer.pricing')}</Link></li>
+              <li><Link to="/features" className="hover:text-foreground transition-colors">{t('footer.features')}</Link></li>
+              <li><Link to="/security" className="hover:text-foreground transition-colors">{t('footer.security')}</Link></li>
             </ul>
           </div>
-          
+
           <div>
-            <h4 className="font-semibold mb-4 text-foreground">Empresa</h4>
+            <h4 className="font-semibold mb-4 text-foreground">{t('footer.company')}</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/about" className="hover:text-foreground transition-colors">Sobre</Link></li>
-              <li><Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
-              <li><Link to="/careers" className="hover:text-foreground transition-colors">Carreiras</Link></li>
+              <li><Link to="/about" className="hover:text-foreground transition-colors">{t('footer.about')}</Link></li>
+              <li><Link to="/blog" className="hover:text-foreground transition-colors">{t('footer.blog')}</Link></li>
+              <li><Link to="/careers" className="hover:text-foreground transition-colors">{t('footer.careers')}</Link></li>
             </ul>
           </div>
-          
+
           <div>
-            <h4 className="font-semibold mb-4 text-foreground">Legal</h4>
+            <h4 className="font-semibold mb-4 text-foreground">{t('footer.legal')}</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/privacy" className="hover:text-foreground transition-colors">Política de Privacidade</Link></li>
-              <li><Link to="/terms" className="hover:text-foreground transition-colors">Termos de Serviço</Link></li>
-              <li><Link to="/cookies" className="hover:text-foreground transition-colors">Política de Cookies</Link></li>
+              <li><Link to="/privacy" className="hover:text-foreground transition-colors">{t('footer.privacyPolicy')}</Link></li>
+              <li><Link to="/terms" className="hover:text-foreground transition-colors">{t('footer.termsOfService')}</Link></li>
+              <li><Link to="/cookies" className="hover:text-foreground transition-colors">{t('footer.cookiePolicy')}</Link></li>
             </ul>
           </div>
         </div>
-        
+
         <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>© 2026 zurT. Todos os direitos reservados.</p>
-          <p>Feito com cuidado para sua liberdade financeira.</p>
+          <p>{t('footer.copyright')}</p>
+          <p>{t('footer.madeWith')}</p>
         </div>
       </div>
     </footer>

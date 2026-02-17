@@ -1,0 +1,145 @@
+{
+  "navbar": {
+    "home": "Home",
+    "contents": "Contents",
+    "tools": "Tools",
+    "createAccount": "Create account",
+    "login": "Login",
+    "signIn": "Sign in",
+    "getStarted": "Get started"
+  },
+  "hero": {
+    "headlinePart1": "Your financial life,",
+    "headlineHighlight": "intelligent.",
+    "description": "Complete analysis of your assets, goals and investments. We identify risks and opportunities in real time so you can make the best decisions.",
+    "cta": "Get started",
+    "altPerson": "Professional using smartphone",
+    "altPhone": "zurT App on smartphone",
+    "floatingOptimize": "Optimize Variable Income",
+    "floatingOptimizeValue": "+8.2%",
+    "floatingGoalTitle": "Savings Goal",
+    "floatingGoalAmount": "R$ 50,000.00",
+    "floatingGoalStatus": "Completed in April",
+    "floatingAlert": "High concentration in fixed income"
+  },
+  "about": {
+    "heading": "Discover the platform",
+    "description": "Complete analysis of your assets, goals and investments. We identify risks and opportunities in real time so you can make the best decisions.",
+    "cta": "Get started",
+    "openFinance": {
+      "title": "Open Finance",
+      "description": "Secure integration of accounts, investments and cards in one place."
+    },
+    "realTimeAnalysis": {
+      "title": "Real-time analysis",
+      "description": "Risks and opportunities identified so you can make better decisions."
+    },
+    "forYouAndConsultant": {
+      "title": "For you and your consultant",
+      "description": "Organize your financial life or manage your client base with professional reports."
+    },
+    "security": {
+      "title": "Security",
+      "description": "Encryption and read-only access. Your data is protected."
+    }
+  },
+  "contents": {
+    "heading": "Contents",
+    "description": "Everything you can find on this page.",
+    "knowPlatform": "Discover the platform",
+    "goalsObjectives": "Goals and objectives",
+    "risksAlerts": "Risks and alerts",
+    "pricingPlans": "Pricing and plans"
+  },
+  "decision": {
+    "dashboardTitle": "Unified Dashboard",
+    "dashboardSubtitle": "Consolidated view",
+    "patrimonio": "Net Worth",
+    "rendimento": "Returns",
+    "ativos": "Assets",
+    "openFinanceTitle": "Open Finance",
+    "openFinanceSubtitle": "Official Brazilian APIs",
+    "syncLabel": "Sync 4h",
+    "b3Title": "B3 Integrated",
+    "b3Subtitle": "Real-time quotes",
+    "b3Acoes": "Stocks",
+    "b3FIIs": "REITs",
+    "b3BDRs": "BDRs",
+    "connectedAccounts": "Connected Accounts",
+    "activeInstitutions": "8 active institutions",
+    "cardsTitle": "Cards",
+    "cardsSubtitle": "5 consolidated cards",
+    "heading": "Full integration with Open Finance and B3",
+    "paragraph1": "Connect securely through the official Brazilian Open Finance APIs. Automatic sync every 4 hours.",
+    "paragraph2": "Automatically import your stock, REIT and BDR positions directly from B3 with real-time quotes.",
+    "paragraph3": "Get complete visibility of all your accounts, cards and investments in a single dashboard.",
+    "cta": "Access platform"
+  },
+  "goals": {
+    "heading": "Complete card and investment management",
+    "description": "View all your card bills in one place, track your consolidated investments from all brokers and receive smart alerts about your financial health.",
+    "cta": "Access platform",
+    "alert1": "We identified hidden fees in this investment fund",
+    "alert2": "You are not protected from inflation",
+    "alert3": "Your portfolio risk is higher than it should be",
+    "alert4": "You have no cash for opportunities",
+    "alert5": "Low sector diversification in REITs"
+  },
+  "risk": {
+    "alertsTitle": "Real-Time Alerts",
+    "updatedNow": "Updated now",
+    "aiBadge": "AI",
+    "insightBillDueTitle": "Bill due soon",
+    "insightBillDueValue": "Nubank - 3 days",
+    "insightLowBalanceTitle": "Low balance",
+    "insightLowBalanceValue": "2 accounts below limit",
+    "insightOpportunityTitle": "Opportunity found",
+    "insightOpportunityValue": "5 recommended investments",
+    "insightRiskAnalysisTitle": "Risk analysis",
+    "insightRiskAnalysisValue": "Portfolio at moderate level",
+    "riskVisualization": "Risk visualization",
+    "portfolioRiskLevel": "Portfolio risk level",
+    "moderate": "Moderate",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "heading": "Smart insights and real-time alerts",
+    "description": "Receive alerts about bill due dates, low balances, investment opportunities and portfolio risk analysis. All powered by artificial intelligence to help you make more informed decisions.",
+    "cta": "Access platform"
+  },
+  "pricing": {
+    "heading": "Plans for",
+    "headingHighlight": "every budget",
+    "description": "Start free and upgrade when you need more features.",
+    "loadingPlans": "Loading plans...",
+    "errorLoading": "Error loading plans",
+    "noPlans": "No plans available at the moment.",
+    "mostPopular": "Most Popular",
+    "subtitleFree": "Ideal to get started",
+    "subtitleBasic": "For those who want more",
+    "subtitlePro": "Total control",
+    "ctaFree": "Start Free",
+    "ctaBasic": "Subscribe Basic",
+    "ctaPro": "Subscribe Pro",
+    "ctaDefault": "Subscribe {{name}}",
+    "periodForever": "forever",
+    "periodMonth": "/mo"
+  },
+  "footer": {
+    "tagline": "Your complete financial consolidation platform.",
+    "product": "Product",
+    "pricing": "Pricing",
+    "features": "Features",
+    "security": "Security",
+    "company": "Company",
+    "about": "About",
+    "blog": "Blog",
+    "careers": "Careers",
+    "legal": "Legal",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "cookiePolicy": "Cookie Policy",
+    "copyright": "© 2026 zurT. All rights reserved.",
+    "madeWith": "Made with care for your financial freedom."
+  }
+}

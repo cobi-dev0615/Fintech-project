@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { publicApi } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 // PricingSection component - displays plans with smart routing based on auth status
 
@@ -24,6 +25,7 @@ const PricingSection = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('landing');
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -39,17 +41,17 @@ const PricingSection = () => {
           .map((plan) => {
             // Determine subtitle and CTA based on plan code
             const getSubtitle = (code: string, name: string) => {
-              if (code === 'free') return 'Ideal para começar';
-              if (code === 'basic') return 'Para quem quer mais';
-              if (code === 'pro' || code === 'professional') return 'Controle total';
+              if (code === 'free') return t('pricing.subtitleFree');
+              if (code === 'basic') return t('pricing.subtitleBasic');
+              if (code === 'pro' || code === 'professional') return t('pricing.subtitlePro');
               return name;
             };
 
             const getCta = (code: string, name: string) => {
-              if (code === 'free') return 'Começar Grátis';
-              if (code === 'basic') return 'Assinar Básico';
-              if (code === 'pro' || code === 'professional') return 'Assinar Pro';
-              return `Assinar ${name}`;
+              if (code === 'free') return t('pricing.ctaFree');
+              if (code === 'basic') return t('pricing.ctaBasic');
+              if (code === 'pro' || code === 'professional') return t('pricing.ctaPro');
+              return t('pricing.ctaDefault', { name });
             };
 
             // Format price
@@ -60,7 +62,7 @@ const PricingSection = () => {
             };
 
             // Determine period
-            const period = plan.priceCents === 0 ? 'para sempre' : '/mês';
+            const period = plan.priceCents === 0 ? t('pricing.periodForever') : t('pricing.periodMonth');
 
             // Determine if featured (pro/professional is usually featured)
             const featured = plan.code === 'pro' || plan.code === 'professional';
@@ -85,7 +87,7 @@ const PricingSection = () => {
         setPlans(mappedPlans);
       } catch (err: any) {
         console.error('Failed to fetch plans:', err);
-        setError('Erro ao carregar planos');
+        setError(t('pricing.errorLoading'));
         // Fallback to empty array or default plans if needed
         setPlans([]);
       } finally {
@@ -101,18 +103,18 @@ const PricingSection = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Planos para{" "}
-            <span className="text-primary">todos os bolsos</span>
+            {t('pricing.heading')}{" "}
+            <span className="text-primary">{t('pricing.headingHighlight')}</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Comece grátis e faça upgrade quando precisar de mais recursos.
+            {t('pricing.description')}
           </p>
         </div>
 
         {/* Plans Grid */}
         {loading ? (
           <div className="flex justify-center items-center py-12">
-            <div className="text-muted-foreground">Carregando planos...</div>
+            <div className="text-muted-foreground">{t('pricing.loadingPlans')}</div>
           </div>
         ) : error ? (
           <div className="flex justify-center items-center py-12">
@@ -120,7 +122,7 @@ const PricingSection = () => {
           </div>
         ) : plans.length === 0 ? (
           <div className="flex justify-center items-center py-12">
-            <div className="text-muted-foreground">Nenhum plano disponível no momento.</div>
+            <div className="text-muted-foreground">{t('pricing.noPlans')}</div>
           </div>
         ) : (
           <div 
@@ -203,7 +205,7 @@ const PricingSection = () => {
               />
               {plan.featured && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">
-                  Mais Popular
+                  {t('pricing.mostPopular')}
                 </div>
               )}
 

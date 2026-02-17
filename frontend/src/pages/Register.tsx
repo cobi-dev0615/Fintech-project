@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { authApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -88,7 +89,11 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-b from-blue-500 via-blue-600 to-teal-600">
+    <div className="min-h-screen flex bg-gradient-to-b from-blue-500 via-blue-600 to-teal-600 relative">
+      {/* Language Switcher */}
+      <div className="absolute top-4 right-4 z-50">
+        <LanguageSwitcher />
+      </div>
       {/* Left side - Branding with Financial Capital Background */}
       <div className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-center items-center relative overflow-hidden">
         {/* Background Image */}

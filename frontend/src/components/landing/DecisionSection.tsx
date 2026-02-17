@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, Building2, TrendingUp, CreditCard, Wallet, BarChart3, Shield, Zap, PieChart, ArrowUpRight, ArrowDownRight, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const DecisionSection = () => {
+  const { t } = useTranslation('landing');
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -136,8 +138,8 @@ const DecisionSection = () => {
                         <Activity className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-foreground">Dashboard Unificado</h3>
-                        <p className="text-xs text-muted-foreground">Visão consolidada</p>
+                        <h3 className="text-sm font-bold text-foreground">{t('decision.dashboardTitle')}</h3>
+                        <p className="text-xs text-muted-foreground">{t('decision.dashboardSubtitle')}</p>
                       </div>
                     </div>
                     <div className="flex gap-1">
@@ -165,20 +167,20 @@ const DecisionSection = () => {
                   {/* Stats Row */}
                   <div className="grid grid-cols-3 gap-2">
                     <div className="text-center">
-                      <p className="text-xs text-muted-foreground">Patrimônio</p>
+                      <p className="text-xs text-muted-foreground">{t('decision.patrimonio')}</p>
                       <p className="text-sm font-bold text-foreground">
                         R$ {PatrimonioValue.toLocaleString('pt-BR')}k
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-muted-foreground">Rendimento</p>
+                      <p className="text-xs text-muted-foreground">{t('decision.rendimento')}</p>
                       <p className="text-sm font-bold text-success flex items-center justify-center gap-1">
                         <ArrowUpRight className="h-3 w-3" />
                         +{RendimentoValue.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-muted-foreground">Ativos</p>
+                      <p className="text-xs text-muted-foreground">{t('decision.ativos')}</p>
                       <p className="text-sm font-bold text-foreground">{AtivosValue}</p>
                     </div>
                   </div>
@@ -200,12 +202,12 @@ const DecisionSection = () => {
                       </div>
                       <Building2 className="h-4 w-4 text-blue-400/80 drop-shadow-md" />
                     </div>
-                    <h4 className="text-sm font-bold text-foreground mb-1 drop-shadow-sm">Open Finance</h4>
-                    <p className="text-xs text-muted-foreground mb-2">APIs oficiais brasileiras</p>
+                    <h4 className="text-sm font-bold text-foreground mb-1 drop-shadow-sm">{t('decision.openFinanceTitle')}</h4>
+                    <p className="text-xs text-muted-foreground mb-2">{t('decision.openFinanceSubtitle')}</p>
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-md border border-green-400/30 shadow-sm">
                         <Zap className="h-3 w-3 text-green-400" />
-                        <span className="text-[10px] font-semibold text-green-300">Sync 4h</span>
+                        <span className="text-[10px] font-semibold text-green-300">{t('decision.syncLabel')}</span>
                       </div>
                     </div>
                   </div>
@@ -227,12 +229,12 @@ const DecisionSection = () => {
                       </div>
                       <TrendingUp className="h-4 w-4 text-emerald-400/80 drop-shadow-md" />
                     </div>
-                    <h4 className="text-sm font-bold text-foreground mb-1 drop-shadow-sm">B3 Integrado</h4>
-                    <p className="text-xs text-muted-foreground mb-2">Cotações em tempo real</p>
+                    <h4 className="text-sm font-bold text-foreground mb-1 drop-shadow-sm">{t('decision.b3Title')}</h4>
+                    <p className="text-xs text-muted-foreground mb-2">{t('decision.b3Subtitle')}</p>
                     <div className="flex items-center gap-1 flex-wrap">
-                      <span className="text-[10px] px-2 py-0.5 bg-gradient-to-r from-emerald-500/25 to-green-500/25 text-emerald-300 rounded font-medium border border-emerald-400/30 shadow-sm">Ações</span>
-                      <span className="text-[10px] px-2 py-0.5 bg-gradient-to-r from-emerald-500/25 to-green-500/25 text-emerald-300 rounded font-medium border border-emerald-400/30 shadow-sm">FIIs</span>
-                      <span className="text-[10px] px-2 py-0.5 bg-gradient-to-r from-emerald-500/25 to-green-500/25 text-emerald-300 rounded font-medium border border-emerald-400/30 shadow-sm">BDRs</span>
+                      <span className="text-[10px] px-2 py-0.5 bg-gradient-to-r from-emerald-500/25 to-green-500/25 text-emerald-300 rounded font-medium border border-emerald-400/30 shadow-sm">{t('decision.b3Acoes')}</span>
+                      <span className="text-[10px] px-2 py-0.5 bg-gradient-to-r from-emerald-500/25 to-green-500/25 text-emerald-300 rounded font-medium border border-emerald-400/30 shadow-sm">{t('decision.b3FIIs')}</span>
+                      <span className="text-[10px] px-2 py-0.5 bg-gradient-to-r from-emerald-500/25 to-green-500/25 text-emerald-300 rounded font-medium border border-emerald-400/30 shadow-sm">{t('decision.b3BDRs')}</span>
                     </div>
                   </div>
                 </div>
@@ -257,8 +259,8 @@ const DecisionSection = () => {
                         <div className="w-6 h-6 bg-gradient-to-br from-teal-400 to-teal-500 rounded-full border-2 border-purple-900/50 shadow-lg" />
                       </div>
                     </div>
-                    <h4 className="text-sm font-bold text-foreground mb-1 drop-shadow-sm">Contas Conectadas</h4>
-                    <p className="text-xs text-muted-foreground">8 instituições ativas</p>
+                    <h4 className="text-sm font-bold text-foreground mb-1 drop-shadow-sm">{t('decision.connectedAccounts')}</h4>
+                    <p className="text-xs text-muted-foreground">{t('decision.activeInstitutions')}</p>
                 </div>
               </div>
 
@@ -281,8 +283,8 @@ const DecisionSection = () => {
                         <div className="w-8 h-5 bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 rounded border-2 border-teal-300/40 shadow-lg" style={{ transform: 'perspective(100px) rotateY(5deg)' }} />
                       </div>
                     </div>
-                    <h4 className="text-sm font-bold text-foreground mb-1 drop-shadow-sm">Cartões</h4>
-                    <p className="text-xs text-muted-foreground">5 cartões consolidados</p>
+                    <h4 className="text-sm font-bold text-foreground mb-1 drop-shadow-sm">{t('decision.cardsTitle')}</h4>
+                    <p className="text-xs text-muted-foreground">{t('decision.cardsSubtitle')}</p>
               </div>
               </div>
               </div>
@@ -292,23 +294,23 @@ const DecisionSection = () => {
           {/* Right Section - Content */}
           <div className="space-y-6">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-              Integração completa com Open Finance e B3
+              {t('decision.heading')}
             </h2>
 
             <div className="space-y-4 text-foreground/80">
               <p>
-                Conecte-se com segurança através das APIs oficiais do Open Finance brasileiro. Sincronização automática a cada 4 horas.
+                {t('decision.paragraph1')}
               </p>
               <p>
-                Importe automaticamente suas posições de ações, FIIs e BDRs diretamente da B3 com cotações em tempo real.
+                {t('decision.paragraph2')}
               </p>
               <p>
-                Tenha visibilidade completa de todas as suas contas, cartões e investimentos em um único dashboard.
+                {t('decision.paragraph3')}
               </p>
             </div>
 
             <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <Link to="/register">Acessar plataforma</Link>
+              <Link to="/register">{t('decision.cta')}</Link>
             </Button>
           </div>
         </div>

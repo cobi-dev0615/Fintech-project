@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -59,7 +60,11 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-b from-blue-500 via-blue-600 to-teal-600">
+    <div className="min-h-screen flex bg-gradient-to-b from-blue-500 via-blue-600 to-teal-600 relative">
+      {/* Language Switcher */}
+      <div className="absolute top-4 right-4 z-50">
+        <LanguageSwitcher />
+      </div>
       {/* Left side - Branding with Financial Capital Background */}
       <div className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-center items-center relative overflow-hidden">
         {/* Background Image */}

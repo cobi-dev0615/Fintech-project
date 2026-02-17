@@ -1,30 +1,33 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation('landing');
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/#contents", label: "Conteúdos" },
-    { href: "/#tools", label: "Ferramentas" },
+    { href: "/", label: t('navbar.home') },
+    { href: "/#contents", label: t('navbar.contents') },
+    { href: "/#tools", label: t('navbar.tools') },
   ];
 
   // Handle smooth scrolling for hash links
   const handleNavClick = (href: string, e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    
+
     // Close mobile menu
     setIsOpen(false);
-    
+
     // Extract path and hash
     const [path, hash] = href.split('#');
-    
+
     // Navigate to the path first
     if (path !== location.pathname) {
       navigate(path);
@@ -120,11 +123,12 @@ const Navbar = () => {
 
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center gap-3">
+            <LanguageSwitcher />
             <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
-              <Link to="/register">Criar conta</Link>
+              <Link to="/register">{t('navbar.createAccount')}</Link>
             </Button>
             <Button asChild variant="default" className="bg-primary text-primary-foreground">
-              <Link to="/login">Login</Link>
+              <Link to="/login">{t('navbar.login')}</Link>
             </Button>
           </div>
 
@@ -154,19 +158,22 @@ const Navbar = () => {
                 </a>
               ))}
               <div className="flex flex-col items-center gap-2 pt-4 border-t border-gray-800 w-full">
-                <Button 
-                  asChild 
-                  variant="outline" 
+                <div className="mb-2">
+                  <LanguageSwitcher />
+                </div>
+                <Button
+                  asChild
+                  variant="outline"
                   className="w-48 rounded-xl"
                 >
-                  <Link to="/login" onClick={() => setIsOpen(false)}>Entrar</Link>
+                  <Link to="/login" onClick={() => setIsOpen(false)}>{t('navbar.signIn')}</Link>
                 </Button>
-                <Button 
-                  asChild 
-                  variant="hero" 
+                <Button
+                  asChild
+                  variant="hero"
                   className="w-48 rounded-xl"
                 >
-                  <Link to="/register" onClick={() => setIsOpen(false)}>Começar</Link>
+                  <Link to="/register" onClick={() => setIsOpen(false)}>{t('navbar.getStarted')}</Link>
                 </Button>
               </div>
             </div>

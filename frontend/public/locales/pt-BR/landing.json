@@ -1,0 +1,145 @@
+{
+  "navbar": {
+    "home": "Home",
+    "contents": "Conteúdos",
+    "tools": "Ferramentas",
+    "createAccount": "Criar conta",
+    "login": "Login",
+    "signIn": "Entrar",
+    "getStarted": "Começar"
+  },
+  "hero": {
+    "headlinePart1": "Sua vida financeira,",
+    "headlineHighlight": "inteligente.",
+    "description": "Análise completa do seu patrimônio, objetivos e investimentos. Identificamos riscos e oportunidades em tempo real para você tomar as melhores decisões.",
+    "cta": "Começar agora",
+    "altPerson": "Profissional usando smartphone",
+    "altPhone": "zurT App no smartphone",
+    "floatingOptimize": "Otimizar Renda Variável",
+    "floatingOptimizeValue": "+8.2%",
+    "floatingGoalTitle": "Meta de Reserva",
+    "floatingGoalAmount": "R$ 50.000,00",
+    "floatingGoalStatus": "Concluído em abril",
+    "floatingAlert": "Concentração em renda fixa elevada"
+  },
+  "about": {
+    "heading": "Conheça a plataforma",
+    "description": "Análise completa do seu patrimônio, objetivos e investimentos. Identificamos riscos e oportunidades em tempo real para você tomar as melhores decisões.",
+    "cta": "Começar agora",
+    "openFinance": {
+      "title": "Open Finance",
+      "description": "Integração segura de contas, investimentos e cartões em um só lugar."
+    },
+    "realTimeAnalysis": {
+      "title": "Análise em tempo real",
+      "description": "Riscos e oportunidades identificados para você tomar melhores decisões."
+    },
+    "forYouAndConsultant": {
+      "title": "Para você e seu consultor",
+      "description": "Organize sua vida financeira ou gerencie sua base de clientes com relatórios profissionais."
+    },
+    "security": {
+      "title": "Segurança",
+      "description": "Criptografia e acesso somente leitura. Seus dados protegidos."
+    }
+  },
+  "contents": {
+    "heading": "Conteúdos",
+    "description": "Tudo o que você encontra nesta página.",
+    "knowPlatform": "Conheça a plataforma",
+    "goalsObjectives": "Metas e objetivos",
+    "risksAlerts": "Riscos e alertas",
+    "pricingPlans": "Preços e planos"
+  },
+  "decision": {
+    "dashboardTitle": "Dashboard Unificado",
+    "dashboardSubtitle": "Visão consolidada",
+    "patrimonio": "Patrimônio",
+    "rendimento": "Rendimento",
+    "ativos": "Ativos",
+    "openFinanceTitle": "Open Finance",
+    "openFinanceSubtitle": "APIs oficiais brasileiras",
+    "syncLabel": "Sync 4h",
+    "b3Title": "B3 Integrado",
+    "b3Subtitle": "Cotações em tempo real",
+    "b3Acoes": "Ações",
+    "b3FIIs": "FIIs",
+    "b3BDRs": "BDRs",
+    "connectedAccounts": "Contas Conectadas",
+    "activeInstitutions": "8 instituições ativas",
+    "cardsTitle": "Cartões",
+    "cardsSubtitle": "5 cartões consolidados",
+    "heading": "Integração completa com Open Finance e B3",
+    "paragraph1": "Conecte-se com segurança através das APIs oficiais do Open Finance brasileiro. Sincronização automática a cada 4 horas.",
+    "paragraph2": "Importe automaticamente suas posições de ações, FIIs e BDRs diretamente da B3 com cotações em tempo real.",
+    "paragraph3": "Tenha visibilidade completa de todas as suas contas, cartões e investimentos em um único dashboard.",
+    "cta": "Acessar plataforma"
+  },
+  "goals": {
+    "heading": "Gestão completa de cartões e investimentos",
+    "description": "Visualize todas as faturas de cartão em um só lugar, acompanhe seus investimentos consolidados de todas as corretoras e receba alertas inteligentes sobre sua saúde financeira.",
+    "cta": "Acessar plataforma",
+    "alert1": "Identificamos taxas escondidas nesse fundo de investimento",
+    "alert2": "Você não está protegido da inflação",
+    "alert3": "O risco da sua carteira está maior do que deveria",
+    "alert4": "Você está sem caixa para oportunidades",
+    "alert5": "Baixa diversificação de setores em FII's"
+  },
+  "risk": {
+    "alertsTitle": "Alertas em Tempo Real",
+    "updatedNow": "Atualizado agora",
+    "aiBadge": "IA",
+    "insightBillDueTitle": "Fatura vence em breve",
+    "insightBillDueValue": "Nubank • 3 dias",
+    "insightLowBalanceTitle": "Saldo baixo",
+    "insightLowBalanceValue": "2 contas abaixo do limite",
+    "insightOpportunityTitle": "Oportunidade encontrada",
+    "insightOpportunityValue": "5 investimentos recomendados",
+    "insightRiskAnalysisTitle": "Análise de risco",
+    "insightRiskAnalysisValue": "Carteira em nível moderado",
+    "riskVisualization": "Visualização de riscos",
+    "portfolioRiskLevel": "Nível de risco da carteira",
+    "moderate": "Moderado",
+    "low": "Baixo",
+    "medium": "Médio",
+    "high": "Alto",
+    "heading": "Insights inteligentes e alertas em tempo real",
+    "description": "Receba alertas sobre vencimentos de faturas, saldos baixos, oportunidades de investimento e análise de risco da sua carteira. Tudo com inteligência artificial para te ajudar a tomar decisões mais informadas.",
+    "cta": "Acessar plataforma"
+  },
+  "pricing": {
+    "heading": "Planos para",
+    "headingHighlight": "todos os bolsos",
+    "description": "Comece grátis e faça upgrade quando precisar de mais recursos.",
+    "loadingPlans": "Carregando planos...",
+    "errorLoading": "Erro ao carregar planos",
+    "noPlans": "Nenhum plano disponível no momento.",
+    "mostPopular": "Mais Popular",
+    "subtitleFree": "Ideal para começar",
+    "subtitleBasic": "Para quem quer mais",
+    "subtitlePro": "Controle total",
+    "ctaFree": "Começar Grátis",
+    "ctaBasic": "Assinar Básico",
+    "ctaPro": "Assinar Pro",
+    "ctaDefault": "Assinar {{name}}",
+    "periodForever": "para sempre",
+    "periodMonth": "/mês"
+  },
+  "footer": {
+    "tagline": "Sua plataforma completa de consolidação financeira.",
+    "product": "Produto",
+    "pricing": "Preços",
+    "features": "Funcionalidades",
+    "security": "Segurança",
+    "company": "Empresa",
+    "about": "Sobre",
+    "blog": "Blog",
+    "careers": "Carreiras",
+    "legal": "Legal",
+    "privacyPolicy": "Política de Privacidade",
+    "termsOfService": "Termos de Serviço",
+    "cookiePolicy": "Política de Cookies",
+    "copyright": "© 2026 zurT. Todos os direitos reservados.",
+    "madeWith": "Feito com cuidado para sua liberdade financeira."
+  }
+}

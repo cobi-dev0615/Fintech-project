@@ -1,14 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Bell, CreditCard, TrendingUp, Shield, PieChart, Zap, Activity, Wallet } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const RiskSection = () => {
+  const { t } = useTranslation('landing');
+
   const insights = [
     {
       icon: CreditCard,
       type: "warning",
-      title: "Fatura vence em breve",
-      value: "Nubank • 3 dias",
+      title: t('risk.insightBillDueTitle'),
+      value: t('risk.insightBillDueValue'),
       color: "from-warning/20 to-warning/5",
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
@@ -17,8 +20,8 @@ const RiskSection = () => {
     {
       icon: Wallet,
       type: "info",
-      title: "Saldo baixo",
-      value: "2 contas abaixo do limite",
+      title: t('risk.insightLowBalanceTitle'),
+      value: t('risk.insightLowBalanceValue'),
       color: "from-info/20 to-info/5",
       iconBg: "bg-info/10",
       iconColor: "text-info",
@@ -27,8 +30,8 @@ const RiskSection = () => {
     {
       icon: TrendingUp,
       type: "success",
-      title: "Oportunidade encontrada",
-      value: "5 investimentos recomendados",
+      title: t('risk.insightOpportunityTitle'),
+      value: t('risk.insightOpportunityValue'),
       color: "from-success/20 to-success/5",
       iconBg: "bg-success/10",
       iconColor: "text-success",
@@ -37,8 +40,8 @@ const RiskSection = () => {
     {
       icon: PieChart,
       type: "warning",
-      title: "Análise de risco",
-      value: "Carteira em nível moderado",
+      title: t('risk.insightRiskAnalysisTitle'),
+      value: t('risk.insightRiskAnalysisValue'),
       color: "from-warning/20 to-warning/5",
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
@@ -68,13 +71,13 @@ const RiskSection = () => {
                       <Bell className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-foreground">Alertas em Tempo Real</h3>
-                      <p className="text-xs text-muted-foreground">Atualizado agora</p>
+                      <h3 className="text-lg font-bold text-foreground">{t('risk.alertsTitle')}</h3>
+                      <p className="text-xs text-muted-foreground">{t('risk.updatedNow')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 bg-primary/10 border border-primary/20 rounded-full px-3 py-1">
                     <Zap className="h-3 w-3 text-primary" />
-                    <span className="text-xs font-medium text-primary">IA</span>
+                    <span className="text-xs font-medium text-primary">{t('risk.aiBadge')}</span>
                   </div>
                 </div>
               </div>
@@ -157,14 +160,14 @@ const RiskSection = () => {
               >
                 <div className="flex items-center gap-2 mb-4">
                   <PieChart className="h-4 w-4 text-foreground/60" />
-                  <h4 className="text-sm font-semibold text-foreground">Visualização de riscos</h4>
+                  <h4 className="text-sm font-semibold text-foreground">{t('risk.riskVisualization')}</h4>
                 </div>
                 
                 {/* Risk Level Display */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Nível de risco da carteira</span>
-                    <span className="text-xs font-bold text-warning bg-warning/10 px-2 py-1 rounded">Moderado</span>
+                    <span className="text-xs text-muted-foreground">{t('risk.portfolioRiskLevel')}</span>
+                    <span className="text-xs font-bold text-warning bg-warning/10 px-2 py-1 rounded">{t('risk.moderate')}</span>
                   </div>
                   
                   {/* Risk Progress Bar */}
@@ -181,19 +184,19 @@ const RiskSection = () => {
                       <div className="h-12 bg-success/10 rounded-lg mb-2 flex items-end justify-center p-2">
                         <div className="w-full bg-success/50 rounded-t transition-all duration-1000" style={{ height: '40%' }} />
                       </div>
-                      <p className="text-xs font-medium text-success">Baixo</p>
+                      <p className="text-xs font-medium text-success">{t('risk.low')}</p>
                     </div>
                     <div className="text-center">
                       <div className="h-12 bg-warning/10 rounded-lg mb-2 flex items-end justify-center p-2">
                         <div className="w-full bg-warning/60 rounded-t transition-all duration-1000" style={{ height: '70%' }} />
                       </div>
-                      <p className="text-xs font-medium text-warning">Médio</p>
+                      <p className="text-xs font-medium text-warning">{t('risk.medium')}</p>
                     </div>
                     <div className="text-center">
                       <div className="h-12 bg-danger/10 rounded-lg mb-2 flex items-end justify-center p-2">
                         <div className="w-full bg-danger/50 rounded-t transition-all duration-1000" style={{ height: '25%' }} />
                       </div>
-                      <p className="text-xs font-medium text-danger">Alto</p>
+                      <p className="text-xs font-medium text-danger">{t('risk.high')}</p>
                     </div>
                   </div>
                 </div>
@@ -228,7 +231,7 @@ const RiskSection = () => {
                 target.style.textShadow = '0 4px 8px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2)';
               }}
             >
-              Insights inteligentes e alertas em tempo real
+              {t('risk.heading')}
             </h2>
 
             <p 
@@ -250,7 +253,7 @@ const RiskSection = () => {
                 target.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
               }}
             >
-              Receba alertas sobre vencimentos de faturas, saldos baixos, oportunidades de investimento e análise de risco da sua carteira. Tudo com inteligência artificial para te ajudar a tomar decisões mais informadas.
+              {t('risk.description')}
             </p>
 
             <div
@@ -269,7 +272,7 @@ const RiskSection = () => {
               }}
             >
               <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300">
-              <Link to="/register">Acessar plataforma</Link>
+              <Link to="/register">{t('risk.cta')}</Link>
             </Button>
           </div>
           </div>

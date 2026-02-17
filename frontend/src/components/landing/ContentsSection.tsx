@@ -1,11 +1,14 @@
 import { BookOpen, Target, AlertTriangle, CreditCard } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const ContentsSection = () => {
+  const { t } = useTranslation('landing');
+
   const items = [
-    { id: "about", label: "Conheça a plataforma", icon: BookOpen },
-    { id: "goals", label: "Metas e objetivos", icon: Target },
-    { id: "risk", label: "Riscos e alertas", icon: AlertTriangle },
-    { id: "tools", label: "Preços e planos", icon: CreditCard },
+    { id: "about", labelKey: "contents.knowPlatform", icon: BookOpen },
+    { id: "goals", labelKey: "contents.goalsObjectives", icon: Target },
+    { id: "risk", labelKey: "contents.risksAlerts", icon: AlertTriangle },
+    { id: "tools", labelKey: "contents.pricingPlans", icon: CreditCard },
   ];
 
   return (
@@ -13,13 +16,13 @@ const ContentsSection = () => {
       <div className="container mx-auto px-6 sm:px-4">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-            Conteúdos
+            {t('contents.heading')}
           </h2>
           <p className="text-muted-foreground mb-10">
-            Tudo o que você encontra nesta página.
+            {t('contents.description')}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {items.map(({ id, label, icon: Icon }) => (
+            {items.map(({ id, labelKey, icon: Icon }) => (
               <a
                 key={id}
                 href={`#${id}`}
@@ -33,7 +36,7 @@ const ContentsSection = () => {
                 <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                   <Icon className="h-4 w-4" />
                 </div>
-                <span className="font-medium text-foreground">{label}</span>
+                <span className="font-medium text-foreground">{t(labelKey)}</span>
               </a>
             ))}
           </div>
