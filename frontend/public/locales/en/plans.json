@@ -51,5 +51,32 @@
   "statusTrial": "Trial",
   "statusPastDue": "Past Due",
   "noPlan": "No Plan",
-  "noSubscription": "No active subscription"
+  "noSubscription": "No active subscription",
+  "upgrade": {
+    "title": "Upgrade Required",
+    "description": "The {{feature}} feature is not included in your current plan.",
+    "featureRequires": "Requires the {{plan}} plan",
+    "currentPlanIs": "Your current plan: {{plan}}",
+    "upgradeCta": "Upgrade",
+    "viewPlans": "View Plans",
+    "yourPlan": "Your plan",
+    "requiredPlan": "Required",
+    "limitReached": "You have reached your plan limit ({{current}}/{{limit}}). Upgrade for more.",
+    "features": {
+      "connections": "Bank connections",
+      "reports": "Report generation",
+      "goals": "Financial goals",
+      "ai": "AI Financial assistant",
+      "alerts": "Custom alerts",
+      "b3": "B3 integration",
+      "calculators": "Financial calculators",
+      "messages": "Consultant messaging",
+      "clients": "Client management",
+      "pipeline": "Sales pipeline",
+      "invitations": "Send invitations",
+      "simulator": "Portfolio simulator",
+      "whitelabel": "White label",
+      "api_access": "API access"
+    }
+  }
 }

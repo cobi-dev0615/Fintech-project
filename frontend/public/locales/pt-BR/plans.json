@@ -51,5 +51,32 @@
   "statusTrial": "Teste",
   "statusPastDue": "Vencido",
   "noPlan": "Sem Plano",
-  "noSubscription": "Sem assinatura ativa"
+  "noSubscription": "Sem assinatura ativa",
+  "upgrade": {
+    "title": "Upgrade Necessário",
+    "description": "O recurso {{feature}} não está incluído no seu plano atual.",
+    "featureRequires": "Requer o plano {{plan}}",
+    "currentPlanIs": "Seu plano atual: {{plan}}",
+    "upgradeCta": "Fazer Upgrade",
+    "viewPlans": "Ver Planos",
+    "yourPlan": "Seu plano",
+    "requiredPlan": "Necessário",
+    "limitReached": "Você atingiu o limite do seu plano ({{current}}/{{limit}}). Faça upgrade para mais.",
+    "features": {
+      "connections": "Conexões bancárias",
+      "reports": "Geração de relatórios",
+      "goals": "Metas financeiras",
+      "ai": "Assistente financeiro IA",
+      "alerts": "Alertas personalizados",
+      "b3": "Integração B3",
+      "calculators": "Calculadoras financeiras",
+      "messages": "Mensagens com consultor",
+      "clients": "Gestão de clientes",
+      "pipeline": "Pipeline de vendas",
+      "invitations": "Enviar convites",
+      "simulator": "Simulador de carteira",
+      "whitelabel": "White label",
+      "api_access": "Acesso à API"
+    }
+  }
 }

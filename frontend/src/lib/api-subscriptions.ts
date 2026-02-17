@@ -1,23 +1,30 @@
 import { api } from './api-client';
 
+export type PlanFeatures = Record<string, number | null>;
+
+export interface SubscriptionResponse {
+  subscription: {
+    id: string;
+    status: string;
+    startedAt: string;
+    currentPeriodStart: string;
+    currentPeriodEnd: string;
+    canceledAt: string | null;
+    plan: {
+      id: string;
+      code: string;
+      name: string;
+      priceCents: number;
+    };
+    features?: PlanFeatures;
+  } | null;
+  features?: PlanFeatures;
+  planCode?: string;
+}
+
 export const subscriptionsApi = {
   getMySubscription: () =>
-    api.get<{
-      subscription: {
-        id: string;
-        status: string;
-        startedAt: string;
-        currentPeriodStart: string;
-        currentPeriodEnd: string;
-        canceledAt: string | null;
-        plan: {
-          id: string;
-          code: string;
-          name: string;
-          priceCents: number;
-        };
-      } | null;
-    }>('/subscriptions/me'),
+    api.get<SubscriptionResponse>('/subscriptions/me'),
 
   createSubscription: (
     planId: string,

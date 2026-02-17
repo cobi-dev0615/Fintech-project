@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
+import { checkUsageLimit } from '../middleware/requirePlan.js';
 
 export async function goalsRoutes(fastify: FastifyInstance) {
   // Get all goals
@@ -101,6 +102,14 @@ export async function goalsRoutes(fastify: FastifyInstance) {
           });
         }
       }
+
+      // Check goal count limit based on user's plan
+      const withinLimit = await checkUsageLimit(
+        request, reply, 'goals',
+        `SELECT COUNT(*) as count FROM goals WHERE user_id = $1`,
+        [userId]
+      );
+      if (!withinLimit) return;
 
       const targetCents = Math.round(parseFloat(target) * 100);
       const targetDate = deadline ? new Date(deadline).toISOString().split('T')[0] : null;

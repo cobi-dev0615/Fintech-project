@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
 import { createPreference } from '../services/mercadopago.js';
+import { getPlanFeatures } from '../middleware/requirePlan.js';
 
 // Check if using test credentials
 const isTestMode = process.env.MERCADOPAGO_ACCESS_TOKEN?.startsWith('TEST-') || 
@@ -48,10 +49,20 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
       );
 
       if (result.rows.length === 0) {
-        return reply.send({ subscription: null });
+        // Return free plan features for users without a subscription
+        const freeFeatures = await getPlanFeatures('free');
+        return reply.send({
+          subscription: null,
+          features: freeFeatures,
+          planCode: 'free',
+        });
       }
 
       const sub = result.rows[0];
+
+      // Fetch plan feature limits
+      const features = await getPlanFeatures(sub.plan_code);
+
       return reply.send({
         subscription: {
           id: sub.id,
@@ -66,6 +77,7 @@ export async function subscriptionsRoutes(fastify: FastifyInstance) {
             name: sub.plan_name,
             priceCents: sub.plan_price_cents,
           },
+          features,
         },
       });
     } catch (error: any) {

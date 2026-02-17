@@ -9,7 +9,9 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import ThemeColorPicker from "@/components/ui/ThemeColorPicker";
+import FeatureGate from "@/components/ui/FeatureGate";
 
 // Critical components - load immediately
 import AppLayout from "./components/layout/AppLayout";
@@ -116,6 +118,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <WebSocketProvider>
+          <SubscriptionProvider>
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -144,22 +147,22 @@ const App = () => (
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="connections" element={<Connections />} />
               <Route path="connections/open-finance" element={<OpenFinance />} />
-              <Route path="connections/b3" element={<B3 />} />
+              <Route path="connections/b3" element={<FeatureGate feature="b3"><B3 /></FeatureGate>} />
               <Route path="accounts" element={<Accounts />} />
               <Route path="transactions" element={<TransactionHistory />} />
               <Route path="cards" element={<Cards />} />
               <Route path="assets" element={<Assets />} />
               <Route path="investments" element={<Investments />} />
-              <Route path="investments/b3" element={<B3Portfolio />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="reports/history" element={<ReportHistory />} />
+              <Route path="investments/b3" element={<FeatureGate feature="b3"><B3Portfolio /></FeatureGate>} />
+              <Route path="reports" element={<FeatureGate feature="reports"><Reports /></FeatureGate>} />
+              <Route path="reports/history" element={<FeatureGate feature="reports"><ReportHistory /></FeatureGate>} />
               <Route path="goals" element={<Goals />} />
               <Route path="calculators" element={<Calculators />} />
               <Route path="calculators/:type" element={<Calculators />} />
               <Route path="settings" element={<CustomerSettings />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="invitations" element={<Invitations />} />
-              <Route path="messages" element={<CustomerMessages />} />
+              <Route path="messages" element={<FeatureGate feature="messages"><CustomerMessages /></FeatureGate>} />
               <Route path="plans" element={<PlanPurchase />} />
               <Route path="payment" element={<Payment />} />
               <Route path="more" element={<Dashboard />} />
@@ -168,15 +171,15 @@ const App = () => (
             {/* Consultant Routes */}
             <Route path="/consultant" element={<AppLayout />}>
               <Route path="dashboard" element={<ConsultantDashboard />} />
-              <Route path="clients" element={<ClientsList />} />
-              <Route path="clients/:id" element={<ClientProfile />} />
-              <Route path="pipeline" element={<Pipeline />} />
-              <Route path="invitations" element={<SendInvitations />} />
-              <Route path="messages" element={<Messages />} />
-              <Route path="reports" element={<ProfessionalReports />} />
+              <Route path="clients" element={<FeatureGate feature="clients"><ClientsList /></FeatureGate>} />
+              <Route path="clients/:id" element={<FeatureGate feature="clients"><ClientProfile /></FeatureGate>} />
+              <Route path="pipeline" element={<FeatureGate feature="pipeline"><Pipeline /></FeatureGate>} />
+              <Route path="invitations" element={<FeatureGate feature="invitations"><SendInvitations /></FeatureGate>} />
+              <Route path="messages" element={<FeatureGate feature="messages"><Messages /></FeatureGate>} />
+              <Route path="reports" element={<FeatureGate feature="reports"><ProfessionalReports /></FeatureGate>} />
               <Route path="calculators" element={<Calculators />} />
               <Route path="calculators/:type" element={<Calculators />} />
-              <Route path="simulator" element={<PortfolioSimulator />} />
+              <Route path="simulator" element={<FeatureGate feature="simulator"><PortfolioSimulator /></FeatureGate>} />
               <Route path="settings" element={<ConsultantSettings />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="plans" element={<PlanPurchase />} />
@@ -205,6 +208,7 @@ const App = () => (
           </Suspense>
         </ErrorBoundary>
         <ScrollToTop />
+          </SubscriptionProvider>
       </WebSocketProvider>
       </BrowserRouter>
     </TooltipProvider>

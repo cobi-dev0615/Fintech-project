@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
+import { checkUsageLimit } from '../middleware/requirePlan.js';
 import {
   createConnectToken,
   getInstitutions as getPluggyInstitutions,
@@ -502,6 +503,14 @@ export async function connectionsRoutes(fastify: FastifyInstance) {
       if (!hasConnections) {
         return reply.code(500).send({ error: 'Connections table not found' });
       }
+
+      // Check connection limit based on user's plan
+      const withinLimit = await checkUsageLimit(
+        request, reply, 'connections',
+        `SELECT COUNT(*) as count FROM connections WHERE user_id = $1 AND status != 'error'`,
+        [userId]
+      );
+      if (!withinLimit) return;
 
       // Get item details from Pluggy
       let pluggyItem;

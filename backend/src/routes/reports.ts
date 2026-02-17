@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
+import { checkFeatureAccess, checkUsageLimit } from '../middleware/requirePlan.js';
 
 export async function reportsRoutes(fastify: FastifyInstance) {
 
@@ -57,6 +58,16 @@ export async function reportsRoutes(fastify: FastifyInstance) {
       if (!type) {
         return reply.code(400).send({ error: 'Report type is required' });
       }
+
+      // Check plan limit for report generation (monthly limit)
+      const withinLimit = await checkUsageLimit(
+        request, reply, 'reports',
+        `SELECT COUNT(*) as count FROM reports
+         WHERE owner_user_id = $1
+           AND created_at >= date_trunc('month', CURRENT_TIMESTAMP)`,
+        [userId]
+      );
+      if (!withinLimit) return;
 
       // Validate report type against known types; fall back to 'consolidated' if unknown
       const validTypes = ['consolidated', 'transactions', 'monthly_evolution', 'advisor_custom', 'portfolio_analysis'];
