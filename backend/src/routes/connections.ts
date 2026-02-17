@@ -324,8 +324,10 @@ export async function connectionsRoutes(fastify: FastifyInstance) {
         hasInstitutions = true;
       } catch {}
 
+      // Deduplicate by institution – keep only the most recently synced
+      // connection per institution so users don't see duplicate banks.
       let query = `
-        SELECT 
+        SELECT DISTINCT ON (COALESCE(c.institution_id, c.id))
           c.id,
           c.provider,
           c.status,
@@ -353,11 +355,11 @@ export async function connectionsRoutes(fastify: FastifyInstance) {
 
       query += `
          WHERE c.user_id = $1
-         ORDER BY c.created_at DESC
+         ORDER BY COALESCE(c.institution_id, c.id), c.last_sync_at DESC NULLS LAST, c.created_at DESC
       `;
-      
+
       const result = await db.query(query, [userId]);
-      
+
       return reply.send({ connections: result.rows });
     } catch (error) {
       fastify.log.error(error);
@@ -558,24 +560,50 @@ export async function connectionsRoutes(fastify: FastifyInstance) {
       }
 
       // Create or update the connection
+      // 1) Check by same itemId (same Pluggy consent re-processed)
       const existingConn = await db.query(
         'SELECT id FROM connections WHERE user_id = $1 AND external_consent_id = $2',
         [userId, itemId]
       );
 
+      // 2) Check by same institution (different itemId but same bank)
+      let existingInstitutionConn: any = null;
+      if (existingConn.rows.length === 0 && dbInstitutionId) {
+        const instCheck = await db.query(
+          `SELECT id FROM connections
+           WHERE user_id = $1 AND institution_id = $2 AND status IN ('connected', 'pending')
+           ORDER BY last_sync_at DESC NULLS LAST LIMIT 1`,
+          [userId, dbInstitutionId]
+        );
+        if (instCheck.rows.length > 0) {
+          existingInstitutionConn = instCheck.rows[0];
+        }
+      }
+
       let connection;
       if (existingConn.rows.length > 0) {
-        // Update existing connection
+        // Same itemId — update existing connection
         const result = await db.query(
-          `UPDATE connections 
+          `UPDATE connections
            SET status = $1, institution_id = $2, last_sync_at = NOW(), updated_at = NOW()
            WHERE id = $3
            RETURNING id, provider, status, institution_id, created_at, external_consent_id`,
           [status, dbInstitutionId, existingConn.rows[0].id]
         );
         connection = result.rows[0];
+      } else if (existingInstitutionConn) {
+        // Different itemId but same institution — update existing connection with new itemId
+        const result = await db.query(
+          `UPDATE connections
+           SET status = $1, institution_id = $2, external_consent_id = $3,
+               last_sync_at = NOW(), updated_at = NOW()
+           WHERE id = $4
+           RETURNING id, provider, status, institution_id, created_at, external_consent_id`,
+          [status, dbInstitutionId, itemId, existingInstitutionConn.id]
+        );
+        connection = result.rows[0];
       } else {
-        // Create new connection
+        // Brand new institution — create new connection
         const result = await db.query(
           `INSERT INTO connections (user_id, provider, institution_id, status, external_consent_id)
            VALUES ($1, $2, $3, $4, $5)
