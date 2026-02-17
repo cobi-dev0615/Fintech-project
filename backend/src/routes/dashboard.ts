@@ -335,6 +335,17 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         } catch { /* table may not exist */ }
       }
 
+      // Deduplicate cards by brand + last4 (multiple connections can sync the same physical card)
+      {
+        const seen = new Set<string>();
+        cards = cards.filter((c: any) => {
+          const key = `${(c.brand || '').toLowerCase()}-${c.last4 || ''}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+
       // Transactions (recent 50)
       let transactions: any[] = [];
       try {

@@ -709,7 +709,13 @@ export async function adminRoutes(fastify: FastifyInstance) {
            ORDER BY pc.updated_at DESC`,
           [id]
         );
+        const seenCards = new Set<string>();
         for (const card of cardResult.rows) {
+          // Deduplicate by brand + last4 (multiple connections can sync the same physical card)
+          const dedupKey = `${(card.brand || '').toLowerCase()}-${card.last4 || ''}`;
+          if (seenCards.has(dedupKey)) continue;
+          seenCards.add(dedupKey);
+
           const invResult = await db.query(
             `SELECT due_date, amount, status FROM pluggy_card_invoices
              WHERE pluggy_card_id = $1 AND user_id = $2 AND status = 'open'
