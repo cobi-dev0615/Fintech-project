@@ -25,7 +25,9 @@
       "Bash(find:*)",
       "Bash(wc:*)",
       "Bash(git status:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(sudo apt-get install:*)",
+      "Bash(pip3 install:*)"
     ]
   }
 }
