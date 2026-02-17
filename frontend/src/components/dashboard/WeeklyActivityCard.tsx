@@ -23,7 +23,7 @@ const WeeklyActivityCard = ({ data, loading }: WeeklyActivityCardProps) => {
 
   if (loading || !data) {
     return (
-      <div className="chart-card">
+      <div className="chart-card h-full">
         <div className="flex items-center justify-center h-48">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
@@ -39,7 +39,7 @@ const WeeklyActivityCard = ({ data, loading }: WeeklyActivityCardProps) => {
     : data.byDay;
 
   return (
-    <div className="chart-card">
+    <div className="chart-card h-full">
       <h3 className="text-sm font-semibold text-foreground mb-4">
         {t('dashboard:analytics.weeklyActivity')}
       </h3>

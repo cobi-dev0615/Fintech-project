@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { ComposedChart, Area, Bar, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,17 +6,12 @@ import ChartCard from "./ChartCard";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { cn } from "@/lib/utils";
-
-interface RevenueExpensesChartProps {
-  data: Array<{ period: string; income: number; expenses: number }>;
-  activePeriod: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  onPeriodChange: (period: 'daily' | 'weekly' | 'monthly' | 'yearly') => void;
-  loading?: boolean;
-}
+import { dashboardApi } from "@/lib/api-dashboard";
 
 const PERIODS = ['daily', 'weekly', 'monthly', 'yearly'] as const;
+type Period = typeof PERIODS[number];
 
-const formatPeriodLabel = (value: string, period: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
+const formatPeriodLabel = (value: string, period: Period) => {
   try {
     const date = new Date(value);
     if (isNaN(date.getTime())) return value;
@@ -28,9 +24,32 @@ const formatPeriodLabel = (value: string, period: 'daily' | 'weekly' | 'monthly'
   }
 };
 
-const RevenueExpensesChart = ({ data, activePeriod, onPeriodChange, loading }: RevenueExpensesChartProps) => {
+const RevenueExpensesChart = () => {
   const { t } = useTranslation(['dashboard']);
   const { formatCurrency } = useCurrency();
+  const [activePeriod, setActivePeriod] = useState<Period>('monthly');
+  const [data, setData] = useState<Array<{ period: string; income: number; expenses: number }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const result = await dashboardApi.getSpendingAnalytics(activePeriod);
+        if (!cancelled) {
+          setData(result.revenueVsExpenses || []);
+        }
+      } catch (error) {
+        console.error("Error fetching revenue vs expenses:", error);
+        if (!cancelled) setData([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchData();
+    return () => { cancelled = true; };
+  }, [activePeriod]);
 
   const chartData = data.map(d => ({
     ...d,
@@ -51,13 +70,14 @@ const RevenueExpensesChart = ({ data, activePeriod, onPeriodChange, loading }: R
   return (
     <ChartCard
       title={t('dashboard:analytics.revenueVsExpenses')}
+      className="h-full"
       actions={
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border border-border overflow-hidden">
             {PERIODS.map(p => (
               <button
                 key={p}
-                onClick={() => onPeriodChange(p)}
+                onClick={() => setActivePeriod(p)}
                 className={cn(
                   "px-3 py-1.5 text-xs font-medium transition-colors",
                   activePeriod === p

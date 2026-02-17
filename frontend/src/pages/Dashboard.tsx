@@ -1,18 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
-import { Wallet, TrendingUp, PiggyBank, CreditCard, Target, UserCheck } from "lucide-react";
+import { Wallet, TrendingUp, PiggyBank, CreditCard } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import NetWorthChart from "@/components/dashboard/NetWorthChart";
 import RevenueExpensesChart from "@/components/dashboard/RevenueExpensesChart";
 import SpendingByCategoryChart from "@/components/dashboard/SpendingByCategoryChart";
 import WeeklyActivityCard from "@/components/dashboard/WeeklyActivityCard";
 import RecentTransactionsTable from "@/components/dashboard/RecentTransactionsTable";
-import { PlanInfoCard } from "@/components/dashboard/PlanInfoCard";
-import { ConsultantInfoCard } from "@/components/dashboard/ConsultantInfoCard";
-import { GoalCard } from "@/components/dashboard/GoalCard";
-import { EmptyStateCard } from "@/components/dashboard/EmptyStateCard";
 import { DraggableDashboard } from "@/components/dashboard/DraggableDashboard";
 import type { DashboardCard } from "@/types/dashboard";
-import { financeApi, subscriptionsApi, customerApi, goalsApi } from "@/lib/api";
+import { financeApi } from "@/lib/api";
 import { dashboardApi } from "@/lib/api-dashboard";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -40,12 +36,7 @@ const Dashboard = () => {
     totalTransactions: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [subscription, setSubscription] = useState<any>(null);
-  const [consultant, setConsultant] = useState<any>(null);
-  const [goals, setGoals] = useState<any[]>([]);
-  const [analyticsPeriod, setAnalyticsPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
   const [analyticsData, setAnalyticsData] = useState<{
-    revenueVsExpenses: Array<{ period: string; income: number; expenses: number }>;
     spendingByCategory: Array<{ category: string; total: number; percentage: number }>;
     weeklyActivity: { totalTransactions: number; totalSpent: number; dailyAvg: number; byDay: Array<{ day: string; count: number; amount: number }>; activityTrend: number; spendingTrend: number };
     recentTransactions: Array<{ id: string; date: string; amount: number; description: string | null; category: string | null; merchant: string; status: string }>;
@@ -59,17 +50,11 @@ const Dashboard = () => {
         transactionsData,
         investmentsData,
         cardsData,
-        subscriptionData,
-        consultantsData,
-        goalsData
       ] = await Promise.all([
         financeApi.getAccounts().catch(() => ({ accounts: [], grouped: [], total: 0 })),
         financeApi.getTransactions({ page: 1, limit: 10 }).catch(() => ({ transactions: [], pagination: { total: 0 } })),
         financeApi.getInvestments().catch(() => ({ investments: [], total: 0, breakdown: [] })),
         financeApi.getCards().catch(() => ({ cards: [] })),
-        subscriptionsApi.getMySubscription().catch(() => ({ subscription: null })),
-        customerApi.getConsultants().catch(() => ({ consultants: [] })),
-        goalsApi.getAll().catch(() => ({ goals: [] })),
       ]);
 
       setOpenFinanceData({
@@ -82,10 +67,6 @@ const Dashboard = () => {
         totalInvestments: investmentsData.total || 0,
         totalTransactions: transactionsData.pagination?.total ?? 0,
       });
-
-      setSubscription(subscriptionData.subscription);
-      setConsultant(consultantsData.consultants?.find((c: any) => c.isPrimary) || consultantsData.consultants?.[0] || null);
-      setGoals(goalsData.goals || []);
     } catch (err: any) {
       console.error("Error fetching open finance data:", err);
     } finally {
@@ -101,7 +82,7 @@ const Dashboard = () => {
     const fetchAnalytics = async () => {
       try {
         setAnalyticsLoading(true);
-        const data = await dashboardApi.getSpendingAnalytics(analyticsPeriod);
+        const data = await dashboardApi.getSpendingAnalytics();
         setAnalyticsData(data);
       } catch (error) {
         console.error("Error fetching spending analytics:", error);
@@ -110,7 +91,7 @@ const Dashboard = () => {
       }
     };
     fetchAnalytics();
-  }, [analyticsPeriod]);
+  }, []);
 
   const cashBalance = openFinanceData.totalBalance;
   const investmentValue = openFinanceData.totalInvestments;
@@ -216,95 +197,12 @@ const Dashboard = () => {
       },
     ];
 
-    // Add plan info card (show empty state if no subscription)
-    cards.push({
-      id: 'plan-info',
-      type: 'kpi',
-      order: 10,
-      component: subscription ? (
-        <PlanInfoCard
-          planName={subscription.plan.name}
-          price={subscription.plan.priceCents}
-          status={subscription.status}
-          currentPeriodEnd={subscription.currentPeriodEnd}
-        />
-      ) : (
-        <EmptyStateCard
-          title={t('dashboard:currentPlan')}
-          icon={CreditCard}
-        />
-      ),
-      span: {
-        mobile: 1,
-        tablet: 1,
-        desktop: 1,
-      },
-    });
-
-    // Add consultant info card (show empty state if no consultant)
-    cards.push({
-      id: 'consultant-info',
-      type: 'kpi',
-      order: 11,
-      component: consultant ? (
-        <ConsultantInfoCard
-          name={consultant.name}
-          email={consultant.email}
-          isPrimary={consultant.isPrimary || false}
-        />
-      ) : (
-        <EmptyStateCard
-          title={t('dashboard:yourConsultant')}
-          icon={UserCheck}
-        />
-      ),
-      span: {
-        mobile: 1,
-        tablet: 1,
-        desktop: 1,
-      },
-    });
-
-    // Add goal card (show empty state if no active goal)
-    const activeGoal = goals.find((g: any) => g.deadline && new Date(g.deadline) > new Date());
-    cards.push({
-      id: 'goal-card',
-      type: 'kpi',
-      order: 12,
-      component: activeGoal ? (
-        <GoalCard
-          name={activeGoal.name}
-          target={activeGoal.target}
-          current={activeGoal.current}
-          deadline={activeGoal.deadline}
-          category={activeGoal.category}
-        />
-      ) : (
-        <EmptyStateCard
-          title={t('dashboard:goal', { defaultValue: 'Goal' })}
-          icon={Target}
-        />
-      ),
-      span: {
-        mobile: 2,
-        tablet: 2,
-        desktop: 2,
-      },
-    });
-
-    // Revenue vs Expenses chart (3 cols)
+    // Revenue vs Expenses chart (3 cols) - self-contained, manages own period state
     cards.push({
       id: 'revenue-expenses',
       type: 'chart',
       order: 20,
-      component: (
-        <RevenueExpensesChart
-          data={analyticsData?.revenueVsExpenses || []}
-          activePeriod={analyticsPeriod}
-          onPeriodChange={setAnalyticsPeriod}
-          loading={analyticsLoading}
-        />
-      ),
+      component: <RevenueExpensesChart />,
       span: { mobile: 2, tablet: 2, desktop: 3 },
       draggable: false,
     });
@@ -369,7 +267,7 @@ const Dashboard = () => {
     });
 
     return cards;
-  }, [t, formatCurrency, netWorth, cashBalance, investmentValue, cardDebt, openFinanceData, subscription, consultant, goals, analyticsData, analyticsLoading, analyticsPeriod]);
+  }, [t, formatCurrency, netWorth, cashBalance, investmentValue, cardDebt, analyticsData, analyticsLoading]);
 
   // Show loading state
   if (loading) {

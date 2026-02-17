@@ -11,7 +11,7 @@ interface ChartCardProps {
 
 const ChartCard = ({ title, subtitle, children, className, actions }: ChartCardProps) => {
   return (
-    <div className={cn("chart-card min-w-0", className)}>
+    <div className={cn("chart-card min-w-0 h-full", className)}>
       {(title || actions) && (
         <div className="flex items-start justify-between gap-3 mb-5 min-w-0">
           {title && (
