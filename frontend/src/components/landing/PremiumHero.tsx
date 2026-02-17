@@ -1,7 +1,6 @@
-import { Car, TrendingUp, AlertTriangle, Target, PieChart } from "lucide-react";
+import { TrendingUp, AlertTriangle, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const PremiumHero = () => {
@@ -140,86 +139,53 @@ const PremiumHero = () => {
                 />
               </div>
 
-              {/* Floating Cards - Positioned around the phone (Desktop only) */}
-              {/* Animated connecting lines from phone to cards */}
-              <svg className="absolute inset-0 w-full h-full hidden lg:block pointer-events-none" style={{ opacity: 0.3, zIndex: 150 }}>
-                <defs>
-                  <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.5" />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                {/* Lines will be animated via CSS */}
-              </svg>
-
-              {/* Floating Card 3: Otimizar Renda Variável - Middle Right */}
-              <div
-                className="absolute top-1/2 right-0 -right-4 md:right-0 opacity-0 animate-fade-in-up"
-                style={{
-                  animationDelay: '0.9s',
-                  animationFillMode: 'forwards',
-                  zIndex: 250,
-                }}
-              >
-                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-40 md:w-44 lg:w-48 transform rotate-1 transition-[shadow,border-color,background-color] duration-2000 hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float">
-                  {/* Connecting line indicator pointing to phone */}
-                  <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  {/* Glow effect on hover */}
-                  <div className="absolute inset-0 rounded-xl bg-primary/0 group-hover:bg-primary/5 transition-colors duration-300 pointer-events-none" />
-                  <div className="flex items-center gap-2 mb-1">
-                    <TrendingUp className="h-3.5 w-3.5 text-primary animate-pulse" style={{ animationDuration: '2s', animationDelay: '0.4s' }} />
-                    <h4 className="text-xs font-semibold text-foreground">{t('hero.floatingOptimize')}</h4>
-                  </div>
-                  <div className="inline-flex items-center px-2 py-1 rounded bg-success/20">
-                    <span className="text-sm font-bold text-success">{t('hero.floatingOptimizeValue')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Card 4: Meta de Reserva - Bottom Left */}
-              <div
-                className="absolute bottom-20 -left-4 md:-left-6 lg:-left-8 opacity-0 animate-fade-in-up"
-                style={{
-                  animationDelay: '1.1s',
-                  animationFillMode: 'forwards',
-                  zIndex: 250,
-                }}
-              >
-                <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-36 md:w-40 lg:w-48 transform -rotate-1 transition-[shadow,border-color,background-color] duration-2000 hover:scale-105 hover:shadow-2xl hover:border-primary/50 hover:bg-card/80 group animate-float-right">
-                  {/* Connecting line indicator pointing to phone */}
-                  <div className="absolute -right-4 top-1/2 w-4 h-0.5 bg-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  {/* Glow effect on hover */}
-                  <div className="absolute inset-0 rounded-xl bg-primary/0 group-hover:bg-primary/5 transition-colors duration-300 pointer-events-none" />
-                  <div className="flex items-start gap-2">
-                    <Target className="h-4 w-4 text-success flex-shrink-0 mt-0.5 animate-pulse" style={{ animationDuration: '2s', animationDelay: '0.6s' }} />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-semibold text-foreground mb-1">{t('hero.floatingGoalTitle')}</h4>
-                      <p className="text-sm font-bold text-foreground mb-0.5">{t('hero.floatingGoalAmount')}</p>
-                      <p className="text-[10px] text-success">{t('hero.floatingGoalStatus')}</p>
+              {/* Floating Cards - Rise from bottom to top, desktop only */}
+              <div className="absolute inset-0 hidden lg:block pointer-events-none" style={{ zIndex: 250 }}>
+                {/* Card 1: Otimizar Renda Variável */}
+                <div
+                  className="absolute bottom-[-20px] right-[10px] animate-rise-float"
+                  style={{ animationDelay: '0s' }}
+                >
+                  <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-48">
+                    <div className="flex items-center gap-2 mb-1">
+                      <TrendingUp className="h-3.5 w-3.5 text-primary animate-pulse" style={{ animationDuration: '2s' }} />
+                      <h4 className="text-xs font-semibold text-foreground">{t('hero.floatingOptimize')}</h4>
+                    </div>
+                    <div className="inline-flex items-center px-2 py-1 rounded bg-success/20">
+                      <span className="text-sm font-bold text-success">{t('hero.floatingOptimizeValue')}</span>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Floating Card 5: Alerta - Bottom Right */}
-              <div
-                className="absolute bottom-8 right-0 -right-4 md:right-0 opacity-0 animate-fade-in-up"
-                style={{
-                  animationDelay: '1.3s',
-                  animationFillMode: 'forwards',
-                  zIndex: 250,
-                }}
-              >
-                <div className="bg-card/60 backdrop-blur-md border border-warning/30 rounded-xl p-3 shadow-xl w-44 md:w-52 lg:w-56 transform rotate-1 transition-[shadow,border-color,background-color] duration-2000 hover:scale-105 hover:shadow-2xl hover:border-warning/50 hover:bg-card/80 group animate-float-deep">
-                  {/* Connecting line indicator pointing to phone */}
-                  <div className="absolute -left-4 top-1/2 w-4 h-0.5 bg-warning/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  {/* Glow effect on hover */}
-                  <div className="absolute inset-0 rounded-xl bg-warning/0 group-hover:bg-warning/5 transition-colors duration-300 pointer-events-none" />
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5 animate-pulse" style={{ animationDuration: '2s', animationDelay: '0.8s' }} />
-                    <p className="text-[10px] text-foreground leading-relaxed">
-                      {t('hero.floatingAlert')}
-                    </p>
+                {/* Card 2: Meta de Reserva */}
+                <div
+                  className="absolute bottom-[-20px] right-[60px] animate-rise-float"
+                  style={{ animationDelay: '5s' }}
+                >
+                  <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl p-3 shadow-xl w-48">
+                    <div className="flex items-start gap-2">
+                      <Target className="h-4 w-4 text-success flex-shrink-0 mt-0.5 animate-pulse" style={{ animationDuration: '2s' }} />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-semibold text-foreground mb-1">{t('hero.floatingGoalTitle')}</h4>
+                        <p className="text-sm font-bold text-foreground mb-0.5">{t('hero.floatingGoalAmount')}</p>
+                        <p className="text-[10px] text-success">{t('hero.floatingGoalStatus')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 3: Alerta */}
+                <div
+                  className="absolute bottom-[-20px] right-[-30px] animate-rise-float"
+                  style={{ animationDelay: '10s' }}
+                >
+                  <div className="bg-card/60 backdrop-blur-md border border-warning/30 rounded-xl p-3 shadow-xl w-56">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5 animate-pulse" style={{ animationDuration: '2s' }} />
+                      <p className="text-[10px] text-foreground leading-relaxed">
+                        {t('hero.floatingAlert')}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
