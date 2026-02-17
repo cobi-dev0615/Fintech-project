@@ -1,60 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowDownLeft, ArrowUpRight, Coffee, Home, ShoppingBag, Zap, DollarSign, CreditCard, Receipt, Building2, Car, Heart, Gamepad2, GraduationCap, Briefcase, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { accountsApi } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCurrency } from "@/contexts/CurrencyContext";
-
-// Map category to icon
-const getCategoryIcon = (category: string | null | undefined) => {
-  if (!category) return DollarSign;
-  
-  const categoryLower = category.toLowerCase();
-  
-  if (categoryLower.includes('alimentação') || categoryLower.includes('food') || categoryLower.includes('restaurant') || categoryLower.includes('café')) {
-    return Coffee;
-  }
-  if (categoryLower.includes('compras') || categoryLower.includes('shopping') || categoryLower.includes('retail')) {
-    return ShoppingBag;
-  }
-  if (categoryLower.includes('utilidades') || categoryLower.includes('utilities') || categoryLower.includes('luz') || categoryLower.includes('água') || categoryLower.includes('energia')) {
-    return Zap;
-  }
-  if (categoryLower.includes('moradia') || categoryLower.includes('housing') || categoryLower.includes('aluguel') || categoryLower.includes('rent')) {
-    return Home;
-  }
-  if (categoryLower.includes('transporte') || categoryLower.includes('transport') || categoryLower.includes('carro') || categoryLower.includes('gasolina')) {
-    return Car;
-  }
-  if (categoryLower.includes('saúde') || categoryLower.includes('health') || categoryLower.includes('médico') || categoryLower.includes('farmacia')) {
-    return Heart;
-  }
-  if (categoryLower.includes('educação') || categoryLower.includes('education') || categoryLower.includes('escola') || categoryLower.includes('curso')) {
-    return GraduationCap;
-  }
-  if (categoryLower.includes('trabalho') || categoryLower.includes('work') || categoryLower.includes('escritório')) {
-    return Briefcase;
-  }
-  if (categoryLower.includes('entretenimento') || categoryLower.includes('entertainment') || categoryLower.includes('jogo') || categoryLower.includes('game')) {
-    return Gamepad2;
-  }
-  if (categoryLower.includes('renda') || categoryLower.includes('income') || categoryLower.includes('salário') || categoryLower.includes('depósito')) {
-    return ArrowDownLeft;
-  }
-  if (categoryLower.includes('cartão') || categoryLower.includes('card') || categoryLower.includes('credit')) {
-    return CreditCard;
-  }
-  if (categoryLower.includes('conta') || categoryLower.includes('bill') || categoryLower.includes('pagamento')) {
-    return Receipt;
-  }
-  if (categoryLower.includes('banco') || categoryLower.includes('bank') || categoryLower.includes('instituição')) {
-    return Building2;
-  }
-  
-  return DollarSign;
-};
+import { getCategoryIcon } from "@/utils/category-icons";
 
 // Format date to relative time
 const formatDate = (dateString: string) => {

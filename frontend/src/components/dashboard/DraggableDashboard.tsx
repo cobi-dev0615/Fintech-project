@@ -130,9 +130,10 @@ export function DraggableDashboard({
               id={card.id}
               draggable={card.draggable !== false}
               className={cn(
-                card.type === 'chart' && 'lg:col-span-4',
+                card.type === 'chart' && !card.span?.desktop && 'lg:col-span-4',
                 card.span?.desktop === 1 && 'lg:col-span-1',
                 card.span?.desktop === 2 && 'lg:col-span-2',
+                card.span?.desktop === 3 && 'lg:col-span-3',
                 card.span?.desktop === 4 && 'lg:col-span-4',
                 card.span?.mobile === 1 && 'col-span-1',
                 card.span?.mobile === 2 && 'col-span-2'

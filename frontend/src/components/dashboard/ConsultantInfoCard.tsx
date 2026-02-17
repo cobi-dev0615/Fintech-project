@@ -20,7 +20,7 @@ export function ConsultantInfoCard({ name, email, isPrimary }: ConsultantInfoCar
           <h3 className="text-sm font-medium text-muted-foreground truncate">
             {t('dashboard:yourConsultant', { defaultValue: 'Your Consultant' })}
           </h3>
-          <p className="text-xl font-bold text-foreground mt-1 flex items-center gap-2 truncate">
+          <p className="text-base font-bold text-foreground mt-1 flex items-center gap-2 truncate">
             {name}
             {isPrimary && (
               <Star className="h-4 w-4 shrink-0 fill-primary text-primary" />

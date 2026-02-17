@@ -412,4 +412,185 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       return reply.code(500).send({ error: 'Failed to load financial data' });
     }
   });
+
+  // Spending Analytics - aggregated data for dashboard charts
+  fastify.get('/spending-analytics', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const period = ((request.query as any)?.period || 'monthly') as string;
+
+      // Validate period
+      const validPeriods: Record<string, string> = {
+        daily: 'day',
+        weekly: 'week',
+        monthly: 'month',
+        yearly: 'year',
+      };
+      const truncUnit = validPeriods[period] || 'month';
+
+      // Check if pluggy_transactions table exists
+      try {
+        await db.query('SELECT 1 FROM pluggy_transactions LIMIT 1');
+      } catch {
+        return reply.send({
+          revenueVsExpenses: [],
+          spendingByCategory: [],
+          weeklyActivity: {
+            totalTransactions: 0, totalSpent: 0, dailyAvg: 0,
+            byDay: [], activityTrend: 0, spendingTrend: 0,
+          },
+          recentTransactions: [],
+        });
+      }
+
+      const [revenueResult, categoryResult, weeklyCurrentResult, weeklyPrevResult, recentResult] = await Promise.all([
+        // 1. Revenue vs Expenses grouped by period
+        db.query(
+          `SELECT
+            DATE_TRUNC('${truncUnit}', pt.date)::date AS period,
+            COALESCE(SUM(CASE WHEN pt.amount > 0 THEN pt.amount ELSE 0 END), 0)::float AS income,
+            COALESCE(SUM(CASE WHEN pt.amount < 0 THEN ABS(pt.amount) ELSE 0 END), 0)::float AS expenses
+          FROM pluggy_transactions pt
+          WHERE pt.user_id = $1
+            AND pt.date >= CURRENT_DATE - INTERVAL '365 days'
+          GROUP BY DATE_TRUNC('${truncUnit}', pt.date)
+          ORDER BY period ASC`,
+          [userId]
+        ),
+
+        // 2. Spending by category (last 30 days, expenses only)
+        db.query(
+          `WITH category_totals AS (
+            SELECT
+              COALESCE(pt.category, 'Others') AS category,
+              COALESCE(SUM(ABS(pt.amount)), 0)::float AS total
+            FROM pluggy_transactions pt
+            WHERE pt.user_id = $1
+              AND pt.amount < 0
+              AND pt.date >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY COALESCE(pt.category, 'Others')
+            ORDER BY total DESC
+          ),
+          ranked AS (
+            SELECT category, total, ROW_NUMBER() OVER (ORDER BY total DESC) AS rn
+            FROM category_totals
+          )
+          SELECT
+            CASE WHEN rn <= 5 THEN category ELSE 'Others' END AS category,
+            SUM(total)::float AS total
+          FROM ranked
+          GROUP BY CASE WHEN rn <= 5 THEN category ELSE 'Others' END
+          ORDER BY SUM(total) DESC`,
+          [userId]
+        ),
+
+        // 3. Weekly activity (current 7 days)
+        db.query(
+          `SELECT
+            EXTRACT(DOW FROM pt.date)::int AS day_of_week,
+            COUNT(*)::int AS count,
+            COALESCE(SUM(ABS(pt.amount)), 0)::float AS total_spent
+          FROM pluggy_transactions pt
+          WHERE pt.user_id = $1
+            AND pt.amount < 0
+            AND pt.date >= CURRENT_DATE - INTERVAL '7 days'
+          GROUP BY EXTRACT(DOW FROM pt.date)
+          ORDER BY day_of_week`,
+          [userId]
+        ),
+
+        // 4. Weekly activity (previous 7 days for trends)
+        db.query(
+          `SELECT
+            COUNT(*)::int AS prev_count,
+            COALESCE(SUM(ABS(pt.amount)), 0)::float AS prev_spent
+          FROM pluggy_transactions pt
+          WHERE pt.user_id = $1
+            AND pt.amount < 0
+            AND pt.date >= CURRENT_DATE - INTERVAL '14 days'
+            AND pt.date < CURRENT_DATE - INTERVAL '7 days'`,
+          [userId]
+        ),
+
+        // 5. Recent transactions (latest 10)
+        db.query(
+          `SELECT
+            pt.id,
+            pt.date,
+            pt.amount::float AS amount,
+            pt.description,
+            pt.category,
+            COALESCE(pt.merchant, pt.description, 'Unknown') AS merchant,
+            COALESCE(pt.status, 'completed') AS status
+          FROM pluggy_transactions pt
+          WHERE pt.user_id = $1
+          ORDER BY pt.date DESC, pt.created_at DESC
+          LIMIT 10`,
+          [userId]
+        ),
+      ]);
+
+      // Process revenue vs expenses
+      const revenueVsExpenses = revenueResult.rows.map((row: any) => ({
+        period: row.period,
+        income: row.income,
+        expenses: row.expenses,
+      }));
+
+      // Process spending by category with percentages
+      const categoryGrandTotal = categoryResult.rows.reduce((sum: number, row: any) => sum + row.total, 0);
+      const spendingByCategory = categoryResult.rows.map((row: any) => ({
+        category: row.category,
+        total: row.total,
+        percentage: categoryGrandTotal > 0 ? parseFloat(((row.total / categoryGrandTotal) * 100).toFixed(1)) : 0,
+      }));
+
+      // Process weekly activity
+      const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+      const dayMap = new Map(weeklyCurrentResult.rows.map((row: any) => [row.day_of_week, row]));
+      const byDay = DAY_NAMES.map((day, idx) => ({
+        day,
+        count: (dayMap.get(idx) as any)?.count || 0,
+        amount: (dayMap.get(idx) as any)?.total_spent || 0,
+      }));
+      const totalTransactions = byDay.reduce((s, d) => s + d.count, 0);
+      const totalSpent = byDay.reduce((s, d) => s + d.amount, 0);
+      const dailyAvg = totalSpent / 7;
+
+      const prevCount = parseInt(weeklyPrevResult.rows[0]?.prev_count) || 0;
+      const prevSpent = parseFloat(weeklyPrevResult.rows[0]?.prev_spent) || 0;
+      const activityTrend = prevCount > 0 ? parseFloat((((totalTransactions - prevCount) / prevCount) * 100).toFixed(1)) : 0;
+      const spendingTrend = prevSpent > 0 ? parseFloat((((totalSpent - prevSpent) / prevSpent) * 100).toFixed(1)) : 0;
+
+      // Process recent transactions
+      const recentTransactions = recentResult.rows.map((row: any) => ({
+        id: row.id,
+        date: row.date,
+        amount: row.amount,
+        description: row.description,
+        category: row.category,
+        merchant: row.merchant,
+        status: row.status,
+      }));
+
+      return reply.send({
+        revenueVsExpenses,
+        spendingByCategory,
+        weeklyActivity: {
+          totalTransactions,
+          totalSpent: parseFloat(totalSpent.toFixed(2)),
+          dailyAvg: parseFloat(dailyAvg.toFixed(2)),
+          byDay,
+          activityTrend,
+          spendingTrend,
+        },
+        recentTransactions,
+      });
+    } catch (error) {
+      fastify.log.error('Error fetching spending analytics: ' + String(error));
+      return reply.code(500).send({ error: 'Failed to load spending analytics' });
+    }
+  });
 }

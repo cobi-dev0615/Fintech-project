@@ -2,6 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { Wallet, TrendingUp, PiggyBank, CreditCard, Target, UserCheck } from "lucide-react";
 import ProfessionalKpiCard from "@/components/dashboard/ProfessionalKpiCard";
 import NetWorthChart from "@/components/dashboard/NetWorthChart";
+import RevenueExpensesChart from "@/components/dashboard/RevenueExpensesChart";
+import SpendingByCategoryChart from "@/components/dashboard/SpendingByCategoryChart";
+import WeeklyActivityCard from "@/components/dashboard/WeeklyActivityCard";
+import RecentTransactionsTable from "@/components/dashboard/RecentTransactionsTable";
 import { PlanInfoCard } from "@/components/dashboard/PlanInfoCard";
 import { ConsultantInfoCard } from "@/components/dashboard/ConsultantInfoCard";
 import { GoalCard } from "@/components/dashboard/GoalCard";
@@ -9,6 +13,7 @@ import { EmptyStateCard } from "@/components/dashboard/EmptyStateCard";
 import { DraggableDashboard } from "@/components/dashboard/DraggableDashboard";
 import type { DashboardCard } from "@/types/dashboard";
 import { financeApi, subscriptionsApi, customerApi, goalsApi } from "@/lib/api";
+import { dashboardApi } from "@/lib/api-dashboard";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
@@ -38,6 +43,14 @@ const Dashboard = () => {
   const [subscription, setSubscription] = useState<any>(null);
   const [consultant, setConsultant] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [analyticsData, setAnalyticsData] = useState<{
+    revenueVsExpenses: Array<{ period: string; income: number; expenses: number }>;
+    spendingByCategory: Array<{ category: string; total: number; percentage: number }>;
+    weeklyActivity: { totalTransactions: number; totalSpent: number; dailyAvg: number; byDay: Array<{ day: string; count: number; amount: number }>; activityTrend: number; spendingTrend: number };
+    recentTransactions: Array<{ id: string; date: string; amount: number; description: string | null; category: string | null; merchant: string; status: string }>;
+  } | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
   const fetchOpenFinanceData = async () => {
     try {
@@ -83,6 +96,21 @@ const Dashboard = () => {
   useEffect(() => {
     fetchOpenFinanceData();
   }, []);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setAnalyticsLoading(true);
+        const data = await dashboardApi.getSpendingAnalytics(analyticsPeriod);
+        setAnalyticsData(data);
+      } catch (error) {
+        console.error("Error fetching spending analytics:", error);
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, [analyticsPeriod]);
 
   const cashBalance = openFinanceData.totalBalance;
   const investmentValue = openFinanceData.totalInvestments;
@@ -264,6 +292,68 @@ const Dashboard = () => {
       },
     });
 
+    // Revenue vs Expenses chart (3 cols)
+    cards.push({
+      id: 'revenue-expenses',
+      type: 'chart',
+      order: 20,
+      component: (
+        <RevenueExpensesChart
+          data={analyticsData?.revenueVsExpenses || []}
+          activePeriod={analyticsPeriod}
+          onPeriodChange={setAnalyticsPeriod}
+          loading={analyticsLoading}
+        />
+      ),
+      span: { mobile: 2, tablet: 2, desktop: 3 },
+      draggable: false,
+    });
+
+    // Spending by Category donut (1 col)
+    cards.push({
+      id: 'spending-category',
+      type: 'chart',
+      order: 21,
+      component: (
+        <SpendingByCategoryChart
+          data={analyticsData?.spendingByCategory || []}
+          loading={analyticsLoading}
+        />
+      ),
+      span: { mobile: 2, tablet: 2, desktop: 1 },
+      draggable: false,
+    });
+
+    // Weekly Activity (2 cols)
+    cards.push({
+      id: 'weekly-activity',
+      type: 'chart',
+      order: 22,
+      component: (
+        <WeeklyActivityCard
+          data={analyticsData?.weeklyActivity || null}
+          loading={analyticsLoading}
+        />
+      ),
+      span: { mobile: 2, tablet: 2, desktop: 2 },
+      draggable: false,
+    });
+
+    // Recent Transactions table (2 cols)
+    cards.push({
+      id: 'recent-transactions-table',
+      type: 'chart',
+      order: 23,
+      component: (
+        <RecentTransactionsTable
+          transactions={analyticsData?.recentTransactions || []}
+          loading={analyticsLoading}
+        />
+      ),
+      span: { mobile: 2, tablet: 2, desktop: 2 },
+      draggable: false,
+    });
+
     // Add chart at the end (non-draggable, always at bottom)
     cards.push({
       id: 'net-worth-chart',
@@ -279,7 +369,7 @@ const Dashboard = () => {
     });
 
     return cards;
-  }, [t, formatCurrency, netWorth, cashBalance, investmentValue, cardDebt, openFinanceData, subscription, consultant, goals]);
+  }, [t, formatCurrency, netWorth, cashBalance, investmentValue, cardDebt, openFinanceData, subscription, consultant, goals, analyticsData, analyticsLoading, analyticsPeriod]);
 
   // Show loading state
   if (loading) {

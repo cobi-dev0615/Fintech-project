@@ -24,4 +24,29 @@ export const dashboardApi = {
       cards: Array<{ id: string; brand?: string; last4?: string; institution_name?: string; openDebt: number }>;
       transactions: Array<{ id: string; date: string; amount: number; description?: string; merchant?: string; account_name?: string; institution_name?: string }>;
     }>('/dashboard/finance'),
+
+  getSpendingAnalytics: (period?: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
+    const params = period ? `?period=${period}` : '';
+    return api.get<{
+      revenueVsExpenses: Array<{ period: string; income: number; expenses: number }>;
+      spendingByCategory: Array<{ category: string; total: number; percentage: number }>;
+      weeklyActivity: {
+        totalTransactions: number;
+        totalSpent: number;
+        dailyAvg: number;
+        byDay: Array<{ day: string; count: number; amount: number }>;
+        activityTrend: number;
+        spendingTrend: number;
+      };
+      recentTransactions: Array<{
+        id: string;
+        date: string;
+        amount: number;
+        description: string | null;
+        category: string | null;
+        merchant: string;
+        status: string;
+      }>;
+    }>(`/dashboard/spending-analytics${params}`);
+  },
 };
