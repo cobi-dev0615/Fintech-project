@@ -319,7 +319,7 @@ const ClientProfile = () => {
                             {financeDetail.connections.map((c) => (
                               <div
                                 key={c.id}
-                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/50"
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-white/20"
                               >
                                 {c.institution_logo ? (
                                   <img
@@ -394,7 +394,7 @@ const ClientProfile = () => {
                             <div className="hidden md:block overflow-x-auto">
                               <table className="w-full text-sm">
                                 <thead>
-                                  <tr className="border-b border-border">
+                                  <tr className="border-b border-white/15">
                                     <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground">
                                       {t("consultant:clientProfile.name")}
                                     </th>
@@ -415,7 +415,7 @@ const ClientProfile = () => {
                                   {financeDetail.accounts.map((a) => (
                                     <tr
                                       key={a.id}
-                                      className="border-b border-border/30 hover:bg-muted/20 transition-colors"
+                                      className="border-b border-white/10 hover:bg-muted/20 transition-colors"
                                     >
                                       <td className="py-2.5 px-3 font-medium">
                                         {a.name}
@@ -518,7 +518,7 @@ const ClientProfile = () => {
                   <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[400px] transactions-scrollbar">
                     <table className="w-full text-sm min-w-[520px]">
                       <thead className="sticky top-0 z-10">
-                        <tr className="border-b border-border">
+                        <tr className="border-b border-white/15">
                           <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
                             {t("consultant:clientProfile.date")}
                           </th>
@@ -543,7 +543,7 @@ const ClientProfile = () => {
                           return (
                             <tr
                               key={tx.id}
-                              className="border-b border-border/30 hover:bg-muted/20 transition-colors"
+                              className="border-b border-white/10 hover:bg-muted/20 transition-colors"
                             >
                               <td className="py-2.5 px-3 text-muted-foreground tabular-nums">
                                 {format(new Date(tx.date), "dd/MM/yyyy", {
@@ -754,7 +754,7 @@ const ClientProfile = () => {
                   <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-border">
+                        <tr className="border-b border-white/15">
                           <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground">
                             {t("consultant:clientProfile.type")}
                           </th>
@@ -776,7 +776,7 @@ const ClientProfile = () => {
                         {financeDetail.investments.map((inv) => (
                           <tr
                             key={inv.id}
-                            className="border-b border-border/30 hover:bg-muted/20 transition-colors"
+                            className="border-b border-white/10 hover:bg-muted/20 transition-colors"
                           >
                             <td className="py-2.5 px-3 text-muted-foreground">
                               {getInvestmentTypeLabel(inv.type) || "-"}
