@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, User, AlertCircle, UserCheck, Home } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle, UserCheck, Home, Sun, Moon } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { authApi } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const Register = () => {
   const refToken = searchParams.get("ref") || undefined;
   const { registerAsync, isRegistering } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
+  const { theme, toggleTheme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState("");
@@ -102,6 +104,13 @@ const Register = () => {
         <div className="bg-black/30 backdrop-blur-sm rounded-lg [&_button]:text-white [&_button:hover]:text-white/80 [&_button:hover]:bg-white/10">
           <LanguageSwitcher />
         </div>
+        <button
+          onClick={toggleTheme}
+          className="flex items-center justify-center h-9 w-9 rounded-lg bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        </button>
       </div>
       {/* Left side - Branding with Financial Capital Background */}
       <div className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-center items-center relative overflow-hidden">

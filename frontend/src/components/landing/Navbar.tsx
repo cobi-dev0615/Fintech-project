@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation('landing');
+  const { theme, toggleTheme } = useTheme();
 
   const navLinks = [
     { href: "/", label: t('navbar.home') },
@@ -124,6 +126,15 @@ const Navbar = () => {
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center gap-3">
             <LanguageSwitcher />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              aria-label="Toggle theme"
+              onClick={toggleTheme}
+            >
+              {theme === "dark" ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
+            </Button>
             <Button asChild variant="outline" className="border-border text-foreground hover:bg-muted/50">
               <Link to="/register">{t('navbar.createAccount')}</Link>
             </Button>
@@ -157,9 +168,18 @@ const Navbar = () => {
                   {link.label}
                 </a>
               ))}
-              <div className="flex flex-col items-center gap-2 pt-4 border-t border-gray-800 w-full">
-                <div className="mb-2">
+              <div className="flex flex-col items-center gap-2 pt-4 border-t border-border w-full">
+                <div className="flex items-center gap-2 mb-2">
                   <LanguageSwitcher />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    aria-label="Toggle theme"
+                    onClick={toggleTheme}
+                  >
+                    {theme === "dark" ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
+                  </Button>
                 </div>
                 <Button
                   asChild

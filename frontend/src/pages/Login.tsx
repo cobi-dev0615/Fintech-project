@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, AlertCircle, Home } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle, Home, Sun, Moon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const { loginAsync, isLoggingIn } = useAuth();
   const { t } = useTranslation(['auth', 'common']);
+  const { theme, toggleTheme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -73,6 +75,13 @@ const Login = () => {
         <div className="bg-black/30 backdrop-blur-sm rounded-lg [&_button]:text-white [&_button:hover]:text-white/80 [&_button:hover]:bg-white/10">
           <LanguageSwitcher />
         </div>
+        <button
+          onClick={toggleTheme}
+          className="flex items-center justify-center h-9 w-9 rounded-lg bg-black/30 backdrop-blur-sm text-white hover:bg-black/50 transition-colors"
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        </button>
       </div>
       {/* Left side - Branding with Financial Capital Background */}
       <div className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-center items-center relative overflow-hidden">
