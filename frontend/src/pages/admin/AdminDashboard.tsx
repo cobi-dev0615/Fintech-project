@@ -8,9 +8,15 @@ import {
   DollarSign,
   RefreshCw,
   GripVertical,
+  ShieldCheck,
+  CreditCard,
+  Bell,
+  Link2,
   type LucideIcon,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { useWebSocket } from "@/contexts/WebSocketContext";
@@ -59,6 +65,9 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 
 // --- Types ---
@@ -142,6 +151,15 @@ const getCurrentYear = () => new Date().getFullYear();
 const getYearOptions = () => {
   const y = getCurrentYear();
   return [y, y - 1, y - 2, y - 3, y - 4];
+};
+
+const ROLE_COLORS = ['#3b82f6', '#8b5cf6'];
+const CONNECTION_STATUS_COLORS: Record<string, string> = {
+  connected: '#22c55e',
+  pending: '#f59e0b',
+  needs_reauth: '#f97316',
+  failed: '#ef4444',
+  revoked: '#6b7280',
 };
 
 // --- Isolated Charts ---

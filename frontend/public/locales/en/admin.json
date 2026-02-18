@@ -18,6 +18,60 @@
       "newUsersSubtitle": "this month",
       "registeredUsers": "registered users",
       "recurringRevenue": "recurring"
+    },
+    "recentRegistrations": {
+      "title": "Recent Registrations",
+      "subtitle": "Latest 5 sign-ups",
+      "empty": "No recent registrations",
+      "roles": {
+        "customer": "Customer",
+        "consultant": "Consultant"
+      }
+    },
+    "roleDistribution": {
+      "title": "User Distribution",
+      "subtitle": "Customers vs Consultants",
+      "customers": "Customers",
+      "consultants": "Consultants"
+    },
+    "pendingApprovals": {
+      "title": "Pending Approvals",
+      "subtitle": "Users awaiting review",
+      "count": "{{count}} pending",
+      "viewAll": "View User Management",
+      "noPending": "No pending approvals"
+    },
+    "subscriptionStats": {
+      "title": "Subscription Overview",
+      "subtitle": "Active vs canceled subscriptions",
+      "total": "Total",
+      "active": "Active",
+      "canceled": "Canceled",
+      "trialing": "Trialing",
+      "pastDue": "Past Due",
+      "paused": "Paused"
+    },
+    "recentNotifications": {
+      "title": "Recent Notifications",
+      "subtitle": "Latest system alerts",
+      "empty": "No notifications",
+      "types": {
+        "info": "Info",
+        "warning": "Warning",
+        "error": "Error",
+        "critical": "Critical"
+      }
+    },
+    "connectionsOverview": {
+      "title": "Connections Overview",
+      "subtitle": "Bank connections by status",
+      "connected": "Connected",
+      "pending": "Pending",
+      "needsReauth": "Needs Reauth",
+      "failed": "Failed",
+      "revoked": "Revoked",
+      "total": "Total",
+      "empty": "No connections"
     }
   },
   "userManagement": {

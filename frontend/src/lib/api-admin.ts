@@ -27,6 +27,12 @@ export const adminApi = {
       userGrowth: Array<{ month: string; users: number }>;
       revenue: Array<{ month: string; revenue: number }>;
       alerts: Array<{ id: string; type: string; message: string; time: string }>;
+      recentRegistrations: Array<{ id: string; name: string; email: string; role: string; createdAt: string }>;
+      roleDistribution: Array<{ role: string; count: number }>;
+      pendingApprovals: number;
+      subscriptionStats: { total: number; active: number; canceled: number; trialing: number; pastDue: number; paused: number };
+      recentNotifications: Array<{ id: string; type: string; severity: string; message: string; resolved: boolean; time: string }>;
+      connectionsByStatus: Array<{ status: string; count: number }>;
     }>(`/admin/dashboard/metrics${params}`);
   },
 

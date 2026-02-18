@@ -223,6 +223,82 @@ export async function adminRoutes(fastify: FastifyInstance) {
         alertsResult = { rows: [] };
       }
 
+      // Recent registrations (latest 5)
+      const recentRegResult = await db.query(
+        `SELECT id, full_name, email, role, created_at
+         FROM users
+         WHERE role IN ('customer', 'consultant')
+         ORDER BY created_at DESC
+         LIMIT 5`
+      );
+
+      // User role distribution
+      const roleDistResult = await db.query(
+        `SELECT role, COUNT(*) as count
+         FROM users
+         WHERE role IN ('customer', 'consultant')
+         GROUP BY role`
+      );
+
+      // Pending approvals count
+      let pendingApprovals = 0;
+      try {
+        const pendingResult = await db.query(
+          `SELECT COUNT(*) as count FROM users WHERE approval_status = 'pending'`
+        );
+        pendingApprovals = parseInt(pendingResult.rows[0].count) || 0;
+      } catch (e) {
+        pendingApprovals = 0;
+      }
+
+      // Subscription stats
+      let subscriptionStats = { total: 0, active: 0, canceled: 0, trialing: 0, pastDue: 0, paused: 0 };
+      try {
+        const subStatsResult = await db.query(
+          `SELECT
+             COUNT(*) as total,
+             COUNT(*) FILTER (WHERE status = 'active') as active,
+             COUNT(*) FILTER (WHERE status = 'canceled') as canceled,
+             COUNT(*) FILTER (WHERE status = 'trialing') as trialing,
+             COUNT(*) FILTER (WHERE status = 'past_due') as past_due,
+             COUNT(*) FILTER (WHERE status = 'paused') as paused
+           FROM subscriptions`
+        );
+        subscriptionStats = {
+          total: parseInt(subStatsResult.rows[0].total) || 0,
+          active: parseInt(subStatsResult.rows[0].active) || 0,
+          canceled: parseInt(subStatsResult.rows[0].canceled) || 0,
+          trialing: parseInt(subStatsResult.rows[0].trialing) || 0,
+          pastDue: parseInt(subStatsResult.rows[0].past_due) || 0,
+          paused: parseInt(subStatsResult.rows[0].paused) || 0,
+        };
+      } catch (e) {
+        // subscriptions table may not exist
+      }
+
+      // Recent system notifications (latest 5)
+      let recentNotifResult;
+      try {
+        recentNotifResult = await db.query(
+          `SELECT id, type, severity, message, resolved, created_at
+           FROM system_alerts
+           ORDER BY created_at DESC
+           LIMIT 5`
+        );
+      } catch (e) {
+        recentNotifResult = { rows: [] };
+      }
+
+      // Connections overview by status
+      let connOverviewResult;
+      try {
+        connOverviewResult = await db.query(
+          `SELECT status, COUNT(*) as count FROM connections GROUP BY status`
+        );
+      } catch (e) {
+        connOverviewResult = { rows: [] };
+      }
+
       const result = {
         kpis: {
           activeUsers,
@@ -247,6 +323,31 @@ export async function adminRoutes(fastify: FastifyInstance) {
           type: row.type,
           message: row.message,
           time: row.created_at,
+        })),
+        recentRegistrations: recentRegResult.rows.map(row => ({
+          id: row.id,
+          name: row.full_name,
+          email: row.email,
+          role: row.role,
+          createdAt: row.created_at,
+        })),
+        roleDistribution: roleDistResult.rows.map(row => ({
+          role: row.role,
+          count: parseInt(row.count),
+        })),
+        pendingApprovals,
+        subscriptionStats,
+        recentNotifications: recentNotifResult.rows.map((row: any) => ({
+          id: row.id,
+          type: row.type,
+          severity: row.severity,
+          message: row.message,
+          resolved: row.resolved,
+          time: row.created_at,
+        })),
+        connectionsByStatus: connOverviewResult.rows.map((row: any) => ({
+          status: row.status,
+          count: parseInt(row.count),
         })),
       };
 

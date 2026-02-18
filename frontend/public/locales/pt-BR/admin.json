@@ -18,6 +18,60 @@
       "newUsersSubtitle": "este mês",
       "registeredUsers": "usuários registrados",
       "recurringRevenue": "recorrente"
+    },
+    "recentRegistrations": {
+      "title": "Registros Recentes",
+      "subtitle": "Últimos 5 cadastros",
+      "empty": "Nenhum registro recente",
+      "roles": {
+        "customer": "Cliente",
+        "consultant": "Consultor"
+      }
+    },
+    "roleDistribution": {
+      "title": "Distribuição de Usuários",
+      "subtitle": "Clientes vs Consultores",
+      "customers": "Clientes",
+      "consultants": "Consultores"
+    },
+    "pendingApprovals": {
+      "title": "Aprovações Pendentes",
+      "subtitle": "Usuários aguardando revisão",
+      "count": "{{count}} pendentes",
+      "viewAll": "Ver Gerenciamento de Usuários",
+      "noPending": "Nenhuma aprovação pendente"
+    },
+    "subscriptionStats": {
+      "title": "Visão de Assinaturas",
+      "subtitle": "Assinaturas ativas vs canceladas",
+      "total": "Total",
+      "active": "Ativas",
+      "canceled": "Canceladas",
+      "trialing": "Em Teste",
+      "pastDue": "Em Atraso",
+      "paused": "Pausadas"
+    },
+    "recentNotifications": {
+      "title": "Notificações Recentes",
+      "subtitle": "Últimos alertas do sistema",
+      "empty": "Sem notificações",
+      "types": {
+        "info": "Info",
+        "warning": "Aviso",
+        "error": "Erro",
+        "critical": "Crítico"
+      }
+    },
+    "connectionsOverview": {
+      "title": "Visão de Conexões",
+      "subtitle": "Conexões bancárias por status",
+      "connected": "Conectadas",
+      "pending": "Pendentes",
+      "needsReauth": "Reautenticação",
+      "failed": "Falhadas",
+      "revoked": "Revogadas",
+      "total": "Total",
+      "empty": "Sem conexões"
     }
   },
   "userManagement": {
