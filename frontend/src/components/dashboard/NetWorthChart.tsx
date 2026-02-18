@@ -1,63 +1,57 @@
 import { useState, useEffect } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import ChartCard from "./ChartCard";
-import { financeApi, dashboardApi } from "@/lib/api";
+import { financeApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { cn } from "@/lib/utils";
 
-const TIME_RANGES = ['1W', '1M', '3M', '1Y'] as const;
-type TimeRange = typeof TIME_RANGES[number];
-const RANGE_MONTHS: Record<TimeRange, number> = { '1W': 1, '1M': 1, '3M': 3, '1Y': 12 };
+const PERIODS = ['daily', 'weekly', 'monthly', 'yearly'] as const;
+type Period = typeof PERIODS[number];
 
 const NetWorthChart = () => {
   const { t } = useTranslation(['dashboard', 'common']);
   const { formatCurrency } = useCurrency();
-  const [timeRange, setTimeRange] = useState<TimeRange>("1M");
+  const [activePeriod, setActivePeriod] = useState<Period>('monthly');
   const [data, setData] = useState<Array<{ month: string; value: number }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchData = async () => {
       try {
         setLoading(true);
-        const months = RANGE_MONTHS[timeRange];
-        // Use Open Finance endpoint first; fall back to legacy dashboard API
-        const response = await financeApi.getNetWorthEvolution(months).catch(() =>
-          dashboardApi.getNetWorthEvolution(months)
-        );
-        setData(response.data || []);
+        const response = await financeApi.getNetWorthEvolution(undefined, activePeriod);
+        if (!cancelled) setData(response.data || []);
       } catch (error) {
         console.error("Error fetching net worth evolution:", error);
-        setData([]);
+        if (!cancelled) setData([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-
     fetchData();
-  }, [timeRange]);
+    return () => { cancelled = true; };
+  }, [activePeriod]);
 
   return (
     <ChartCard
       title={t('chart.title')}
       subtitle={t('chart.subtitle')}
       actions={
-        <div className="flex items-center gap-1 rounded-lg p-1 bg-background/50">
-          {TIME_RANGES.map((range) => (
+        <div className="flex rounded-lg border border-border overflow-hidden">
+          {PERIODS.map(p => (
             <button
-              key={range}
-              type="button"
-              onClick={() => setTimeRange(range)}
-              className={`
-                min-h-[30px] min-w-[42px] px-3 py-1.5 text-xs font-semibold rounded-md transition-all touch-manipulation
-                ${
-                  timeRange === range
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                }
-              `}
+              key={p}
+              onClick={() => setActivePeriod(p)}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium transition-colors",
+                activePeriod === p
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              )}
             >
-              {range}
+              {t(`dashboard:analytics.${p}`)}
             </button>
           ))}
         </div>

@@ -40,10 +40,15 @@ export const financeApi = {
   getCards: (itemId?: string) =>
     api.get<{ cards: any[] }>(`/finance/cards${itemId ? `?itemId=${itemId}` : ''}`),
 
-  getNetWorthEvolution: (months?: number) =>
-    api.get<{ data: Array<{ month: string; value: number }> }>(
-      `/finance/net-worth-evolution${months ? `?months=${months}` : ''}`
-    ),
+  getNetWorthEvolution: (months?: number, period?: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
+    const params = new URLSearchParams();
+    if (period) params.set('period', period);
+    else if (months) params.set('months', String(months));
+    const qs = params.toString();
+    return api.get<{ data: Array<{ month: string; value: number }> }>(
+      `/finance/net-worth-evolution${qs ? `?${qs}` : ''}`
+    );
+  },
 
   updateTransactionCategory: (transactionId: string, category: string) =>
     api.patch<{ success: boolean; transaction: { id: string; category: string } }>(

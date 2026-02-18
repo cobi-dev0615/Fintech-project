@@ -55,13 +55,20 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
         </div>
       ) : (
         <div className="-mx-5 sm:-mx-6 px-5 sm:px-6">
-          <table className="w-full">
+          <table className="w-full table-fixed">
+            <colgroup>
+              <col className="w-[35%] sm:w-[28%]" />
+              <col className="hidden sm:table-column w-[18%]" />
+              <col className="w-[20%] sm:w-[14%]" />
+              <col className="w-[25%] sm:w-[20%]" />
+              <col className="hidden sm:table-column w-[20%]" />
+            </colgroup>
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-center text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.merchant')}</th>
+                <th className="text-left text-xs font-medium text-muted-foreground pb-3 pl-1">{t('dashboard:analytics.merchant')}</th>
                 <th className="text-center text-xs font-medium text-muted-foreground pb-3 hidden sm:table-cell">{t('dashboard:analytics.category')}</th>
                 <th className="text-center text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.date')}</th>
-                <th className="text-center text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.amount')}</th>
+                <th className="text-right text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.amount')}</th>
                 <th className="text-center text-xs font-medium text-muted-foreground pb-3 hidden sm:table-cell">{t('dashboard:analytics.status')}</th>
               </tr>
             </thead>
@@ -70,7 +77,14 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
             className="overflow-y-auto smart-scrollbar"
             style={{ maxHeight: ROW_HEIGHT * VISIBLE_ROWS }}
           >
-            <table className="w-full">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col className="w-[35%] sm:w-[28%]" />
+                <col className="hidden sm:table-column w-[18%]" />
+                <col className="w-[20%] sm:w-[14%]" />
+                <col className="w-[25%] sm:w-[20%]" />
+                <col className="hidden sm:table-column w-[20%]" />
+              </colgroup>
               <tbody>
                 {transactions.map((tx) => {
                   const Icon = getCategoryIcon(tx.category);
@@ -80,11 +94,11 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
                   return (
                     <tr key={tx.id} className="border-b border-white/10 last:border-0">
                       <td className="py-3">
-                        <div className="flex items-center justify-center gap-2.5">
+                        <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                             <Icon className="h-4 w-4 text-muted-foreground" />
                           </div>
-                          <span className="text-sm font-medium text-foreground truncate max-w-[140px]">{tx.merchant}</span>
+                          <span className="text-sm font-medium text-foreground truncate">{tx.merchant}</span>
                         </div>
                       </td>
                       <td className="py-3 text-center hidden sm:table-cell">
@@ -93,7 +107,7 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
                       <td className="py-3 text-center">
                         <span className="text-xs text-muted-foreground">{formatDate(tx.date)}</span>
                       </td>
-                      <td className="py-3 text-center">
+                      <td className="py-3 text-right">
                         <span className={cn(
                           "text-sm font-semibold tabular-nums",
                           isPositive ? "text-success" : "text-foreground"

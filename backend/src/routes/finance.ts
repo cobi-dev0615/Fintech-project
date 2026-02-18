@@ -392,7 +392,44 @@ export async function financeRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).userId;
-      const monthsParam = Math.min(24, Math.max(1, parseInt((request.query as any)?.months || '7', 10)));
+      const period = ((request.query as any)?.period || 'monthly') as string;
+      // Legacy support: also accept ?months= param
+      const legacyMonths = (request.query as any)?.months;
+
+      // Period config: truncation unit, lookback interval, number of data points
+      const periodConfig: Record<string, { trunc: string; interval: string; points: number; labelFn: (d: Date) => string }> = {
+        daily: {
+          trunc: 'day', interval: '30 days', points: 30,
+          labelFn: (d) => d.toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+        },
+        weekly: {
+          trunc: 'week', interval: '12 weeks', points: 12,
+          labelFn: (d) => d.toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+        },
+        monthly: {
+          trunc: 'month', interval: '12 months', points: 12,
+          labelFn: (d) => {
+            const names = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            return `${names[d.getMonth()]} ${d.getFullYear()}`;
+          },
+        },
+        yearly: {
+          trunc: 'year', interval: '5 years', points: 5,
+          labelFn: (d) => d.getFullYear().toString(),
+        },
+      };
+
+      const config = periodConfig[period] || periodConfig.monthly;
+
+      // Override with legacy months param if provided and no period param
+      if (legacyMonths && !(request.query as any)?.period) {
+        const m = Math.min(24, Math.max(1, parseInt(legacyMonths, 10)));
+        config.interval = `${m} months`;
+        config.points = m;
+        config.trunc = 'month';
+        const names = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        config.labelFn = (d) => `${names[d.getMonth()]} ${d.getFullYear()}`;
+      }
 
       // Current total balance from pluggy_accounts (reais)
       let currentBalance = 0;
@@ -414,37 +451,52 @@ export async function financeRoutes(fastify: FastifyInstance) {
 
       const currentNetWorth = currentBalance + currentInvestments;
 
-      // Monthly transaction changes (SUM(amount) by month). Amount: positive = credit, negative = debit.
+      // Transaction changes grouped by period
       const changesResult = await db.query(
         `SELECT
-           DATE_TRUNC('month', pt.date)::date as month,
+           DATE_TRUNC('${config.trunc}', pt.date)::date as period_start,
            COALESCE(SUM(pt.amount), 0)::float as change
          FROM pluggy_transactions pt
          WHERE pt.user_id = $1
-           AND pt.date >= CURRENT_DATE - ($2::text || ' months')::interval
-         GROUP BY DATE_TRUNC('month', pt.date)
-         ORDER BY month ASC`,
-        [userId, monthsParam]
+           AND pt.date >= CURRENT_DATE - INTERVAL '${config.interval}'
+         GROUP BY DATE_TRUNC('${config.trunc}', pt.date)
+         ORDER BY period_start ASC`,
+        [userId]
       );
 
-      const monthlyChanges: Array<{ month: Date; change: number }> = (changesResult.rows || []).map((row: any) => ({
-        month: new Date(row.month),
+      const changes: Array<{ period_start: Date; change: number }> = (changesResult.rows || []).map((row: any) => ({
+        period_start: new Date(row.period_start),
         change: parseFloat(row.change || '0') || 0,
       }));
 
-      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      // Generate data points by walking backwards from now
       const data: Array<{ month: string; value: number }> = [];
       const now = new Date();
 
-      for (let i = monthsParam - 1; i >= 0; i--) {
-        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const futureChange = monthlyChanges
-          .filter((mc) => mc.month > monthDate)
-          .reduce((sum, mc) => sum + mc.change, 0);
-        const netWorthAtMonth = currentNetWorth - futureChange;
+      // Build period start dates
+      const periodDates: Date[] = [];
+      for (let i = config.points - 1; i >= 0; i--) {
+        let d: Date;
+        if (config.trunc === 'day') {
+          d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        } else if (config.trunc === 'week') {
+          d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i * 7);
+        } else if (config.trunc === 'year') {
+          d = new Date(now.getFullYear() - i, 0, 1);
+        } else {
+          d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        }
+        periodDates.push(d);
+      }
+
+      for (const periodDate of periodDates) {
+        const futureChange = changes
+          .filter((c) => c.period_start > periodDate)
+          .reduce((sum, c) => sum + c.change, 0);
+        const netWorthAtPeriod = currentNetWorth - futureChange;
         data.push({
-          month: `${monthNames[monthDate.getMonth()]} ${monthDate.getFullYear()}`,
-          value: Math.round(netWorthAtMonth * 100) / 100,
+          month: config.labelFn(periodDate),
+          value: Math.round(netWorthAtPeriod * 100) / 100,
         });
       }
 

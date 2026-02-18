@@ -24,6 +24,7 @@ import { commentsRoutes } from './routes/comments.js';
 import { mercadopagoRoutes } from './routes/mercadopago.js';
 import { messageFileRoutes } from './routes/message-files.js';
 import { setupWebSocket } from './websocket/websocket.js';
+import { startSyncScheduler } from './services/sync-scheduler.js';
 
 dotenv.config();
 
@@ -151,6 +152,10 @@ const start = async () => {
     
     console.log(`🚀 Server running on http://${host}:${port}`);
     console.log(`📡 WebSocket available on ws://${host}:${port}/ws`);
+
+    // Start background sync scheduler (every 6 hours)
+    startSyncScheduler();
+    console.log(`🔄 Pluggy sync scheduler started (every 6 hours)`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
