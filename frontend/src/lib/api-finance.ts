@@ -45,6 +45,12 @@ export const financeApi = {
       `/finance/net-worth-evolution${months ? `?months=${months}` : ''}`
     ),
 
+  updateTransactionCategory: (transactionId: string, category: string) =>
+    api.patch<{ success: boolean; transaction: { id: string; category: string } }>(
+      `/finance/transactions/${transactionId}/category`,
+      { category }
+    ),
+
   sync: (itemId?: string) =>
     api.post<{ success: boolean; message: string }>('/finance/sync', { itemId }),
 };

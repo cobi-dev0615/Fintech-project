@@ -59,15 +59,15 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
             <thead>
               <tr className="border-b border-white/10">
                 <th className="text-left text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.merchant')}</th>
-                <th className="text-left text-xs font-medium text-muted-foreground pb-3 hidden sm:table-cell">{t('dashboard:analytics.category')}</th>
-                <th className="text-left text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.date')}</th>
-                <th className="text-right text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.amount')}</th>
-                <th className="text-right text-xs font-medium text-muted-foreground pb-3 hidden sm:table-cell">{t('dashboard:analytics.status')}</th>
+                <th className="text-center text-xs font-medium text-muted-foreground pb-3 hidden sm:table-cell">{t('dashboard:analytics.category')}</th>
+                <th className="text-center text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.date')}</th>
+                <th className="text-center text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.amount')}</th>
+                <th className="text-center text-xs font-medium text-muted-foreground pb-3 hidden sm:table-cell">{t('dashboard:analytics.status')}</th>
               </tr>
             </thead>
           </table>
           <div
-            className="overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent"
+            className="overflow-y-auto smart-scrollbar"
             style={{ maxHeight: ROW_HEIGHT * VISIBLE_ROWS }}
           >
             <table className="w-full">
@@ -87,13 +87,13 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
                           <span className="text-sm font-medium text-foreground truncate max-w-[140px]">{tx.merchant}</span>
                         </div>
                       </td>
-                      <td className="py-3 hidden sm:table-cell">
+                      <td className="py-3 text-center hidden sm:table-cell">
                         <span className="text-xs text-muted-foreground">{tx.category || t('dashboard:analytics.others')}</span>
                       </td>
-                      <td className="py-3">
+                      <td className="py-3 text-center">
                         <span className="text-xs text-muted-foreground">{formatDate(tx.date)}</span>
                       </td>
-                      <td className="py-3 text-right">
+                      <td className="py-3 text-center">
                         <span className={cn(
                           "text-sm font-semibold tabular-nums",
                           isPositive ? "text-success" : "text-foreground"
@@ -101,8 +101,8 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
                           {isPositive ? "+" : ""}{formatCurrency(tx.amount)}
                         </span>
                       </td>
-                      <td className="py-3 text-right hidden sm:table-cell">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="py-3 text-center hidden sm:table-cell">
+                        <div className="flex items-center justify-center gap-1.5">
                           <div className={cn("w-1.5 h-1.5 rounded-full", statusColor === 'text-success' ? 'bg-success' : statusColor === 'text-warning' ? 'bg-warning' : 'bg-muted-foreground')} />
                           <span className={cn("text-xs capitalize", statusColor)}>
                             {t(`dashboard:analytics.${tx.status}`, { defaultValue: tx.status })}

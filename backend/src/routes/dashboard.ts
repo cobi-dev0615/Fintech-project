@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
+import { autoCategorize } from '../utils/auto-categorize.js';
 
 export async function dashboardRoutes(fastify: FastifyInstance) {
   // Get dashboard summary
@@ -430,112 +431,189 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       };
       const truncUnit = validPeriods[period] || 'month';
 
-      // Check if pluggy_transactions table exists
+      // Determine which table has data: prefer pluggy_transactions, fallback to transactions
+      let usePluggy = false;
       try {
-        await db.query('SELECT 1 FROM pluggy_transactions LIMIT 1');
-      } catch {
-        return reply.send({
-          revenueVsExpenses: [],
-          spendingByCategory: [],
-          weeklyActivity: {
-            totalTransactions: 0, totalSpent: 0, dailyAvg: 0,
-            byDay: [], activityTrend: 0, spendingTrend: 0,
-          },
-          recentTransactions: [],
-        });
+        const check = await db.query('SELECT COUNT(*) as cnt FROM pluggy_transactions WHERE user_id = $1 LIMIT 1', [userId]);
+        usePluggy = parseInt(check.rows[0]?.cnt) > 0;
+      } catch { /* table may not exist */ }
+
+      if (!usePluggy) {
+        let hasTxTable = false;
+        try {
+          const check2 = await db.query('SELECT COUNT(*) as cnt FROM transactions WHERE user_id = $1 LIMIT 1', [userId]);
+          hasTxTable = parseInt(check2.rows[0]?.cnt) > 0;
+        } catch { /* table may not exist */ }
+
+        if (!hasTxTable) {
+          return reply.send({
+            revenueVsExpenses: [],
+            spendingByCategory: [],
+            weeklyActivity: {
+              totalTransactions: 0, totalSpent: 0, dailyAvg: 0,
+              byDay: [], activityTrend: 0, spendingTrend: 0,
+            },
+            recentTransactions: [],
+          });
+        }
       }
 
-      const [revenueResult, categoryResult, weeklyCurrentResult, weeklyPrevResult, recentResult] = await Promise.all([
-        // 1. Revenue vs Expenses grouped by period
-        db.query(
-          `SELECT
-            DATE_TRUNC('${truncUnit}', pt.date)::date AS period,
-            COALESCE(SUM(CASE WHEN pt.amount > 0 THEN pt.amount ELSE 0 END), 0)::float AS income,
-            COALESCE(SUM(CASE WHEN pt.amount < 0 THEN ABS(pt.amount) ELSE 0 END), 0)::float AS expenses
-          FROM pluggy_transactions pt
-          WHERE pt.user_id = $1
-            AND pt.date >= CURRENT_DATE - INTERVAL '365 days'
-          GROUP BY DATE_TRUNC('${truncUnit}', pt.date)
-          ORDER BY period ASC`,
-          [userId]
-        ),
+      let revenueResult, categoryResult, weeklyCurrentResult, weeklyPrevResult, recentResult;
 
-        // 2. Spending by category (last 30 days, expenses only)
-        db.query(
-          `WITH category_totals AS (
-            SELECT
-              COALESCE(pt.category, 'Others') AS category,
-              COALESCE(SUM(ABS(pt.amount)), 0)::float AS total
+      if (usePluggy) {
+        [revenueResult, categoryResult, weeklyCurrentResult, weeklyPrevResult, recentResult] = await Promise.all([
+          // 1. Revenue vs Expenses grouped by period
+          db.query(
+            `SELECT
+              DATE_TRUNC('${truncUnit}', pt.date)::date AS period,
+              COALESCE(SUM(CASE WHEN pt.amount > 0 THEN pt.amount ELSE 0 END), 0)::float AS income,
+              COALESCE(SUM(CASE WHEN pt.amount < 0 THEN ABS(pt.amount) ELSE 0 END), 0)::float AS expenses
+            FROM pluggy_transactions pt
+            WHERE pt.user_id = $1
+              AND pt.date >= CURRENT_DATE - INTERVAL '365 days'
+            GROUP BY DATE_TRUNC('${truncUnit}', pt.date)
+            ORDER BY period ASC`,
+            [userId]
+          ),
+
+          // 2. Spending by category — raw rows for JS-side auto-categorize
+          db.query(
+            `SELECT pt.category, pt.merchant, pt.description, ABS(pt.amount)::float AS abs_amount
+             FROM pluggy_transactions pt
+             WHERE pt.user_id = $1
+               AND pt.amount < 0
+               AND pt.date >= CURRENT_DATE - INTERVAL '365 days'`,
+            [userId]
+          ),
+
+          // 3. Weekly activity (current 7 days)
+          db.query(
+            `SELECT
+              EXTRACT(DOW FROM pt.date)::int AS day_of_week,
+              COUNT(*)::int AS count,
+              COALESCE(SUM(ABS(pt.amount)), 0)::float AS total_spent
             FROM pluggy_transactions pt
             WHERE pt.user_id = $1
               AND pt.amount < 0
-              AND pt.date >= CURRENT_DATE - INTERVAL '30 days'
-            GROUP BY COALESCE(pt.category, 'Others')
-            ORDER BY total DESC
+              AND pt.date >= CURRENT_DATE - INTERVAL '7 days'
+            GROUP BY EXTRACT(DOW FROM pt.date)
+            ORDER BY day_of_week`,
+            [userId]
           ),
-          ranked AS (
-            SELECT category, total, ROW_NUMBER() OVER (ORDER BY total DESC) AS rn
-            FROM category_totals
-          )
-          SELECT
-            CASE WHEN rn <= 5 THEN category ELSE 'Others' END AS category,
-            SUM(total)::float AS total
-          FROM ranked
-          GROUP BY CASE WHEN rn <= 5 THEN category ELSE 'Others' END
-          ORDER BY SUM(total) DESC`,
-          [userId]
-        ),
 
-        // 3. Weekly activity (current 7 days)
-        db.query(
-          `SELECT
-            EXTRACT(DOW FROM pt.date)::int AS day_of_week,
-            COUNT(*)::int AS count,
-            COALESCE(SUM(ABS(pt.amount)), 0)::float AS total_spent
-          FROM pluggy_transactions pt
-          WHERE pt.user_id = $1
-            AND pt.amount < 0
-            AND pt.date >= CURRENT_DATE - INTERVAL '7 days'
-          GROUP BY EXTRACT(DOW FROM pt.date)
-          ORDER BY day_of_week`,
-          [userId]
-        ),
+          // 4. Weekly activity (previous 7 days for trends)
+          db.query(
+            `SELECT
+              COUNT(*)::int AS prev_count,
+              COALESCE(SUM(ABS(pt.amount)), 0)::float AS prev_spent
+            FROM pluggy_transactions pt
+            WHERE pt.user_id = $1
+              AND pt.amount < 0
+              AND pt.date >= CURRENT_DATE - INTERVAL '14 days'
+              AND pt.date < CURRENT_DATE - INTERVAL '7 days'`,
+            [userId]
+          ),
 
-        // 4. Weekly activity (previous 7 days for trends)
-        db.query(
-          `SELECT
-            COUNT(*)::int AS prev_count,
-            COALESCE(SUM(ABS(pt.amount)), 0)::float AS prev_spent
-          FROM pluggy_transactions pt
-          WHERE pt.user_id = $1
-            AND pt.amount < 0
-            AND pt.date >= CURRENT_DATE - INTERVAL '14 days'
-            AND pt.date < CURRENT_DATE - INTERVAL '7 days'`,
-          [userId]
-        ),
+          // 5. Recent transactions (latest 10)
+          db.query(
+            `SELECT
+              pt.id,
+              pt.date,
+              pt.amount::float AS amount,
+              pt.description,
+              pt.category,
+              pt.merchant,
+              pt.status,
+              pa.name AS account_name,
+              i.name AS institution_name
+            FROM pluggy_transactions pt
+            LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
+            LEFT JOIN connections c ON pt.item_id = c.external_consent_id
+            LEFT JOIN institutions i ON c.institution_id = i.id
+            WHERE pt.user_id = $1
+            ORDER BY pt.date DESC, pt.created_at DESC
+            LIMIT 10`,
+            [userId]
+          ),
+        ]);
+      } else {
+        // Fallback: query transactions table (populated by connections sync)
+        [revenueResult, categoryResult, weeklyCurrentResult, weeklyPrevResult, recentResult] = await Promise.all([
+          // 1. Revenue vs Expenses grouped by period
+          db.query(
+            `SELECT
+              DATE_TRUNC('${truncUnit}', t.occurred_at)::date AS period,
+              COALESCE(SUM(CASE WHEN t.amount_cents > 0 THEN t.amount_cents::float / 100 ELSE 0 END), 0)::float AS income,
+              COALESCE(SUM(CASE WHEN t.amount_cents < 0 THEN ABS(t.amount_cents::float / 100) ELSE 0 END), 0)::float AS expenses
+            FROM transactions t
+            WHERE t.user_id = $1
+              AND t.occurred_at >= CURRENT_DATE - INTERVAL '365 days'
+            GROUP BY DATE_TRUNC('${truncUnit}', t.occurred_at)
+            ORDER BY period ASC`,
+            [userId]
+          ),
 
-        // 5. Recent transactions (latest 10) — same fields/joins as /finance/transactions
-        db.query(
-          `SELECT
-            pt.id,
-            pt.date,
-            pt.amount::float AS amount,
-            pt.description,
-            pt.category,
-            pt.merchant,
-            pt.status,
-            pa.name AS account_name,
-            i.name AS institution_name
-          FROM pluggy_transactions pt
-          LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
-          LEFT JOIN connections c ON pt.item_id = c.external_consent_id
-          LEFT JOIN institutions i ON c.institution_id = i.id
-          WHERE pt.user_id = $1
-          ORDER BY pt.date DESC, pt.created_at DESC
-          LIMIT 10`,
-          [userId]
-        ),
-      ]);
+          // 2. Spending by category — raw rows for JS-side auto-categorize
+          db.query(
+            `SELECT t.category, t.merchant, t.description, ABS(t.amount_cents::float / 100)::float AS abs_amount
+             FROM transactions t
+             WHERE t.user_id = $1
+               AND t.amount_cents < 0
+               AND t.occurred_at >= CURRENT_DATE - INTERVAL '365 days'`,
+            [userId]
+          ),
+
+          // 3. Weekly activity (current 7 days)
+          db.query(
+            `SELECT
+              EXTRACT(DOW FROM t.occurred_at)::int AS day_of_week,
+              COUNT(*)::int AS count,
+              COALESCE(SUM(ABS(t.amount_cents::float / 100)), 0)::float AS total_spent
+            FROM transactions t
+            WHERE t.user_id = $1
+              AND t.amount_cents < 0
+              AND t.occurred_at >= CURRENT_DATE - INTERVAL '7 days'
+            GROUP BY EXTRACT(DOW FROM t.occurred_at)
+            ORDER BY day_of_week`,
+            [userId]
+          ),
+
+          // 4. Weekly activity (previous 7 days for trends)
+          db.query(
+            `SELECT
+              COUNT(*)::int AS prev_count,
+              COALESCE(SUM(ABS(t.amount_cents::float / 100)), 0)::float AS prev_spent
+            FROM transactions t
+            WHERE t.user_id = $1
+              AND t.amount_cents < 0
+              AND t.occurred_at >= CURRENT_DATE - INTERVAL '14 days'
+              AND t.occurred_at < CURRENT_DATE - INTERVAL '7 days'`,
+            [userId]
+          ),
+
+          // 5. Recent transactions (latest 10)
+          db.query(
+            `SELECT
+              t.id,
+              t.occurred_at AS date,
+              (t.amount_cents::float / 100) AS amount,
+              t.description,
+              t.category,
+              t.merchant,
+              t.status,
+              ba.name AS account_name,
+              i.name AS institution_name
+            FROM transactions t
+            LEFT JOIN bank_accounts ba ON t.account_id = ba.id
+            LEFT JOIN connections c ON t.connection_id = c.id
+            LEFT JOIN institutions i ON c.institution_id = i.id
+            WHERE t.user_id = $1
+            ORDER BY t.occurred_at DESC, t.created_at DESC
+            LIMIT 10`,
+            [userId]
+          ),
+        ]);
+      }
 
       // Process revenue vs expenses
       const revenueVsExpenses = revenueResult.rows.map((row: any) => ({
@@ -544,12 +622,29 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         expenses: row.expenses,
       }));
 
-      // Process spending by category with percentages
-      const categoryGrandTotal = categoryResult.rows.reduce((sum: number, row: any) => sum + row.total, 0);
-      const spendingByCategory = categoryResult.rows.map((row: any) => ({
-        category: row.category,
-        total: row.total,
-        percentage: categoryGrandTotal > 0 ? parseFloat(((row.total / categoryGrandTotal) * 100).toFixed(1)) : 0,
+      // Process spending by category with auto-categorization
+      const categoryTotals: Record<string, number> = {};
+      for (const row of categoryResult.rows) {
+        const cat = row.category || autoCategorize(row.merchant, row.description) || 'Others';
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + row.abs_amount;
+      }
+      // Sort by total desc, keep top 5, group rest into Others
+      const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+      const top5 = sortedCategories.slice(0, 5);
+      const othersTotal = sortedCategories.slice(5).reduce((sum, [, val]) => sum + val, 0);
+      if (othersTotal > 0) {
+        const existingOthers = top5.find(([cat]) => cat === 'Others');
+        if (existingOthers) {
+          existingOthers[1] += othersTotal;
+        } else {
+          top5.push(['Others', othersTotal]);
+        }
+      }
+      const categoryGrandTotal = top5.reduce((sum, [, val]) => sum + val, 0);
+      const spendingByCategory = top5.map(([category, total]) => ({
+        category,
+        total,
+        percentage: categoryGrandTotal > 0 ? parseFloat(((total / categoryGrandTotal) * 100).toFixed(1)) : 0,
       }));
 
       // Process weekly activity
@@ -569,13 +664,13 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       const activityTrend = prevCount > 0 ? parseFloat((((totalTransactions - prevCount) / prevCount) * 100).toFixed(1)) : 0;
       const spendingTrend = prevSpent > 0 ? parseFloat((((totalSpent - prevSpent) / prevSpent) * 100).toFixed(1)) : 0;
 
-      // Process recent transactions — same shape as /finance/transactions
+      // Process recent transactions — same shape as /finance/transactions, with auto-categorize
       const recentTransactions = recentResult.rows.map((row: any) => ({
         id: row.id,
         date: row.date,
         amount: row.amount,
         description: row.description,
-        category: row.category,
+        category: row.category || autoCategorize(row.merchant, row.description),
         merchant: row.merchant || row.description || 'Unknown',
         status: row.status || 'completed',
         account_name: row.account_name,

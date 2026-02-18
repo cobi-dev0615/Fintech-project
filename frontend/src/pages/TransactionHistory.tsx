@@ -158,6 +158,13 @@ const CATEGORIES = [
   "Entertainment",
   "Shopping",
   "Food",
+  "Transport",
+  "Housing",
+  "Health",
+  "Education",
+  "Utilities",
+  "Subscriptions",
+  "Travel",
   "Others",
 ];
 
@@ -971,12 +978,48 @@ const TransactionHistory = () => {
 
                         {/* Category */}
                         <td className="py-4 pr-4">
-                          <Badge
-                            variant="outline"
-                            className="text-xs font-normal border-border bg-muted/30"
-                          >
-                            {tx.category || t("transactions:others")}
-                          </Badge>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button type="button" className="cursor-pointer">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs font-normal border-border bg-muted/30 hover:bg-muted/60 transition-colors"
+                                >
+                                  {tx.category || t("transactions:others")}
+                                </Badge>
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-40 p-1" align="start">
+                              <div className="space-y-0.5">
+                                {CATEGORIES.map((cat) => (
+                                  <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        await financeApi.updateTransactionCategory(tx.id, cat);
+                                        setTransactions((prev) =>
+                                          prev.map((t2) =>
+                                            t2.id === tx.id ? { ...t2, category: cat } : t2
+                                          )
+                                        );
+                                        toast({ title: t("transactions:categoryUpdated") });
+                                      } catch {
+                                        toast({ title: t("transactions:categoryUpdateError"), variant: "destructive" });
+                                      }
+                                    }}
+                                    className={`w-full text-left px-2 py-1.5 text-xs rounded-md transition-colors ${
+                                      tx.category === cat
+                                        ? "bg-primary/20 text-primary font-medium"
+                                        : "text-foreground hover:bg-muted"
+                                    }`}
+                                  >
+                                    {cat}
+                                  </button>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         </td>
 
                         {/* Status */}
@@ -1274,9 +1317,46 @@ const TransactionHistory = () => {
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">{t("transactions:category")}</span>
-                    <Badge variant="outline" className="text-xs font-normal border-border bg-muted/30">
-                      {detailTx.category || t("transactions:others")}
-                    </Badge>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" className="cursor-pointer">
+                          <Badge variant="outline" className="text-xs font-normal border-border bg-muted/30 hover:bg-muted/60 transition-colors">
+                            {detailTx.category || t("transactions:others")}
+                          </Badge>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-40 p-1" align="end">
+                        <div className="space-y-0.5">
+                          {CATEGORIES.map((cat) => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await financeApi.updateTransactionCategory(detailTx.id, cat);
+                                  setTransactions((prev) =>
+                                    prev.map((t2) =>
+                                      t2.id === detailTx.id ? { ...t2, category: cat } : t2
+                                    )
+                                  );
+                                  setDetailTx({ ...detailTx, category: cat });
+                                  toast({ title: t("transactions:categoryUpdated") });
+                                } catch {
+                                  toast({ title: t("transactions:categoryUpdateError"), variant: "destructive" });
+                                }
+                              }}
+                              className={`w-full text-left px-2 py-1.5 text-xs rounded-md transition-colors ${
+                                detailTx.category === cat
+                                  ? "bg-primary/20 text-primary font-medium"
+                                  : "text-foreground hover:bg-muted"
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="flex items-center justify-between">

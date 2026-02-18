@@ -127,7 +127,7 @@ async function syncPluggyTransactions(userId: string, itemId: string): Promise<v
             date = $5,
             amount = $6,
             description = $7,
-            category = $8,
+            category = CASE WHEN pluggy_transactions.category_is_manual THEN pluggy_transactions.category ELSE $8 END,
             merchant = $9,
             status = $10`,
           [userId, itemId, txId, accountId, date, amount, description, category, merchant, status]

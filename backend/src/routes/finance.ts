@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/connection.js';
 import { syncPluggyData } from '../services/pluggy-sync.js';
+import { autoCategorize } from '../utils/auto-categorize.js';
 
 export async function financeRoutes(fastify: FastifyInstance) {
   // A) Get connected banks/items
@@ -93,7 +94,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // C) Get transactions
+  // C) Get transactions — queries both tables, prefers whichever has data
   fastify.get('/transactions', {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -101,115 +102,159 @@ export async function financeRoutes(fastify: FastifyInstance) {
       const userId = (request.user as any).userId;
       const { from, to, itemId, accountId, q, page = '1', limit = '50' } = request.query as any;
 
-      let query = `
-        SELECT 
-          pt.*,
-          pa.name as account_name,
-          c.external_consent_id as item_id,
-          i.name as institution_name
-        FROM pluggy_transactions pt
-        LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
-        LEFT JOIN connections c ON pt.item_id = c.external_consent_id
-        LEFT JOIN institutions i ON c.institution_id = i.id
-        WHERE pt.user_id = $1
-      `;
-      const params: any[] = [userId];
+      // Determine which table has data: prefer pluggy_transactions, fallback to transactions
+      let usePluggy = false;
+      try {
+        const check = await db.query('SELECT COUNT(*) as cnt FROM pluggy_transactions WHERE user_id = $1 LIMIT 1', [userId]);
+        usePluggy = parseInt(check.rows[0]?.cnt) > 0;
+      } catch { /* table may not exist */ }
 
-      let paramIndex = 2;
-
-      if (from) {
-        query += ` AND pt.date >= $${paramIndex}`;
-        params.push(from);
-        paramIndex++;
-      }
-
-      if (to) {
-        query += ` AND pt.date <= $${paramIndex}`;
-        params.push(to);
-        paramIndex++;
-      }
-
-      if (itemId) {
-        query += ` AND pt.item_id = $${paramIndex}`;
-        params.push(itemId);
-        paramIndex++;
-      }
-
-      if (accountId) {
-        query += ` AND pt.pluggy_account_id = $${paramIndex}`;
-        params.push(accountId);
-        paramIndex++;
-      }
-
-      if (q) {
-        query += ` AND (pt.description ILIKE $${paramIndex} OR pt.merchant ILIKE $${paramIndex})`;
-        params.push(`%${q}%`);
-        paramIndex++;
-      }
-
-      // Get total count (full DB count for this user/filters, not just current page)
-      // Build count query directly from WHERE conditions to avoid JOIN issues
-      let countQuery = `SELECT COUNT(*) as total FROM pluggy_transactions pt WHERE pt.user_id = $1`;
-      const countParams: any[] = [userId];
-      let countParamIndex = 2;
-
-      if (from) {
-        countQuery += ` AND pt.date >= $${countParamIndex}`;
-        countParams.push(from);
-        countParamIndex++;
-      }
-
-      if (to) {
-        countQuery += ` AND pt.date <= $${countParamIndex}`;
-        countParams.push(to);
-        countParamIndex++;
-      }
-
-      if (itemId) {
-        countQuery += ` AND pt.item_id = $${countParamIndex}`;
-        countParams.push(itemId);
-        countParamIndex++;
-      }
-
-      if (accountId) {
-        countQuery += ` AND pt.pluggy_account_id = $${countParamIndex}`;
-        countParams.push(accountId);
-        countParamIndex++;
-      }
-
-      if (q) {
-        countQuery += ` AND (pt.description ILIKE $${countParamIndex} OR pt.merchant ILIKE $${countParamIndex})`;
-        countParams.push(`%${q}%`);
-        countParamIndex++;
-      }
-
-      const countResult = await db.query(countQuery, countParams);
-      const total = Math.max(0, parseInt(String(countResult.rows[0]?.total ?? 0), 10));
-
-      // Add pagination
       const pageNum = parseInt(page);
       const limitNum = parseInt(limit);
       const offset = (pageNum - 1) * limitNum;
 
-      query += ` ORDER BY pt.date DESC, pt.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-      params.push(limitNum, offset);
+      if (usePluggy) {
+        // ── Query pluggy_transactions ──
+        let query = `
+          SELECT pt.*, pa.name as account_name,
+                 c.external_consent_id as item_id, i.name as institution_name
+          FROM pluggy_transactions pt
+          LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
+          LEFT JOIN connections c ON pt.item_id = c.external_consent_id
+          LEFT JOIN institutions i ON c.institution_id = i.id
+          WHERE pt.user_id = $1`;
+        const params: any[] = [userId];
+        let idx = 2;
 
+        if (from)      { query += ` AND pt.date >= $${idx}`; params.push(from); idx++; }
+        if (to)        { query += ` AND pt.date <= $${idx}`; params.push(to); idx++; }
+        if (itemId)    { query += ` AND pt.item_id = $${idx}`; params.push(itemId); idx++; }
+        if (accountId) { query += ` AND pt.pluggy_account_id = $${idx}`; params.push(accountId); idx++; }
+        if (q)         { query += ` AND (pt.description ILIKE $${idx} OR pt.merchant ILIKE $${idx})`; params.push(`%${q}%`); idx++; }
+
+        let countQuery = `SELECT COUNT(*) as total FROM pluggy_transactions pt WHERE pt.user_id = $1`;
+        const cp: any[] = [userId]; let ci = 2;
+        if (from)      { countQuery += ` AND pt.date >= $${ci}`; cp.push(from); ci++; }
+        if (to)        { countQuery += ` AND pt.date <= $${ci}`; cp.push(to); ci++; }
+        if (itemId)    { countQuery += ` AND pt.item_id = $${ci}`; cp.push(itemId); ci++; }
+        if (accountId) { countQuery += ` AND pt.pluggy_account_id = $${ci}`; cp.push(accountId); ci++; }
+        if (q)         { countQuery += ` AND (pt.description ILIKE $${ci} OR pt.merchant ILIKE $${ci})`; cp.push(`%${q}%`); ci++; }
+
+        const countResult = await db.query(countQuery, cp);
+        const total = Math.max(0, parseInt(String(countResult.rows[0]?.total ?? 0), 10));
+
+        query += ` ORDER BY pt.date DESC, pt.created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`;
+        params.push(limitNum, offset);
+        const result = await db.query(query, params);
+
+        const transactions = result.rows.map((tx: any) => ({
+          ...tx,
+          category: tx.category || autoCategorize(tx.merchant, tx.description),
+        }));
+
+        const safeLimit = limitNum > 0 ? limitNum : 1;
+        return reply.send({
+          transactions,
+          total,
+          pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.max(1, Math.ceil(total / safeLimit)) },
+        });
+      }
+
+      // ── Fallback: query transactions table (populated by connections sync) ──
+      let query = `
+        SELECT t.id, t.occurred_at AS date, t.description, t.merchant, t.category,
+               (t.amount_cents::float / 100) AS amount, t.currency, t.status,
+               ba.name AS account_name, c.external_consent_id AS item_id,
+               i.name AS institution_name
+        FROM transactions t
+        LEFT JOIN bank_accounts ba ON t.account_id = ba.id
+        LEFT JOIN connections c ON t.connection_id = c.id
+        LEFT JOIN institutions i ON c.institution_id = i.id
+        WHERE t.user_id = $1`;
+      const params: any[] = [userId];
+      let idx = 2;
+
+      if (from)      { query += ` AND t.occurred_at >= $${idx}`; params.push(from); idx++; }
+      if (to)        { query += ` AND t.occurred_at <= $${idx}`; params.push(to); idx++; }
+      if (itemId)    { query += ` AND c.external_consent_id = $${idx}`; params.push(itemId); idx++; }
+      if (accountId) { query += ` AND t.account_id = $${idx}`; params.push(accountId); idx++; }
+      if (q)         { query += ` AND (t.description ILIKE $${idx} OR t.merchant ILIKE $${idx})`; params.push(`%${q}%`); idx++; }
+
+      let countQuery = `SELECT COUNT(*) as total FROM transactions t WHERE t.user_id = $1`;
+      const cp: any[] = [userId]; let ci = 2;
+      if (from)      { countQuery += ` AND t.occurred_at >= $${ci}`; cp.push(from); ci++; }
+      if (to)        { countQuery += ` AND t.occurred_at <= $${ci}`; cp.push(to); ci++; }
+      if (q)         { countQuery += ` AND (t.description ILIKE $${ci} OR t.merchant ILIKE $${ci})`; cp.push(`%${q}%`); ci++; }
+
+      const countResult = await db.query(countQuery, cp);
+      const total = Math.max(0, parseInt(String(countResult.rows[0]?.total ?? 0), 10));
+
+      query += ` ORDER BY t.occurred_at DESC, t.created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`;
+      params.push(limitNum, offset);
       const result = await db.query(query, params);
 
+      const transactions = result.rows.map((tx: any) => ({
+        ...tx,
+        category: tx.category || autoCategorize(tx.merchant, tx.description),
+        status: tx.status || 'completed',
+      }));
+
       const safeLimit = limitNum > 0 ? limitNum : 1;
-      const totalPages = Math.max(1, Math.ceil(total / safeLimit));
       return reply.send({
-        transactions: result.rows,
-        total: total, // Top-level so clients always get DB count even if pagination shape differs
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages,
-        },
+        transactions,
+        total,
+        pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.max(1, Math.ceil(total / safeLimit)) },
       });
     } catch (error: any) {
       fastify.log.error('Error fetching transactions:', error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // C2) Update transaction category
+  fastify.patch('/transactions/:id/category', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const { id } = request.params as any;
+      const { category } = request.body as any;
+
+      if (!category || typeof category !== 'string') {
+        return reply.code(400).send({ error: 'Category is required' });
+      }
+
+      // Try pluggy_transactions first, then fallback to transactions table
+      let result;
+      try {
+        result = await db.query(
+          `UPDATE pluggy_transactions
+           SET category = $1, category_is_manual = true
+           WHERE id = $2 AND user_id = $3
+           RETURNING id, category`,
+          [category, id, userId]
+        );
+      } catch { /* table may not exist */ }
+
+      if (!result || result.rows.length === 0) {
+        try {
+          result = await db.query(
+            `UPDATE transactions
+             SET category = $1
+             WHERE id = $2 AND user_id = $3
+             RETURNING id, category`,
+            [category, id, userId]
+          );
+        } catch { /* table may not exist */ }
+      }
+
+      if (!result || result.rows.length === 0) {
+        return reply.code(404).send({ error: 'Transaction not found' });
+      }
+
+      return reply.send({ success: true, transaction: result.rows[0] });
+    } catch (error: any) {
+      fastify.log.error('Error updating transaction category: ' + String(error));
       return reply.code(500).send({ error: 'Internal server error' });
     }
   });

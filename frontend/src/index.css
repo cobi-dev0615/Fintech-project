@@ -677,6 +677,33 @@
     background: transparent;
   }
 
+  /* Dashboard Recent Transactions — auto-hiding smart scrollbar */
+  .smart-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s;
+  }
+  .smart-scrollbar:hover {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+  .smart-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .smart-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .smart-scrollbar::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 9999px;
+    transition: background 0.3s;
+  }
+  .smart-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.35);
+  }
+  .smart-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.55);
+  }
+
   /* Comments table scrollbar - emerald theme to match card border */
   .comments-table-scrollbar {
     scrollbar-width: thin;

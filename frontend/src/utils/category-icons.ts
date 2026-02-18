@@ -13,6 +13,8 @@ import {
   Gamepad2,
   GraduationCap,
   Briefcase,
+  Repeat,
+  Plane,
   type LucideIcon,
 } from "lucide-react";
 
@@ -41,6 +43,10 @@ export const getCategoryIcon = (category: string | null | undefined): LucideIcon
     return Gamepad2;
   if (c.includes('renda') || c.includes('income') || c.includes('salário') || c.includes('depósito'))
     return ArrowDownLeft;
+  if (c.includes('assinatura') || c.includes('subscription'))
+    return Repeat;
+  if (c.includes('viagem') || c.includes('travel') || c.includes('hotel') || c.includes('airline') || c.includes('passagem'))
+    return Plane;
   if (c.includes('cartão') || c.includes('card') || c.includes('credit'))
     return CreditCard;
   if (c.includes('conta') || c.includes('bill') || c.includes('pagamento'))

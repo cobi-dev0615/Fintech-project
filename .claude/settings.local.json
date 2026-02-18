@@ -27,7 +27,8 @@
       "Bash(git status:*)",
       "Bash(node -e:*)",
       "Bash(sudo apt-get install:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(PGPASSWORD='Basketball@0615' psql:*)"
     ]
   }
 }
