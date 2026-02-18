@@ -459,6 +459,12 @@
         "institution": "Institution",
         "amount": "Amount"
       }
+    },
+    "tabs": {
+      "accounts": "Accounts",
+      "transactions": "Transactions",
+      "cards": "Cards",
+      "investments": "Investments"
     }
   },
   "financialReports": {

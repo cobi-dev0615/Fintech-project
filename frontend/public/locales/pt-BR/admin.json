@@ -459,6 +459,12 @@
         "institution": "Instituição",
         "amount": "Valor"
       }
+    },
+    "tabs": {
+      "accounts": "Contas",
+      "transactions": "Transações",
+      "cards": "Cartões",
+      "investments": "Investimentos"
     }
   },
   "financialReports": {
