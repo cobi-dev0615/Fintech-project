@@ -124,7 +124,7 @@ const Navbar = () => {
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center gap-3">
             <LanguageSwitcher />
-            <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
+            <Button asChild variant="outline" className="border-border text-foreground hover:bg-muted/50">
               <Link to="/register">{t('navbar.createAccount')}</Link>
             </Button>
             <Button asChild variant="default" className="bg-primary text-primary-foreground">
