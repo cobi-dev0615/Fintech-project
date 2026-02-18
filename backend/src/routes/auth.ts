@@ -113,6 +113,9 @@ async function createUserAndNotify(
             userName: user.full_name,
             userEmail: user.email,
             userRole: user.role,
+            titleKey: 'websocket.newRegistration',
+            messageKey: 'websocket.newRegistrationFullDesc',
+            messageParams: { userName: user.full_name, userEmail: user.email, userRole: user.role },
           },
         });
       }
@@ -602,6 +605,9 @@ export async function authRoutes(fastify: FastifyInstance) {
                   userName: user.full_name,
                   userEmail: user.email,
                   userRole: user.role,
+                  titleKey: 'websocket.newRegistration',
+                  messageKey: 'websocket.newRegistrationGoogleDesc',
+                  messageParams: { userName: user.full_name, userEmail: user.email },
                 },
               });
             }

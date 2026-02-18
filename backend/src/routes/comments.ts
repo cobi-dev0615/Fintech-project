@@ -99,8 +99,11 @@ export async function commentsRoutes(fastify: FastifyInstance) {
               userId,
               userName,
               userRole,
-              content: content, // Store the actual comment content
+              content: content,
               title: title || 'Sem título',
+              titleKey: 'websocket.newComment',
+              messageKey: 'websocket.newCommentDesc',
+              messageParams: { userName },
             },
           });
         }

@@ -85,7 +85,13 @@
     "walletSharedDesc": "{{customerName}} enabled wallet sharing with you.",
     "walletSharedDescFallback": "Customer enabled wallet sharing.",
     "walletUnsharedDesc": "{{customerName}} disabled wallet sharing.",
-    "walletUnsharedDescFallback": "Customer disabled wallet sharing."
+    "walletUnsharedDescFallback": "Customer disabled wallet sharing.",
+    "newRegistrationFullDesc": "{{userName}} ({{userEmail}}) requested registration as {{userRole}}",
+    "newRegistrationGoogleDesc": "{{userName}} ({{userEmail}}) requested registration via Google OAuth",
+    "invitationExpired": "Invitation Expired",
+    "invitationExpiredConsultantDesc": "The invitation you sent has expired (15-day deadline).",
+    "invitationExpiredCustomerDesc": "{{consultantName}}'s invitation has expired and was removed from your list.",
+    "invitationAcceptedFullDesc": "{{customerName}} accepted your invitation and you can now access their financial data."
   },
   "preferences": {
     "title": "Notification Settings",

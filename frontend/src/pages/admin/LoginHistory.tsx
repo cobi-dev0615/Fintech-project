@@ -476,7 +476,7 @@ const LoginHistory = () => {
                   {filteredHistory.map((entry) => (
                     <tr
                       key={entry.id}
-                      className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                      className="border-b border-white/10 hover:bg-muted/30 transition-colors"
                     >
                       <td className="p-3">
                         <div className="text-sm text-foreground">

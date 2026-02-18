@@ -1097,6 +1097,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
           metadata: {
             adminId,
             action: 'approved',
+            titleKey: 'websocket.accountApproved',
+            messageKey: 'websocket.accountApprovedDesc',
+            messageParams: {},
           },
         });
 
@@ -1180,7 +1183,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
           userId: id,
           severity: 'warning',
           title: 'Solicitação de Registro Rejeitada',
-          message: reason 
+          message: reason
             ? `Sua solicitação de registro foi rejeitada. Motivo: ${reason}`
             : 'Sua solicitação de registro foi rejeitada. Entre em contato com o suporte para mais informações.',
           notificationType: 'account_activity',
@@ -1189,6 +1192,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
             adminId,
             action: 'rejected',
             reason,
+            titleKey: 'websocket.accountRejected',
+            messageKey: reason ? 'websocket.accountRejectedWithReason' : 'websocket.accountRejectedDesc',
+            messageParams: reason ? { reason } : {},
           },
         });
 
@@ -2009,31 +2015,18 @@ export async function adminRoutes(fastify: FastifyInstance) {
       let hasHoldings = false;
       let hasConnections = false;
       let hasGoals = false;
+      let hasPluggyAccounts = false;
+      let hasPluggyInvestments = false;
+      let hasPluggyTransactions = false;
 
-      try {
-        await db.query('SELECT 1 FROM subscriptions LIMIT 1');
-        hasSubscriptions = true;
-      } catch {}
-
-      try {
-        await db.query('SELECT 1 FROM bank_accounts LIMIT 1');
-        hasBankAccounts = true;
-      } catch {}
-
-      try {
-        await db.query('SELECT 1 FROM holdings LIMIT 1');
-        hasHoldings = true;
-      } catch {}
-
-      try {
-        await db.query('SELECT 1 FROM connections LIMIT 1');
-        hasConnections = true;
-      } catch {}
-
-      try {
-        await db.query('SELECT 1 FROM goals LIMIT 1');
-        hasGoals = true;
-      } catch {}
+      try { await db.query('SELECT 1 FROM subscriptions LIMIT 1'); hasSubscriptions = true; } catch {}
+      try { await db.query('SELECT 1 FROM bank_accounts LIMIT 1'); hasBankAccounts = true; } catch {}
+      try { await db.query('SELECT 1 FROM holdings LIMIT 1'); hasHoldings = true; } catch {}
+      try { await db.query('SELECT 1 FROM connections LIMIT 1'); hasConnections = true; } catch {}
+      try { await db.query('SELECT 1 FROM goals LIMIT 1'); hasGoals = true; } catch {}
+      try { await db.query('SELECT 1 FROM pluggy_accounts LIMIT 1'); hasPluggyAccounts = true; } catch {}
+      try { await db.query('SELECT 1 FROM pluggy_investments LIMIT 1'); hasPluggyInvestments = true; } catch {}
+      try { await db.query('SELECT 1 FROM pluggy_transactions LIMIT 1'); hasPluggyTransactions = true; } catch {}
 
       // Build WHERE clause
       let whereClause = 'WHERE u.role IN (\'customer\', \'consultant\')';
@@ -2052,23 +2045,19 @@ export async function adminRoutes(fastify: FastifyInstance) {
         // Just skip adding to WHERE clause for now, filter in code
       }
 
-      // Calculate net worth
-      let netWorthQuery = '0';
-      if (hasBankAccounts && hasHoldings) {
-        netWorthQuery = `COALESCE((
-          SELECT SUM(balance_cents) FROM bank_accounts WHERE user_id = u.id
-        ) + (
-          SELECT SUM(market_value_cents) FROM holdings WHERE user_id = u.id
-        ), 0)`;
+      // Calculate net worth — prefer pluggy tables (values in decimal), fall back to legacy tables (values in cents)
+      const netWorthParts: string[] = [];
+      if (hasPluggyAccounts) {
+        netWorthParts.push('COALESCE((SELECT SUM(current_balance) FROM pluggy_accounts WHERE user_id = u.id), 0)');
       } else if (hasBankAccounts) {
-        netWorthQuery = `COALESCE((
-          SELECT SUM(balance_cents) FROM bank_accounts WHERE user_id = u.id
-        ), 0)`;
-      } else if (hasHoldings) {
-        netWorthQuery = `COALESCE((
-          SELECT SUM(market_value_cents) FROM holdings WHERE user_id = u.id
-        ), 0)`;
+        netWorthParts.push('COALESCE((SELECT SUM(balance_cents) FROM bank_accounts WHERE user_id = u.id), 0) / 100.0');
       }
+      if (hasPluggyInvestments) {
+        netWorthParts.push('COALESCE((SELECT SUM(current_value) FROM pluggy_investments WHERE user_id = u.id), 0)');
+      } else if (hasHoldings) {
+        netWorthParts.push('COALESCE((SELECT SUM(market_value_cents) FROM holdings WHERE user_id = u.id), 0) / 100.0');
+      }
+      const netWorthQuery = netWorthParts.length > 0 ? netWorthParts.join(' + ') : '0';
 
       // Get subscription stage
       let stageQuery = 'COALESCE(p.name, \'free\')';
@@ -2082,29 +2071,31 @@ export async function adminRoutes(fastify: FastifyInstance) {
         )`;
       }
 
-      // Build engagement calculation based on which tables exist
+      // Build engagement score as a sum of activity signals, capped at 100
+      // Connected bank account = 30, Has transactions = 30, Set goals = 20, Updated profile = 20
       const engagementParts: string[] = [];
       if (hasConnections) {
-        engagementParts.push('CASE WHEN EXISTS(SELECT 1 FROM connections WHERE user_id = u.id) THEN 50 ELSE 0 END');
+        engagementParts.push('CASE WHEN EXISTS(SELECT 1 FROM connections WHERE user_id = u.id AND status = \'connected\') THEN 30 ELSE 0 END');
+      }
+      if (hasPluggyTransactions) {
+        engagementParts.push('CASE WHEN EXISTS(SELECT 1 FROM pluggy_transactions WHERE user_id = u.id) THEN 30 ELSE 0 END');
       }
       if (hasGoals) {
-        engagementParts.push('CASE WHEN EXISTS(SELECT 1 FROM goals WHERE user_id = u.id) THEN 30 ELSE 0 END');
+        engagementParts.push('CASE WHEN EXISTS(SELECT 1 FROM goals WHERE user_id = u.id) THEN 20 ELSE 0 END');
       }
       engagementParts.push('CASE WHEN u.updated_at > u.created_at THEN 20 ELSE 0 END');
-      const engagementQuery = engagementParts.length > 1
-        ? `GREATEST(${engagementParts.join(', ')})`
-        : engagementParts[0] || '0';
+      const engagementQuery = `LEAST(${engagementParts.join(' + ')}, 100)`;
 
       // Build query based on which tables exist
       let dataQuery: string;
       if (hasSubscriptions) {
         // Use JOIN if subscriptions exists
         dataQuery = `
-          SELECT 
+          SELECT
             u.id,
             u.full_name as name,
             u.email,
-            ${netWorthQuery} / 100.0 as net_worth,
+            (${netWorthQuery}) as net_worth,
             ${stageQuery} as stage,
             ${engagementQuery} as engagement,
             COALESCE(u.updated_at, u.created_at) as last_activity
@@ -2118,11 +2109,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
       } else {
         // Simple query without subscriptions JOIN
         dataQuery = `
-          SELECT 
+          SELECT
             u.id,
             u.full_name as name,
             u.email,
-            ${netWorthQuery} / 100.0 as net_worth,
+            (${netWorthQuery}) as net_worth,
             'free' as stage,
             ${engagementQuery} as engagement,
             COALESCE(u.updated_at, u.created_at) as last_activity
@@ -3114,6 +3105,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
             commentId: id,
             adminId,
             adminName,
+            titleKey: 'websocket.commentReplied',
+            messageKey: 'websocket.commentRepliedDesc',
+            messageParams: {},
           },
         });
 

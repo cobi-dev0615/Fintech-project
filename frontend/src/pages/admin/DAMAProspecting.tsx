@@ -561,7 +561,7 @@ const DAMAProspecting = () => {
                       {prospects.map((p) => (
                         <tr
                           key={p.id}
-                          className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                          className="border-b border-white/10 hover:bg-muted/30 transition-colors"
                         >
                           <td className="p-3 font-medium text-foreground">
                             {p.name}
@@ -743,18 +743,18 @@ const DAMAProspecting = () => {
                 </span>{" "}
                 {selectedProspect.email}
               </p>
-              <p>
+              <div className="flex items-center gap-1.5">
                 <span className="text-muted-foreground">
                   {t("admin:prospecting.detailDialog.stage")}:
-                </span>{" "}
+                </span>
                 {getStageBadge(selectedProspect.stage)}
-              </p>
-              <p>
+              </div>
+              <div className="flex items-center gap-1.5">
                 <span className="text-muted-foreground">
                   {t("admin:prospecting.detailDialog.potential")}:
-                </span>{" "}
+                </span>
                 {getPotentialBadge(selectedProspect.potential)}
-              </p>
+              </div>
               <p>
                 <span className="text-muted-foreground">
                   {t("admin:prospecting.detailDialog.netWorth")}:

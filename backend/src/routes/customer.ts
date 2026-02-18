@@ -71,7 +71,12 @@ export async function customerRoutes(fastify: FastifyInstance) {
             message: `O convite enviado expirou (prazo de 15 dias).`,
             notificationType: 'consultant_invitation',
             linkUrl: '/consultant/invitations',
-            metadata: { invitationId: row.id, customerId, action: 'expired' },
+            metadata: {
+              invitationId: row.id, customerId, action: 'expired',
+              titleKey: 'websocket.invitationExpired',
+              messageKey: 'websocket.invitationExpiredConsultantDesc',
+              messageParams: {},
+            },
           });
           await createAlert({
             userId: customerId,
@@ -80,7 +85,12 @@ export async function customerRoutes(fastify: FastifyInstance) {
             message: `O convite de ${consultantName} expirou e foi removido da sua lista.`,
             notificationType: 'consultant_invitation',
             linkUrl: '/app/invitations',
-            metadata: { invitationId: row.id, consultantId: row.consultant_id, action: 'expired' },
+            metadata: {
+              invitationId: row.id, consultantId: row.consultant_id, action: 'expired',
+              titleKey: 'websocket.invitationExpired',
+              messageKey: 'websocket.invitationExpiredCustomerDesc',
+              messageParams: { consultantName },
+            },
           });
         }
       } catch (err: any) {
@@ -204,6 +214,9 @@ export async function customerRoutes(fastify: FastifyInstance) {
           customerName,
           invitationId: id,
           action: 'accepted',
+          titleKey: 'websocket.invitationAccepted',
+          messageKey: 'websocket.invitationAcceptedFullDesc',
+          messageParams: { customerName },
         },
       });
 

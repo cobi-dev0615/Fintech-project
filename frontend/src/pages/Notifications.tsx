@@ -222,6 +222,55 @@ const Notifications = () => {
   const { user } = useAuth();
   const dateLocale = i18n.language?.startsWith("pt") ? ptBR : enUS;
 
+  // --- Notification i18n translation helpers ---
+  // Maps known hardcoded Portuguese titles to i18n keys (for existing DB records)
+  const TITLE_KEY_MAP: Record<string, { titleKey: string; messageKey: string }> = {
+    'Novo Comentário Recebido': { titleKey: 'websocket.newComment', messageKey: 'websocket.newCommentDesc' },
+    'Nova Solicitação de Registro': { titleKey: 'websocket.newRegistration', messageKey: 'websocket.newRegistrationFullDesc' },
+    'Conta Aprovada': { titleKey: 'websocket.accountApproved', messageKey: 'websocket.accountApprovedDesc' },
+    'Solicitação de Registro Rejeitada': { titleKey: 'websocket.accountRejected', messageKey: 'websocket.accountRejectedDesc' },
+    'Resposta ao seu Comentário': { titleKey: 'websocket.commentReplied', messageKey: 'websocket.commentRepliedDesc' },
+    'Convite aceito': { titleKey: 'websocket.invitationAccepted', messageKey: 'websocket.invitationAcceptedFullDesc' },
+    'Convite expirado': { titleKey: 'websocket.invitationExpired', messageKey: 'websocket.invitationExpiredConsultantDesc' },
+  };
+
+  const getTranslatedTitle = useCallback((notification: Notification): string => {
+    // 1. Check metadata for explicit i18n key (new notifications)
+    if (notification.metadata?.titleKey) {
+      return t(`notifications:${notification.metadata.titleKey}`, notification.metadata.messageParams || {});
+    }
+    // 2. Fallback: map known Portuguese titles to i18n keys (existing DB records)
+    const mapped = TITLE_KEY_MAP[notification.title];
+    if (mapped) {
+      return t(`notifications:${mapped.titleKey}`);
+    }
+    // 3. Raw title as last resort
+    return notification.title;
+  }, [t]);
+
+  const getTranslatedMessage = useCallback((notification: Notification): string => {
+    // 1. Check metadata for explicit i18n key (new notifications)
+    if (notification.metadata?.messageKey) {
+      return t(`notifications:${notification.metadata.messageKey}`, notification.metadata.messageParams || {});
+    }
+    // 2. Fallback: map by known title and use metadata params
+    const mapped = TITLE_KEY_MAP[notification.title];
+    if (mapped) {
+      const params = {
+        userName: notification.metadata?.userName,
+        userEmail: notification.metadata?.userEmail,
+        userRole: notification.metadata?.userRole,
+        customerName: notification.metadata?.customerName,
+        consultantName: notification.metadata?.consultantName,
+        reason: notification.metadata?.reason,
+        ...notification.metadata?.messageParams,
+      };
+      return t(`notifications:${mapped.messageKey}`, params);
+    }
+    // 3. Raw message as last resort
+    return notification.message;
+  }, [t]);
+
   // --- State ---
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [allNotifications, setAllNotifications] = useState<Notification[]>([]);
@@ -775,10 +824,10 @@ const Notifications = () => {
                                     : "text-foreground"
                                 }`}
                               >
-                                {notification.title}
+                                {getTranslatedTitle(notification)}
                               </p>
                               <p className="text-sm text-muted-foreground line-clamp-2 max-w-lg">
-                                {notification.message}
+                                {getTranslatedMessage(notification)}
                               </p>
                             </div>
                           </TableCell>
@@ -881,10 +930,10 @@ const Notifications = () => {
                           : "text-foreground"
                       }`}
                     >
-                      {notification.title}
+                      {getTranslatedTitle(notification)}
                     </p>
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 break-words">
-                      {notification.message}
+                      {getTranslatedMessage(notification)}
                     </p>
                   </div>
                   <div className="flex items-center justify-between gap-2">
@@ -1020,8 +1069,9 @@ const Notifications = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {selectedNotification?.title ||
-                t("notifications:detail.title")}
+              {selectedNotification
+                ? getTranslatedTitle(selectedNotification)
+                : t("notifications:detail.title")}
             </DialogTitle>
             <DialogDescription>
               {t("notifications:detail.subtitle")}
@@ -1060,7 +1110,7 @@ const Notifications = () => {
                   {t("notifications:detail.message")}
                 </span>
                 <div className="p-4 bg-muted/30 rounded-lg border border-border/50 text-sm whitespace-pre-wrap">
-                  {getNotificationType(selectedNotification)}
+                  {getTranslatedMessage(selectedNotification)}
                 </div>
               </div>
               {(() => {

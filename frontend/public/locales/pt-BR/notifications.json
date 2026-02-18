@@ -85,7 +85,13 @@
     "walletSharedDesc": "{{customerName}} ativou o compartilhamento da carteira com você.",
     "walletSharedDescFallback": "O cliente ativou o compartilhamento da carteira.",
     "walletUnsharedDesc": "{{customerName}} desativou o compartilhamento da carteira.",
-    "walletUnsharedDescFallback": "O cliente desativou o compartilhamento da carteira."
+    "walletUnsharedDescFallback": "O cliente desativou o compartilhamento da carteira.",
+    "newRegistrationFullDesc": "{{userName}} ({{userEmail}}) solicitou registro como {{userRole}}",
+    "newRegistrationGoogleDesc": "{{userName}} ({{userEmail}}) solicitou registro via Google OAuth",
+    "invitationExpired": "Convite expirado",
+    "invitationExpiredConsultantDesc": "O convite enviado expirou (prazo de 15 dias).",
+    "invitationExpiredCustomerDesc": "O convite de {{consultantName}} expirou e foi removido da sua lista.",
+    "invitationAcceptedFullDesc": "{{customerName}} aceitou seu convite e agora você pode acessar os dados financeiros dele."
   },
   "preferences": {
     "title": "Configurações de Notificações",
