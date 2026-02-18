@@ -695,4 +695,92 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       return reply.code(500).send({ error: 'Failed to load spending analytics' });
     }
   });
+
+  // Spending by Category — dedicated endpoint with period filter
+  fastify.get('/spending-by-category', {
+    preHandler: [fastify.authenticate],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request.user as any).userId;
+      const period = ((request.query as any)?.period || 'monthly') as string;
+
+      const intervalMap: Record<string, string> = {
+        weekly: '7 days',
+        monthly: '30 days',
+        quarterly: '90 days',
+        yearly: '365 days',
+      };
+      const interval = intervalMap[period] || '30 days';
+
+      // Determine which table has data
+      let usePluggy = false;
+      try {
+        const check = await db.query('SELECT COUNT(*) as cnt FROM pluggy_transactions WHERE user_id = $1 LIMIT 1', [userId]);
+        usePluggy = parseInt(check.rows[0]?.cnt) > 0;
+      } catch { /* table may not exist */ }
+
+      if (!usePluggy) {
+        let hasTxTable = false;
+        try {
+          const check2 = await db.query('SELECT COUNT(*) as cnt FROM transactions WHERE user_id = $1 LIMIT 1', [userId]);
+          hasTxTable = parseInt(check2.rows[0]?.cnt) > 0;
+        } catch { /* table may not exist */ }
+
+        if (!hasTxTable) {
+          return reply.send({ spendingByCategory: [] });
+        }
+      }
+
+      let categoryResult;
+      if (usePluggy) {
+        categoryResult = await db.query(
+          `SELECT pt.category, pt.merchant, pt.description, ABS(pt.amount)::float AS abs_amount
+           FROM pluggy_transactions pt
+           WHERE pt.user_id = $1
+             AND pt.amount < 0
+             AND pt.date >= CURRENT_DATE - INTERVAL '${interval}'`,
+          [userId]
+        );
+      } else {
+        categoryResult = await db.query(
+          `SELECT t.category, t.merchant, t.description, ABS(t.amount_cents::float / 100)::float AS abs_amount
+           FROM transactions t
+           WHERE t.user_id = $1
+             AND t.amount_cents < 0
+             AND t.occurred_at >= CURRENT_DATE - INTERVAL '${interval}'`,
+          [userId]
+        );
+      }
+
+      // JS-side auto-categorize grouping
+      const categoryTotals: Record<string, number> = {};
+      for (const row of categoryResult.rows) {
+        const cat = row.category || autoCategorize(row.merchant, row.description) || 'Others';
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + row.abs_amount;
+      }
+
+      const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+      const top5 = sortedCategories.slice(0, 5);
+      const othersTotal = sortedCategories.slice(5).reduce((sum, [, val]) => sum + val, 0);
+      if (othersTotal > 0) {
+        const existingOthers = top5.find(([cat]) => cat === 'Others');
+        if (existingOthers) {
+          existingOthers[1] += othersTotal;
+        } else {
+          top5.push(['Others', othersTotal]);
+        }
+      }
+      const grandTotal = top5.reduce((sum, [, val]) => sum + val, 0);
+      const spendingByCategory = top5.map(([category, total]) => ({
+        category,
+        total,
+        percentage: grandTotal > 0 ? parseFloat(((total / grandTotal) * 100).toFixed(1)) : 0,
+      }));
+
+      return reply.send({ spendingByCategory });
+    } catch (error) {
+      fastify.log.error('Error fetching spending by category: ' + String(error));
+      return reply.code(500).send({ error: 'Failed to load spending by category' });
+    }
+  });
 }

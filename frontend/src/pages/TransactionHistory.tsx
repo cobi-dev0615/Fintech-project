@@ -843,29 +843,6 @@ const TransactionHistory = () => {
           />
         </div>
 
-        {/* Quick Filters */}
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">
-            {t("transactions:quickFilters")}
-          </p>
-          <div className="flex items-center gap-2 flex-wrap">
-            {quickFilters.map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleQuickFilter(key)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
-                  activeQuickFilter === key
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-transparent text-foreground border-border hover:bg-muted/40"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Transaction Table */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">

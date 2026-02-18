@@ -49,4 +49,11 @@ export const dashboardApi = {
       }>;
     }>(`/dashboard/spending-analytics${params}`);
   },
+
+  getSpendingByCategory: (period?: 'weekly' | 'monthly' | 'quarterly' | 'yearly') => {
+    const params = period ? `?period=${period}` : '';
+    return api.get<{
+      spendingByCategory: Array<{ category: string; total: number; percentage: number }>;
+    }>(`/dashboard/spending-by-category${params}`);
+  },
 };

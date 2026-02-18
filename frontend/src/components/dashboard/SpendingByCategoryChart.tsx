@@ -1,18 +1,43 @@
+import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import ChartCard from "./ChartCard";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
-
-interface SpendingByCategoryChartProps {
-  data: Array<{ category: string; total: number; percentage: number }>;
-  loading?: boolean;
-}
+import { cn } from "@/lib/utils";
+import { dashboardApi } from "@/lib/api-dashboard";
 
 const COLORS = ['#3b82f6', '#f97316', '#22c55e', '#a855f7', '#06b6d4', '#6b7280'];
 
-const SpendingByCategoryChart = ({ data, loading }: SpendingByCategoryChartProps) => {
+const PERIODS = ['weekly', 'monthly', 'quarterly', 'yearly'] as const;
+type Period = typeof PERIODS[number];
+const PERIOD_LABELS: Record<Period, string> = { weekly: '1W', monthly: '1M', quarterly: '3M', yearly: '1Y' };
+
+const SpendingByCategoryChart = () => {
   const { t } = useTranslation(['dashboard']);
   const { formatCurrency } = useCurrency();
+  const [activePeriod, setActivePeriod] = useState<Period>('monthly');
+  const [data, setData] = useState<Array<{ category: string; total: number; percentage: number }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const result = await dashboardApi.getSpendingByCategory(activePeriod);
+        if (!cancelled) {
+          setData(result.spendingByCategory || []);
+        }
+      } catch (error) {
+        console.error("Error fetching spending by category:", error);
+        if (!cancelled) setData([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchData();
+    return () => { cancelled = true; };
+  }, [activePeriod]);
 
   const grandTotal = data.reduce((sum, d) => sum + d.total, 0);
   const topCategory = data[0];
@@ -20,6 +45,23 @@ const SpendingByCategoryChart = ({ data, loading }: SpendingByCategoryChartProps
   return (
     <ChartCard title={t('dashboard:analytics.spendingByCategory')}>
       <div className="flex flex-col items-center">
+        {/* Period selector */}
+        <div className="flex rounded-lg border border-border overflow-hidden mb-3 self-center">
+          {PERIODS.map(p => (
+            <button
+              key={p}
+              onClick={() => setActivePeriod(p)}
+              className={cn(
+                "px-3 py-1 text-[11px] font-medium transition-colors",
+                activePeriod === p
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              )}
+            >
+              {PERIOD_LABELS[p]}
+            </button>
+          ))}
+        </div>
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

@@ -58,7 +58,7 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.merchant')}</th>
+                <th className="text-center text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.merchant')}</th>
                 <th className="text-center text-xs font-medium text-muted-foreground pb-3 hidden sm:table-cell">{t('dashboard:analytics.category')}</th>
                 <th className="text-center text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.date')}</th>
                 <th className="text-center text-xs font-medium text-muted-foreground pb-3">{t('dashboard:analytics.amount')}</th>
@@ -80,7 +80,7 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
                   return (
                     <tr key={tx.id} className="border-b border-white/10 last:border-0">
                       <td className="py-3">
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center justify-center gap-2.5">
                           <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                             <Icon className="h-4 w-4 text-muted-foreground" />
                           </div>

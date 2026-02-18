@@ -213,10 +213,7 @@ const Dashboard = () => {
       type: 'chart',
       order: 21,
       component: (
-        <SpendingByCategoryChart
-          data={analyticsData?.spendingByCategory || []}
-          loading={analyticsLoading}
-        />
+        <SpendingByCategoryChart />
       ),
       span: { mobile: 2, tablet: 2, desktop: 1 },
       draggable: false,

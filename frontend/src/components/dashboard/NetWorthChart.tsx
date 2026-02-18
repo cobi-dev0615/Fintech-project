@@ -5,10 +5,14 @@ import { financeApi, dashboardApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
+const TIME_RANGES = ['1W', '1M', '3M', '1Y'] as const;
+type TimeRange = typeof TIME_RANGES[number];
+const RANGE_MONTHS: Record<TimeRange, number> = { '1W': 1, '1M': 1, '3M': 3, '1Y': 12 };
+
 const NetWorthChart = () => {
   const { t } = useTranslation(['dashboard', 'common']);
   const { formatCurrency } = useCurrency();
-  const [timeRange, setTimeRange] = useState<"7M" | "1A" | "all">("7M");
+  const [timeRange, setTimeRange] = useState<TimeRange>("1M");
   const [data, setData] = useState<Array<{ month: string; value: number }>>([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,7 +20,7 @@ const NetWorthChart = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const months = timeRange === "7M" ? 7 : timeRange === "1A" ? 12 : 24;
+        const months = RANGE_MONTHS[timeRange];
         // Use Open Finance endpoint first; fall back to legacy dashboard API
         const response = await financeApi.getNetWorthEvolution(months).catch(() =>
           dashboardApi.getNetWorthEvolution(months)
@@ -39,7 +43,7 @@ const NetWorthChart = () => {
       subtitle={t('chart.subtitle')}
       actions={
         <div className="flex items-center gap-1 rounded-lg p-1 bg-background/50">
-          {(["7M", "1A", "all"] as const).map((range) => (
+          {TIME_RANGES.map((range) => (
             <button
               key={range}
               type="button"
@@ -53,7 +57,7 @@ const NetWorthChart = () => {
                 }
               `}
             >
-              {t(`chart.timeRange.${range}`)}
+              {range}
             </button>
           ))}
         </div>

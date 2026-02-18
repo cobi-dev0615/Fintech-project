@@ -49,6 +49,7 @@
     "weekly": "Weekly",
     "monthly": "Monthly",
     "yearly": "Yearly",
+    "quarterly": "Quarterly",
     "spendingByCategory": "Spending by Category",
     "totalExpenses": "Total Expenses",
     "weeklyActivity": "Weekly Activity",
