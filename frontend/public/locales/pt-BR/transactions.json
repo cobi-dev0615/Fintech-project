@@ -85,6 +85,19 @@
   "transactionAdded": "Transação adicionada com sucesso",
   "transactionDeleted": "Transação excluída",
   "confirmDelete": "Tem certeza que deseja excluir esta transação?",
+  "views": {
+    "table": "Tabela",
+    "chart": "Gráfico"
+  },
+  "chart": {
+    "daily": "Diário",
+    "weekly": "Semanal",
+    "monthly": "Mensal",
+    "yearly": "Anual",
+    "income": "Receita",
+    "expense": "Despesa",
+    "net": "Líquido"
+  },
   "detail": {
     "method": "Método",
     "merchant": "Estabelecimento",

@@ -85,6 +85,19 @@
   "transactionAdded": "Transaction added successfully",
   "transactionDeleted": "Transaction deleted",
   "confirmDelete": "Are you sure you want to delete this transaction?",
+  "views": {
+    "table": "Table",
+    "chart": "Chart"
+  },
+  "chart": {
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "income": "Income",
+    "expense": "Expense",
+    "net": "Net"
+  },
   "detail": {
     "method": "Method",
     "merchant": "Merchant",

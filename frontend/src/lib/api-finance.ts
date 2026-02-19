@@ -16,6 +16,7 @@ export const financeApi = {
     q?: string;
     page?: number;
     limit?: number;
+    view?: 'table' | 'daily' | 'weekly' | 'monthly' | 'yearly';
   }) => {
     const queryParams = new URLSearchParams();
     if (params?.from) queryParams.append('from', params.from);
@@ -23,12 +24,16 @@ export const financeApi = {
     if (params?.itemId) queryParams.append('itemId', params.itemId);
     if (params?.accountId) queryParams.append('accountId', params.accountId);
     if (params?.q) queryParams.append('q', params.q);
-    queryParams.append('page', String(params?.page ?? 1));
-    queryParams.append('limit', String(params?.limit ?? 20));
+    if (params?.view && params.view !== 'table') queryParams.append('view', params.view);
+    if (!params?.view || params.view === 'table') {
+      queryParams.append('page', String(params?.page ?? 1));
+      queryParams.append('limit', String(params?.limit ?? 20));
+    }
     return api.get<{
-      transactions: any[];
+      transactions?: any[];
       total?: number;
-      pagination: { page: number; limit: number; total: number; totalPages: number };
+      pagination?: { page: number; limit: number; total: number; totalPages: number };
+      chartData?: Array<{ period: string; income: number; expense: number }>;
     }>(`/finance/transactions?${queryParams.toString()}`);
   },
 

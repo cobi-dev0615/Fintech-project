@@ -10,7 +10,6 @@ import {
   Calculator,
   Filter,
   Download,
-  Plus,
   Calendar,
   Eye,
   Check,
@@ -18,8 +17,20 @@ import {
   TrendingUp,
   TrendingDown,
   GripVertical,
+  Table2,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import {
   DndContext,
   closestCenter,
@@ -60,7 +71,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { financeApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -285,13 +295,13 @@ const TransactionHistory = () => {
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterType, setFilterType] = useState<string>("");
 
-  // Add transaction dialog
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [newTxName, setNewTxName] = useState("");
-  const [newTxAmount, setNewTxAmount] = useState("");
-  const [newTxType, setNewTxType] = useState<string>("");
-  const [newTxCategory, setNewTxCategory] = useState<string>("");
-  const [newTxIsIncome, setNewTxIsIncome] = useState(false);
+  // View toggle: table vs chart
+  type TxViewMode = "table" | "chart";
+  type TxChartMode = "daily" | "weekly" | "monthly" | "yearly";
+  const [txView, setTxView] = useState<TxViewMode>("table");
+  const [txChartMode, setTxChartMode] = useState<TxChartMode>("monthly");
+  const [txChartData, setTxChartData] = useState<Array<{ period: string; income: number; expense: number }>>([]);
+  const [chartLoading, setChartLoading] = useState(false);
 
   // Detail dialog
   const [detailTx, setDetailTx] = useState<any>(null);
@@ -492,19 +502,49 @@ const TransactionHistory = () => {
     }
   };
 
-  // Add transaction
-  const handleAddTransaction = () => {
-    if (!newTxName || !newTxAmount) return;
-    toast({
-      title: t("transactions:transactionAdded"),
-      variant: "success",
-    });
-    setAddDialogOpen(false);
-    setNewTxName("");
-    setNewTxAmount("");
-    setNewTxType("");
-    setNewTxCategory("");
-    setNewTxIsIncome(false);
+  // Fetch chart data when in chart mode
+  const fetchChartData = useCallback(async () => {
+    if (txView !== "chart") return;
+    try {
+      setChartLoading(true);
+      const data = await financeApi.getTransactions({
+        view: txChartMode,
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+        accountId: accountId || undefined,
+      });
+      setTxChartData(data.chartData || []);
+    } catch {
+      setTxChartData([]);
+    } finally {
+      setChartLoading(false);
+    }
+  }, [txView, txChartMode, dateFrom, dateTo, accountId]);
+
+  useEffect(() => {
+    fetchChartData();
+  }, [fetchChartData]);
+
+  // Format chart period label
+  const formatChartPeriod = (period: string) => {
+    try {
+      const d = new Date(period + "T00:00:00");
+      const locale = i18n.language === "pt-BR" ? "pt-BR" : "en-US";
+      switch (txChartMode) {
+        case "daily":
+          return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit" });
+        case "weekly":
+          return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit" });
+        case "monthly":
+          return d.toLocaleDateString(locale, { month: "short", year: "2-digit" });
+        case "yearly":
+          return d.getFullYear().toString();
+        default:
+          return period;
+      }
+    } catch {
+      return period;
+    }
   };
 
   // Helper: compute KPI totals from a list of transactions
@@ -724,6 +764,32 @@ const TransactionHistory = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {/* View toggle */}
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              <button
+                onClick={() => setTxView("table")}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                  txView === "table"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                }`}
+              >
+                <Table2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t("transactions:views.table")}</span>
+              </button>
+              <button
+                onClick={() => setTxView("chart")}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors border-l border-border ${
+                  txView === "chart"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                }`}
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t("transactions:views.chart")}</span>
+              </button>
+            </div>
+
             {/* Date Range Picker */}
             <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
               <PopoverTrigger asChild>
@@ -810,16 +876,6 @@ const TransactionHistory = () => {
               <Download className="h-3.5 w-3.5" />
               {t("transactions:export")}
             </Button>
-
-            {/* Add Transaction Button */}
-            <Button
-              size="sm"
-              className="h-9 gap-2 text-xs"
-              onClick={() => setAddDialogOpen(true)}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              {t("transactions:addTransaction")}
-            </Button>
           </div>
         </div>
 
@@ -829,277 +885,396 @@ const TransactionHistory = () => {
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("transactions:searchPlaceholder")}
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setActiveQuickFilter(null);
-            }}
-            className="pl-9 h-10 text-sm"
-          />
-        </div>
-
-        {/* Transaction Table */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-3" />
-            <p className="text-sm text-muted-foreground">
-              {t("transactions:loadingTransactions")}
-            </p>
-          </div>
-        ) : transactions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 text-center">
-            <div className="rounded-full bg-muted/50 p-5 mb-4">
-              <Receipt className="h-12 w-12 text-muted-foreground" />
-            </div>
-            <p className="font-medium text-foreground">
-              {t("transactions:noTransactions")}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              {t("transactions:noTransactionsDesc")}
-            </p>
-          </div>
-        ) : (
+        {/* ── Table View ── */}
+        {txView === "table" && (
           <>
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px]">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left pb-3 pr-4">
-                      <SortHeader
-                        field="description"
-                        label={t("transactions:description")}
-                      />
-                    </th>
-                    <th className="text-left pb-3 pr-4">
-                      <SortHeader
-                        field="amount"
-                        label={t("transactions:amount")}
-                      />
-                    </th>
-                    <th className="text-left pb-3 pr-4">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {t("transactions:category")}
-                      </span>
-                    </th>
-                    <th className="text-left pb-3 pr-4">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {t("transactions:status")}
-                      </span>
-                    </th>
-                    <th className="text-left pb-3 pr-4">
-                      <SortHeader
-                        field="date"
-                        label={t("transactions:date")}
-                      />
-                    </th>
-                    <th className="w-10 pb-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {sortedTransactions.map((tx: any, index: number) => {
-                    const amount = parseFloat(tx.amount ?? 0);
-                    const isCredit = amount >= 0;
-                    const amountColor = isCredit
-                      ? "text-emerald-400"
-                      : "text-red-400";
-                    const Icon = isCredit ? ArrowUpRight : ArrowDownLeft;
-                    const iconBg = isCredit
-                      ? "bg-emerald-500/15 text-emerald-400"
-                      : "bg-red-500/15 text-red-400";
-                    const txStatus = getTxStatus(tx);
-
-                    return (
-                      <tr
-                        key={
-                          tx.id ??
-                          tx.pluggy_transaction_id ??
-                          `${tx.date}-${tx.description}-${index}`
-                        }
-                        className="group hover:bg-muted/20 transition-colors"
-                      >
-                        {/* Description */}
-                        <td className="py-4 pr-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
-                            >
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">
-                                {tx.description ||
-                                  tx.merchant ||
-                                  t("transactions:transaction")}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {getTxSubtitle(tx)}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Amount */}
-                        <td className="py-4 pr-4">
-                          <span
-                            className={`text-sm font-semibold tabular-nums ${amountColor}`}
-                          >
-                            {isCredit ? "+" : "-"}{formatCurrency(Math.abs(amount)).replace(/^-/, "")}
-                          </span>
-                        </td>
-
-                        {/* Category */}
-                        <td className="py-4 pr-4">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <button type="button" className="cursor-pointer">
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs font-normal border-border bg-muted/30 hover:bg-muted/60 transition-colors"
-                                >
-                                  {tx.category || t("transactions:others")}
-                                </Badge>
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-40 p-1" align="start">
-                              <div className="space-y-0.5">
-                                {CATEGORIES.map((cat) => (
-                                  <button
-                                    key={cat}
-                                    type="button"
-                                    onClick={async () => {
-                                      try {
-                                        await financeApi.updateTransactionCategory(tx.id, cat);
-                                        setTransactions((prev) =>
-                                          prev.map((t2) =>
-                                            t2.id === tx.id ? { ...t2, category: cat } : t2
-                                          )
-                                        );
-                                        toast({ title: t("transactions:categoryUpdated") });
-                                      } catch {
-                                        toast({ title: t("transactions:categoryUpdateError"), variant: "destructive" });
-                                      }
-                                    }}
-                                    className={`w-full text-left px-2 py-1.5 text-xs rounded-md transition-colors ${
-                                      tx.category === cat
-                                        ? "bg-primary/20 text-primary font-medium"
-                                        : "text-foreground hover:bg-muted"
-                                    }`}
-                                  >
-                                    {cat}
-                                  </button>
-                                ))}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-4 pr-4">
-                          <Badge
-                            className={`text-xs font-medium border ${
-                              txStatus === "completed"
-                                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                            }`}
-                          >
-                            {txStatus === "completed"
-                              ? t("transactions:completed")
-                              : t("transactions:pending")}
-                          </Badge>
-                        </td>
-
-                        {/* Date */}
-                        <td className="py-4 pr-4">
-                          <span className="text-sm text-muted-foreground">
-                            {tx.date
-                              ? formatDateForDisplay(tx.date, i18n.language)
-                              : "—"}
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-4">
-                          <button
-                            type="button"
-                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
-                            title={t("transactions:viewDetails")}
-                            onClick={() => setDetailTx(tx)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            {/* Search Bar */}
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t("transactions:searchPlaceholder")}
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setActiveQuickFilter(null);
+                }}
+                className="pl-9 h-10 text-sm"
+              />
             </div>
 
-            {/* Pagination */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
-              <p className="text-xs text-muted-foreground">
-                {t("transactions:showing", {
-                  from: (page - 1) * limit + 1,
-                  to: Math.min(page * limit, total),
-                  total,
-                })}
-              </p>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1 text-xs"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                  {t("transactions:previous")}
-                </Button>
-                <div className="flex items-center gap-0.5">
-                  {Array.from(
-                    { length: Math.min(5, totalPages) },
-                    (_, i) => {
-                      let p: number;
-                      if (totalPages <= 5) p = i + 1;
-                      else if (page <= 3) p = i + 1;
-                      else if (page >= totalPages - 2)
-                        p = totalPages - 4 + i;
-                      else p = page - 2 + i;
-                      return (
-                        <Button
-                          key={p}
-                          variant={page === p ? "default" : "outline"}
-                          size="sm"
-                          className="min-w-8 h-8 p-0 text-xs"
-                          onClick={() => setPage(p)}
-                        >
-                          {p}
-                        </Button>
-                      );
-                    }
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1 text-xs"
-                  onClick={() =>
-                    setPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={page === totalPages}
-                >
-                  {t("transactions:next")}
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
+            {/* Transaction Table */}
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  {t("transactions:loadingTransactions")}
+                </p>
               </div>
-            </div>
+            ) : transactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-14 text-center">
+                <div className="rounded-full bg-muted/50 p-5 mb-4">
+                  <Receipt className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <p className="font-medium text-foreground">
+                  {t("transactions:noTransactions")}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                  {t("transactions:noTransactionsDesc")}
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[700px]">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left pb-3 pr-4">
+                          <SortHeader
+                            field="description"
+                            label={t("transactions:description")}
+                          />
+                        </th>
+                        <th className="text-left pb-3 pr-4">
+                          <SortHeader
+                            field="amount"
+                            label={t("transactions:amount")}
+                          />
+                        </th>
+                        <th className="text-left pb-3 pr-4">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {t("transactions:category")}
+                          </span>
+                        </th>
+                        <th className="text-left pb-3 pr-4">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {t("transactions:status")}
+                          </span>
+                        </th>
+                        <th className="text-left pb-3 pr-4">
+                          <SortHeader
+                            field="date"
+                            label={t("transactions:date")}
+                          />
+                        </th>
+                        <th className="w-10 pb-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {sortedTransactions.map((tx: any, index: number) => {
+                        const amount = parseFloat(tx.amount ?? 0);
+                        const isCredit = amount >= 0;
+                        const amountColor = isCredit
+                          ? "text-emerald-400"
+                          : "text-red-400";
+                        const Icon = isCredit ? ArrowUpRight : ArrowDownLeft;
+                        const iconBg = isCredit
+                          ? "bg-emerald-500/15 text-emerald-400"
+                          : "bg-red-500/15 text-red-400";
+                        const txStatus = getTxStatus(tx);
+
+                        return (
+                          <tr
+                            key={
+                              tx.id ??
+                              tx.pluggy_transaction_id ??
+                              `${tx.date}-${tx.description}-${index}`
+                            }
+                            className="group hover:bg-muted/20 transition-colors"
+                          >
+                            {/* Description */}
+                            <td className="py-4 pr-4">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
+                                >
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {tx.description ||
+                                      tx.merchant ||
+                                      t("transactions:transaction")}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {getTxSubtitle(tx)}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Amount */}
+                            <td className="py-4 pr-4">
+                              <span
+                                className={`text-sm font-semibold tabular-nums ${amountColor}`}
+                              >
+                                {isCredit ? "+" : "-"}{formatCurrency(Math.abs(amount)).replace(/^-/, "")}
+                              </span>
+                            </td>
+
+                            {/* Category */}
+                            <td className="py-4 pr-4">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button type="button" className="cursor-pointer">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs font-normal border-border bg-muted/30 hover:bg-muted/60 transition-colors"
+                                    >
+                                      {tx.category || t("transactions:others")}
+                                    </Badge>
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-40 p-1" align="start">
+                                  <div className="space-y-0.5">
+                                    {CATEGORIES.map((cat) => (
+                                      <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={async () => {
+                                          try {
+                                            await financeApi.updateTransactionCategory(tx.id, cat);
+                                            setTransactions((prev) =>
+                                              prev.map((t2) =>
+                                                t2.id === tx.id ? { ...t2, category: cat } : t2
+                                              )
+                                            );
+                                            toast({ title: t("transactions:categoryUpdated") });
+                                          } catch {
+                                            toast({ title: t("transactions:categoryUpdateError"), variant: "destructive" });
+                                          }
+                                        }}
+                                        className={`w-full text-left px-2 py-1.5 text-xs rounded-md transition-colors ${
+                                          tx.category === cat
+                                            ? "bg-primary/20 text-primary font-medium"
+                                            : "text-foreground hover:bg-muted"
+                                        }`}
+                                      >
+                                        {cat}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-4 pr-4">
+                              <Badge
+                                className={`text-xs font-medium border ${
+                                  txStatus === "completed"
+                                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                    : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                }`}
+                              >
+                                {txStatus === "completed"
+                                  ? t("transactions:completed")
+                                  : t("transactions:pending")}
+                              </Badge>
+                            </td>
+
+                            {/* Date */}
+                            <td className="py-4 pr-4">
+                              <span className="text-sm text-muted-foreground">
+                                {tx.date
+                                  ? formatDateForDisplay(tx.date, i18n.language)
+                                  : "—"}
+                              </span>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-4">
+                              <button
+                                type="button"
+                                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
+                                title={t("transactions:viewDetails")}
+                                onClick={() => setDetailTx(tx)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    {t("transactions:showing", {
+                      from: (page - 1) * limit + 1,
+                      to: Math.min(page * limit, total),
+                      total,
+                    })}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1 text-xs"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                      {t("transactions:previous")}
+                    </Button>
+                    <div className="flex items-center gap-0.5">
+                      {Array.from(
+                        { length: Math.min(5, totalPages) },
+                        (_, i) => {
+                          let p: number;
+                          if (totalPages <= 5) p = i + 1;
+                          else if (page <= 3) p = i + 1;
+                          else if (page >= totalPages - 2)
+                            p = totalPages - 4 + i;
+                          else p = page - 2 + i;
+                          return (
+                            <Button
+                              key={p}
+                              variant={page === p ? "default" : "outline"}
+                              size="sm"
+                              className="min-w-8 h-8 p-0 text-xs"
+                              onClick={() => setPage(p)}
+                            >
+                              {p}
+                            </Button>
+                          );
+                        }
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1 text-xs"
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      disabled={page === totalPages}
+                    >
+                      {t("transactions:next")}
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </>
+        )}
+
+        {/* ── Chart View ── */}
+        {txView === "chart" && (
+          <div className="space-y-4">
+            {/* Chart mode selector */}
+            <div className="flex gap-1.5 flex-wrap">
+              {(["daily", "weekly", "monthly", "yearly"] as const).map((mode) => (
+                <Button
+                  key={mode}
+                  variant={txChartMode === mode ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setTxChartMode(mode)}
+                >
+                  {t(`transactions:chart.${mode}`)}
+                </Button>
+              ))}
+            </div>
+
+            {chartLoading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  {t("transactions:loadingTransactions")}
+                </p>
+              </div>
+            ) : txChartData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-14 text-center">
+                <div className="rounded-full bg-muted/50 p-5 mb-4">
+                  <BarChart3 className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <p className="font-medium text-foreground">
+                  {t("transactions:noTransactions")}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                  {t("transactions:noTransactionsDesc")}
+                </p>
+              </div>
+            ) : (
+              <div className="h-[350px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={txChartData.map((d) => ({ ...d, periodLabel: formatChartPeriod(d.period) }))}
+                    margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
+                  >
+                    <defs>
+                      <linearGradient id="custIncomeGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#059669" stopOpacity={1} />
+                      </linearGradient>
+                      <linearGradient id="custExpenseGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f87171" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#dc2626" stopOpacity={1} />
+                      </linearGradient>
+                      <filter id="custBarShadow">
+                        <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.15" />
+                      </filter>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.15} />
+                    <XAxis
+                      dataKey="periodLabel"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      tickFormatter={(v) => formatCurrency(v)}
+                      width={80}
+                    />
+                    <RechartsTooltip
+                      cursor={{ fill: "transparent" }}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                      }}
+                      formatter={(value: number, name: string) => [
+                        formatCurrency(value),
+                        name === "income"
+                          ? t("transactions:chart.income")
+                          : t("transactions:chart.expense"),
+                      ]}
+                      labelFormatter={(label) => label}
+                    />
+                    <Legend
+                      formatter={(value) =>
+                        value === "income"
+                          ? t("transactions:chart.income")
+                          : t("transactions:chart.expense")
+                      }
+                    />
+                    <Bar
+                      dataKey="income"
+                      fill="url(#custIncomeGradient)"
+                      radius={[4, 4, 0, 0]}
+                      filter="url(#custBarShadow)"
+                    />
+                    <Bar
+                      dataKey="expense"
+                      fill="url(#custExpenseGradient)"
+                      radius={[4, 4, 0, 0]}
+                      filter="url(#custBarShadow)"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -1392,138 +1567,6 @@ const TransactionHistory = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Transaction Dialog */}
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">
-              {t("transactions:addTransaction")}
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              {t("transactions:addTransaction")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {/* Transaction Name */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                {t("transactions:transactionName")}
-              </Label>
-              <Input
-                placeholder={t("transactions:enterTransactionName")}
-                value={newTxName}
-                onChange={(e) => setNewTxName(e.target.value)}
-              />
-            </div>
-
-            {/* Amount */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                {t("transactions:amount")}
-              </Label>
-              <Input
-                type="number"
-                placeholder={t("transactions:enterAmount")}
-                value={newTxAmount}
-                onChange={(e) => setNewTxAmount(e.target.value)}
-              />
-            </div>
-
-            {/* Type */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                {t("transactions:type")}
-              </Label>
-              <Select
-                value={newTxType || "none"}
-                onValueChange={(v) => setNewTxType(v === "none" ? "" : v)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    placeholder={t("transactions:selectType")}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">
-                    {t("transactions:selectType")}
-                  </SelectItem>
-                  {TYPES.map((tp) => (
-                    <SelectItem key={tp} value={tp}>
-                      {tp}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Category */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                {t("transactions:category")}
-              </Label>
-              <Select
-                value={newTxCategory || "none"}
-                onValueChange={(v) =>
-                  setNewTxCategory(v === "none" ? "" : v)
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    placeholder={t("transactions:selectCategory")}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">
-                    {t("transactions:selectCategory")}
-                  </SelectItem>
-                  {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Income checkbox */}
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="income-check"
-                checked={newTxIsIncome}
-                onCheckedChange={(checked) =>
-                  setNewTxIsIncome(checked === true)
-                }
-              />
-              <Label htmlFor="income-check" className="text-sm cursor-pointer">
-                {t("transactions:incomeTransaction")}
-              </Label>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setAddDialogOpen(false);
-                setNewTxName("");
-                setNewTxAmount("");
-                setNewTxType("");
-                setNewTxCategory("");
-                setNewTxIsIncome(false);
-              }}
-            >
-              {t("transactions:cancel")}
-            </Button>
-            <Button
-              onClick={handleAddTransaction}
-              disabled={!newTxName || !newTxAmount}
-              className="gap-2"
-            >
-              <Check className="h-4 w-4" />
-              {t("transactions:add")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

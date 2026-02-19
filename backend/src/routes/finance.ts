@@ -106,7 +106,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).userId;
-      const { from, to, itemId, accountId, q, page = '1', limit = '50' } = request.query as any;
+      const { from, to, itemId, accountId, q, page = '1', limit = '50', view } = request.query as any;
 
       // Determine which table has data: prefer pluggy_transactions, fallback to transactions
       let usePluggy = false;
@@ -114,6 +114,67 @@ export async function financeRoutes(fastify: FastifyInstance) {
         const check = await db.query('SELECT COUNT(*) as cnt FROM pluggy_transactions WHERE user_id = $1 LIMIT 1', [userId]);
         usePluggy = parseInt(check.rows[0]?.cnt) > 0;
       } catch { /* table may not exist */ }
+
+      // ── Chart aggregation mode ──
+      const chartModes = ['daily', 'weekly', 'monthly', 'yearly'];
+      if (view && chartModes.includes(view)) {
+        const dateCol = usePluggy ? 'pt.date' : 't.occurred_at';
+        const table = usePluggy ? 'pluggy_transactions pt' : 'transactions t';
+        const userCol = usePluggy ? 'pt.user_id' : 't.user_id';
+
+        // Smart date defaults when no from/to provided
+        let effectiveFrom = from;
+        let effectiveTo = to;
+        if (!effectiveFrom) {
+          const now = new Date();
+          switch (view) {
+            case 'daily': effectiveFrom = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10); break;
+            case 'weekly': effectiveFrom = new Date(now.getTime() - 84 * 86400000).toISOString().slice(0, 10); break;
+            case 'monthly': effectiveFrom = new Date(now.getFullYear() - 1, now.getMonth(), 1).toISOString().slice(0, 10); break;
+            // yearly: no default — all time
+          }
+        }
+        if (!effectiveTo) {
+          effectiveTo = new Date().toISOString().slice(0, 10);
+        }
+
+        const truncExpr = view === 'daily' ? dateCol : `date_trunc('${view === 'weekly' ? 'week' : view === 'monthly' ? 'month' : 'year'}', ${dateCol})`;
+        const amountExpr = usePluggy ? 'pt.amount' : '(t.amount_cents::float / 100)';
+
+        let chartQuery = `
+          SELECT ${truncExpr}::date as period,
+                 SUM(CASE WHEN ${amountExpr} > 0 THEN ${amountExpr} ELSE 0 END) as income,
+                 SUM(CASE WHEN ${amountExpr} < 0 THEN ABS(${amountExpr}) ELSE 0 END) as expense
+          FROM ${table}
+          WHERE ${userCol} = $1`;
+        const chartParams: any[] = [userId];
+        let ci = 2;
+
+        if (effectiveFrom) { chartQuery += ` AND ${dateCol} >= $${ci}`; chartParams.push(effectiveFrom); ci++; }
+        if (effectiveTo) { chartQuery += ` AND ${dateCol} <= $${ci}`; chartParams.push(effectiveTo); ci++; }
+        if (itemId) {
+          const itemCol = usePluggy ? 'pt.item_id' : 'c.external_consent_id';
+          if (!usePluggy) {
+            chartQuery = chartQuery.replace(`FROM ${table}`, `FROM ${table} LEFT JOIN connections c ON t.connection_id = c.id`);
+          }
+          chartQuery += ` AND ${itemCol} = $${ci}`; chartParams.push(itemId); ci++;
+        }
+        if (accountId) {
+          const accCol = usePluggy ? 'pt.pluggy_account_id' : 't.account_id';
+          chartQuery += ` AND ${accCol} = $${ci}`; chartParams.push(accountId); ci++;
+        }
+
+        chartQuery += ` GROUP BY period ORDER BY period`;
+
+        const chartResult = await db.query(chartQuery, chartParams);
+        return reply.send({
+          chartData: chartResult.rows.map((r: any) => ({
+            period: r.period,
+            income: parseFloat(r.income) || 0,
+            expense: parseFloat(r.expense) || 0,
+          })),
+        });
+      }
 
       const pageNum = parseInt(page);
       const limitNum = parseInt(limit);
