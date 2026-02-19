@@ -810,12 +810,13 @@ export async function adminRoutes(fastify: FastifyInstance) {
       let connections: any[] = [];
       try {
         const connResult = await db.query(
-          `SELECT c.id, c.external_consent_id as item_id, c.status, c.last_sync_at, c.last_sync_status,
+          `SELECT DISTINCT ON (c.institution_id)
+                  c.id, c.external_consent_id as item_id, c.status, c.last_sync_at, c.last_sync_status,
                   i.name as institution_name, i.logo_url as institution_logo
            FROM connections c
            LEFT JOIN institutions i ON c.institution_id = i.id
            WHERE c.user_id = $1 AND c.provider = 'open_finance'
-           ORDER BY c.created_at DESC`,
+           ORDER BY c.institution_id, c.created_at DESC`,
           [id]
         );
         connections = connResult.rows;

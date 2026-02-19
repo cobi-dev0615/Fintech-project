@@ -543,12 +543,13 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       if (connections.length === 0) {
         try {
           const pluggyConnResult = await db.query(
-            `SELECT c.id, c.external_consent_id AS item_id, c.status,
+            `SELECT DISTINCT ON (c.institution_id)
+                    c.id, c.external_consent_id AS item_id, c.status,
                     i.name AS institution_name, i.logo_url AS institution_logo
              FROM connections c
              LEFT JOIN institutions i ON c.institution_id = i.id
              WHERE c.user_id = $1
-             ORDER BY c.created_at DESC`,
+             ORDER BY c.institution_id, c.created_at DESC`,
             [clientId]
           );
           connections = pluggyConnResult.rows;
