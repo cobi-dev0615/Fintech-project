@@ -400,41 +400,41 @@ const Cards = () => {
                       <div className="flex gap-4 sm:gap-5">
                         {/* Compact Visual Credit Card (left) */}
                         <div className={`credit-card-visual ${getBrandClass(card.brand)} shrink-0 flex flex-col justify-between`}>
-                          {/* Top: Contactless + Brand */}
-                          <div className="flex items-start justify-between">
-                            <Wifi className="h-4 w-4 opacity-70 rotate-90" />
-                            <span className="text-[10px] font-bold tracking-wider opacity-90 italic">
-                              {brandUpper}
+                          {/* Top: Contactless icon + Brand logo */}
+                          <div className="flex items-start justify-between relative z-10">
+                            <Wifi className="h-4 w-4 opacity-80 rotate-90" />
+                            <span className="text-sm font-bold tracking-wider opacity-95 italic drop-shadow-sm">
+                              {card.institution_name || brandUpper}
                             </span>
                           </div>
 
-                          {/* Card Number */}
-                          <div className="font-mono text-[11px] sm:text-xs tracking-[0.12em] opacity-95 leading-tight">
-                            {getFullCardNumber(card)}
+                          {/* Chip + Card Number */}
+                          <div className="relative z-10 space-y-1.5">
+                            <div className="card-chip" />
+                            <div className="font-mono text-[11px] sm:text-xs tracking-[0.14em] opacity-95 leading-tight drop-shadow-sm">
+                              {getFullCardNumber(card)}
+                            </div>
                           </div>
 
                           {/* Bottom: Holder + Expiry */}
-                          <div className="flex items-end justify-between">
+                          <div className="flex items-end justify-between relative z-10">
                             <div className="min-w-0 flex-1">
-                              <p className="text-[7px] uppercase tracking-wider opacity-50">
+                              <p className="text-[7px] uppercase tracking-widest opacity-50 mb-0.5">
                                 {t("cards:cardHolder").toUpperCase()}
                               </p>
-                              <p className="text-[9px] font-medium uppercase tracking-wide truncate">
+                              <p className="text-[9px] font-semibold uppercase tracking-wide truncate drop-shadow-sm">
                                 {holderName}
                               </p>
                             </div>
                             <div className="text-right shrink-0 ml-2">
-                              <p className="text-[7px] uppercase tracking-wider opacity-50">
+                              <p className="text-[7px] uppercase tracking-widest opacity-50 mb-0.5">
                                 {t("cards:expires").toUpperCase()}
                               </p>
-                              <p className="text-[9px] font-medium">
+                              <p className="text-[9px] font-semibold drop-shadow-sm">
                                 {getExpiry(card)}
                               </p>
                             </div>
                           </div>
-
-                          {/* Chip decoration */}
-                          <div className="absolute top-[38%] left-3.5 w-6 h-[18px] rounded-[3px] bg-amber-400/30 border border-amber-400/40" />
                         </div>
 
                         {/* Card Info (right) */}
@@ -536,10 +536,44 @@ const Cards = () => {
               <div className="chart-card sticky top-6">
                 {selectedCard ? (
                   <div className="space-y-5">
-                    {/* Header */}
-                    <h3 className="text-base font-bold text-foreground">
-                      {t("cards:cardDetails")}
-                    </h3>
+                    {/* Large Visual Card */}
+                    <div className={`credit-card-visual-lg ${getBrandClass(selectedCard.brand)} flex flex-col justify-between`}>
+                      {/* Top: Contactless + Brand / Institution */}
+                      <div className="flex items-start justify-between relative z-10">
+                        <Wifi className="h-5 w-5 opacity-80 rotate-90" />
+                        <span className="text-base font-bold tracking-wider opacity-95 italic drop-shadow-md">
+                          {selectedCard.institution_name || (selectedCard.brand || "VISA").toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* Chip + Card Number */}
+                      <div className="relative z-10 space-y-2.5">
+                        <div className="card-chip-lg" />
+                        <div className="font-mono text-base sm:text-lg tracking-[0.16em] opacity-95 leading-tight drop-shadow-md">
+                          {getFullCardNumber(selectedCard)}
+                        </div>
+                      </div>
+
+                      {/* Bottom: Holder + Expiry */}
+                      <div className="flex items-end justify-between relative z-10">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
+                            {t("cards:cardHolder").toUpperCase()}
+                          </p>
+                          <p className="text-xs font-semibold uppercase tracking-wide truncate drop-shadow-sm">
+                            {holderName}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0 ml-3">
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
+                            {t("cards:expires").toUpperCase()}
+                          </p>
+                          <p className="text-xs font-semibold drop-shadow-sm">
+                            {getExpiry(selectedCard)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Current Balance */}
                     <div>
