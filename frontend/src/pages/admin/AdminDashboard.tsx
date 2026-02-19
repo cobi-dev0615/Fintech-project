@@ -232,7 +232,7 @@ const UserGrowthChart = memo(function UserGrowthChart({ t }: { t: any }) {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.15} />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={50} />
-              <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }} />
+              <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)", color: "hsl(var(--foreground))" }} itemStyle={{ color: "hsl(var(--foreground))" }} labelStyle={{ color: "hsl(var(--muted-foreground))" }} />
               <Area type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={2.5} fill="url(#userGrowthGradient)" filter="url(#userGrowthGlow)" dot={false} activeDot={{ r: 5, fill: "#3b82f6", stroke: "#1d4ed8", strokeWidth: 2 }} />
             </AreaChart>
           </ResponsiveContainer>
@@ -309,7 +309,7 @@ const RevenueChart = memo(function RevenueChart({ t }: { t: any }) {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.15} />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => formatCurrency(v)} width={70} />
-              <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }} formatter={(value: number) => formatCurrency(value)} />
+              <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.3)", color: "hsl(var(--foreground))" }} itemStyle={{ color: "hsl(var(--foreground))" }} labelStyle={{ color: "hsl(var(--muted-foreground))" }} formatter={(value: number) => formatCurrency(value)} />
               <Bar dataKey="revenue" fill="url(#revenueBarGradient)" radius={[6, 6, 0, 0]} filter="url(#revenueBarShadow)" />
             </BarChart>
           </ResponsiveContainer>
@@ -400,7 +400,10 @@ const RoleDistributionChart = memo(function RoleDistributionChart({ t, data }: {
                   backgroundColor: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "6px",
+                  color: "hsl(var(--foreground))",
                 }}
+                itemStyle={{ color: "hsl(var(--foreground))" }}
+                labelStyle={{ color: "hsl(var(--muted-foreground))" }}
               />
             </PieChart>
           </ResponsiveContainer>

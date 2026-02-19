@@ -1339,7 +1339,10 @@ const TransactionHistory = () => {
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "8px",
                         boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                        color: "hsl(var(--foreground))",
                       }}
+                      itemStyle={{ color: "hsl(var(--foreground))" }}
+                      labelStyle={{ color: "hsl(var(--muted-foreground))" }}
                       formatter={(value: number, name: string) => [
                         formatCurrency(value),
                         name === "income"

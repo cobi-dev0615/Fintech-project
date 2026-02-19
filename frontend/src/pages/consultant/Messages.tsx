@@ -365,7 +365,7 @@ const Messages = () => {
     onError: (err: any) => {
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:messages.createError'),
+        description: t('consultant:messages.createError'),
         variant: "destructive",
       });
     },
@@ -390,7 +390,7 @@ const Messages = () => {
     onError: (err: any) => {
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:messages.sendError'),
+        description: t('consultant:messages.sendError'),
         variant: "destructive",
       });
     },
@@ -411,7 +411,7 @@ const Messages = () => {
     onError: (err: any) => {
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:messages.clearError'),
+        description: t('consultant:messages.clearError'),
         variant: "destructive"
       });
     },
@@ -432,7 +432,7 @@ const Messages = () => {
     onError: (err: any) => {
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:messages.deleteError'),
+        description: t('consultant:messages.deleteError'),
         variant: "destructive"
       });
     },
@@ -487,7 +487,7 @@ const Messages = () => {
     } catch (err: any) {
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:messages.uploadError'),
+        description: t('consultant:messages.uploadError'),
         variant: "destructive"
       });
     } finally {

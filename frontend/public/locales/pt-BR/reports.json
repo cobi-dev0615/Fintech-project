@@ -36,6 +36,7 @@
     "generating": "Gerando PDF…",
     "generate": "Gerar Relatório PDF",
     "selectReportType": "Selecione um tipo de relatório",
+    "reportGenerated": "Relatório gerado com sucesso.",
     "viewInHistory": "Ver no histórico"
   },
   "history": {

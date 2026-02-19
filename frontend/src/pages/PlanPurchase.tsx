@@ -157,7 +157,7 @@ const PlanPurchase = () => {
       console.error("Failed to fetch plans:", error);
       toast({
         title: t("common:error"),
-        description: error?.error || t("loadError"),
+        description: t("loadError"),
         variant: "destructive",
       });
     } finally {

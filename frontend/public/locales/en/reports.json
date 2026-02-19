@@ -36,6 +36,7 @@
     "generating": "Generating PDF...",
     "generate": "Generate PDF Report",
     "selectReportType": "Select a report type",
+    "reportGenerated": "Report generated successfully.",
     "viewInHistory": "View in history"
   },
   "history": {

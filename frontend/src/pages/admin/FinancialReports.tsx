@@ -397,7 +397,10 @@ const FinancialReports = () => {
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                     boxShadow: "0 4px 6px -1px rgba(0,0,0,0.2)",
+                    color: "hsl(var(--foreground))",
                   }}
+                  itemStyle={{ color: "hsl(var(--foreground))" }}
+                  labelStyle={{ color: "hsl(var(--muted-foreground))" }}
                   formatter={(value: number, name: string) =>
                     name === t('admin:financialReports.charts.revenueLabel') ? [formatCurrency(value), name] : [value, name]
                   }
@@ -440,7 +443,10 @@ const FinancialReports = () => {
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                     boxShadow: "0 4px 6px -1px rgba(0,0,0,0.2)",
+                    color: "hsl(var(--foreground))",
                   }}
+                  itemStyle={{ color: "hsl(var(--foreground))" }}
+                  labelStyle={{ color: "hsl(var(--muted-foreground))" }}
                   formatter={(value: number) => [formatCurrency(value), t('admin:financialReports.charts.commissionLabel')]}
                 />
                 <Legend />

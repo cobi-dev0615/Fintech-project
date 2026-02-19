@@ -355,7 +355,7 @@ const LoginHistory = () => {
       console.error("Error deleting login history record:", err);
       toast({
         title: t("common:error"),
-        description: err?.error || t("admin:loginHistory.deleteError"),
+        description: t("admin:loginHistory.deleteError"),
         variant: "destructive",
       });
     } finally {

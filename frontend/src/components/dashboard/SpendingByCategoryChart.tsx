@@ -94,7 +94,10 @@ const SpendingByCategoryChart = () => {
                       backgroundColor: "hsl(var(--card))",
                       border: "1px solid hsl(var(--border))",
                       borderRadius: "8px",
+                      color: "hsl(var(--foreground))",
                     }}
+                    itemStyle={{ color: "hsl(var(--foreground))" }}
+                    labelStyle={{ color: "hsl(var(--muted-foreground))" }}
                     formatter={(value: number) => formatCurrency(value)}
                   />
                 </PieChart>

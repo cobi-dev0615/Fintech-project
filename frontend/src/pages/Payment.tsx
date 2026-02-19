@@ -103,7 +103,7 @@ const Payment = () => {
       console.error('Failed to fetch plan:', error);
       toast({
         title: t('common:error'),
-        description: error?.error || t('planLoadError'),
+        description: t('planLoadError'),
         variant: "destructive",
       });
     } finally {
@@ -196,7 +196,7 @@ const Payment = () => {
       console.error('Failed to process payment:', error);
       toast({
         title: t('common:error'),
-        description: error?.error || t('paymentError'),
+        description: t('paymentError'),
         variant: "destructive",
       });
     } finally {

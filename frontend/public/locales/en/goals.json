@@ -35,8 +35,11 @@
     "updated": "Goal updated",
     "deleted": "Goal removed",
     "createError": "Error creating goal",
+    "createErrorDesc": "Could not create goal. Please try again.",
     "updateError": "Error updating goal",
+    "updateErrorDesc": "Could not update goal. Please try again.",
     "deleteError": "Error removing goal",
+    "deleteErrorDesc": "Could not remove goal. Please try again.",
     "limitReached": "Goal limit reached",
     "limitReachedDesc": "Your current plan allows up to {{limit}} goal(s). Upgrade to the {{plan}} plan to create more goals.",
     "upgradeRequiredDesc": "This feature requires the {{plan}} plan or higher. Upgrade your plan to create goals."

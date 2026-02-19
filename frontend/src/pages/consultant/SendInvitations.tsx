@@ -328,7 +328,7 @@ const SendInvitations = () => {
     } catch (err: any) {
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:invitations.sendError'),
+        description: t('consultant:invitations.sendError'),
         variant: getToastVariantForApiError(err),
       });
       console.error("Error sending invitation:", err);
@@ -353,7 +353,7 @@ const SendInvitations = () => {
     } catch (err: any) {
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:invitations.toast.deleteError'),
+        description: t('consultant:invitations.toast.deleteError'),
         variant: getToastVariantForApiError(err),
       });
       console.error("Error deleting invitation:", err);

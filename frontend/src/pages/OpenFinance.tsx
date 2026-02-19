@@ -313,7 +313,7 @@ const OpenFinance = () => {
                   variant: "warning",
                 });
               } else {
-                toast({ title: t('common:error'), description: err?.error || t('connections:openFinance.connectionError'), variant: "destructive" });
+                toast({ title: t('common:error'), description: t('connections:openFinance.connectionError'), variant: "destructive" });
               }
             } finally {
               setCreating(false);
@@ -340,8 +340,7 @@ const OpenFinance = () => {
           variant: "warning",
         });
       } else {
-        const msg = err?.error || err?.message || t('connections:openFinance.connectionErrorGeneric');
-        toast({ title: t('common:error'), description: msg, variant: "destructive" });
+        toast({ title: t('common:error'), description: t('connections:openFinance.connectionErrorGeneric'), variant: "destructive" });
       }
       setCreating(false);
     }
@@ -354,7 +353,7 @@ const OpenFinance = () => {
       toast({ title: t('common:success'), description: t('connections:openFinance.syncSuccess'), variant: "success" });
       await fetchConnections();
     } catch (err: any) {
-      toast({ title: t('common:error'), description: err?.error || t('connections:openFinance.syncError'), variant: "destructive" });
+      toast({ title: t('common:error'), description: t('connections:openFinance.syncError'), variant: "destructive" });
     } finally {
       setCreating(false);
     }

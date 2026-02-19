@@ -293,7 +293,7 @@ const Settings = () => {
       localStorage.setItem("userCountryCode", profile.countryCode);
       toast({ title: t('common:success'), description: t('settings:profile.saveSuccess'), variant: "success" });
     } catch (error: any) {
-      toast({ title: t('common:error'), description: error?.error || t('settings:profile.saveError'), variant: "destructive" });
+      toast({ title: t('common:error'), description: t('settings:profile.saveError'), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -350,7 +350,7 @@ const Settings = () => {
       toast({ title: t('common:success'), description: t('settings:password.changeSuccess'), variant: "success" });
       setPassword({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error: any) {
-      setPasswordError(error?.error || t('settings:password.changeError'));
+      setPasswordError(t('settings:password.changeError'));
     } finally {
       setSaving(false);
     }

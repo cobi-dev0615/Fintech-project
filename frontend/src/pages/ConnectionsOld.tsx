@@ -193,7 +193,7 @@ const Connections = () => {
                   console.error('Error creating connection:', err);
                   toast({
                     title: t('common:error'),
-                    description: err?.error || t('connections:toast.connectionError'),
+                    description: t('connections:toast.connectionError'),
                     variant: "destructive",
                   });
                 } finally {
@@ -251,7 +251,7 @@ const Connections = () => {
         console.error('Error initializing Pluggy Connect:', err);
         toast({
           title: t('common:error'),
-          description: err?.error || t('connections:toast.initConnectionError'),
+          description: t('connections:toast.initConnectionError'),
           variant: "destructive",
         });
         setCreating(false);
@@ -312,7 +312,7 @@ const Connections = () => {
       console.error('Error deleting connection:', err);
       toast({
         title: t('common:error'),
-        description: err?.error || t('connections:toast.deleteError'),
+        description: t('connections:toast.deleteError'),
         variant: "destructive",
       });
     } finally {
@@ -479,7 +479,7 @@ const Connections = () => {
                     } catch (err: any) {
                       toast({
                         title: t('common:error'),
-                        description: err?.error || t('connections:toast.syncError'),
+                        description: t('connections:toast.syncError'),
                         variant: "destructive",
                       });
                     }

@@ -394,7 +394,7 @@ const Invitations = () => {
     } catch (err: any) {
       toast({
         title: t("common:error"),
-        description: err?.error || t("toast.acceptError"),
+        description: t("toast.acceptError"),
         variant: getToastVariantForApiError(err),
       });
     }
@@ -416,7 +416,7 @@ const Invitations = () => {
     } catch (err: any) {
       toast({
         title: t("common:error"),
-        description: err?.error || t("toast.declineError"),
+        description: t("toast.declineError"),
         variant: getToastVariantForApiError(err),
       });
     }
@@ -459,7 +459,7 @@ const Invitations = () => {
     } catch (err: any) {
       toast({
         title: t("common:error"),
-        description: err?.error || t("toast.disconnectError"),
+        description: t("toast.disconnectError"),
         variant: getToastVariantForApiError(err),
       });
     } finally {
@@ -489,7 +489,7 @@ const Invitations = () => {
     } catch (err: any) {
       toast({
         title: t("common:error"),
-        description: err?.error || t("toast.walletError"),
+        description: t("toast.walletError"),
         variant: getToastVariantForApiError(err),
       });
     } finally {

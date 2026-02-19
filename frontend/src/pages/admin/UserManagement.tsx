@@ -122,7 +122,7 @@ const UserManagement = () => {
     } catch (error: any) {
       toast({
         title: t('common:error'),
-        description: error?.error || t('common:errorLoading'),
+        description: t('common:errorLoading'),
         variant: "destructive",
       });
     } finally {

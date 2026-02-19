@@ -398,7 +398,7 @@ const Pipeline = () => {
     } catch (err: any) {
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:pipeline.toast.createError'),
+        description: t('consultant:pipeline.toast.createError'),
         variant: "destructive",
       });
     }
@@ -448,7 +448,7 @@ const Pipeline = () => {
     } catch (err: any) {
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:pipeline.toast.updateError'),
+        description: t('consultant:pipeline.toast.updateError'),
         variant: "destructive",
       });
     }
@@ -480,7 +480,7 @@ const Pipeline = () => {
       setDeletingId(null);
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:pipeline.toast.moveError'),
+        description: t('consultant:pipeline.toast.moveError'),
         variant: "destructive",
       });
     }
@@ -528,7 +528,7 @@ const Pipeline = () => {
       queryClient.invalidateQueries({ queryKey: ['consultant', 'pipeline'] });
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:pipeline.toast.stageError'),
+        description: t('consultant:pipeline.toast.stageError'),
         variant: "destructive",
       });
     }

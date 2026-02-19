@@ -212,7 +212,7 @@ const Cards = () => {
     } catch (err: any) {
       toast({
         title: t("common:syncError"),
-        description: err?.error || t("common:syncErrorDesc"),
+        description: t("common:syncErrorDesc"),
         variant: "destructive",
       });
     } finally {
@@ -237,7 +237,7 @@ const Cards = () => {
     } catch (err: any) {
       toast({
         title: t("cards:cardSyncError"),
-        description: err?.error || t("cards:cardSyncErrorDesc"),
+        description: t("cards:cardSyncErrorDesc"),
         variant: "destructive",
       });
     } finally {

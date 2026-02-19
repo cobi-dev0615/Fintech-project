@@ -121,9 +121,9 @@ const Settings = () => {
       console.error(`Failed to save ${section} settings:`, error);
       toast({
         title: t("common:error"),
-        description: error?.error || (section === "language"
+        description: section === "language"
           ? t("admin:settings.languageSettings.saveError")
-          : t("admin:settings.saveError")),
+          : t("admin:settings.saveError"),
         variant: "destructive",
       });
     } finally {

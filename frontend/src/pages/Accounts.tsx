@@ -240,7 +240,7 @@ const Accounts = () => {
     } catch (err: any) {
       toast({
         title: t('common:syncError'),
-        description: err?.error || t('common:syncErrorDesc'),
+        description: t('common:syncErrorDesc'),
         variant: "destructive",
       });
     } finally {

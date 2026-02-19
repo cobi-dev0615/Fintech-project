@@ -134,7 +134,10 @@ const RevenueExpensesChart = () => {
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
                   backdropFilter: "blur(8px)",
+                  color: "hsl(var(--foreground))",
                 }}
+                itemStyle={{ color: "hsl(var(--foreground))" }}
+                labelStyle={{ color: "hsl(var(--muted-foreground))" }}
                 formatter={(value: number, name: string) => [
                   formatCurrency(value),
                   name === 'income' ? t('dashboard:analytics.income') : t('dashboard:analytics.expenses'),

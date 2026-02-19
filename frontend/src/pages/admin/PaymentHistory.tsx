@@ -388,10 +388,7 @@ const PaymentHistory = () => {
       console.error("Error deleting subscription:", err);
       toast({
         title: t("common:error"),
-        description:
-          err?.error ||
-          err?.response?.data?.error ||
-          t("admin:paymentHistory.deleteSubscriptionError"),
+        description: t("admin:paymentHistory.deleteSubscriptionError"),
         variant: "destructive",
       });
     } finally {

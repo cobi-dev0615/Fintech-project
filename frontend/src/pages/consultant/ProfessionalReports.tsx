@@ -286,7 +286,7 @@ const ProfessionalReports = () => {
       queryClient.invalidateQueries({ queryKey: ['consultant', 'reports'] });
       toast({
         title: t('common:success'),
-        description: result.message || t('consultant:reports.toast.generateSuccess'),
+        description: t('consultant:reports.toast.generateSuccess'),
         variant: "success",
       });
       setSelectedClient("all");
@@ -297,7 +297,7 @@ const ProfessionalReports = () => {
     onError: (err: any) => {
       toast({
         title: t('common:error'),
-        description: err?.error || t('consultant:reports.toast.generateError'),
+        description: t('consultant:reports.toast.generateError'),
         variant: "destructive",
       });
     },
@@ -864,7 +864,7 @@ const ProfessionalReports = () => {
       toast({ title: t('consultant:reports.toast.deleteSuccess'), description: t('consultant:reports.toast.deleteSuccessDesc'), variant: "success" });
     },
     onError: (err: any) => {
-      toast({ title: t('common:error'), description: err?.error || t('consultant:reports.toast.deleteError'), variant: "destructive" });
+      toast({ title: t('common:error'), description: t('consultant:reports.toast.deleteError'), variant: "destructive" });
     },
   });
 

@@ -300,7 +300,7 @@ const PlanManagement = () => {
     onError: (error: any) => {
       toast({
         title: t('common:error'),
-        description: error?.error || error?.details || t('admin:planManagement.deleteError'),
+        description: t('admin:planManagement.deleteError'),
         variant: "destructive",
       });
     },
@@ -332,7 +332,7 @@ const PlanManagement = () => {
     onError: (error: any) => {
       toast({
         title: t('common:error'),
-        description: error?.error || t('admin:planManagement.updateError'),
+        description: t('admin:planManagement.updateError'),
         variant: "destructive",
       });
     },

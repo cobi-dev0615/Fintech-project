@@ -248,7 +248,7 @@ const Reports = () => {
         title: t("common:success"),
         description: (
           <>
-            {result.message}{" "}
+            {t("generateForm.reportGenerated")}{" "}
             <a href="/app/reports/history" className="underline font-medium">
               {t("generateForm.viewInHistory")}
             </a>
@@ -274,7 +274,7 @@ const Reports = () => {
       } else {
         toast({
           title: t("common:error"),
-          description: err?.message || err?.error || t("common:generateError"),
+          description: t("common:generateError"),
           variant: "destructive",
         });
       }

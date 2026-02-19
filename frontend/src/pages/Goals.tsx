@@ -162,7 +162,7 @@ const GOALS_KPI_IDS = [
 ] as const;
 
 const Goals = () => {
-  const { t } = useTranslation(['goals', 'common']);
+  const { t, i18n } = useTranslation(['goals', 'common']);
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
   const { user } = useAuth();
@@ -311,7 +311,7 @@ const Goals = () => {
       } else {
         toast({
           title: t('goals:toast.createError'),
-          description: apiErr.message || apiErr.error,
+          description: t('goals:toast.createErrorDesc'),
           variant: "destructive",
         });
       }
@@ -354,7 +354,7 @@ const Goals = () => {
       } else {
         toast({
           title: t('goals:toast.updateError'),
-          description: apiErr.message || apiErr.error,
+          description: t('goals:toast.updateErrorDesc'),
           variant: "destructive",
         });
       }
@@ -371,6 +371,7 @@ const Goals = () => {
     } catch (err: unknown) {
       toast({
         title: t('goals:toast.deleteError'),
+        description: t('goals:toast.deleteErrorDesc'),
         variant: "destructive",
       });
     }
@@ -516,7 +517,7 @@ const Goals = () => {
                       <h3 className="font-semibold text-foreground truncate">{g.name}</h3>
                       {g.category && (
                         <span className="inline-block mt-1 text-xs text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">
-                          {g.category}
+                          {t(`goals:categories.${g.category}`, { defaultValue: g.category })}
                         </span>
                       )}
                     </div>
@@ -569,7 +570,7 @@ const Goals = () => {
                   {g.deadline && (
                     <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
                       <Calendar className="h-3.5 w-3.5 shrink-0" />
-                      {t('goals:deadline', { date: new Date(g.deadline).toLocaleDateString("pt-BR") })}
+                      {t('goals:deadline', { date: new Date(g.deadline).toLocaleDateString(i18n.language) })}
                     </p>
                   )}
                 </div>
@@ -649,14 +650,14 @@ const Goals = () => {
                 <SelectContent>
                   <SelectItem value="none">{t('goals:dialog.categoryNone')}</SelectItem>
                   {CATEGORY_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.label}>
+                    <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </SelectItem>
                   ))}
                   {(isEdit ? editCategory : newCategory) &&
-                    !CATEGORY_OPTIONS.map(o => o.label).includes(isEdit ? editCategory : newCategory) && (
+                    !CATEGORY_OPTIONS.some(o => o.value === (isEdit ? editCategory : newCategory)) && (
                       <SelectItem value={isEdit ? editCategory : newCategory}>
-                        {(isEdit ? editCategory : newCategory)}
+                        {t(`goals:categories.${isEdit ? editCategory : newCategory}`, { defaultValue: isEdit ? editCategory : newCategory })}
                       </SelectItem>
                     )}
                 </SelectContent>

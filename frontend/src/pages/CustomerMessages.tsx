@@ -428,7 +428,7 @@ const CustomerMessages = () => {
     onError: (err: any) => {
       toast({
         title: t("common:error"),
-        description: err?.error || t("messages:sendError"),
+        description: t("messages:sendError"),
         variant: getToastVariantForApiError(err),
       });
     },
@@ -454,7 +454,7 @@ const CustomerMessages = () => {
     onError: (err: any) => {
       toast({
         title: t("common:error"),
-        description: err?.error || t("messages:clearError"),
+        description: t("messages:clearError"),
         variant: getToastVariantForApiError(err),
       });
     },
@@ -478,7 +478,7 @@ const CustomerMessages = () => {
     onError: (err: any) => {
       toast({
         title: t("common:error"),
-        description: err?.error || t("messages:deleteError"),
+        description: t("messages:deleteError"),
         variant: getToastVariantForApiError(err),
       });
     },
@@ -535,7 +535,7 @@ const CustomerMessages = () => {
     } catch (err: any) {
       toast({
         title: t("common:error"),
-        description: err?.error || t("messages:uploadError"),
+        description: t("messages:uploadError"),
         variant: "destructive",
       });
     } finally {

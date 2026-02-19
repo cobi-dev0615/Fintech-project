@@ -23,12 +23,12 @@ const GoogleAuthCallback = () => {
         const error = searchParams.get("error");
 
         if (error) {
-          const errorMessage = searchParams.get("message") ||
-            (error === "access_denied"
+          const errorMessage =
+            error === "access_denied"
               ? t('googleAuth.cancelledAuth')
               : error === "account_pending"
               ? t('googleAuth.accountPending')
-              : t('googleAuth.genericError'));
+              : t('googleAuth.genericError');
 
           toast({
             title: t('googleAuth.authError'),
@@ -87,7 +87,7 @@ const GoogleAuthCallback = () => {
         console.error("Google auth callback error:", error);
         toast({
           title: t('googleAuth.authError'),
-          description: error?.message || t('googleAuth.processingError'),
+          description: t('googleAuth.processingError'),
           variant: "destructive",
         });
         navigate("/login");

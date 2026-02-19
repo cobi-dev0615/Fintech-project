@@ -171,13 +171,10 @@ const CustomerFinanceDetail = () => {
         const res = await adminApi.getCustomerFinance(id);
         setData(res);
       } catch (err: any) {
-        setError(
-          err?.error || t("admin:customerFinance.errorLoading"),
-        );
+        setError(t("admin:customerFinance.errorLoading"));
         toast({
           title: t("common:error"),
-          description:
-            err?.error || t("admin:customerFinance.errorLoading"),
+          description: t("admin:customerFinance.errorLoading"),
           variant: "destructive",
         });
       } finally {
@@ -909,7 +906,10 @@ const CustomerFinanceDetail = () => {
                             border: "1px solid hsl(var(--border))",
                             borderRadius: "8px",
                             boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                            color: "hsl(var(--foreground))",
                           }}
+                          itemStyle={{ color: "hsl(var(--foreground))" }}
+                          labelStyle={{ color: "hsl(var(--muted-foreground))" }}
                           formatter={(value: number, name: string) => [
                             formatCurrency(value),
                             name === "income"

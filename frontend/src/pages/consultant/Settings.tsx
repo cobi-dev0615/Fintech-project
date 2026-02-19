@@ -251,7 +251,7 @@ const Settings = () => {
       localStorage.setItem("consultantCountryCode", profile.countryCode);
       toast({ title: t('common:success'), description: t('consultant:settings.profile.updateSuccess'), variant: "success" });
     } catch (error: any) {
-      toast({ title: t('common:error'), description: error?.error || t('consultant:settings.profile.updateError'), variant: "destructive" });
+      toast({ title: t('common:error'), description: t('consultant:settings.profile.updateError'), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -284,7 +284,7 @@ const Settings = () => {
       toast({ title: t('common:success'), description: t('consultant:settings.password.changeSuccess'), variant: "success" });
       setPassword({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error: any) {
-      setPasswordError(error?.error || t('consultant:settings.password.changeError'));
+      setPasswordError(t('consultant:settings.password.changeError'));
     } finally {
       setSaving(false);
     }

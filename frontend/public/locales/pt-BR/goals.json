@@ -35,8 +35,11 @@
     "updated": "Meta atualizada",
     "deleted": "Meta removida",
     "createError": "Erro ao criar meta",
+    "createErrorDesc": "Não foi possível criar a meta. Tente novamente.",
     "updateError": "Erro ao atualizar meta",
+    "updateErrorDesc": "Não foi possível atualizar a meta. Tente novamente.",
     "deleteError": "Erro ao remover meta",
+    "deleteErrorDesc": "Não foi possível remover a meta. Tente novamente.",
     "limitReached": "Limite de metas atingido",
     "limitReachedDesc": "Seu plano atual permite até {{limit}} meta(s). Faça upgrade para o plano {{plan}} para criar mais metas.",
     "upgradeRequiredDesc": "Este recurso requer o plano {{plan}} ou superior. Faça upgrade do seu plano para criar metas."
