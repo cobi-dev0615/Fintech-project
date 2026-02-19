@@ -30,7 +30,7 @@ const formatDate = (dateString: string) => {
 };
 
 const ROW_HEIGHT = 52; // px per row (py-3 + content)
-const VISIBLE_ROWS = 5;
+const VISIBLE_ROWS = 10;
 
 const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTableProps) => {
   const { t } = useTranslation(['dashboard']);
