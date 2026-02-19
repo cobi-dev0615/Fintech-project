@@ -28,7 +28,10 @@
       "Bash(node -e:*)",
       "Bash(sudo apt-get install:*)",
       "Bash(pip3 install:*)",
-      "Bash(PGPASSWORD='Basketball@0615' psql:*)"
+      "Bash(PGPASSWORD='Basketball@0615' psql:*)",
+      "Bash(for f in /home/phoenix/Documents/Fintech-project/frontend/public/locales/en/common.json /home/phoenix/Documents/Fintech-project/frontend/public/locales/pt-BR/common.json /home/phoenix/Documents/Fintech-project/frontend/public/locales/en/goals.json /home/phoenix/Documents/Fintech-project/frontend/public/locales/pt-BR/goals.json)",
+      "Bash(do node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''$f'',''utf8''\\)\\); console.log\\(''OK: $f''\\)\")",
+      "Bash(echo:*)"
     ]
   }
 }

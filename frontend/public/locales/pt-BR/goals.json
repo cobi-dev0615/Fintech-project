@@ -36,7 +36,10 @@
     "deleted": "Meta removida",
     "createError": "Erro ao criar meta",
     "updateError": "Erro ao atualizar meta",
-    "deleteError": "Erro ao remover meta"
+    "deleteError": "Erro ao remover meta",
+    "limitReached": "Limite de metas atingido",
+    "limitReachedDesc": "Seu plano atual permite até {{limit}} meta(s). Faça upgrade para o plano {{plan}} para criar mais metas.",
+    "upgradeRequiredDesc": "Este recurso requer o plano {{plan}} ou superior. Faça upgrade do seu plano para criar metas."
   },
   "yourGoals": "Suas Metas",
   "yourGoalsSubtitle": "Acompanhe o progresso de suas metas financeiras",

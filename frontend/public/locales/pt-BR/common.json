@@ -76,5 +76,11 @@
   "colorBlue": "Azul",
   "colorGreen": "Verde",
   "colorPurple": "Roxo",
-  "colorAmber": "Âmbar"
+  "colorAmber": "Âmbar",
+  "planLimit": {
+    "limitReached": "Limite do plano atingido",
+    "limitReachedDesc": "Você atingiu o limite de {{limit}} para este recurso no seu plano atual. Faça upgrade para o plano {{plan}} para ter mais.",
+    "upgradeRequired": "Upgrade necessário",
+    "upgradeRequiredDesc": "Este recurso requer o plano {{plan}} ou superior."
+  }
 }

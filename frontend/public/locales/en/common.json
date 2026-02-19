@@ -76,5 +76,11 @@
   "colorBlue": "Blue",
   "colorGreen": "Green",
   "colorPurple": "Purple",
-  "colorAmber": "Amber"
+  "colorAmber": "Amber",
+  "planLimit": {
+    "limitReached": "Plan limit reached",
+    "limitReachedDesc": "You've reached the limit of {{limit}} for this feature on your current plan. Upgrade to the {{plan}} plan for more.",
+    "upgradeRequired": "Upgrade required",
+    "upgradeRequiredDesc": "This feature requires the {{plan}} plan or higher."
+  }
 }

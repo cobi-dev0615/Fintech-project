@@ -113,11 +113,27 @@ export async function checkFeatureAccess(
       );
 
       if (freeResult.rows.length === 0 || freeResult.rows[0].limit_value === 0) {
+        let requiredPlan = 'basic';
+        try {
+          const minPlanResult = await db.query(
+            `SELECT p.code
+             FROM plan_features pf
+             JOIN plans p ON p.id = pf.plan_id
+             WHERE pf.feature_code = $1
+               AND (pf.limit_value IS NULL OR pf.limit_value > 0)
+               AND p.is_active = true
+             ORDER BY p.price_cents ASC
+             LIMIT 1`,
+            [featureCode]
+          );
+          if (minPlanResult.rows.length > 0) requiredPlan = minPlanResult.rows[0].code;
+        } catch {}
         reply.code(403).send({
           error: 'upgrade_required',
           feature: featureCode,
           currentPlan: 'free',
-          message: `This feature requires an upgraded plan.`,
+          requiredPlan,
+          message: `This feature requires the ${requiredPlan} plan or higher.`,
         });
         return -1; // Signal that reply was sent
       }

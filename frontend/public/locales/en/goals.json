@@ -36,7 +36,10 @@
     "deleted": "Goal removed",
     "createError": "Error creating goal",
     "updateError": "Error updating goal",
-    "deleteError": "Error removing goal"
+    "deleteError": "Error removing goal",
+    "limitReached": "Goal limit reached",
+    "limitReachedDesc": "Your current plan allows up to {{limit}} goal(s). Upgrade to the {{plan}} plan to create more goals.",
+    "upgradeRequiredDesc": "This feature requires the {{plan}} plan or higher. Upgrade your plan to create goals."
   },
   "yourGoals": "Your Goals",
   "yourGoalsSubtitle": "Track progress toward your financial targets",

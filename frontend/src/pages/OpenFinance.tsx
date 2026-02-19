@@ -303,7 +303,18 @@ const OpenFinance = () => {
               toast({ title: t('common:success'), description: t('connections:openFinance.connectionCreated'), variant: "success" });
               await fetchConnections();
             } catch (err: any) {
-              toast({ title: t('common:error'), description: err?.error || t('connections:openFinance.connectionError'), variant: "destructive" });
+              if (err?.error === 'limit_reached' || err?.error === 'upgrade_required') {
+                const plan = err.upgradePlan || err.requiredPlan || 'premium';
+                toast({
+                  title: err.error === 'limit_reached' ? t('common:planLimit.limitReached') : t('common:planLimit.upgradeRequired'),
+                  description: err.error === 'limit_reached'
+                    ? t('common:planLimit.limitReachedDesc', { limit: err.limit, plan })
+                    : t('common:planLimit.upgradeRequiredDesc', { plan }),
+                  variant: "warning",
+                });
+              } else {
+                toast({ title: t('common:error'), description: err?.error || t('connections:openFinance.connectionError'), variant: "destructive" });
+              }
             } finally {
               setCreating(false);
             }
@@ -319,8 +330,19 @@ const OpenFinance = () => {
         throw new Error(t('connections:openFinance.widgetError'));
       }
     } catch (err: any) {
-      const msg = err?.error || err?.message || t('connections:openFinance.connectionErrorGeneric');
-      toast({ title: t('common:error'), description: msg, variant: "destructive" });
+      if (err?.error === 'limit_reached' || err?.error === 'upgrade_required') {
+        const plan = err.upgradePlan || err.requiredPlan || 'premium';
+        toast({
+          title: err.error === 'limit_reached' ? t('common:planLimit.limitReached') : t('common:planLimit.upgradeRequired'),
+          description: err.error === 'limit_reached'
+            ? t('common:planLimit.limitReachedDesc', { limit: err.limit, plan })
+            : t('common:planLimit.upgradeRequiredDesc', { plan }),
+          variant: "warning",
+        });
+      } else {
+        const msg = err?.error || err?.message || t('connections:openFinance.connectionErrorGeneric');
+        toast({ title: t('common:error'), description: msg, variant: "destructive" });
+      }
       setCreating(false);
     }
   };

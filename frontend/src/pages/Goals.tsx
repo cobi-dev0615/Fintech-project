@@ -297,11 +297,24 @@ const Goals = () => {
       setDialogOpen(false);
       fetchGoals();
     } catch (err: unknown) {
-      toast({
-        title: t('goals:toast.createError'),
-        description: (err as { error?: string })?.error,
-        variant: "destructive",
-      });
+      const apiErr = err as { error?: string; limit?: number; upgradePlan?: string; requiredPlan?: string; message?: string };
+      if (apiErr.error === 'limit_reached' || apiErr.error === 'upgrade_required') {
+        setDialogOpen(false);
+        const plan = apiErr.upgradePlan || apiErr.requiredPlan || 'premium';
+        toast({
+          title: t('goals:toast.limitReached'),
+          description: apiErr.error === 'limit_reached'
+            ? t('goals:toast.limitReachedDesc', { limit: apiErr.limit, plan })
+            : t('goals:toast.upgradeRequiredDesc', { plan }),
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: t('goals:toast.createError'),
+          description: apiErr.message || apiErr.error,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -326,11 +339,25 @@ const Goals = () => {
       setEditingId(null);
       fetchGoals();
     } catch (err: unknown) {
-      toast({
-        title: t('goals:toast.updateError'),
-        description: (err as { error?: string })?.error,
-        variant: "destructive",
-      });
+      const apiErr = err as { error?: string; limit?: number; upgradePlan?: string; requiredPlan?: string; message?: string };
+      if (apiErr.error === 'limit_reached' || apiErr.error === 'upgrade_required') {
+        setDialogOpen(false);
+        setEditingId(null);
+        const plan = apiErr.upgradePlan || apiErr.requiredPlan || 'premium';
+        toast({
+          title: t('goals:toast.limitReached'),
+          description: apiErr.error === 'limit_reached'
+            ? t('goals:toast.limitReachedDesc', { limit: apiErr.limit, plan })
+            : t('goals:toast.upgradeRequiredDesc', { plan }),
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: t('goals:toast.updateError'),
+          description: apiErr.message || apiErr.error,
+          variant: "destructive",
+        });
+      }
     }
   };
 
