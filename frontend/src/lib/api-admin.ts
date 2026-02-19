@@ -61,6 +61,25 @@ export const adminApi = {
       transactions: Array<{ id: string; date: string; amount: number; description?: string; merchant?: string; account_name?: string; institution_name?: string }>;
     }>(`/admin/users/${userId}/finance`),
 
+  getCustomerTransactions: (userId: string, params?: {
+    page?: number; limit?: number;
+    dateFrom?: string; dateTo?: string;
+    view?: 'table' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.page != null) q.append('page', params.page.toString());
+    if (params?.limit != null) q.append('limit', params.limit.toString());
+    if (params?.dateFrom) q.append('dateFrom', params.dateFrom);
+    if (params?.dateTo) q.append('dateTo', params.dateTo);
+    if (params?.view) q.append('view', params.view);
+    const qs = q.toString();
+    return api.get<{
+      transactions?: Array<{ id: string; date: string; amount: number; description?: string; merchant?: string; account_name?: string; institution_name?: string }>;
+      pagination?: { page: number; limit: number; total: number; totalPages: number };
+      chartData?: Array<{ period: string; income: number; expense: number }>;
+    }>(`/admin/users/${userId}/transactions${qs ? `?${qs}` : ''}`);
+  },
+
   getUserInvestments: (userId: string, itemId?: string) => {
     const q = itemId ? `?itemId=${itemId}` : '';
     return api.get<{

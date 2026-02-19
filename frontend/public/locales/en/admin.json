@@ -503,7 +503,7 @@
       "openInvoice": "Open invoice"
     },
     "transactions": {
-      "title": "Recent Transactions",
+      "title": "Transactions",
       "subtitle": "{{count}} transactions",
       "empty": "No transactions found",
       "tableHeaders": {
@@ -512,6 +512,32 @@
         "account": "Account",
         "institution": "Institution",
         "amount": "Amount"
+      },
+      "views": {
+        "table": "Table",
+        "chart": "Chart"
+      },
+      "filters": {
+        "dateRange": "Date Range",
+        "from": "From",
+        "to": "To",
+        "apply": "Apply",
+        "clear": "Clear filters",
+        "last7d": "7 days",
+        "last30d": "30 days",
+        "last90d": "90 days",
+        "last1y": "1 year",
+        "allTime": "All time",
+        "custom": "Custom"
+      },
+      "chart": {
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "income": "Income",
+        "expense": "Expense",
+        "net": "Net"
       }
     },
     "tabs": {

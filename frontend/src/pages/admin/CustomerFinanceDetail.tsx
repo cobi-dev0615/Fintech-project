@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -10,17 +10,46 @@ import {
   Link2,
   Receipt,
   Wifi,
+  Table2,
+  BarChart3,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, subDays, subMonths, subYears } from "date-fns";
 import { ptBR, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { cn } from "@/lib/utils";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 interface FinanceData {
   user: { id: string; name: string; email: string };
@@ -54,6 +83,23 @@ const TAB_LABEL_KEY: Record<TabId, string> = {
   investments: "investments",
 };
 
+const TX_LIMIT_OPTIONS = [10, 20, 50];
+type TxViewMode = "table" | "chart";
+type TxChartMode = "daily" | "weekly" | "monthly" | "yearly";
+
+interface TxPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+interface TxChartPoint {
+  period: string;
+  income: number;
+  expense: number;
+}
+
 const CustomerFinanceDetail = () => {
   const { t, i18n } = useTranslation(["admin", "common"]);
   const { formatCurrency } = useCurrency();
@@ -66,6 +112,19 @@ const CustomerFinanceDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("account");
+
+  // ── Transaction tab state ──
+  const [txView, setTxView] = useState<TxViewMode>("table");
+  const [txChartMode, setTxChartMode] = useState<TxChartMode>("monthly");
+  const [txPage, setTxPage] = useState(1);
+  const [txLimit, setTxLimit] = useState(20);
+  const [txDateFrom, setTxDateFrom] = useState("");
+  const [txDateTo, setTxDateTo] = useState("");
+  const [txTransactions, setTxTransactions] = useState<any[]>([]);
+  const [txPagination, setTxPagination] = useState<TxPagination>({ page: 1, limit: 20, total: 0, totalPages: 1 });
+  const [txChartData, setTxChartData] = useState<TxChartPoint[]>([]);
+  const [txLoading, setTxLoading] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const getTypeLabel = (type: string) =>
     t(`admin:customerFinance.investmentTypes.${type}`, {
@@ -127,6 +186,95 @@ const CustomerFinanceDetail = () => {
     };
     fetchData();
   }, [id, toast]);
+
+  // ── Transaction data fetching ──
+  const fetchTransactions = useCallback(async () => {
+    if (!id) return;
+    try {
+      setTxLoading(true);
+      const viewParam = txView === "chart" ? txChartMode : "table";
+      const res = await adminApi.getCustomerTransactions(id, {
+        page: txView === "table" ? txPage : undefined,
+        limit: txView === "table" ? txLimit : undefined,
+        dateFrom: txDateFrom || undefined,
+        dateTo: txDateTo || undefined,
+        view: viewParam,
+      });
+      if (txView === "table") {
+        setTxTransactions(res.transactions || []);
+        setTxPagination(res.pagination || { page: 1, limit: 20, total: 0, totalPages: 1 });
+      } else {
+        setTxChartData(res.chartData || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch transactions:", err);
+    } finally {
+      setTxLoading(false);
+    }
+  }, [id, txView, txChartMode, txPage, txLimit, txDateFrom, txDateTo]);
+
+  useEffect(() => {
+    if (activeTab === "transaction" && id) {
+      fetchTransactions();
+    }
+  }, [activeTab, fetchTransactions]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setTxPage(1);
+  }, [txDateFrom, txDateTo, txLimit]);
+
+  // ── Transaction helpers ──
+  const txDateRangeLabel = useMemo(() => {
+    if (txDateFrom && txDateTo) {
+      return `${format(new Date(txDateFrom), "dd/MM/yy", { locale: dateLocale })} – ${format(new Date(txDateTo), "dd/MM/yy", { locale: dateLocale })}`;
+    }
+    if (txDateFrom) return `${t("admin:customerFinance.transactions.filters.from")} ${format(new Date(txDateFrom), "dd/MM/yy", { locale: dateLocale })}`;
+    if (txDateTo) return `${t("admin:customerFinance.transactions.filters.to")} ${format(new Date(txDateTo), "dd/MM/yy", { locale: dateLocale })}`;
+    return t("admin:customerFinance.transactions.filters.allTime");
+  }, [txDateFrom, txDateTo, dateLocale, t]);
+
+  const applyQuickPeriod = (days: number | null) => {
+    if (days === null) {
+      setTxDateFrom("");
+      setTxDateTo("");
+    } else {
+      setTxDateTo(format(new Date(), "yyyy-MM-dd"));
+      setTxDateFrom(format(subDays(new Date(), days), "yyyy-MM-dd"));
+    }
+    setDatePickerOpen(false);
+  };
+
+  const getTxPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const total = txPagination.totalPages;
+    const current = txPagination.page;
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push("...");
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (current < total - 2) pages.push("...");
+      if (total > 1) pages.push(total);
+    }
+    return pages;
+  };
+
+  const formatChartPeriod = (period: string) => {
+    try {
+      const d = new Date(period);
+      switch (txChartMode) {
+        case "daily": return format(d, "dd/MM", { locale: dateLocale });
+        case "weekly": return format(d, "dd/MM", { locale: dateLocale });
+        case "monthly": return format(d, "MMM yy", { locale: dateLocale });
+        case "yearly": return format(d, "yyyy", { locale: dateLocale });
+        default: return period;
+      }
+    } catch { return period; }
+  };
 
   const showContent = !loading && !error && data;
 
@@ -398,129 +546,401 @@ const CustomerFinanceDetail = () => {
         <div className="space-y-4 min-w-0">
           <ChartCard
             title={t("admin:customerFinance.transactions.title")}
-            subtitle={t("admin:customerFinance.transactions.subtitle", {
-              count: data.transactions.length,
-            })}
-          >
-            {data.transactions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Receipt className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                <p className="text-sm font-medium text-foreground">
-                  {t("admin:customerFinance.transactions.empty")}
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Mobile cards */}
-                <div className="space-y-2 max-h-[50vh] overflow-y-auto md:hidden pr-1 transactions-scrollbar">
-                  {data.transactions.map((tx) => {
-                    const amount = Number(tx.amount || 0);
-                    const isIncome = amount > 0;
-                    return (
-                      <div
-                        key={tx.id}
-                        className="p-3 rounded-lg bg-muted/20 border border-border/50"
-                      >
-                        <div className="flex justify-between items-start gap-2 mb-1">
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(tx.date), "dd/MM/yyyy", {
-                              locale: dateLocale,
-                            })}
-                          </p>
-                          <span
-                            className={cn(
-                              "text-sm font-medium tabular-nums shrink-0",
-                              isIncome ? "text-emerald-400" : "text-red-400",
-                            )}
-                          >
-                            {isIncome ? "+" : ""}
-                            {formatCurrency(amount)}
-                          </span>
-                        </div>
-                        <p className="text-sm font-medium truncate">
-                          {tx.description || tx.merchant || "-"}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {tx.account_name || "-"} &middot;{" "}
-                          {tx.institution_name || "-"}
-                        </p>
-                      </div>
-                    );
-                  })}
+            subtitle={txView === "table" && txPagination.total > 0
+              ? t("admin:customerFinance.transactions.subtitle", { count: txPagination.total })
+              : undefined}
+            actions={
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* View toggle */}
+                <div className="flex rounded-lg border border-border overflow-hidden">
+                  <button
+                    onClick={() => setTxView("table")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors",
+                      txView === "table"
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30",
+                    )}
+                  >
+                    <Table2 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{t("admin:customerFinance.transactions.views.table")}</span>
+                  </button>
+                  <button
+                    onClick={() => setTxView("chart")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors border-l border-border",
+                      txView === "chart"
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30",
+                    )}
+                  >
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{t("admin:customerFinance.transactions.views.chart")}</span>
+                  </button>
                 </div>
-                {/* Desktop table */}
-                <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[400px] transactions-scrollbar">
-                  <table className="w-full text-sm min-w-[520px]">
-                    <thead className="sticky top-0 z-10">
-                      <tr className="border-b border-white/15">
-                        <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
-                          {t(
-                            "admin:customerFinance.transactions.tableHeaders.date",
-                          )}
-                        </th>
-                        <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
-                          {t(
-                            "admin:customerFinance.transactions.tableHeaders.description",
-                          )}
-                        </th>
-                        <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
-                          {t(
-                            "admin:customerFinance.transactions.tableHeaders.account",
-                          )}
-                        </th>
-                        <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
-                          {t(
-                            "admin:customerFinance.transactions.tableHeaders.institution",
-                          )}
-                        </th>
-                        <th className="text-right py-2.5 px-3 text-xs font-medium text-muted-foreground">
-                          {t(
-                            "admin:customerFinance.transactions.tableHeaders.amount",
-                          )}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.transactions.map((tx) => {
+
+                {/* Date filter popover */}
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-normal">
+                      <CalendarIcon className="h-3.5 w-3.5" />
+                      <span className="max-w-[140px] truncate">{txDateRangeLabel}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-4" align="end">
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium">{t("admin:customerFinance.transactions.filters.dateRange")}</p>
+                      {/* Quick periods */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { label: t("admin:customerFinance.transactions.filters.last7d"), days: 7 },
+                          { label: t("admin:customerFinance.transactions.filters.last30d"), days: 30 },
+                          { label: t("admin:customerFinance.transactions.filters.last90d"), days: 90 },
+                          { label: t("admin:customerFinance.transactions.filters.last1y"), days: 365 },
+                          { label: t("admin:customerFinance.transactions.filters.allTime"), days: null },
+                        ].map((opt) => (
+                          <Button
+                            key={opt.label}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => applyQuickPeriod(opt.days)}
+                          >
+                            {opt.label}
+                          </Button>
+                        ))}
+                      </div>
+                      {/* Custom date inputs */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-muted-foreground mb-1 block">
+                            {t("admin:customerFinance.transactions.filters.from")}
+                          </label>
+                          <input
+                            type="date"
+                            value={txDateFrom}
+                            onChange={(e) => setTxDateFrom(e.target.value)}
+                            className="w-full h-8 px-2 text-xs rounded-md border border-border bg-background text-foreground"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground mb-1 block">
+                            {t("admin:customerFinance.transactions.filters.to")}
+                          </label>
+                          <input
+                            type="date"
+                            value={txDateTo}
+                            onChange={(e) => setTxDateTo(e.target.value)}
+                            className="w-full h-8 px-2 text-xs rounded-md border border-border bg-background text-foreground"
+                          />
+                        </div>
+                      </div>
+                      {(txDateFrom || txDateTo) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs w-full"
+                          onClick={() => { setTxDateFrom(""); setTxDateTo(""); }}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          {t("admin:customerFinance.transactions.filters.clear")}
+                        </Button>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            }
+          >
+            {/* Loading state */}
+            {txLoading && (
+              <div className="space-y-2">
+                {txView === "table" ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-12 rounded-md bg-muted/50 animate-pulse" />
+                  ))
+                ) : (
+                  <div className="h-[350px] rounded-lg bg-muted/50 animate-pulse" />
+                )}
+              </div>
+            )}
+
+            {/* Table view */}
+            {!txLoading && txView === "table" && (
+              <>
+                {txTransactions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Receipt className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                    <p className="text-sm font-medium text-foreground">
+                      {t("admin:customerFinance.transactions.empty")}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Mobile cards */}
+                    <div className="space-y-2 md:hidden pr-1">
+                      {txTransactions.map((tx) => {
                         const amount = Number(tx.amount || 0);
                         const isIncome = amount > 0;
                         return (
-                          <tr
+                          <div
                             key={tx.id}
-                            className="border-b border-white/10 hover:bg-muted/20 transition-colors"
+                            className="p-3 rounded-lg bg-muted/20 border border-border/50"
                           >
-                            <td className="py-2.5 px-3 text-muted-foreground tabular-nums">
-                              {format(new Date(tx.date), "dd/MM/yyyy", {
-                                locale: dateLocale,
-                              })}
-                            </td>
-                            <td className="py-2.5 px-3 font-medium">
+                            <div className="flex justify-between items-start gap-2 mb-1">
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(tx.date), "dd/MM/yyyy", { locale: dateLocale })}
+                              </p>
+                              <span
+                                className={cn(
+                                  "text-sm font-medium tabular-nums shrink-0",
+                                  isIncome ? "text-emerald-400" : "text-red-400",
+                                )}
+                              >
+                                {isIncome ? "+" : ""}
+                                {formatCurrency(amount)}
+                              </span>
+                            </div>
+                            <p className="text-sm font-medium truncate">
                               {tx.description || tx.merchant || "-"}
-                            </td>
-                            <td className="py-2.5 px-3 text-muted-foreground">
-                              {tx.account_name || "-"}
-                            </td>
-                            <td className="py-2.5 px-3 text-muted-foreground">
-                              {tx.institution_name || "-"}
-                            </td>
-                            <td
-                              className={cn(
-                                "py-2.5 px-3 text-right font-medium tabular-nums",
-                                isIncome
-                                  ? "text-emerald-400"
-                                  : "text-red-400",
-                              )}
-                            >
-                              {isIncome ? "+" : ""}
-                              {formatCurrency(amount)}
-                            </td>
-                          </tr>
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                              {tx.account_name || "-"} &middot; {tx.institution_name || "-"}
+                            </p>
+                          </div>
                         );
                       })}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
+                    {/* Desktop table */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-sm min-w-[520px]">
+                        <thead className="bg-card">
+                          <tr className="border-b border-white/15">
+                            <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
+                              {t("admin:customerFinance.transactions.tableHeaders.date")}
+                            </th>
+                            <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
+                              {t("admin:customerFinance.transactions.tableHeaders.description")}
+                            </th>
+                            <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
+                              {t("admin:customerFinance.transactions.tableHeaders.account")}
+                            </th>
+                            <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground">
+                              {t("admin:customerFinance.transactions.tableHeaders.institution")}
+                            </th>
+                            <th className="text-right py-2.5 px-3 text-xs font-medium text-muted-foreground">
+                              {t("admin:customerFinance.transactions.tableHeaders.amount")}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {txTransactions.map((tx) => {
+                            const amount = Number(tx.amount || 0);
+                            const isIncome = amount > 0;
+                            return (
+                              <tr
+                                key={tx.id}
+                                className="border-b border-white/10 hover:bg-muted/20 transition-colors"
+                              >
+                                <td className="py-2.5 px-3 text-muted-foreground tabular-nums">
+                                  {format(new Date(tx.date), "dd/MM/yyyy", { locale: dateLocale })}
+                                </td>
+                                <td className="py-2.5 px-3 font-medium">
+                                  {tx.description || tx.merchant || "-"}
+                                </td>
+                                <td className="py-2.5 px-3 text-muted-foreground">
+                                  {tx.account_name || "-"}
+                                </td>
+                                <td className="py-2.5 px-3 text-muted-foreground">
+                                  {tx.institution_name || "-"}
+                                </td>
+                                <td
+                                  className={cn(
+                                    "py-2.5 px-3 text-right font-medium tabular-nums",
+                                    isIncome ? "text-emerald-400" : "text-red-400",
+                                  )}
+                                >
+                                  {isIncome ? "+" : ""}
+                                  {formatCurrency(amount)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination */}
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex flex-wrap items-center gap-4">
+                          <span className="text-sm text-muted-foreground">
+                            {t("common:showingResults", {
+                              from: (txPagination.page - 1) * txPagination.limit + 1,
+                              to: Math.min(txPagination.page * txPagination.limit, txPagination.total),
+                              total: txPagination.total,
+                            })}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm text-muted-foreground whitespace-nowrap">
+                              {t("common:perPage")}
+                            </label>
+                            <Select value={String(txLimit)} onValueChange={(v) => setTxLimit(Number(v))}>
+                              <SelectTrigger className="h-9 w-[80px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {TX_LIMIT_OPTIONS.map((n) => (
+                                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        {txPagination.totalPages > 1 && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setTxPage((p) => Math.max(1, p - 1))}
+                              disabled={txPage <= 1 || txLoading}
+                              className="h-8 w-8 p-0"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            {getTxPageNumbers().map((pageNum, idx) =>
+                              pageNum === "..." ? (
+                                <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+                              ) : (
+                                <Button
+                                  key={pageNum}
+                                  variant={txPage === (pageNum as number) ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => setTxPage(pageNum as number)}
+                                  disabled={txLoading}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  {pageNum}
+                                </Button>
+                              ),
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setTxPage((p) => Math.min(txPagination.totalPages, p + 1))}
+                              disabled={txPage >= txPagination.totalPages || txLoading}
+                              className="h-8 w-8 p-0"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
+            )}
+
+            {/* Chart view */}
+            {!txLoading && txView === "chart" && (
+              <div className="space-y-4">
+                {/* Chart mode selector */}
+                <div className="flex gap-1.5 flex-wrap">
+                  {(["daily", "weekly", "monthly", "yearly"] as TxChartMode[]).map((mode) => (
+                    <Button
+                      key={mode}
+                      variant={txChartMode === mode ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setTxChartMode(mode)}
+                    >
+                      {t(`admin:customerFinance.transactions.chart.${mode}`)}
+                    </Button>
+                  ))}
+                </div>
+
+                {txChartData.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <BarChart3 className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                    <p className="text-sm font-medium text-foreground">
+                      {t("admin:customerFinance.transactions.empty")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="h-[350px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={txChartData.map((d) => ({ ...d, periodLabel: formatChartPeriod(d.period) }))}
+                        margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
+                      >
+                        <defs>
+                          <linearGradient id="txIncomeGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#059669" stopOpacity={1} />
+                          </linearGradient>
+                          <linearGradient id="txExpenseGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#f87171" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#dc2626" stopOpacity={1} />
+                          </linearGradient>
+                          <filter id="txBarShadow">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.15" />
+                          </filter>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.15} />
+                        <XAxis
+                          dataKey="periodLabel"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                          dy={10}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                          tickFormatter={(v) => formatCurrency(v)}
+                          width={80}
+                        />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                          }}
+                          formatter={(value: number, name: string) => [
+                            formatCurrency(value),
+                            name === "income"
+                              ? t("admin:customerFinance.transactions.chart.income")
+                              : t("admin:customerFinance.transactions.chart.expense"),
+                          ]}
+                          labelFormatter={(label) => label}
+                        />
+                        <Legend
+                          formatter={(value) =>
+                            value === "income"
+                              ? t("admin:customerFinance.transactions.chart.income")
+                              : t("admin:customerFinance.transactions.chart.expense")
+                          }
+                        />
+                        <Bar
+                          dataKey="income"
+                          fill="url(#txIncomeGradient)"
+                          radius={[4, 4, 0, 0]}
+                          filter="url(#txBarShadow)"
+                        />
+                        <Bar
+                          dataKey="expense"
+                          fill="url(#txExpenseGradient)"
+                          radius={[4, 4, 0, 0]}
+                          filter="url(#txBarShadow)"
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
             )}
           </ChartCard>
         </div>

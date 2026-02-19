@@ -940,6 +940,126 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Get customer transactions with pagination, date filtering, and chart aggregation
+  fastify.get('/users/:id/transactions', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const { id } = request.params;
+      const {
+        page = '1',
+        limit = '20',
+        dateFrom,
+        dateTo,
+        view = 'table',
+      } = request.query as Record<string, string | undefined>;
+
+      const pageNum = Math.max(1, parseInt(page || '1'));
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit || '20')));
+      const validViews = ['table', 'daily', 'weekly', 'monthly', 'yearly'];
+      const viewMode = validViews.includes(view || '') ? view : 'table';
+
+      // Build WHERE clause
+      const conditions = ['pt.user_id = $1'];
+      const params: any[] = [id];
+      let paramIdx = 2;
+
+      if (dateFrom) {
+        conditions.push(`pt.date >= $${paramIdx}`);
+        params.push(dateFrom);
+        paramIdx++;
+      }
+      if (dateTo) {
+        conditions.push(`pt.date <= $${paramIdx}`);
+        params.push(dateTo);
+        paramIdx++;
+      }
+
+      const whereClause = conditions.join(' AND ');
+
+      if (viewMode === 'table') {
+        // Count total
+        const countResult = await db.query(
+          `SELECT COUNT(*) FROM pluggy_transactions pt WHERE ${whereClause}`,
+          params
+        );
+        const total = parseInt(countResult.rows[0].count) || 0;
+        const totalPages = Math.ceil(total / limitNum) || 1;
+        const offset = (pageNum - 1) * limitNum;
+
+        // Fetch page
+        const txResult = await db.query(
+          `SELECT pt.*, pa.name as account_name, i.name as institution_name
+           FROM pluggy_transactions pt
+           LEFT JOIN pluggy_accounts pa ON pt.pluggy_account_id = pa.pluggy_account_id AND pt.user_id = pa.user_id
+           LEFT JOIN connections c ON pt.item_id = c.external_consent_id AND c.user_id = pt.user_id
+           LEFT JOIN institutions i ON c.institution_id = i.id
+           WHERE ${whereClause}
+           ORDER BY pt.date DESC, pt.created_at DESC
+           LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+          [...params, limitNum, offset]
+        );
+
+        return reply.send({
+          transactions: txResult.rows,
+          pagination: { page: pageNum, limit: limitNum, total, totalPages },
+        });
+      } else {
+        // Chart aggregation mode
+        let groupExpr: string;
+        let defaultFrom: string | null = null;
+
+        switch (viewMode) {
+          case 'daily':
+            groupExpr = 'pt.date';
+            if (!dateFrom) defaultFrom = "CURRENT_DATE - INTERVAL '30 days'";
+            break;
+          case 'weekly':
+            groupExpr = "date_trunc('week', pt.date)";
+            if (!dateFrom) defaultFrom = "CURRENT_DATE - INTERVAL '12 weeks'";
+            break;
+          case 'monthly':
+            groupExpr = "date_trunc('month', pt.date)";
+            if (!dateFrom) defaultFrom = "CURRENT_DATE - INTERVAL '12 months'";
+            break;
+          case 'yearly':
+          default:
+            groupExpr = "date_trunc('year', pt.date)";
+            break;
+        }
+
+        // Apply smart default date range if no dateFrom provided
+        let chartWhere = whereClause;
+        const chartParams = [...params];
+        if (defaultFrom && !dateFrom) {
+          chartWhere += ` AND pt.date >= ${defaultFrom}`;
+        }
+
+        const chartResult = await db.query(
+          `SELECT ${groupExpr}::date as period,
+                  SUM(CASE WHEN pt.amount > 0 THEN pt.amount ELSE 0 END) as income,
+                  SUM(CASE WHEN pt.amount < 0 THEN ABS(pt.amount) ELSE 0 END) as expense
+           FROM pluggy_transactions pt
+           WHERE ${chartWhere}
+           GROUP BY ${groupExpr}
+           ORDER BY period`,
+          chartParams
+        );
+
+        return reply.send({
+          chartData: chartResult.rows.map((r: any) => ({
+            period: r.period,
+            income: parseFloat(r.income) || 0,
+            expense: parseFloat(r.expense) || 0,
+          })),
+        });
+      }
+    } catch (error: any) {
+      fastify.log.error('Error fetching customer transactions:', error);
+      reply.code(500).send({ error: 'Failed to fetch transactions', details: error.message });
+    }
+  });
+
   // Get user investments/portfolio (admin view)
   fastify.get('/users/:id/investments', {
     preHandler: [requireAdmin],

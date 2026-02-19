@@ -503,7 +503,7 @@
       "openInvoice": "Fatura em aberto"
     },
     "transactions": {
-      "title": "Transações Recentes",
+      "title": "Transações",
       "subtitle": "{{count}} transações",
       "empty": "Nenhuma transação encontrada",
       "tableHeaders": {
@@ -512,6 +512,32 @@
         "account": "Conta",
         "institution": "Instituição",
         "amount": "Valor"
+      },
+      "views": {
+        "table": "Tabela",
+        "chart": "Gráfico"
+      },
+      "filters": {
+        "dateRange": "Período",
+        "from": "De",
+        "to": "Até",
+        "apply": "Aplicar",
+        "clear": "Limpar filtros",
+        "last7d": "7 dias",
+        "last30d": "30 dias",
+        "last90d": "90 dias",
+        "last1y": "1 ano",
+        "allTime": "Todo período",
+        "custom": "Personalizado"
+      },
+      "chart": {
+        "daily": "Diário",
+        "weekly": "Semanal",
+        "monthly": "Mensal",
+        "yearly": "Anual",
+        "income": "Receita",
+        "expense": "Despesa",
+        "net": "Líquido"
       }
     },
     "tabs": {
