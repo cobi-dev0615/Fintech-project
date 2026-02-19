@@ -431,6 +431,15 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       };
       const truncUnit = validPeriods[period] || 'month';
 
+      // Period-specific lookback for revenue vs expenses chart
+      const periodLookback: Record<string, { interval: string; step: string }> = {
+        day: { interval: '30 days', step: '1 day' },
+        week: { interval: '12 weeks', step: '1 week' },
+        month: { interval: '12 months', step: '1 month' },
+        year: { interval: '5 years', step: '1 year' },
+      };
+      const pLookback = periodLookback[truncUnit] || periodLookback.month;
+
       // Determine which table has data: prefer pluggy_transactions, fallback to transactions
       let usePluggy = false;
       try {
@@ -462,17 +471,25 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
 
       if (usePluggy) {
         [revenueResult, categoryResult, weeklyCurrentResult, weeklyPrevResult, recentResult] = await Promise.all([
-          // 1. Revenue vs Expenses grouped by period
+          // 1. Revenue vs Expenses grouped by period (with gap-filling via generate_series)
           db.query(
-            `SELECT
-              DATE_TRUNC('${truncUnit}', pt.date)::date AS period,
+            `WITH periods AS (
+              SELECT generate_series(
+                DATE_TRUNC('${truncUnit}', CURRENT_DATE - INTERVAL '${pLookback.interval}'),
+                DATE_TRUNC('${truncUnit}', CURRENT_DATE),
+                INTERVAL '${pLookback.step}'
+              )::date AS period
+            )
+            SELECT
+              p.period,
               COALESCE(SUM(CASE WHEN pt.amount > 0 THEN pt.amount ELSE 0 END), 0)::float AS income,
               COALESCE(SUM(CASE WHEN pt.amount < 0 THEN ABS(pt.amount) ELSE 0 END), 0)::float AS expenses
-            FROM pluggy_transactions pt
-            WHERE pt.user_id = $1
-              AND pt.date >= CURRENT_DATE - INTERVAL '365 days'
-            GROUP BY DATE_TRUNC('${truncUnit}', pt.date)
-            ORDER BY period ASC`,
+            FROM periods p
+            LEFT JOIN pluggy_transactions pt
+              ON DATE_TRUNC('${truncUnit}', pt.date)::date = p.period
+              AND pt.user_id = $1
+            GROUP BY p.period
+            ORDER BY p.period ASC`,
             [userId]
           ),
 
@@ -539,17 +556,25 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       } else {
         // Fallback: query transactions table (populated by connections sync)
         [revenueResult, categoryResult, weeklyCurrentResult, weeklyPrevResult, recentResult] = await Promise.all([
-          // 1. Revenue vs Expenses grouped by period
+          // 1. Revenue vs Expenses grouped by period (with gap-filling via generate_series)
           db.query(
-            `SELECT
-              DATE_TRUNC('${truncUnit}', t.occurred_at)::date AS period,
+            `WITH periods AS (
+              SELECT generate_series(
+                DATE_TRUNC('${truncUnit}', CURRENT_DATE - INTERVAL '${pLookback.interval}'),
+                DATE_TRUNC('${truncUnit}', CURRENT_DATE),
+                INTERVAL '${pLookback.step}'
+              )::date AS period
+            )
+            SELECT
+              p.period,
               COALESCE(SUM(CASE WHEN t.amount_cents > 0 THEN t.amount_cents::float / 100 ELSE 0 END), 0)::float AS income,
               COALESCE(SUM(CASE WHEN t.amount_cents < 0 THEN ABS(t.amount_cents::float / 100) ELSE 0 END), 0)::float AS expenses
-            FROM transactions t
-            WHERE t.user_id = $1
-              AND t.occurred_at >= CURRENT_DATE - INTERVAL '365 days'
-            GROUP BY DATE_TRUNC('${truncUnit}', t.occurred_at)
-            ORDER BY period ASC`,
+            FROM periods p
+            LEFT JOIN transactions t
+              ON DATE_TRUNC('${truncUnit}', t.occurred_at)::date = p.period
+              AND t.user_id = $1
+            GROUP BY p.period
+            ORDER BY p.period ASC`,
             [userId]
           ),
 
