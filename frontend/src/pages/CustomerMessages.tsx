@@ -507,7 +507,7 @@ const CustomerMessages = () => {
       toast({
         title: t("messages:fileTypeNotAllowed"),
         description: t("messages:fileTypeNotAllowedDesc"),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }
@@ -515,7 +515,7 @@ const CustomerMessages = () => {
       toast({
         title: t("messages:fileTooLarge"),
         description: t("messages:fileTooLargeDesc"),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

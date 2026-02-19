@@ -233,7 +233,7 @@ const Settings = () => {
   const handleSaveProfile = async () => {
     const localDigits = profile.phone.replace(/\D/g, "");
     if (localDigits && !validatePhone(profile.phone, profile.countryCode)) {
-      toast({ title: t('common:error'), description: t('consultant:settings.profile.phoneError'), variant: "destructive" });
+      toast({ title: t('common:error'), description: t('consultant:settings.profile.phoneError'), variant: "warning" });
       return;
     }
     setSaving(true);

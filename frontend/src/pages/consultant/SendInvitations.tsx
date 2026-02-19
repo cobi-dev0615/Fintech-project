@@ -308,7 +308,7 @@ const SendInvitations = () => {
       toast({
         title: t('common:error'),
         description: t('consultant:invitations.validation.emailRequired'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

@@ -231,7 +231,7 @@ const Reports = () => {
       toast({
         title: t("common:error"),
         description: t("generateForm.selectReportType"),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

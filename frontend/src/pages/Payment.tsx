@@ -63,7 +63,7 @@ const Payment = () => {
       toast({
         title: t('common:error'),
         description: t('planNotSelected'),
-        variant: "destructive",
+        variant: "warning",
       });
       setTimeout(() => {
         const basePath = location.pathname.startsWith('/consultant') ? '/consultant' : '/app';

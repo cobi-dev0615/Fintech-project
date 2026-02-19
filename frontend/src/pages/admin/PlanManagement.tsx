@@ -362,7 +362,7 @@ const PlanManagement = () => {
       toast({
         title: t('common:error'),
         description: t('common:requiredFields'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

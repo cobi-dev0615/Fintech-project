@@ -122,7 +122,7 @@ const Connections = () => {
       toast({
         title: t('common:error'),
         description: t('connections:toast.selectProvider'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

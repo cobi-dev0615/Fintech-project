@@ -283,7 +283,7 @@ const Goals = () => {
   const handleCreate = async () => {
     const targetNum = newTarget === "" ? 0 : newTarget;
     if (!newName.trim()) {
-      toast({ title: t('goals:dialog.nameRequired'), variant: "destructive" });
+      toast({ title: t('goals:dialog.nameRequired'), variant: "warning" });
       return;
     }
     try {
@@ -323,7 +323,7 @@ const Goals = () => {
     const targetNum = editTarget === "" ? undefined : editTarget;
     const currentNum = editCurrent === "" ? undefined : editCurrent;
     if (!editName.trim()) {
-      toast({ title: t('goals:dialog.nameRequired'), variant: "destructive" });
+      toast({ title: t('goals:dialog.nameRequired'), variant: "warning" });
       return;
     }
     try {

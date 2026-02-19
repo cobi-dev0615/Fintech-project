@@ -27,7 +27,7 @@ const UsufructCalculator = () => {
       toast({
         title: t('common:error'),
         description: t('calculators:usufruct.validationError'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

@@ -361,7 +361,7 @@ const Pipeline = () => {
       toast({
         title: t('common:error'),
         description: t('consultant:pipeline.validation.emailRequired'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }
@@ -371,7 +371,7 @@ const Pipeline = () => {
       toast({
         title: t('consultant:pipeline.validation.phoneInvalidTitle'),
         description: t('consultant:pipeline.validation.phoneInvalidDesc'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }
@@ -411,7 +411,7 @@ const Pipeline = () => {
       toast({
         title: t('common:error'),
         description: t('consultant:pipeline.validation.emailRequired'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }
@@ -421,7 +421,7 @@ const Pipeline = () => {
       toast({
         title: t('consultant:pipeline.validation.phoneInvalidTitle'),
         description: t('consultant:pipeline.validation.phoneInvalidDesc'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

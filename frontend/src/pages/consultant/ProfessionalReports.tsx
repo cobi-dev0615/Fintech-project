@@ -873,7 +873,7 @@ const ProfessionalReports = () => {
       toast({
         title: t('common:error'),
         description: t('consultant:reports.toast.typeRequired'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

@@ -250,7 +250,7 @@ const PortfolioSimulator = () => {
       toast({
         title: t('common:error'),
         description: t('consultant:simulator.toast.selectClient'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

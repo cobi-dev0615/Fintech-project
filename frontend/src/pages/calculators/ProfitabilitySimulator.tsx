@@ -31,7 +31,7 @@ const ProfitabilitySimulator = () => {
       toast({
         title: t('common:error'),
         description: t('calculators:profitability.validationError'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

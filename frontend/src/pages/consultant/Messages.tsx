@@ -459,7 +459,7 @@ const Messages = () => {
       toast({
         title: t('consultant:messages.fileTypeNotAllowed'),
         description: t('consultant:messages.fileTypeNotAllowedDesc'),
-        variant: "destructive"
+        variant: "warning"
       });
       return;
     }
@@ -467,7 +467,7 @@ const Messages = () => {
       toast({
         title: t('consultant:messages.fileTooLarge'),
         description: t('consultant:messages.fileTooLargeDesc'),
-        variant: "destructive"
+        variant: "warning"
       });
       return;
     }
@@ -501,7 +501,7 @@ const Messages = () => {
       toast({
         title: t('common:error'),
         description: t('consultant:messages.selectClientError'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }

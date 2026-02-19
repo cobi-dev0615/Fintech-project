@@ -39,7 +39,7 @@ const ITCMDCalculator = () => {
       toast({
         title: t('common:error'),
         description: t('calculators:itcmd.validationError'),
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }
