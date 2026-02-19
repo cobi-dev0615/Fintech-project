@@ -129,6 +129,72 @@
       "customers": "Customers",
       "consultants": "Consultants",
       "activeUsers": "Active"
+    },
+    "registrationApproval": {
+      "title": "Registration Approval",
+      "enabledHint": "New users require admin approval before accessing the platform",
+      "disabledHint": "New users are automatically approved upon registration",
+      "updated": "Setting updated",
+      "enabledDesc": "New registrations now require admin approval.",
+      "disabledDesc": "New registrations are now automatically approved.",
+      "updateError": "Failed to update registration approval setting"
+    }
+  },
+  "userDetail": {
+    "title": "User Details",
+    "loadError": "Failed to load user details",
+    "tabs": {
+      "overview": "Overview",
+      "finance": "Finance",
+      "actions": "Actions"
+    },
+    "personalInfo": "Personal Information",
+    "phone": "Phone",
+    "country": "Country",
+    "birthDate": "Birth Date",
+    "riskProfile": "Risk Profile",
+    "subscription": "Subscription",
+    "noSubscription": "No active subscription",
+    "month": "month",
+    "period": "Period",
+    "stats": "Statistics",
+    "connections": "Connections",
+    "goals": "Goals",
+    "clients": "Clients",
+    "consultantsLabel": "Consultants",
+    "financialSummary": "Financial Summary",
+    "cash": "Cash",
+    "investments": "Investments",
+    "debt": "Debt",
+    "netWorth": "Net Worth",
+    "viewFullFinance": "View Full Financial Details",
+    "actions": {
+      "pendingSection": "Pending Approval",
+      "accessSection": "Access Control",
+      "dangerZone": "Danger Zone",
+      "approve": "Approve",
+      "reject": "Reject",
+      "block": "Block User",
+      "unblock": "Unblock User",
+      "delete": "Delete User",
+      "deleteWarning": "This action is permanent and cannot be undone. All user data will be removed.",
+      "approveSuccess": "User approved successfully",
+      "rejectSuccess": "User rejected successfully",
+      "blockSuccess": "User blocked successfully",
+      "unblockSuccess": "User unblocked successfully",
+      "actionError": "Failed to perform action"
+    },
+    "confirm": {
+      "approveTitle": "Approve User",
+      "approveDesc": "This user will be granted access to the platform. They will receive a notification.",
+      "rejectTitle": "Reject User",
+      "rejectDesc": "This user's registration will be rejected. They will be notified.",
+      "blockTitle": "Block User",
+      "blockDesc": "This user will lose access to the platform immediately. They can be unblocked later.",
+      "unblockTitle": "Unblock User",
+      "unblockDesc": "This user will regain access to the platform.",
+      "deleteTitle": "Delete User",
+      "deleteDesc": "This will permanently delete the user and all associated data. This action cannot be undone."
     }
   },
   "subscriptions": {

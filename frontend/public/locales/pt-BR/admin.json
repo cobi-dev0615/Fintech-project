@@ -129,6 +129,72 @@
       "customers": "Clientes",
       "consultants": "Consultores",
       "activeUsers": "Ativos"
+    },
+    "registrationApproval": {
+      "title": "Aprovação de Cadastro",
+      "enabledHint": "Novos usuários precisam de aprovação do administrador para acessar a plataforma",
+      "disabledHint": "Novos usuários são aprovados automaticamente ao se cadastrar",
+      "updated": "Configuração atualizada",
+      "enabledDesc": "Novos cadastros agora requerem aprovação do administrador.",
+      "disabledDesc": "Novos cadastros agora são aprovados automaticamente.",
+      "updateError": "Erro ao atualizar configuração de aprovação de cadastro"
+    }
+  },
+  "userDetail": {
+    "title": "Detalhes do Usuário",
+    "loadError": "Erro ao carregar detalhes do usuário",
+    "tabs": {
+      "overview": "Visão Geral",
+      "finance": "Finanças",
+      "actions": "Ações"
+    },
+    "personalInfo": "Informações Pessoais",
+    "phone": "Telefone",
+    "country": "País",
+    "birthDate": "Data de Nascimento",
+    "riskProfile": "Perfil de Risco",
+    "subscription": "Assinatura",
+    "noSubscription": "Sem assinatura ativa",
+    "month": "mês",
+    "period": "Período",
+    "stats": "Estatísticas",
+    "connections": "Conexões",
+    "goals": "Metas",
+    "clients": "Clientes",
+    "consultantsLabel": "Consultores",
+    "financialSummary": "Resumo Financeiro",
+    "cash": "Caixa",
+    "investments": "Investimentos",
+    "debt": "Dívida",
+    "netWorth": "Patrimônio Líquido",
+    "viewFullFinance": "Ver Detalhes Financeiros Completos",
+    "actions": {
+      "pendingSection": "Aprovação Pendente",
+      "accessSection": "Controle de Acesso",
+      "dangerZone": "Zona de Perigo",
+      "approve": "Aprovar",
+      "reject": "Rejeitar",
+      "block": "Bloquear Usuário",
+      "unblock": "Desbloquear Usuário",
+      "delete": "Excluir Usuário",
+      "deleteWarning": "Esta ação é permanente e não pode ser desfeita. Todos os dados do usuário serão removidos.",
+      "approveSuccess": "Usuário aprovado com sucesso",
+      "rejectSuccess": "Usuário rejeitado com sucesso",
+      "blockSuccess": "Usuário bloqueado com sucesso",
+      "unblockSuccess": "Usuário desbloqueado com sucesso",
+      "actionError": "Erro ao executar ação"
+    },
+    "confirm": {
+      "approveTitle": "Aprovar Usuário",
+      "approveDesc": "Este usuário terá acesso à plataforma. Ele receberá uma notificação.",
+      "rejectTitle": "Rejeitar Usuário",
+      "rejectDesc": "O cadastro deste usuário será rejeitado. Ele será notificado.",
+      "blockTitle": "Bloquear Usuário",
+      "blockDesc": "Este usuário perderá o acesso à plataforma imediatamente. Pode ser desbloqueado depois.",
+      "unblockTitle": "Desbloquear Usuário",
+      "unblockDesc": "Este usuário terá o acesso à plataforma restaurado.",
+      "deleteTitle": "Excluir Usuário",
+      "deleteDesc": "Isso excluirá permanentemente o usuário e todos os dados associados. Esta ação não pode ser desfeita."
     }
   },
   "subscriptions": {
