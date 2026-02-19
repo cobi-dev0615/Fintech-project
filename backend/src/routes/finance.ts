@@ -43,13 +43,12 @@ export async function financeRoutes(fastify: FastifyInstance) {
       const { itemId } = request.query as any;
 
       let query = `
-        SELECT 
+        SELECT DISTINCT ON (pa.pluggy_account_id)
           pa.*,
-          c.external_consent_id as item_id,
           i.name as institution_name,
           i.logo_url as institution_logo
         FROM pluggy_accounts pa
-        LEFT JOIN connections c ON pa.item_id = c.external_consent_id
+        LEFT JOIN connections c ON pa.item_id = c.external_consent_id AND c.user_id = pa.user_id
         LEFT JOIN institutions i ON c.institution_id = i.id
         WHERE pa.user_id = $1
       `;
@@ -60,7 +59,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
         params.push(itemId);
       }
 
-      query += ' ORDER BY pa.updated_at DESC';
+      query += ' ORDER BY pa.pluggy_account_id, pa.updated_at DESC';
 
       const result = await db.query(query, params);
 

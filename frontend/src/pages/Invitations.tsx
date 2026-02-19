@@ -19,6 +19,8 @@ import {
   TrendingDown,
   Link2,
   UserCheck,
+  ChevronLeft,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -200,6 +202,8 @@ const Invitations = () => {
   const [referralLink, setReferralLink] = useState<string>("");
   const [invitedUsers, setInvitedUsers] = useState<InvitedUser[]>([]);
   const [referralLoading, setReferralLoading] = useState(true);
+  const [invitedPage, setInvitedPage] = useState(1);
+  const INVITED_PER_PAGE = 3;
 
   const dateLocale =
     i18n.language === "pt-BR" || i18n.language === "pt" ? ptBR : enUS;
@@ -895,36 +899,78 @@ const Invitations = () => {
                       </p>
                     </div>
                   ) : (
-                    <ul className="border border-border rounded-lg divide-y divide-border overflow-hidden">
-                      {invitedUsers.map((u) => (
-                        <li
-                          key={u.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2.5 hover:bg-muted/20 transition-colors"
-                        >
-                          <div className="min-w-0">
-                            <p className="font-medium text-foreground text-sm">{u.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {u.email}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Badge
-                              variant={
-                                u.status === "registered" ? "default" : "secondary"
-                              }
-                              className="text-xs"
+                    <>
+                      <ul className="border border-border rounded-lg divide-y divide-border overflow-hidden">
+                        {invitedUsers
+                          .slice((invitedPage - 1) * INVITED_PER_PAGE, invitedPage * INVITED_PER_PAGE)
+                          .map((u) => (
+                          <li
+                            key={u.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2.5 hover:bg-muted/20 transition-colors"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground text-sm">{u.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {u.email}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Badge
+                                variant={
+                                  u.status === "registered" ? "default" : "secondary"
+                                }
+                                className="text-xs"
+                              >
+                                {getStatusLabel(u.status)}
+                              </Badge>
+                              <span className="text-muted-foreground text-xs">
+                                {format(new Date(u.registeredAt), "dd/MM/yyyy", {
+                                  locale: dateLocale,
+                                })}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      {invitedUsers.length > INVITED_PER_PAGE && (
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="text-xs text-muted-foreground">
+                            {(invitedPage - 1) * INVITED_PER_PAGE + 1}–{Math.min(invitedPage * INVITED_PER_PAGE, invitedUsers.length)} / {invitedUsers.length}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              disabled={invitedPage <= 1}
+                              onClick={() => setInvitedPage((p) => Math.max(1, p - 1))}
                             >
-                              {getStatusLabel(u.status)}
-                            </Badge>
-                            <span className="text-muted-foreground text-xs">
-                              {format(new Date(u.registeredAt), "dd/MM/yyyy", {
-                                locale: dateLocale,
-                              })}
-                            </span>
+                              <ChevronLeft className="h-3.5 w-3.5" />
+                            </Button>
+                            {Array.from({ length: Math.ceil(invitedUsers.length / INVITED_PER_PAGE) }, (_, i) => i + 1).map((p) => (
+                              <Button
+                                key={p}
+                                variant={invitedPage === p ? "default" : "outline"}
+                                size="sm"
+                                className="h-7 w-7 p-0 text-xs"
+                                onClick={() => setInvitedPage(p)}
+                              >
+                                {p}
+                              </Button>
+                            ))}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              disabled={invitedPage >= Math.ceil(invitedUsers.length / INVITED_PER_PAGE)}
+                              onClick={() => setInvitedPage((p) => Math.min(Math.ceil(invitedUsers.length / INVITED_PER_PAGE), p + 1))}
+                            >
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
-                        </li>
-                      ))}
-                    </ul>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
