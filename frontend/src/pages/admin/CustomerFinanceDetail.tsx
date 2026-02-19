@@ -979,38 +979,41 @@ const CustomerFinanceDetail = () => {
                       }}
                     >
                       <div className="flex gap-4 sm:gap-5">
-                        {/* Visual Credit Card */}
-                        <div
-                          className={`credit-card-visual ${getBrandClass(card.brand)} shrink-0 flex flex-col justify-between`}
-                        >
-                          <div className="flex items-start justify-between relative z-10">
-                            <Wifi className="h-4 w-4 opacity-80 rotate-90" />
-                            <span className="text-sm font-bold tracking-wider opacity-95 italic drop-shadow-sm">
-                              {card.institution_name || brandUpper}
-                            </span>
-                          </div>
-                          <div className="relative z-10 space-y-1.5">
-                            <div className="card-chip" />
-                            <div className="font-mono text-[11px] sm:text-xs tracking-[0.14em] opacity-95 leading-tight drop-shadow-sm">
-                              {getCardNumber(card)}
+                        {/* Visual Credit Card — 3D tilted */}
+                        <div className="card-3d-wrapper shrink-0">
+                          <div
+                            className={`credit-card-visual ${getBrandClass(card.brand)} flex flex-col justify-between`}
+                          >
+                            <div className="card-edge-highlight" />
+                            <div className="flex items-start justify-between relative z-10">
+                              <Wifi className="h-4 w-4 opacity-80 rotate-90" />
+                              <span className="text-sm font-bold tracking-wider opacity-95 italic drop-shadow-sm">
+                                {card.institution_name || brandUpper}
+                              </span>
                             </div>
-                          </div>
-                          <div className="flex items-end justify-between relative z-10">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[7px] uppercase tracking-widest opacity-50 mb-0.5">
-                                CARD HOLDER
-                              </p>
-                              <p className="text-[9px] font-semibold uppercase tracking-wide truncate drop-shadow-sm">
-                                {holderName}
-                              </p>
+                            <div className="relative z-10 space-y-1.5">
+                              <div className="card-chip" />
+                              <div className="font-mono text-[11px] sm:text-xs tracking-[0.14em] opacity-95 leading-tight drop-shadow-sm">
+                                {getCardNumber(card)}
+                              </div>
                             </div>
-                            <div className="text-right shrink-0 ml-2">
-                              <p className="text-[7px] uppercase tracking-widest opacity-50 mb-0.5">
-                                LAST 4
-                              </p>
-                              <p className="text-[9px] font-semibold drop-shadow-sm">
-                                •••• {card.last4 || "****"}
-                              </p>
+                            <div className="flex items-end justify-between relative z-10">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[7px] uppercase tracking-widest opacity-50 mb-0.5">
+                                  CARD HOLDER
+                                </p>
+                                <p className="text-[9px] font-semibold uppercase tracking-wide truncate drop-shadow-sm">
+                                  {holderName}
+                                </p>
+                              </div>
+                              <div className="text-right shrink-0 ml-2">
+                                <p className="text-[7px] uppercase tracking-widest opacity-50 mb-0.5">
+                                  LAST 4
+                                </p>
+                                <p className="text-[9px] font-semibold drop-shadow-sm">
+                                  •••• {card.last4 || "****"}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>

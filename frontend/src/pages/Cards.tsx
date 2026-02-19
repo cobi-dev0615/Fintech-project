@@ -398,41 +398,46 @@ const Cards = () => {
                       onClick={() => setSelectedCardId(cardId)}
                     >
                       <div className="flex gap-4 sm:gap-5">
-                        {/* Compact Visual Credit Card (left) */}
-                        <div className={`credit-card-visual ${getBrandClass(card.brand)} shrink-0 flex flex-col justify-between`}>
-                          {/* Top: Contactless icon + Brand logo */}
-                          <div className="flex items-start justify-between relative z-10">
-                            <Wifi className="h-4 w-4 opacity-80 rotate-90" />
-                            <span className="text-sm font-bold tracking-wider opacity-95 italic drop-shadow-sm">
-                              {card.institution_name || brandUpper}
-                            </span>
-                          </div>
+                        {/* Compact Visual Credit Card (left) — 3D tilted */}
+                        <div className="card-3d-wrapper shrink-0">
+                          <div className={`credit-card-visual ${getBrandClass(card.brand)} flex flex-col justify-between`}>
+                            {/* Edge highlight */}
+                            <div className="card-edge-highlight" />
 
-                          {/* Chip + Card Number */}
-                          <div className="relative z-10 space-y-1.5">
-                            <div className="card-chip" />
-                            <div className="font-mono text-[11px] sm:text-xs tracking-[0.14em] opacity-95 leading-tight drop-shadow-sm">
-                              {getFullCardNumber(card)}
+                            {/* Top: Contactless icon + Brand logo */}
+                            <div className="flex items-start justify-between relative z-10">
+                              <Wifi className="h-4 w-4 opacity-80 rotate-90" />
+                              <span className="text-sm font-bold tracking-wider opacity-95 italic drop-shadow-sm">
+                                {card.institution_name || brandUpper}
+                              </span>
                             </div>
-                          </div>
 
-                          {/* Bottom: Holder + Expiry */}
-                          <div className="flex items-end justify-between relative z-10">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[7px] uppercase tracking-widest opacity-50 mb-0.5">
-                                {t("cards:cardHolder").toUpperCase()}
-                              </p>
-                              <p className="text-[9px] font-semibold uppercase tracking-wide truncate drop-shadow-sm">
-                                {holderName}
-                              </p>
+                            {/* Chip + Card Number */}
+                            <div className="relative z-10 space-y-1.5">
+                              <div className="card-chip" />
+                              <div className="font-mono text-[11px] sm:text-xs tracking-[0.14em] opacity-95 leading-tight drop-shadow-sm">
+                                {getFullCardNumber(card)}
+                              </div>
                             </div>
-                            <div className="text-right shrink-0 ml-2">
-                              <p className="text-[7px] uppercase tracking-widest opacity-50 mb-0.5">
-                                {t("cards:expires").toUpperCase()}
-                              </p>
-                              <p className="text-[9px] font-semibold drop-shadow-sm">
-                                {getExpiry(card)}
-                              </p>
+
+                            {/* Bottom: Holder + Expiry */}
+                            <div className="flex items-end justify-between relative z-10">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[7px] uppercase tracking-widest opacity-50 mb-0.5">
+                                  {t("cards:cardHolder").toUpperCase()}
+                                </p>
+                                <p className="text-[9px] font-semibold uppercase tracking-wide truncate drop-shadow-sm">
+                                  {holderName}
+                                </p>
+                              </div>
+                              <div className="text-right shrink-0 ml-2">
+                                <p className="text-[7px] uppercase tracking-widest opacity-50 mb-0.5">
+                                  {t("cards:expires").toUpperCase()}
+                                </p>
+                                <p className="text-[9px] font-semibold drop-shadow-sm">
+                                  {getExpiry(card)}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -536,41 +541,46 @@ const Cards = () => {
               <div className="chart-card sticky top-6">
                 {selectedCard ? (
                   <div className="space-y-5">
-                    {/* Large Visual Card */}
-                    <div className={`credit-card-visual-lg ${getBrandClass(selectedCard.brand)} flex flex-col justify-between`}>
-                      {/* Top: Contactless + Brand / Institution */}
-                      <div className="flex items-start justify-between relative z-10">
-                        <Wifi className="h-5 w-5 opacity-80 rotate-90" />
-                        <span className="text-base font-bold tracking-wider opacity-95 italic drop-shadow-md">
-                          {selectedCard.institution_name || (selectedCard.brand || "VISA").toUpperCase()}
-                        </span>
-                      </div>
+                    {/* Large Visual Card — 3D tilted */}
+                    <div className="card-3d-wrapper-lg">
+                      <div className={`credit-card-visual-lg ${getBrandClass(selectedCard.brand)} flex flex-col justify-between`}>
+                        {/* Edge highlight */}
+                        <div className="card-edge-highlight" />
 
-                      {/* Chip + Card Number */}
-                      <div className="relative z-10 space-y-2.5">
-                        <div className="card-chip-lg" />
-                        <div className="font-mono text-base sm:text-lg tracking-[0.16em] opacity-95 leading-tight drop-shadow-md">
-                          {getFullCardNumber(selectedCard)}
+                        {/* Top: Contactless + Brand / Institution */}
+                        <div className="flex items-start justify-between relative z-10">
+                          <Wifi className="h-5 w-5 opacity-80 rotate-90" />
+                          <span className="text-base font-bold tracking-wider opacity-95 italic drop-shadow-md">
+                            {selectedCard.institution_name || (selectedCard.brand || "VISA").toUpperCase()}
+                          </span>
                         </div>
-                      </div>
 
-                      {/* Bottom: Holder + Expiry */}
-                      <div className="flex items-end justify-between relative z-10">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
-                            {t("cards:cardHolder").toUpperCase()}
-                          </p>
-                          <p className="text-xs font-semibold uppercase tracking-wide truncate drop-shadow-sm">
-                            {holderName}
-                          </p>
+                        {/* Chip + Card Number */}
+                        <div className="relative z-10 space-y-2.5">
+                          <div className="card-chip-lg" />
+                          <div className="font-mono text-base sm:text-lg tracking-[0.16em] opacity-95 leading-tight drop-shadow-md">
+                            {getFullCardNumber(selectedCard)}
+                          </div>
                         </div>
-                        <div className="text-right shrink-0 ml-3">
-                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
-                            {t("cards:expires").toUpperCase()}
-                          </p>
-                          <p className="text-xs font-semibold drop-shadow-sm">
-                            {getExpiry(selectedCard)}
-                          </p>
+
+                        {/* Bottom: Holder + Expiry */}
+                        <div className="flex items-end justify-between relative z-10">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
+                              {t("cards:cardHolder").toUpperCase()}
+                            </p>
+                            <p className="text-xs font-semibold uppercase tracking-wide truncate drop-shadow-sm">
+                              {holderName}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0 ml-3">
+                            <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
+                              {t("cards:expires").toUpperCase()}
+                            </p>
+                            <p className="text-xs font-semibold drop-shadow-sm">
+                              {getExpiry(selectedCard)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
