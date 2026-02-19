@@ -4,7 +4,7 @@ import { syncPluggyData } from '../services/pluggy-sync.js';
 import { autoCategorize } from '../utils/auto-categorize.js';
 
 export async function financeRoutes(fastify: FastifyInstance) {
-  // A) Get connected banks/items
+  // A) Get connected banks/items (deduplicated — one per institution)
   fastify.get('/connections', {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -12,7 +12,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
       const userId = (request.user as any).userId;
 
       const result = await db.query(
-        `SELECT 
+        `SELECT DISTINCT ON (c.institution_id)
           c.id,
           c.external_consent_id as item_id,
           c.status,
@@ -23,7 +23,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
         FROM connections c
         LEFT JOIN institutions i ON c.institution_id = i.id
         WHERE c.user_id = $1 AND c.provider = 'open_finance'
-        ORDER BY c.created_at DESC`,
+        ORDER BY c.institution_id, c.created_at DESC`,
         [userId]
       );
 
@@ -34,7 +34,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // B) Get accounts (balances)
+  // B) Get accounts (balances) — deduplicated via latest connection per institution
   fastify.get('/accounts', {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -43,13 +43,20 @@ export async function financeRoutes(fastify: FastifyInstance) {
       const { itemId } = request.query as any;
 
       let query = `
-        SELECT DISTINCT ON (pa.pluggy_account_id)
-          pa.*,
-          i.name as institution_name,
-          i.logo_url as institution_logo
+        WITH latest_connections AS (
+          SELECT DISTINCT ON (c.institution_id)
+            c.external_consent_id as item_id,
+            c.institution_id,
+            i.name as institution_name,
+            i.logo_url as institution_logo
+          FROM connections c
+          LEFT JOIN institutions i ON c.institution_id = i.id
+          WHERE c.user_id = $1 AND c.provider = 'open_finance'
+          ORDER BY c.institution_id, c.created_at DESC
+        )
+        SELECT pa.*, lc.institution_name, lc.institution_logo
         FROM pluggy_accounts pa
-        LEFT JOIN connections c ON pa.item_id = c.external_consent_id AND c.user_id = pa.user_id
-        LEFT JOIN institutions i ON c.institution_id = i.id
+        INNER JOIN latest_connections lc ON pa.item_id = lc.item_id
         WHERE pa.user_id = $1
       `;
       const params: any[] = [userId];
@@ -59,7 +66,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
         params.push(itemId);
       }
 
-      query += ' ORDER BY pa.pluggy_account_id, pa.updated_at DESC';
+      query += ' ORDER BY pa.updated_at DESC';
 
       const result = await db.query(query, params);
 
@@ -258,7 +265,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // D) Get investments
+  // D) Get investments — deduplicated via latest connection per institution
   fastify.get('/investments', {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -267,14 +274,20 @@ export async function financeRoutes(fastify: FastifyInstance) {
       const { itemId } = request.query as any;
 
       let query = `
-        SELECT 
-          pi.*,
-          c.external_consent_id as item_id,
-          i.name as institution_name,
-          i.logo_url as institution_logo
+        WITH latest_connections AS (
+          SELECT DISTINCT ON (c.institution_id)
+            c.external_consent_id as item_id,
+            c.institution_id,
+            i.name as institution_name,
+            i.logo_url as institution_logo
+          FROM connections c
+          LEFT JOIN institutions i ON c.institution_id = i.id
+          WHERE c.user_id = $1 AND c.provider = 'open_finance'
+          ORDER BY c.institution_id, c.created_at DESC
+        )
+        SELECT pi.*, lc.institution_name, lc.institution_logo
         FROM pluggy_investments pi
-        LEFT JOIN connections c ON pi.item_id = c.external_consent_id
-        LEFT JOIN institutions i ON c.institution_id = i.id
+        INNER JOIN latest_connections lc ON pi.item_id = lc.item_id
         WHERE pi.user_id = $1
       `;
       const params: any[] = [userId];
@@ -315,7 +328,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // E) Get credit cards
+  // E) Get credit cards — deduplicated via latest connection per institution
   fastify.get('/cards', {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -324,7 +337,18 @@ export async function financeRoutes(fastify: FastifyInstance) {
       const { itemId } = request.query as any;
 
       let query = `
-        SELECT 
+        WITH latest_connections AS (
+          SELECT DISTINCT ON (c.institution_id)
+            c.external_consent_id as item_id,
+            c.institution_id,
+            i.name as institution_name,
+            i.logo_url as institution_logo
+          FROM connections c
+          LEFT JOIN institutions i ON c.institution_id = i.id
+          WHERE c.user_id = $1 AND c.provider = 'open_finance'
+          ORDER BY c.institution_id, c.created_at DESC
+        )
+        SELECT
           pc.id,
           pc.user_id,
           pc.item_id,
@@ -335,10 +359,10 @@ export async function financeRoutes(fastify: FastifyInstance) {
           pc.available_limit,
           pc.balance,
           pc.updated_at,
-          i.name as institution_name,
-          i.logo_url as institution_logo,
-          (CASE WHEN i.name IS NULL THEN 'bank'
-                WHEN i.name ILIKE ANY(ARRAY['%XP%','%BTG%','%Ágora%','%Rico%','%Clear%','%Easynvest%','%Genial%','%Modal%','%Nu invest%','%Warren%','%Órama%','%Guide%','%Toro%','%Ativa%','%Safra%','%Investimentos%','%Corretora%','%Securitizadora%']) THEN 'broker'
+          lc.institution_name,
+          lc.institution_logo,
+          (CASE WHEN lc.institution_name IS NULL THEN 'bank'
+                WHEN lc.institution_name ILIKE ANY(ARRAY['%XP%','%BTG%','%Ágora%','%Rico%','%Clear%','%Easynvest%','%Genial%','%Modal%','%Nu invest%','%Warren%','%Órama%','%Guide%','%Toro%','%Ativa%','%Safra%','%Investimentos%','%Corretora%','%Securitizadora%']) THEN 'broker'
                 ELSE 'bank' END) as institution_type,
           (
             SELECT json_build_object(
@@ -355,8 +379,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
             LIMIT 1
           ) as latest_invoice
         FROM pluggy_credit_cards pc
-        LEFT JOIN connections c ON pc.item_id = c.external_consent_id
-        LEFT JOIN institutions i ON c.institution_id = i.id
+        INNER JOIN latest_connections lc ON pc.item_id = lc.item_id
         WHERE pc.user_id = $1
       `;
       const params: any[] = [userId];
