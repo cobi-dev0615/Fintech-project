@@ -665,33 +665,33 @@ export async function adminRoutes(fastify: FastifyInstance) {
       };
 
       try {
-        // Cash from bank accounts
+        // Cash from pluggy_accounts (values stored in reais, not cents)
         try {
           const cashResult = await db.query(
-            `SELECT COALESCE(SUM(balance_cents), 0) / 100.0 as cash
-             FROM bank_accounts WHERE user_id = $1`,
+            `SELECT COALESCE(SUM(current_balance), 0)::float as cash
+             FROM pluggy_accounts WHERE user_id = $1`,
             [id]
           );
           financialSummary.cash = parseFloat(cashResult.rows[0]?.cash) || 0;
         } catch {}
 
-        // Investments
+        // Investments from pluggy_investments
         try {
           const invResult = await db.query(
-            `SELECT COALESCE(SUM(market_value_cents), 0) / 100.0 as investments
-             FROM holdings WHERE user_id = $1`,
+            `SELECT COALESCE(SUM(current_value), 0)::float as investments
+             FROM pluggy_investments WHERE user_id = $1`,
             [id]
           );
           financialSummary.investments = parseFloat(invResult.rows[0]?.investments) || 0;
         } catch {}
 
-        // Debt from credit cards
+        // Debt from pluggy_card_invoices (open invoices)
         try {
           const debtResult = await db.query(
-            `SELECT COALESCE(SUM(total_cents), 0) / 100.0 as debt
-             FROM card_invoices 
-             WHERE credit_card_id IN (SELECT id FROM credit_cards WHERE user_id = $1)
-             AND status = 'open'`,
+            `SELECT COALESCE(SUM(pci.amount), 0)::float as debt
+             FROM pluggy_card_invoices pci
+             WHERE pci.user_id = $1
+             AND pci.status = 'open'`,
             [id]
           );
           financialSummary.debt = parseFloat(debtResult.rows[0]?.debt) || 0;
