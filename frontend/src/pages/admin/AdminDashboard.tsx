@@ -299,6 +299,293 @@ const RevenueChart = memo(function RevenueChart({ t }: { t: any }) {
   );
 });
 
+// --- New Dashboard Sections ---
+
+const RecentRegistrationsTable = memo(function RecentRegistrationsTable({ t, data }: { t: any; data: any }) {
+  const registrations = data?.recentRegistrations ?? [];
+
+  return (
+    <ChartCard
+      title={t('admin:dashboard.recentRegistrations.title')}
+      subtitle={t('admin:dashboard.recentRegistrations.subtitle')}
+    >
+      {registrations.length > 0 ? (
+        <div className="space-y-1">
+          {registrations.map((user: any) => (
+            <div key={user.id} className="flex items-center justify-between py-2.5 border-b border-white/10 last:border-0">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 ml-3">
+                <Badge variant="secondary" className="text-[10px]">
+                  {t(`admin:dashboard.recentRegistrations.roles.${user.role}`)}
+                </Badge>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {new Date(user.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+          <UserPlus className="h-8 w-8 mb-2 opacity-30" />
+          <span className="text-sm">{t('admin:dashboard.recentRegistrations.empty')}</span>
+        </div>
+      )}
+    </ChartCard>
+  );
+});
+
+const RoleDistributionChart = memo(function RoleDistributionChart({ t, data }: { t: any; data: any }) {
+  const distribution = data?.roleDistribution ?? [];
+  const chartData = distribution.map((item: any) => ({
+    name: item.role === 'customer'
+      ? t('admin:dashboard.roleDistribution.customers')
+      : t('admin:dashboard.roleDistribution.consultants'),
+    value: item.count,
+  }));
+  const total = chartData.reduce((sum: number, item: any) => sum + item.value, 0);
+
+  return (
+    <ChartCard
+      title={t('admin:dashboard.roleDistribution.title')}
+      subtitle={t('admin:dashboard.roleDistribution.subtitle')}
+    >
+      <div className="h-56 relative">
+        {chartData.length > 0 && total > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                innerRadius={55}
+                outerRadius={85}
+                paddingAngle={4}
+                dataKey="value"
+                stroke="none"
+              >
+                {chartData.map((_: any, index: number) => (
+                  <Cell key={`cell-${index}`} fill={ROLE_COLORS[index % ROLE_COLORS.length]} />
+                ))}
+              </Pie>
+              <RechartsTooltip
+                contentStyle={{
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "6px",
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+            {t('admin:dashboard.noDataAvailable')}
+          </div>
+        )}
+        {total > 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-foreground">{total}</div>
+              <div className="text-xs text-muted-foreground">{t('admin:dashboard.kpis.totalUsers')}</div>
+            </div>
+          </div>
+        )}
+      </div>
+      {chartData.length > 0 && total > 0 && (
+        <div className="flex justify-center gap-6 mt-2">
+          {chartData.map((item: any, index: number) => (
+            <div key={item.name} className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ROLE_COLORS[index] }} />
+              <span className="text-xs text-muted-foreground">{item.name}: {item.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </ChartCard>
+  );
+});
+
+const PendingApprovalsCard = memo(function PendingApprovalsCard({ t, data }: { t: any; data: any }) {
+  const count = data?.pendingApprovals ?? 0;
+
+  return (
+    <ChartCard
+      title={t('admin:dashboard.pendingApprovals.title')}
+      subtitle={t('admin:dashboard.pendingApprovals.subtitle')}
+    >
+      <div className="flex flex-col items-center justify-center py-6">
+        <ShieldCheck className={cn("h-10 w-10 mb-3", count > 0 ? "text-amber-500" : "text-muted-foreground/30")} />
+        <div className="text-3xl font-bold text-foreground tabular-nums mb-1">
+          {count}
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          {count > 0
+            ? t('admin:dashboard.pendingApprovals.count', { count })
+            : t('admin:dashboard.pendingApprovals.noPending')}
+        </p>
+        {count > 0 && (
+          <Link to="/admin/users?status=pending">
+            <Button variant="outline" size="sm">
+              {t('admin:dashboard.pendingApprovals.viewAll')}
+            </Button>
+          </Link>
+        )}
+      </div>
+    </ChartCard>
+  );
+});
+
+const SubscriptionStatsCard = memo(function SubscriptionStatsCard({ t, data }: { t: any; data: any }) {
+  const stats = data?.subscriptionStats ?? { total: 0, active: 0, canceled: 0, trialing: 0, pastDue: 0, paused: 0 };
+
+  const items = [
+    { label: t('admin:dashboard.subscriptionStats.active'), value: stats.active, color: 'text-success' },
+    { label: t('admin:dashboard.subscriptionStats.canceled'), value: stats.canceled, color: 'text-destructive' },
+    { label: t('admin:dashboard.subscriptionStats.trialing'), value: stats.trialing, color: 'text-blue-500' },
+    { label: t('admin:dashboard.subscriptionStats.pastDue'), value: stats.pastDue, color: 'text-amber-500' },
+    { label: t('admin:dashboard.subscriptionStats.paused'), value: stats.paused, color: 'text-muted-foreground' },
+  ];
+
+  return (
+    <ChartCard
+      title={t('admin:dashboard.subscriptionStats.title')}
+      subtitle={t('admin:dashboard.subscriptionStats.subtitle')}
+    >
+      <div className="space-y-4">
+        <div className="text-center py-2">
+          <div className="text-3xl font-bold text-foreground tabular-nums">{stats.total}</div>
+          <p className="text-xs text-muted-foreground">{t('admin:dashboard.subscriptionStats.total')}</p>
+        </div>
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div key={item.label} className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">{item.label}</span>
+              <span className={cn("text-sm font-semibold tabular-nums", item.color)}>{item.value}</span>
+            </div>
+          ))}
+        </div>
+        {stats.total > 0 && (
+          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-success rounded-full transition-all duration-500"
+              style={{ width: `${(stats.active / stats.total) * 100}%` }}
+            />
+          </div>
+        )}
+      </div>
+    </ChartCard>
+  );
+});
+
+const RecentNotificationsCard = memo(function RecentNotificationsCard({ t, data }: { t: any; data: any }) {
+  const notifications = data?.recentNotifications ?? [];
+
+  return (
+    <ChartCard
+      title={t('admin:dashboard.recentNotifications.title')}
+      subtitle={t('admin:dashboard.recentNotifications.subtitle')}
+    >
+      {notifications.length > 0 ? (
+        <div className="space-y-1">
+          {notifications.map((notif: any) => (
+            <div key={notif.id} className="flex items-start gap-3 py-2.5 border-b border-white/10 last:border-0">
+              <div className={cn(
+                "shrink-0 mt-1.5 w-2 h-2 rounded-full",
+                notif.resolved ? 'bg-muted-foreground/30' :
+                  (notif.severity === 'critical' || notif.type === 'error') ? 'bg-red-500' :
+                  notif.type === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
+              )} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-foreground line-clamp-2">{notif.message}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="secondary" className="text-[10px]">
+                    {t(`admin:dashboard.recentNotifications.types.${notif.type}`)}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {new Date(notif.time).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+          <Bell className="h-8 w-8 mb-2 opacity-30" />
+          <span className="text-sm">{t('admin:dashboard.recentNotifications.empty')}</span>
+        </div>
+      )}
+    </ChartCard>
+  );
+});
+
+const ConnectionsOverviewCard = memo(function ConnectionsOverviewCard({ t, data }: { t: any; data: any }) {
+  const connections = data?.connectionsByStatus ?? [];
+  const total = connections.reduce((sum: number, c: any) => sum + c.count, 0);
+
+  const statusLabels: Record<string, string> = {
+    connected: t('admin:dashboard.connectionsOverview.connected'),
+    pending: t('admin:dashboard.connectionsOverview.pending'),
+    needs_reauth: t('admin:dashboard.connectionsOverview.needsReauth'),
+    failed: t('admin:dashboard.connectionsOverview.failed'),
+    revoked: t('admin:dashboard.connectionsOverview.revoked'),
+  };
+
+  return (
+    <ChartCard
+      title={t('admin:dashboard.connectionsOverview.title')}
+      subtitle={t('admin:dashboard.connectionsOverview.subtitle')}
+    >
+      {connections.length > 0 ? (
+        <div className="space-y-4">
+          <div className="text-center py-2">
+            <div className="text-3xl font-bold text-foreground tabular-nums">{total}</div>
+            <p className="text-xs text-muted-foreground">{t('admin:dashboard.connectionsOverview.total')}</p>
+          </div>
+          <div className="space-y-2">
+            {connections.map((conn: any) => (
+              <div key={conn.status} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: CONNECTION_STATUS_COLORS[conn.status] || '#6b7280' }}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {statusLabels[conn.status] || conn.status}
+                  </span>
+                </div>
+                <span className="text-sm font-semibold tabular-nums text-foreground">{conn.count}</span>
+              </div>
+            ))}
+          </div>
+          {total > 0 && (
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden flex">
+              {connections.map((conn: any) => (
+                <div
+                  key={conn.status}
+                  className="h-full transition-all duration-500"
+                  style={{
+                    width: `${(conn.count / total) * 100}%`,
+                    backgroundColor: CONNECTION_STATUS_COLORS[conn.status] || '#6b7280',
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+          <Link2 className="h-8 w-8 mb-2 opacity-30" />
+          <span className="text-sm">{t('admin:dashboard.connectionsOverview.empty')}</span>
+        </div>
+      )}
+    </ChartCard>
+  );
+});
+
 // --- Main Component ---
 
 const AdminDashboard = () => {
@@ -433,6 +720,16 @@ const AdminDashboard = () => {
           <div className="h-[340px] rounded-xl bg-muted/20 animate-pulse" />
           <div className="h-[340px] rounded-xl bg-muted/20 animate-pulse" />
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={`r1-${i}`} className="h-[300px] rounded-xl bg-muted/20 animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={`r2-${i}`} className="h-[300px] rounded-xl bg-muted/20 animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -473,6 +770,20 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <UserGrowthChart t={t} />
         <RevenueChart t={t} />
+      </div>
+
+      {/* Row 3: Registrations, Role Distribution, Pending Approvals */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <RecentRegistrationsTable t={t} data={data} />
+        <RoleDistributionChart t={t} data={data} />
+        <PendingApprovalsCard t={t} data={data} />
+      </div>
+
+      {/* Row 4: Subscriptions, Notifications, Connections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <SubscriptionStatsCard t={t} data={data} />
+        <RecentNotificationsCard t={t} data={data} />
+        <ConnectionsOverviewCard t={t} data={data} />
       </div>
     </div>
   );
