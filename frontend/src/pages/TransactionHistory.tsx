@@ -528,7 +528,10 @@ const TransactionHistory = () => {
   // Format chart period label
   const formatChartPeriod = (period: string) => {
     try {
-      const d = new Date(period + "T00:00:00");
+      // Handle both "2025-01-15" and "2025-01-15T00:00:00.000Z" formats
+      const raw = typeof period === "string" ? period.slice(0, 10) : String(period);
+      const d = new Date(raw + "T00:00:00");
+      if (isNaN(d.getTime())) return raw;
       const locale = i18n.language === "pt-BR" ? "pt-BR" : "en-US";
       switch (txChartMode) {
         case "daily":
@@ -540,12 +543,44 @@ const TransactionHistory = () => {
         case "yearly":
           return d.getFullYear().toString();
         default:
-          return period;
+          return raw;
       }
     } catch {
-      return period;
+      return String(period);
     }
   };
+
+  // Auto-set date range when chart mode changes (smart defaults like admin page)
+  const handleChartModeChange = useCallback((mode: "daily" | "weekly" | "monthly" | "yearly") => {
+    setTxChartMode(mode);
+    const now = new Date();
+    const toStr = now.toISOString().slice(0, 10);
+    switch (mode) {
+      case "daily": {
+        const from = new Date(now.getTime() - 30 * 86400000);
+        setDateFrom(from.toISOString().slice(0, 10));
+        setDateTo(toStr);
+        break;
+      }
+      case "weekly": {
+        const from = new Date(now.getTime() - 84 * 86400000);
+        setDateFrom(from.toISOString().slice(0, 10));
+        setDateTo(toStr);
+        break;
+      }
+      case "monthly": {
+        const from = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+        setDateFrom(from.toISOString().slice(0, 10));
+        setDateTo(toStr);
+        break;
+      }
+      case "yearly": {
+        setDateFrom("");
+        setDateTo("");
+        break;
+      }
+    }
+  }, []);
 
   // Helper: compute KPI totals from a list of transactions
   const computeKpi = useCallback((txList: any[]) => {
@@ -1174,7 +1209,7 @@ const TransactionHistory = () => {
                   variant={txChartMode === mode ? "default" : "outline"}
                   size="sm"
                   className="h-7 text-xs"
-                  onClick={() => setTxChartMode(mode)}
+                  onClick={() => handleChartModeChange(mode)}
                 >
                   {t(`transactions:chart.${mode}`)}
                 </Button>
