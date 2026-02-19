@@ -163,6 +163,12 @@ export async function financeRoutes(fastify: FastifyInstance) {
           const accCol = usePluggy ? 'pt.pluggy_account_id' : 't.account_id';
           chartQuery += ` AND ${accCol} = $${ci}`; chartParams.push(accountId); ci++;
         }
+        if (q) {
+          const descCol = usePluggy ? 'pt.description' : 't.description';
+          const merchantCol = usePluggy ? 'pt.merchant' : 't.merchant';
+          chartQuery += ` AND (${descCol} ILIKE $${ci} OR ${merchantCol} ILIKE $${ci})`;
+          chartParams.push(`%${q}%`); ci++;
+        }
 
         chartQuery += ` GROUP BY period ORDER BY period`;
 

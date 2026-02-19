@@ -502,6 +502,67 @@ const TransactionHistory = () => {
     }
   };
 
+  // Fill date gaps so the chart axis is continuous
+  const fillChartGaps = useCallback(
+    (data: Array<{ period: string; income: number; expense: number }>) => {
+      if (data.length === 0) return data;
+
+      // Normalize periods to YYYY-MM-DD
+      const norm = data.map((d) => ({
+        ...d,
+        period: typeof d.period === "string" ? d.period.slice(0, 10) : String(d.period),
+      }));
+
+      const existing = new Map(norm.map((d) => [d.period, d]));
+      const result: Array<{ period: string; income: number; expense: number }> = [];
+
+      // Determine range from dateFrom/dateTo or from data itself
+      const startStr = dateFrom || norm[0].period;
+      const endStr = dateTo || norm[norm.length - 1].period;
+      const start = new Date(startStr + "T00:00:00");
+      const end = new Date(endStr + "T00:00:00");
+
+      if (txChartMode === "daily") {
+        const cur = new Date(start);
+        while (cur <= end) {
+          const key = cur.toISOString().slice(0, 10);
+          result.push(existing.get(key) || { period: key, income: 0, expense: 0 });
+          cur.setDate(cur.getDate() + 1);
+        }
+      } else if (txChartMode === "weekly") {
+        // Align to Monday (PostgreSQL date_trunc('week') aligns to Monday)
+        const cur = new Date(start);
+        const dayOfWeek = cur.getDay();
+        cur.setDate(cur.getDate() - ((dayOfWeek + 6) % 7)); // go back to Monday
+        while (cur <= end) {
+          const key = cur.toISOString().slice(0, 10);
+          result.push(existing.get(key) || { period: key, income: 0, expense: 0 });
+          cur.setDate(cur.getDate() + 7);
+        }
+      } else if (txChartMode === "monthly") {
+        const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+        while (cur <= end) {
+          const key = cur.toISOString().slice(0, 10);
+          result.push(existing.get(key) || { period: key, income: 0, expense: 0 });
+          cur.setMonth(cur.getMonth() + 1);
+        }
+      } else if (txChartMode === "yearly") {
+        const cur = new Date(start.getFullYear(), 0, 1);
+        const endYear = end.getFullYear();
+        while (cur.getFullYear() <= endYear) {
+          const key = cur.toISOString().slice(0, 10);
+          result.push(existing.get(key) || { period: key, income: 0, expense: 0 });
+          cur.setFullYear(cur.getFullYear() + 1);
+        }
+      } else {
+        return norm;
+      }
+
+      return result;
+    },
+    [txChartMode, dateFrom, dateTo]
+  );
+
   // Fetch chart data when in chart mode
   const fetchChartData = useCallback(async () => {
     if (txView !== "chart") return;
@@ -512,14 +573,15 @@ const TransactionHistory = () => {
         from: dateFrom || undefined,
         to: dateTo || undefined,
         accountId: accountId || undefined,
+        q: search || undefined,
       });
-      setTxChartData(data.chartData || []);
+      setTxChartData(fillChartGaps(data.chartData || []));
     } catch {
       setTxChartData([]);
     } finally {
       setChartLoading(false);
     }
-  }, [txView, txChartMode, dateFrom, dateTo, accountId]);
+  }, [txView, txChartMode, dateFrom, dateTo, accountId, search, fillChartGaps]);
 
   useEffect(() => {
     fetchChartData();
