@@ -1,5 +1,4 @@
-import { Download, TrendingUp, TrendingDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import ChartCard from "./ChartCard";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -102,11 +101,6 @@ const WeeklyActivityCard = ({ data, loading }: WeeklyActivityCardProps) => {
   return (
     <ChartCard
       title={t('dashboard:analytics.weeklyActivity')}
-      actions={
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Download className="h-3.5 w-3.5" />
-        </Button>
-      }
     >
       {/* Mini KPIs */}
       <div className="grid grid-cols-3 gap-3 mb-5">
