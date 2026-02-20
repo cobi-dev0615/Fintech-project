@@ -1588,6 +1588,92 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Change user plan
+  fastify.patch('/users/:id/plan', {
+    preHandler: [requireAdmin],
+  }, async (request: any, reply) => {
+    try {
+      const { id } = request.params;
+      const { planId } = request.body || {};
+      const adminId = getAdminId(request);
+
+      if (!planId) {
+        return reply.code(400).send({ error: 'planId is required' });
+      }
+
+      // Validate user exists
+      const userResult = await db.query('SELECT id, role FROM users WHERE id = $1', [id]);
+      if (userResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'User not found' });
+      }
+
+      // Validate plan exists and is active
+      const planResult = await db.query(
+        'SELECT id, code, name, is_active FROM plans WHERE id = $1',
+        [planId]
+      );
+      if (planResult.rows.length === 0) {
+        return reply.code(404).send({ error: 'Plan not found' });
+      }
+      const plan = planResult.rows[0];
+      if (!plan.is_active) {
+        return reply.code(400).send({ error: 'Cannot assign an inactive plan' });
+      }
+
+      // Check for existing active subscription
+      const subResult = await db.query(
+        `SELECT id, plan_id, status FROM subscriptions
+         WHERE user_id = $1 AND status IN ('active', 'trialing', 'past_due')
+         ORDER BY created_at DESC LIMIT 1`,
+        [id]
+      );
+
+      const now = new Date();
+      const periodEnd = new Date(now);
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+      let oldPlanId: string | null = null;
+
+      if (subResult.rows.length > 0) {
+        // Update existing subscription
+        oldPlanId = subResult.rows[0].plan_id;
+        await db.query(
+          `UPDATE subscriptions
+           SET plan_id = $1, status = 'active', current_period_start = $2, current_period_end = $3, updated_at = NOW()
+           WHERE id = $4`,
+          [planId, now.toISOString(), periodEnd.toISOString(), subResult.rows[0].id]
+        );
+      } else {
+        // Create new subscription
+        await db.query(
+          `INSERT INTO subscriptions (id, user_id, plan_id, status, started_at, current_period_start, current_period_end, created_at, updated_at)
+           VALUES (gen_random_uuid(), $1, $2, 'active', $3, $3, $4, NOW(), NOW())`,
+          [id, planId, now.toISOString(), periodEnd.toISOString()]
+        );
+      }
+
+      // Audit log
+      await logAudit({
+        adminId,
+        action: 'change_user_plan',
+        resourceType: 'user',
+        resourceId: id,
+        oldValue: oldPlanId ? { planId: oldPlanId } : null,
+        newValue: { planId, planName: plan.name },
+        ipAddress: getClientIp(request),
+        userAgent: request.headers['user-agent'],
+      });
+
+      // Invalidate cache
+      cache.delete('admin:dashboard:metrics');
+
+      return reply.send({ message: 'Plan changed successfully' });
+    } catch (error: any) {
+      fastify.log.error({ err: error }, 'Error changing user plan');
+      reply.code(500).send({ error: 'Failed to change user plan' });
+    }
+  });
+
   // Delete user
   fastify.delete('/users/:id', {
     preHandler: [requireAdmin],

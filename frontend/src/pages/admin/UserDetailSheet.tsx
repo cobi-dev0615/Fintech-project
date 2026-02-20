@@ -19,6 +19,7 @@ import {
   Trash2,
   Loader2,
   PieChart,
+  RefreshCw,
 } from "lucide-react";
 import {
   Sheet,
@@ -39,6 +40,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
@@ -108,6 +116,10 @@ export default function UserDetailSheet({
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [plans, setPlans] = useState<Array<{ id: string; code: string; name: string; isActive: boolean; role: string | null }>>([]);
+  const [showPlanChange, setShowPlanChange] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [changingPlan, setChangingPlan] = useState(false);
 
   const locale =
     i18n.language === "pt-BR" || i18n.language === "pt" ? "pt-BR" : "en-US";
@@ -130,13 +142,55 @@ export default function UserDetailSheet({
     }
   }, [userId]);
 
+  const fetchPlans = useCallback(async () => {
+    try {
+      const res = await adminApi.getPlans();
+      setPlans(res.plans || []);
+    } catch {
+      // Plans fetch is non-critical, silently fail
+    }
+  }, []);
+
   useEffect(() => {
     if (open && userId) {
       fetchUser();
+      fetchPlans();
     } else {
       setUser(null);
+      setShowPlanChange(false);
+      setSelectedPlanId("");
     }
-  }, [open, userId, fetchUser]);
+  }, [open, userId, fetchUser, fetchPlans]);
+
+  const handleChangePlan = async () => {
+    if (!user || !selectedPlanId) return;
+    setChangingPlan(true);
+    try {
+      await adminApi.changeUserPlan(user.id, selectedPlanId);
+      toast({ title: t("admin:userDetail.changePlanSuccess") });
+      setShowPlanChange(false);
+      setSelectedPlanId("");
+      fetchUser();
+      onUserUpdated();
+    } catch {
+      toast({
+        title: t("common:error"),
+        description: t("admin:userDetail.changePlanError"),
+        variant: "destructive",
+      });
+    } finally {
+      setChangingPlan(false);
+    }
+  };
+
+  // Filter plans by user role
+  const availablePlans = plans.filter(p => {
+    if (!p.isActive) return false;
+    if (!user) return false;
+    if (user.role === "admin") return true;
+    if (user.role === "consultant") return p.role === "consultant" || p.role === null;
+    return p.role === "customer" || p.role === null;
+  });
 
   const handleAction = async () => {
     if (!user || !confirmAction) return;
@@ -394,6 +448,53 @@ export default function UserDetailSheet({
                       <p className="text-sm text-muted-foreground">
                         {t("admin:userDetail.noSubscription")}
                       </p>
+                    )}
+
+                    {/* Change Plan */}
+                    {!showPlanChange ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={() => setShowPlanChange(true)}
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        {t("admin:userDetail.changePlan")}
+                      </Button>
+                    ) : (
+                      <div className="rounded-lg border border-border p-3 space-y-3">
+                        <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={t("admin:userDetail.selectPlan")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availablePlans.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1"
+                            onClick={handleChangePlan}
+                            disabled={!selectedPlanId || changingPlan}
+                          >
+                            {changingPlan && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                            {t("admin:userDetail.savePlan")}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setShowPlanChange(false); setSelectedPlanId(""); }}
+                            disabled={changingPlan}
+                          >
+                            {t("common:cancel")}
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
 

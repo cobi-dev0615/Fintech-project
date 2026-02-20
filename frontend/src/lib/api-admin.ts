@@ -135,6 +135,9 @@ export const adminApi = {
   deleteUser: (id: string) =>
     api.delete<{ message: string; deletedUser: { id: string; full_name: string; email: string } }>(`/admin/users/${id}`),
 
+  changeUserPlan: (userId: string, planId: string) =>
+    api.patch<{ message: string }>(`/admin/users/${userId}/plan`, { planId }),
+
   getCustomerWallets: (params?: { page?: number; limit?: number; search?: string }) => {
     const queryParams = new URLSearchParams();
     if (params?.page != null) queryParams.append('page', params.page.toString());
