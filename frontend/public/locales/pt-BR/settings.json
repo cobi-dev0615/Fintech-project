@@ -57,6 +57,13 @@
       "weeklySummary": "Resumo semanal",
       "marketingEmails": "E-mails de marketing"
     },
+    "descriptions": {
+      "emailNotifications": "Receba todas as notificações por e-mail além dos alertas no aplicativo",
+      "transactionAlerts": "Seja notificado sobre novas transações, pagamentos e transferências nas suas contas",
+      "goalReminders": "Receba lembretes sobre o progresso das suas metas financeiras e prazos próximos",
+      "weeklySummary": "Receba um relatório semanal com um resumo das suas finanças e atividades",
+      "marketingEmails": "Receba novidades, dicas e ofertas promocionais da nossa equipe"
+    },
     "subtitle": "Escolha quais notificações você deseja receber",
     "saving": "Salvando...",
     "saveNotifications": "Salvar Notificações",

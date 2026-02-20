@@ -497,15 +497,20 @@ const Settings = () => {
               <p className="text-sm text-muted-foreground mb-6">{t('consultant:settings.subtitle')}</p>
               <div className="space-y-5">
                 {Object.entries(notifications).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between gap-4">
-                    <Label htmlFor={key} className="text-sm font-medium text-foreground flex-1">
-                      {t(`consultant:settings.notifications.${key}`)}
-                    </Label>
+                  <div key={key} className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor={key} className="text-sm font-medium text-foreground">
+                        {t(`consultant:settings.notifications.${key}`)}
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {t(`consultant:settings.notifications.descriptions.${key}`)}
+                      </p>
+                    </div>
                     <Switch
                       id={key}
                       checked={value}
                       onCheckedChange={(checked) => setNotifications({ ...notifications, [key]: checked })}
-                      className="shrink-0"
+                      className="shrink-0 mt-0.5"
                     />
                   </div>
                 ))}

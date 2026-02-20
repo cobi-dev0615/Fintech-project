@@ -623,6 +623,13 @@
       "newClients": "New Clients",
       "reportReady": "Report Ready",
       "weeklySummary": "Weekly Summary",
+      "descriptions": {
+        "emailNotifications": "Receive all notifications via email in addition to in-app alerts",
+        "clientMessages": "Get notified when clients send you new messages or replies",
+        "newClients": "Get alerted when new clients are assigned to you or request your services",
+        "reportReady": "Receive a notification when client reports are generated and ready to review",
+        "weeklySummary": "Get a weekly overview of your client portfolio activity and performance"
+      },
       "updateSuccess": "Notification preferences updated",
       "updateError": "Error updating notifications"
     },

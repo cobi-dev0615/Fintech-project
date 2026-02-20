@@ -57,6 +57,13 @@
       "weeklySummary": "Weekly summary",
       "marketingEmails": "Marketing emails"
     },
+    "descriptions": {
+      "emailNotifications": "Receive all notifications via email in addition to in-app alerts",
+      "transactionAlerts": "Get notified about new transactions, payments, and transfers in your accounts",
+      "goalReminders": "Receive reminders about your financial goals progress and upcoming deadlines",
+      "weeklySummary": "Get a weekly report with an overview of your finances and activity",
+      "marketingEmails": "Receive news, tips, and promotional offers from our team"
+    },
     "subtitle": "Choose which notifications you want to receive",
     "saving": "Saving...",
     "saveNotifications": "Save Notifications",

@@ -399,6 +399,14 @@ const Settings = () => {
     marketingEmails: t('settings:notifications.labels.marketingEmails'),
   };
 
+  const notificationDescriptions: Record<string, string> = {
+    emailNotifications: t('settings:notifications.descriptions.emailNotifications'),
+    transactionAlerts: t('settings:notifications.descriptions.transactionAlerts'),
+    goalReminders: t('settings:notifications.descriptions.goalReminders'),
+    weeklySummary: t('settings:notifications.descriptions.weeklySummary'),
+    marketingEmails: t('settings:notifications.descriptions.marketingEmails'),
+  };
+
   const riskProfileOptions = [
     { value: "", label: t('settings:profile.riskOptions.none') },
     { value: "conservador", label: t('settings:profile.riskOptions.conservative') },
@@ -583,15 +591,20 @@ const Settings = () => {
               <p className="text-sm text-muted-foreground mb-6">{t('settings:notifications.subtitle')}</p>
               <div className="space-y-5">
                 {Object.entries(notifications).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between gap-4">
-                    <Label htmlFor={key} className="text-sm font-medium text-foreground flex-1">
-                      {notificationLabels[key] || key}
-                    </Label>
+                  <div key={key} className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor={key} className="text-sm font-medium text-foreground">
+                        {notificationLabels[key] || key}
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {notificationDescriptions[key]}
+                      </p>
+                    </div>
                     <Switch
                       id={key}
                       checked={value}
                       onCheckedChange={(checked) => setNotifications({ ...notifications, [key]: checked })}
-                      className="shrink-0"
+                      className="shrink-0 mt-0.5"
                     />
                   </div>
                 ))}

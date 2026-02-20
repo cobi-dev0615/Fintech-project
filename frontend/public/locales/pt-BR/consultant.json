@@ -623,6 +623,13 @@
       "newClients": "Novos Clientes",
       "reportReady": "Relatório Pronto",
       "weeklySummary": "Resumo Semanal",
+      "descriptions": {
+        "emailNotifications": "Receba todas as notificações por e-mail além dos alertas no aplicativo",
+        "clientMessages": "Seja notificado quando clientes enviarem novas mensagens ou respostas",
+        "newClients": "Receba alertas quando novos clientes forem atribuídos a você ou solicitarem seus serviços",
+        "reportReady": "Receba uma notificação quando os relatórios dos clientes forem gerados e estiverem prontos para revisão",
+        "weeklySummary": "Receba um resumo semanal das atividades e desempenho do seu portfólio de clientes"
+      },
       "updateSuccess": "Preferências de notificação atualizadas",
       "updateError": "Erro ao atualizar notificações"
     },
