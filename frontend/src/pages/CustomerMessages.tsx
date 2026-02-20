@@ -5,9 +5,6 @@ import {
   MessageSquare,
   Send,
   Search,
-  MoreVertical,
-  Trash2,
-  History,
   Paperclip,
   X,
   Download,
@@ -41,22 +38,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { customerApi, getApiBaseUrl } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -195,8 +176,6 @@ const CustomerMessages = () => {
   >(null);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
-  const [deleteChatDialogOpen, setDeleteChatDialogOpen] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<{
     url: string;
     filename: string;
@@ -429,56 +408,6 @@ const CustomerMessages = () => {
       toast({
         title: t("common:error"),
         description: t("messages:sendError"),
-        variant: getToastVariantForApiError(err),
-      });
-    },
-  });
-
-  const clearHistoryMutation = useMutation({
-    mutationFn: (conversationId: string) =>
-      customerApi.clearHistory(conversationId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["customer", "conversation", selectedConversation],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["customer", "conversations"],
-      });
-      setClearHistoryDialogOpen(false);
-      toast({
-        title: t("messages:historyCleared"),
-        description: t("messages:historyClearedDesc"),
-        variant: "success",
-      });
-    },
-    onError: (err: any) => {
-      toast({
-        title: t("common:error"),
-        description: t("messages:clearError"),
-        variant: getToastVariantForApiError(err),
-      });
-    },
-  });
-
-  const deleteConversationMutation = useMutation({
-    mutationFn: (conversationId: string) =>
-      customerApi.deleteConversation(conversationId),
-    onSuccess: () => {
-      setSelectedConversation(null);
-      queryClient.invalidateQueries({
-        queryKey: ["customer", "conversations"],
-      });
-      setDeleteChatDialogOpen(false);
-      toast({
-        title: t("messages:conversationDeleted"),
-        description: t("messages:conversationDeletedDesc"),
-        variant: "success",
-      });
-    },
-    onError: (err: any) => {
-      toast({
-        title: t("common:error"),
-        description: t("messages:deleteError"),
         variant: getToastVariantForApiError(err),
       });
     },
@@ -760,32 +689,6 @@ const CustomerMessages = () => {
                         {t("messages:consultant")}
                       </p>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => setClearHistoryDialogOpen(true)}
-                        >
-                          <History className="h-4 w-4 mr-2" />
-                          {t("messages:clearHistory")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setDeleteChatDialogOpen(true)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {t("messages:deleteConversation")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
                 </div>
 
@@ -981,73 +884,6 @@ const CustomerMessages = () => {
         </div>
       </div>
 
-      {/* Clear History Dialog */}
-      <AlertDialog
-        open={clearHistoryDialogOpen}
-        onOpenChange={setClearHistoryDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("messages:clearHistoryConfirm")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("messages:clearHistoryConfirmDesc")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={clearHistoryMutation.isPending}>
-              {t("common:cancel")}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                selectedConversation &&
-                clearHistoryMutation.mutate(selectedConversation)
-              }
-              disabled={clearHistoryMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {clearHistoryMutation.isPending
-                ? t("messages:clearing")
-                : t("messages:clear")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Conversation Dialog */}
-      <AlertDialog
-        open={deleteChatDialogOpen}
-        onOpenChange={setDeleteChatDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("messages:deleteConversationConfirm")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("messages:deleteConversationConfirmDesc")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteConversationMutation.isPending}>
-              {t("common:cancel")}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                selectedConversation &&
-                deleteConversationMutation.mutate(selectedConversation)
-              }
-              disabled={deleteConversationMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteConversationMutation.isPending
-                ? t("messages:deleting")
-                : t("common:delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

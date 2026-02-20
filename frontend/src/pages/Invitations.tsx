@@ -940,32 +940,21 @@ const Invitations = () => {
                           <div className="flex items-center gap-1">
                             <Button
                               variant="outline"
-                              size="sm"
-                              className="h-7 w-7 p-0"
+                              size="icon"
+                              className="h-7 w-7"
                               disabled={invitedPage <= 1}
                               onClick={() => setInvitedPage((p) => Math.max(1, p - 1))}
                             >
-                              <ChevronLeft className="h-3.5 w-3.5" />
+                              <ChevronLeft className="h-4 w-4" />
                             </Button>
-                            {Array.from({ length: Math.ceil(invitedUsers.length / INVITED_PER_PAGE) }, (_, i) => i + 1).map((p) => (
-                              <Button
-                                key={p}
-                                variant={invitedPage === p ? "default" : "outline"}
-                                size="sm"
-                                className="h-7 w-7 p-0 text-xs"
-                                onClick={() => setInvitedPage(p)}
-                              >
-                                {p}
-                              </Button>
-                            ))}
                             <Button
                               variant="outline"
-                              size="sm"
-                              className="h-7 w-7 p-0"
+                              size="icon"
+                              className="h-7 w-7"
                               disabled={invitedPage >= Math.ceil(invitedUsers.length / INVITED_PER_PAGE)}
                               onClick={() => setInvitedPage((p) => Math.min(Math.ceil(invitedUsers.length / INVITED_PER_PAGE), p + 1))}
                             >
-                              <ChevronRight className="h-3.5 w-3.5" />
+                              <ChevronRight className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
