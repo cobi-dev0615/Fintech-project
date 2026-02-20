@@ -147,9 +147,9 @@ const AppLayout = () => {
           title={pageTitle}
         />
         
-        <main className={`flex-1 min-h-0 flex flex-col pt-6 pb-6 px-4 overflow-y-auto ${isCustomerPage ? 'lg:pt-6 lg:pb-6 lg:px-4 xl:pt-6 xl:pb-6 xl:px-4' : 'lg:pt-6 lg:pb-6 lg:px-6'}`}>
+        <main className={`flex-1 min-h-0 pt-6 pb-6 px-4 overflow-y-auto ${isCustomerPage ? 'lg:pt-6 lg:pb-6 lg:px-4 xl:pt-6 xl:pb-6 xl:px-4' : 'lg:pt-6 lg:pb-6 lg:px-6'}`}>
           <div className={cn(
-            'min-w-0 w-full mx-auto flex-1 flex flex-col min-h-0',
+            'min-w-0 w-full mx-auto',
             isCustomerPage ? 'max-w-[95%] xl:max-w-[90%] 2xl:max-w-8xl' : 'max-w-8xl'
           )}>
             <Suspense fallback={<PageLoader />}>

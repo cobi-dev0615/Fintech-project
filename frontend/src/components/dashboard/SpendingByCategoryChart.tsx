@@ -106,7 +106,7 @@ const SpendingByCategoryChart = () => {
               {topCategory && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-lg font-bold text-foreground">{topCategory.percentage}%</span>
-                  <span className="text-[10px] text-muted-foreground">{topCategory.category}</span>
+                  <span className="text-[10px] text-muted-foreground">{t(`dashboard:analytics.categories.${topCategory.category}`, { defaultValue: topCategory.category })}</span>
                 </div>
               )}
             </div>
@@ -120,7 +120,7 @@ const SpendingByCategoryChart = () => {
                       className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: COLORS[idx % COLORS.length] }}
                     />
-                    <span className="text-muted-foreground truncate">{item.category}</span>
+                    <span className="text-muted-foreground truncate">{t(`dashboard:analytics.categories.${item.category}`, { defaultValue: item.category })}</span>
                   </div>
                   <span className="text-foreground font-medium tabular-nums ml-2">{item.percentage}%</span>
                 </div>

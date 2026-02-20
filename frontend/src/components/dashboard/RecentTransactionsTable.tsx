@@ -105,7 +105,7 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
                         </div>
                       </td>
                       <td className="py-3 text-center hidden sm:table-cell">
-                        <span className="text-xs text-muted-foreground">{t(`dashboard:analytics.categories.${tx.category}`, { defaultValue: tx.category }) || t('dashboard:analytics.others')}</span>
+                        <span className="text-xs text-muted-foreground">{tx.category ? t(`dashboard:analytics.categories.${tx.category}`, { defaultValue: tx.category }) : t('dashboard:analytics.others')}</span>
                       </td>
                       <td className="py-3 text-center">
                         <span className="text-xs text-muted-foreground">{formatDate(tx.date)}</span>
