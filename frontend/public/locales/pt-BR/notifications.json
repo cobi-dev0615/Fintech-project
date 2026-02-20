@@ -97,6 +97,12 @@
     "title": "Plano Atualizado",
     "message": "Seu plano foi alterado para {{planName}}."
   },
+  "goalDeadline": {
+    "approachingTitle": "Prazo da Meta se Aproximando",
+    "approachingMessage": "Sua meta \"{{goalName}}\" vence em {{daysLeft}} dia(s). Progresso atual: {{progress}}%.",
+    "expiredTitle": "Prazo da Meta Expirado",
+    "expiredMessage": "Sua meta \"{{goalName}}\" passou do prazo. Progresso: {{progress}}%."
+  },
   "preferences": {
     "title": "Configurações de Notificações",
     "subtitle": "Configure quais notificações você deseja receber",

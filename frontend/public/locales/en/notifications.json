@@ -97,6 +97,12 @@
     "title": "Plan Updated",
     "message": "Your plan has been changed to {{planName}}."
   },
+  "goalDeadline": {
+    "approachingTitle": "Goal Deadline Approaching",
+    "approachingMessage": "Your goal \"{{goalName}}\" is due in {{daysLeft}} day(s). Current progress: {{progress}}%.",
+    "expiredTitle": "Goal Deadline Passed",
+    "expiredMessage": "Your goal \"{{goalName}}\" has passed its deadline. Progress: {{progress}}%."
+  },
   "preferences": {
     "title": "Notification Settings",
     "subtitle": "Configure which notifications you want to receive",

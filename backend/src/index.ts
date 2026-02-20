@@ -25,6 +25,7 @@ import { mercadopagoRoutes } from './routes/mercadopago.js';
 import { messageFileRoutes } from './routes/message-files.js';
 import { setupWebSocket } from './websocket/websocket.js';
 import { startSyncScheduler } from './services/sync-scheduler.js';
+import { startGoalDeadlineChecker } from './services/goal-deadline-checker.js';
 
 dotenv.config();
 
@@ -156,6 +157,10 @@ const start = async () => {
     // Start background sync scheduler (every 6 hours)
     startSyncScheduler();
     console.log(`🔄 Pluggy sync scheduler started (every 6 hours)`);
+
+    // Start goal deadline checker (every 24 hours)
+    startGoalDeadlineChecker();
+    console.log(`🎯 Goal deadline checker started (every 24 hours)`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
