@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import ChartCard from "./ChartCard";
 import { financeApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
@@ -34,26 +36,66 @@ const NetWorthChart = () => {
     return () => { cancelled = true; };
   }, [activePeriod]);
 
+  const handleExcelDownload = () => {
+    if (!data.length) return;
+
+    const periodLabel = t('chart.tooltipLabel');
+    // Build SpreadsheetML XML (natively supported by Excel)
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<?mso-application progid="Excel.Sheet"?>\n';
+    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ';
+    xml += 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n';
+    xml += '<Styles><Style ss:ID="header"><Font ss:Bold="1"/></Style>';
+    xml += '<Style ss:ID="num"><NumberFormat ss:Format="#,##0.00"/></Style></Styles>\n';
+    xml += '<Worksheet ss:Name="Net Asset Change"><Table>\n';
+    // Header row
+    xml += '<Row ss:StyleID="header">';
+    xml += `<Cell><Data ss:Type="String">${t('dashboard:analytics.date')}</Data></Cell>`;
+    xml += `<Cell><Data ss:Type="String">${periodLabel}</Data></Cell>`;
+    xml += '</Row>\n';
+    // Data rows
+    data.forEach(d => {
+      xml += '<Row>';
+      xml += `<Cell><Data ss:Type="String">${d.month}</Data></Cell>`;
+      xml += `<Cell ss:StyleID="num"><Data ss:Type="Number">${d.value}</Data></Cell>`;
+      xml += '</Row>\n';
+    });
+    xml += '</Table></Worksheet></Workbook>';
+
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `net-asset-change-${activePeriod}.xls`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <ChartCard
       title={t('chart.title')}
       subtitle={t('chart.subtitle')}
       actions={
-        <div className="flex rounded-lg border border-border overflow-hidden">
-          {PERIODS.map(p => (
-            <button
-              key={p}
-              onClick={() => setActivePeriod(p)}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium transition-colors",
-                activePeriod === p
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              )}
-            >
-              {t(`dashboard:analytics.${p}`)}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-border overflow-hidden">
+            {PERIODS.map(p => (
+              <button
+                key={p}
+                onClick={() => setActivePeriod(p)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium transition-colors",
+                  activePeriod === p
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                )}
+              >
+                {t(`dashboard:analytics.${p}`)}
+              </button>
+            ))}
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleExcelDownload} disabled={!data.length || loading}>
+            <Download className="h-3.5 w-3.5" />
+          </Button>
         </div>
       }
     >
