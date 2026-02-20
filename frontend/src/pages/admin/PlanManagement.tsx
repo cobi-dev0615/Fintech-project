@@ -243,7 +243,7 @@ const PlanManagement = () => {
       const code = nameToCode[u.plan!.toLowerCase()] || u.plan!.toLowerCase();
       if (code === "free") {
         freeCount++;
-      } else if (code === "consultant") {
+      } else if (code.startsWith("consultant") || code === "enterprise") {
         consultantCount++;
       } else {
         customerCount++;
