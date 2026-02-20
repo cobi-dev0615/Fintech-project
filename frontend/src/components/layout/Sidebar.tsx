@@ -99,7 +99,8 @@ const Sidebar = memo(({ collapsed = false, onCollapse, mobileOpen = false, onMob
       section: t('sidebar.sections.financeiro'),
       subItems: [
         { label: t('sidebar.nav.openFinance'), href: "/app/connections/open-finance", enabled: true, icon: Globe },
-        { label: t('sidebar.nav.b3'), href: "/app/connections/b3", enabled: true, icon: BarChart2 },
+        // B3 hidden until implementation is ready
+        // { label: t('sidebar.nav.b3'), href: "/app/connections/b3", enabled: true, icon: BarChart2 },
       ],
     },
     { icon: Wallet, label: t('sidebar.nav.accounts'), href: "/app/accounts", enabled: true, section: t('sidebar.sections.financeiro') },
