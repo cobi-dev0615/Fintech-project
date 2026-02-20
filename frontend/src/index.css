@@ -293,11 +293,16 @@
 @layer components {
   /* Professional KPI Card styles */
   .kpi-card {
-    @apply rounded-xl p-5 transition-all duration-200 h-full;
+    @apply rounded-xl p-3 sm:p-5 transition-all duration-200 h-full;
     background: linear-gradient(180deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.85) 100%);
     border: 1px solid hsl(var(--primary) / 0.4);
     box-shadow: var(--shadow-card);
-    min-height: 160px;
+    min-height: 120px;
+  }
+  @media (min-width: 640px) {
+    .kpi-card {
+      min-height: 160px;
+    }
   }
 
   .kpi-card:hover {

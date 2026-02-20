@@ -79,7 +79,7 @@ const RevenueExpensesChart = () => {
                 key={p}
                 onClick={() => setActivePeriod(p)}
                 className={cn(
-                  "px-3 py-1.5 text-xs font-medium transition-colors",
+                  "px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-xs font-medium transition-colors",
                   activePeriod === p
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"

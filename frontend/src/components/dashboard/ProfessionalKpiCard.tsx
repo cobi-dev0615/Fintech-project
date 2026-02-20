@@ -40,20 +40,20 @@ const ProfessionalKpiCard = ({
 
   return (
     <div className="kpi-card min-w-0">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           {Icon && (
             <div
               className={cn(
-                "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                "w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0",
                 styles?.icon ?? "bg-muted/60"
               )}
               aria-hidden
             >
-              <Icon className={cn("h-4 w-4", iconClassName ?? (styles ? "" : "text-muted-foreground"))} />
+              <Icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", iconClassName ?? (styles ? "" : "text-muted-foreground"))} />
             </div>
           )}
-          <span className="text-xs font-medium text-muted-foreground truncate">
+          <span className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate">
             {title}
           </span>
         </div>
@@ -64,7 +64,7 @@ const ProfessionalKpiCard = ({
         )}
       </div>
 
-      <div className="text-2xl sm:text-[28px] font-bold text-foreground mb-1 tabular-nums tracking-tight leading-none">
+      <div className="text-[15px] sm:text-2xl lg:text-[28px] font-bold text-foreground mb-1 tabular-nums tracking-tight leading-none truncate">
         {value}
       </div>
 
