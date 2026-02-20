@@ -93,6 +93,10 @@
     "invitationExpiredCustomerDesc": "{{consultantName}}'s invitation has expired and was removed from your list.",
     "invitationAcceptedFullDesc": "{{customerName}} accepted your invitation and you can now access their financial data."
   },
+  "planChanged": {
+    "title": "Plan Updated",
+    "message": "Your plan has been changed to {{planName}}."
+  },
   "preferences": {
     "title": "Notification Settings",
     "subtitle": "Configure which notifications you want to receive",

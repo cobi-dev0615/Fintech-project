@@ -1664,6 +1664,28 @@ export async function adminRoutes(fastify: FastifyInstance) {
         userAgent: request.headers['user-agent'],
       });
 
+      // Notify the user about the plan change
+      try {
+        await createAlert({
+          userId: id,
+          severity: 'info',
+          title: 'Plan Updated',
+          message: `Your plan has been changed to ${plan.name}.`,
+          notificationType: 'subscription_update',
+          linkUrl: '/app/plans',
+          metadata: {
+            planId,
+            planCode: plan.code,
+            planName: plan.name,
+            titleKey: 'notifications:planChanged.title',
+            messageKey: 'notifications:planChanged.message',
+            messageParams: { planName: plan.name },
+          },
+        });
+      } catch (notifError) {
+        fastify.log.warn({ err: notifError }, 'Failed to send plan change notification');
+      }
+
       // Invalidate cache
       cache.delete('admin:dashboard:metrics');
 

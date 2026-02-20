@@ -93,6 +93,10 @@
     "invitationExpiredCustomerDesc": "O convite de {{consultantName}} expirou e foi removido da sua lista.",
     "invitationAcceptedFullDesc": "{{customerName}} aceitou seu convite e agora você pode acessar os dados financeiros dele."
   },
+  "planChanged": {
+    "title": "Plano Atualizado",
+    "message": "Seu plano foi alterado para {{planName}}."
+  },
   "preferences": {
     "title": "Configurações de Notificações",
     "subtitle": "Configure quais notificações você deseja receber",

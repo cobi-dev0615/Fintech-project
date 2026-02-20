@@ -507,7 +507,9 @@ const PlanManagement = () => {
 
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
+                      <h3 className="text-xl font-bold text-foreground mb-1">
+                        {t(`admin:planManagement.plans.${plan.code.toLowerCase()}.name`, { defaultValue: plan.name })}
+                      </h3>
                       <p className="text-xs text-muted-foreground uppercase">{plan.code}</p>
                     </div>
 
@@ -535,22 +537,30 @@ const PlanManagement = () => {
                     )}
 
                     <ul className="space-y-2 mt-4 max-h-48 overflow-y-auto">
-                      {plan.features.slice(0, 5).map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-foreground">{feature}</span>
-                        </li>
-                      ))}
-                      {plan.features.length > 5 && (
-                        <li className="text-xs text-muted-foreground">
-                          +{plan.features.length - 5} {t('common:more')}
-                        </li>
-                      )}
-                      {plan.features.length === 0 && (
-                        <li className="text-xs text-muted-foreground italic">
-                          {t('common:noFeaturesDefined')}
-                        </li>
-                      )}
+                      {(() => {
+                        const translatedFeatures = t(`admin:planManagement.plans.${plan.code.toLowerCase()}.features`, { returnObjects: true, defaultValue: null }) as string[] | null;
+                        const displayFeatures = Array.isArray(translatedFeatures) ? translatedFeatures : plan.features;
+                        return (
+                          <>
+                            {displayFeatures.slice(0, 5).map((feature, index) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                                <span className="text-sm text-foreground">{feature}</span>
+                              </li>
+                            ))}
+                            {displayFeatures.length > 5 && (
+                              <li className="text-xs text-muted-foreground">
+                                +{displayFeatures.length - 5} {t('common:more')}
+                              </li>
+                            )}
+                            {displayFeatures.length === 0 && (
+                              <li className="text-xs text-muted-foreground italic">
+                                {t('common:noFeaturesDefined')}
+                              </li>
+                            )}
+                          </>
+                        );
+                      })()}
                     </ul>
 
                     {!plan.isActive && (

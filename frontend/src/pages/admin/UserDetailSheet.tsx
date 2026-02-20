@@ -167,7 +167,7 @@ export default function UserDetailSheet({
     setChangingPlan(true);
     try {
       await adminApi.changeUserPlan(user.id, selectedPlanId);
-      toast({ title: t("admin:userDetail.changePlanSuccess") });
+      toast({ title: t("admin:userDetail.changePlanSuccess"), variant: "success" });
       setShowPlanChange(false);
       setSelectedPlanId("");
       fetchUser();

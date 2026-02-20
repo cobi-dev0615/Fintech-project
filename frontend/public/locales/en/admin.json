@@ -286,7 +286,33 @@
     "deleteSuccess": "Plan deleted successfully",
     "createError": "Error creating plan",
     "updateError": "Error updating plan",
-    "deleteError": "Error deleting plan"
+    "deleteError": "Error deleting plan",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "features": ["1 bank connection", "Basic dashboard", "Market quotes"]
+      },
+      "basic": {
+        "name": "Basic",
+        "features": ["3 bank connections", "Monthly reports", "Email support"]
+      },
+      "pro": {
+        "name": "Pro",
+        "features": ["10 bank connections", "Financial AI", "Unlimited reports", "Priority support", "Custom alerts"]
+      },
+      "consultant-basic": {
+        "name": "Basic Consultant",
+        "features": ["5 bank connections", "Client dashboard", "Monthly reports", "Email support", "Basic client area"]
+      },
+      "consultant": {
+        "name": "Consultant",
+        "features": ["Unlimited connections", "Client area", "Custom reports", "Priority support"]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "features": ["Unlimited connections", "API access"]
+      }
+    }
   },
   "paymentHistory": {
     "title": "Payment History",

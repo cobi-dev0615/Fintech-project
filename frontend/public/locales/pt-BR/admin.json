@@ -286,7 +286,33 @@
     "deleteSuccess": "Plano excluído com sucesso",
     "createError": "Erro ao criar plano",
     "updateError": "Erro ao atualizar plano",
-    "deleteError": "Erro ao excluir plano"
+    "deleteError": "Erro ao excluir plano",
+    "plans": {
+      "free": {
+        "name": "Grátis",
+        "features": ["1 conexão bancária", "Dashboard básico", "Cotações de mercado"]
+      },
+      "basic": {
+        "name": "Básico",
+        "features": ["3 conexões bancárias", "Relatórios mensais", "Suporte por email"]
+      },
+      "pro": {
+        "name": "Pro",
+        "features": ["10 conexões bancárias", "IA Financeira", "Relatórios ilimitados", "Suporte prioritário", "Alertas personalizados"]
+      },
+      "consultant-basic": {
+        "name": "Consultor Básico",
+        "features": ["5 conexões bancárias", "Dashboard de clientes", "Relatórios mensais", "Suporte por email", "Área do cliente básica"]
+      },
+      "consultant": {
+        "name": "Consultor",
+        "features": ["Conexões ilimitadas", "Área do cliente", "Relatórios personalizados", "Suporte prioritário"]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "features": ["Conexões ilimitadas", "Acesso à API"]
+      }
+    }
   },
   "paymentHistory": {
     "title": "Histórico de Pagamentos",
