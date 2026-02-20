@@ -42,7 +42,7 @@ const CompoundInterest = () => {
             <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:compoundInterest.parametersDesc")}</p>
           </div>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4">
           <div className="space-y-2">
             <Label>{t("calculators:compoundInterest.initialAmount")}</Label>
             <CurrencyInput value={initialAmount} onChange={setInitialAmount} placeholder="0,00" />

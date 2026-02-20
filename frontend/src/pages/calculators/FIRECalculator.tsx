@@ -45,7 +45,7 @@ const FIRECalculator = () => {
             <p className="text-xs text-muted-foreground mt-0.5">{t("calculators:fire.parametersDesc")}</p>
           </div>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4">
           <div className="space-y-2">
             <Label>{t("calculators:fire.currentSavings")}</Label>
             <CurrencyInput value={currentSavings} onChange={setCurrentSavings} placeholder="0,00" />
