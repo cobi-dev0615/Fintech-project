@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { getCategoryIcon } from "@/utils/category-icons";
 import { cn } from "@/lib/utils";
+import i18n from "i18next";
 
 interface Transaction {
   id: string;
@@ -23,7 +24,9 @@ interface RecentTransactionsTableProps {
 const formatDate = (dateString: string) => {
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+    const localeMap: Record<string, string> = { 'pt-BR': 'pt-BR', pt: 'pt-BR', en: 'en-US' };
+    const locale = localeMap[i18n.language] || i18n.language;
+    return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
   } catch {
     return dateString;
   }
@@ -102,7 +105,7 @@ const RecentTransactionsTable = ({ transactions, loading }: RecentTransactionsTa
                         </div>
                       </td>
                       <td className="py-3 text-center hidden sm:table-cell">
-                        <span className="text-xs text-muted-foreground">{tx.category || t('dashboard:analytics.others')}</span>
+                        <span className="text-xs text-muted-foreground">{t(`dashboard:analytics.categories.${tx.category}`, { defaultValue: tx.category }) || t('dashboard:analytics.others')}</span>
                       </td>
                       <td className="py-3 text-center">
                         <span className="text-xs text-muted-foreground">{formatDate(tx.date)}</span>

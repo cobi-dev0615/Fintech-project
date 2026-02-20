@@ -67,7 +67,23 @@
     "status": "Status",
     "completed": "Completed",
     "pending": "Pending",
+    "failed": "Failed",
     "noData": "No data available",
-    "others": "Others"
+    "others": "Others",
+    "categories": {
+      "Income": "Income",
+      "Transfer": "Transfer",
+      "Entertainment": "Entertainment",
+      "Shopping": "Shopping",
+      "Food": "Food",
+      "Transport": "Transport",
+      "Housing": "Housing",
+      "Health": "Health",
+      "Education": "Education",
+      "Utilities": "Utilities",
+      "Subscriptions": "Subscriptions",
+      "Travel": "Travel",
+      "Others": "Others"
+    }
   }
 }

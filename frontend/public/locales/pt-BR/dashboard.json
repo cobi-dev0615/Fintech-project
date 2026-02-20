@@ -67,7 +67,23 @@
     "status": "Status",
     "completed": "Concluída",
     "pending": "Pendente",
+    "failed": "Falhou",
     "noData": "Nenhum dado disponível",
-    "others": "Outros"
+    "others": "Outros",
+    "categories": {
+      "Income": "Renda",
+      "Transfer": "Transferência",
+      "Entertainment": "Entretenimento",
+      "Shopping": "Compras",
+      "Food": "Alimentação",
+      "Transport": "Transporte",
+      "Housing": "Moradia",
+      "Health": "Saúde",
+      "Education": "Educação",
+      "Utilities": "Utilidades",
+      "Subscriptions": "Assinaturas",
+      "Travel": "Viagem",
+      "Others": "Outros"
+    }
   }
 }
