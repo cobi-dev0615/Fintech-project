@@ -8,6 +8,8 @@ import {
   Copy,
   Wifi,
   GripVertical,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +114,8 @@ const Cards = () => {
   const [syncingCardItemId, setSyncingCardItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [cardPage, setCardPage] = useState(1);
+  const CARDS_PER_PAGE = 3;
 
   const holderName = user?.full_name || "Card Holder";
 
@@ -375,7 +379,9 @@ const Cards = () => {
             {/* Left Column: Card List */}
             <div className="lg:col-span-2 space-y-3">
               <TooltipProvider>
-                {cards.map((card: any) => {
+                {cards
+                  .slice((cardPage - 1) * CARDS_PER_PAGE, cardPage * CARDS_PER_PAGE)
+                  .map((card: any) => {
                   const cardId = card.id || card.pluggy_card_id;
                   const isSelected = cardId === selectedCardId;
                   const cardActive = isActive(card);
@@ -534,6 +540,33 @@ const Cards = () => {
                   );
                 })}
               </TooltipProvider>
+              {cards.length > CARDS_PER_PAGE && (
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-xs text-muted-foreground">
+                    {(cardPage - 1) * CARDS_PER_PAGE + 1}–{Math.min(cardPage * CARDS_PER_PAGE, cards.length)} / {cards.length}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={cardPage <= 1}
+                      onClick={() => setCardPage((p) => Math.max(1, p - 1))}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={cardPage >= Math.ceil(cards.length / CARDS_PER_PAGE)}
+                      onClick={() => setCardPage((p) => Math.min(Math.ceil(cards.length / CARDS_PER_PAGE), p + 1))}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right Column: Card Details Sidebar */}
