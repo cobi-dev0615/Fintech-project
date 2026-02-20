@@ -164,7 +164,7 @@ const Settings = () => {
   const mainSteps = [
     { id: "profile", label: t('settings:tabs.profile') },
     { id: "password", label: t('settings:tabs.security') },
-    { id: "notifications", label: t('settings:tabs.notifications') },
+    // { id: "notifications", label: t('settings:tabs.notifications') },
     { id: "history", label: t('settings:tabs.history') },
   ];
 

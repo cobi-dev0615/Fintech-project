@@ -146,7 +146,7 @@ const Settings = () => {
   const mainSteps = [
     { id: "profile", label: t('consultant:settings.steps.profile') },
     { id: "password", label: t('consultant:settings.password.title') },
-    { id: "notifications", label: t('consultant:settings.steps.notifications') },
+    // { id: "notifications", label: t('consultant:settings.steps.notifications') },
     { id: "history", label: t('consultant:settings.steps.history') },
   ];
 
