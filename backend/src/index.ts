@@ -139,15 +139,30 @@ await fastify.register(commentsRoutes, { prefix: '/api/comments' });
 await fastify.register(mercadopagoRoutes, { prefix: '/api/mercadopago' });
 await fastify.register(messageFileRoutes, { prefix: '/api/messages' });
 
+// Ensure system_settings table and defaults exist (idempotent, runs on every startup)
+async function ensureSystemSettings() {
+  try {
+    await db.query(`CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
+    await db.query(
+      `INSERT INTO system_settings (key, value) VALUES ('registration_requires_approval', 'true') ON CONFLICT (key) DO NOTHING`
+    );
+  } catch (err) {
+    console.error('Warning: could not initialize system_settings table:', err);
+  }
+}
+
 // Start server
 const start = async () => {
   try {
     const port = Number(process.env.PORT) || 5000;
     const host = process.env.HOST || '0.0.0.0';
-    
+
+    // Ensure required DB tables/settings exist before accepting traffic
+    await ensureSystemSettings();
+
     // Setup WebSocket before listening (needs the server instance)
     setupWebSocket(fastify);
-    
+
     // Start listening
     await fastify.listen({ port, host });
     

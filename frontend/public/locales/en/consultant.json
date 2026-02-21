@@ -12,7 +12,15 @@
       "pendingTasks": "Pending Tasks",
       "forToday": "for today",
       "prospects": "Prospects",
-      "inPipeline": "in pipeline"
+      "inPipeline": "in pipeline",
+      "unreadMessages": "Unread Messages",
+      "acrossConversations": "across conversations",
+      "reportsGenerated": "Reports Generated",
+      "totalGenerated": "total generated",
+      "conversionRate": "Conversion Rate",
+      "wonVsClosed": "won vs closed leads",
+      "avgNetWorth": "Avg Net Worth",
+      "perClient": "per client"
     },
     "pipeline": {
       "title": "Prospecting Pipeline",
@@ -27,6 +35,46 @@
       "empty": "No pending tasks",
       "emptyDesc": "Your next actions will appear here.",
       "viewAll": "View all tasks"
+    },
+    "clientActivity": {
+      "title": "Recent Client Activity",
+      "subtitle": "Latest transactions across managed clients",
+      "empty": "No recent activity",
+      "emptyDesc": "Client transactions will appear here.",
+      "noDescription": "Transaction"
+    },
+    "deadlines": {
+      "title": "Upcoming Deadlines",
+      "subtitle": "Tasks due within 7 days",
+      "empty": "No upcoming deadlines",
+      "emptyDesc": "Tasks due soon will appear here.",
+      "viewAll": "View all tasks",
+      "daysLeft_one": "{{count}} day left",
+      "daysLeft_other": "{{count}} days left",
+      "dueToday": "Due today"
+    },
+    "recentReports": {
+      "title": "Recent Reports",
+      "subtitle": "Recently generated reports",
+      "empty": "No reports generated",
+      "emptyDesc": "Generated reports will appear here.",
+      "viewAll": "View all reports",
+      "completed": "Completed",
+      "processing": "Processing"
+    },
+    "unreadConversations": {
+      "title": "Unread Conversations",
+      "subtitle": "Messages awaiting your reply",
+      "empty": "All caught up",
+      "emptyDesc": "No unread messages from clients.",
+      "viewAll": "View messages"
+    },
+    "topClients": {
+      "title": "Top Clients by Net Worth",
+      "subtitle": "Highest-value clients under management",
+      "empty": "No clients yet",
+      "emptyDesc": "Your top clients will be ranked here.",
+      "viewAll": "View all clients"
     }
   },
   "stages": {

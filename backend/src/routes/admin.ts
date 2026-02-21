@@ -2778,6 +2778,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
       if (typeof registrationRequiresApproval !== 'boolean') {
         return reply.code(400).send({ error: 'registrationRequiresApproval must be a boolean' });
       }
+      // Ensure table exists before writing (guards against missing migration)
+      await db.query(`CREATE TABLE IF NOT EXISTS system_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
       await db.query(
         `INSERT INTO system_settings (key, value) VALUES ('registration_requires_approval', $1)
          ON CONFLICT (key) DO UPDATE SET value = $1`,

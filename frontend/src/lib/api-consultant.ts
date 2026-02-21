@@ -9,6 +9,10 @@ export const consultantApi = {
         totalNetWorth: number;
         pendingTasks: number;
         prospects: number;
+        unreadMessages: number;
+        reportsGenerated: number;
+        conversionRate: number;
+        avgNetWorthPerClient: number;
       };
       pipeline: Array<{ stage: string; count: number }>;
       recentTasks: Array<{
@@ -17,6 +21,41 @@ export const consultantApi = {
         client: string;
         dueDate: string;
         priority: string;
+      }>;
+      recentClientActivity: Array<{
+        id: string;
+        date: string;
+        description: string;
+        amount: number;
+        category: string;
+        clientName: string;
+      }>;
+      upcomingDeadlines: Array<{
+        id: string;
+        title: string;
+        dueDate: string;
+        client: string;
+        daysLeft: number;
+      }>;
+      recentReports: Array<{
+        id: string;
+        type: string;
+        status: string;
+        clientName: string;
+        generatedAt: string;
+      }>;
+      unreadConversations: Array<{
+        id: string;
+        clientId: string;
+        clientName: string;
+        lastMessage: string;
+        timestamp: string;
+        unreadCount: number;
+      }>;
+      topClientsByNetWorth: Array<{
+        id: string;
+        name: string;
+        netWorth: number;
       }>;
     }>('/consultant/dashboard/metrics'),
 

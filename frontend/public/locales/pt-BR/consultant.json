@@ -12,7 +12,15 @@
       "pendingTasks": "Tarefas Pendentes",
       "forToday": "para hoje",
       "prospects": "Prospectos",
-      "inPipeline": "no pipeline"
+      "inPipeline": "no pipeline",
+      "unreadMessages": "Mensagens Não Lidas",
+      "acrossConversations": "em conversas",
+      "reportsGenerated": "Relatórios Gerados",
+      "totalGenerated": "total gerado",
+      "conversionRate": "Taxa de Conversão",
+      "wonVsClosed": "ganhos vs fechados",
+      "avgNetWorth": "Patrimônio Médio",
+      "perClient": "por cliente"
     },
     "pipeline": {
       "title": "Pipeline de Prospecção",

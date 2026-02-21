@@ -174,6 +174,197 @@ export async function consultantRoutes(fastify: FastifyInstance) {
         });
       } catch { /* table may not exist yet */ }
 
+      // ── New KPIs ────────────────────────────────────────────────────
+
+      // Unread messages
+      let unreadMessages = 0;
+      try {
+        const unreadResult = await db.query(
+          `SELECT COUNT(*) AS count
+           FROM messages m
+           JOIN conversations c ON c.id = m.conversation_id
+           WHERE c.consultant_id = $1
+             AND m.sender_id != $1
+             AND m.is_read = FALSE`,
+          [consultantId]
+        );
+        unreadMessages = parseInt(unreadResult.rows[0].count) || 0;
+      } catch { /* table may not exist yet */ }
+
+      // Reports generated
+      let reportsGenerated = 0;
+      try {
+        const reportsCountResult = await db.query(
+          `SELECT COUNT(*) AS count FROM reports WHERE owner_user_id = $1`,
+          [consultantId]
+        );
+        reportsGenerated = parseInt(reportsCountResult.rows[0].count) || 0;
+      } catch { /* table may not exist yet */ }
+
+      // Conversion rate
+      let conversionRate = 0;
+      try {
+        const convResult = await db.query(
+          `SELECT
+             COUNT(*) FILTER (WHERE stage = 'won') AS won,
+             COUNT(*) FILTER (WHERE stage IN ('won', 'lost')) AS closed
+           FROM crm_leads
+           WHERE consultant_id = $1`,
+          [consultantId]
+        );
+        const won = parseInt(convResult.rows[0].won) || 0;
+        const closed = parseInt(convResult.rows[0].closed) || 0;
+        conversionRate = closed > 0 ? Math.round((won / closed) * 100) : 0;
+      } catch { /* table may not exist yet */ }
+
+      // Avg net worth per client
+      const avgNetWorthPerClient = totalClients > 0 ? Math.round((totalNetWorth / totalClients) * 100) / 100 : 0;
+
+      // ── New Sections ────────────────────────────────────────────────
+
+      // Recent client activity (top 10 transactions)
+      let recentClientActivity: Array<{
+        id: string; date: string; description: string;
+        amount: number; category: string; clientName: string;
+      }> = [];
+      try {
+        const activityResult = await db.query(
+          `SELECT t.id, t.occurred_at, t.description, t.merchant, t.amount_cents, t.category,
+                  COALESCE(u.full_name, u.email, 'N/A') AS client_name
+           FROM transactions t
+           JOIN customer_consultants cc ON cc.customer_id = t.user_id
+             AND cc.consultant_id = $1 AND cc.status = 'active'
+           LEFT JOIN users u ON u.id = t.user_id
+           ORDER BY t.occurred_at DESC
+           LIMIT 10`,
+          [consultantId]
+        );
+        recentClientActivity = activityResult.rows.map((r: any) => ({
+          id: r.id,
+          date: r.occurred_at ? new Date(r.occurred_at).toISOString().slice(0, 10) : '',
+          description: r.description || r.merchant || '',
+          amount: (parseInt(r.amount_cents) || 0) / 100,
+          category: r.category || '',
+          clientName: r.client_name,
+        }));
+      } catch { /* table may not exist yet */ }
+
+      // Upcoming deadlines (tasks due within 7 days)
+      let upcomingDeadlines: Array<{
+        id: string; title: string; dueDate: string;
+        client: string; daysLeft: number;
+      }> = [];
+      try {
+        const deadlinesResult = await db.query(
+          `SELECT t.id, t.title, t.due_at,
+                  COALESCE(u.full_name, u.email, 'N/A') AS client_name
+           FROM tasks t
+           LEFT JOIN users u ON u.id = t.customer_id
+           WHERE t.consultant_id = $1
+             AND t.is_done = FALSE
+             AND t.due_at IS NOT NULL
+             AND t.due_at >= NOW()
+             AND t.due_at <= NOW() + INTERVAL '7 days'
+           ORDER BY t.due_at ASC
+           LIMIT 10`,
+          [consultantId]
+        );
+        const nowMs = Date.now();
+        upcomingDeadlines = deadlinesResult.rows.map((r: any) => {
+          const dueDate = new Date(r.due_at);
+          return {
+            id: r.id,
+            title: r.title,
+            dueDate: dueDate.toISOString().slice(0, 10),
+            client: r.client_name,
+            daysLeft: Math.max(0, Math.ceil((dueDate.getTime() - nowMs) / (1000 * 60 * 60 * 24))),
+          };
+        });
+      } catch { /* table may not exist yet */ }
+
+      // Recent reports (top 10)
+      let recentReports: Array<{
+        id: string; type: string; status: string;
+        clientName: string; generatedAt: string;
+      }> = [];
+      try {
+        const reportsResult = await db.query(
+          `SELECT r.id, r.type, r.file_url, r.created_at,
+                  COALESCE(u.full_name, 'General') AS client_name
+           FROM reports r
+           LEFT JOIN users u ON u.id = r.target_user_id
+           WHERE r.owner_user_id = $1
+           ORDER BY r.created_at DESC
+           LIMIT 10`,
+          [consultantId]
+        );
+        recentReports = reportsResult.rows.map((r: any) => ({
+          id: r.id,
+          type: r.type,
+          status: r.file_url ? 'completed' : 'processing',
+          clientName: r.client_name,
+          generatedAt: r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : '',
+        }));
+      } catch { /* table may not exist yet */ }
+
+      // Unread conversations
+      let unreadConversations: Array<{
+        id: string; clientId: string; clientName: string;
+        lastMessage: string; timestamp: string; unreadCount: number;
+      }> = [];
+      try {
+        const convResult = await db.query(
+          `SELECT c.id, c.customer_id,
+                  COALESCE(u.full_name, u.email) AS client_name,
+                  (SELECT body FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message,
+                  (SELECT created_at FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_message_time,
+                  (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id AND sender_id != $1 AND is_read = FALSE) AS unread_count
+           FROM conversations c
+           JOIN users u ON u.id = c.customer_id
+           WHERE c.consultant_id = $1
+             AND EXISTS (
+               SELECT 1 FROM messages m
+               WHERE m.conversation_id = c.id AND m.sender_id != $1 AND m.is_read = FALSE
+             )
+           ORDER BY last_message_time DESC
+           LIMIT 10`,
+          [consultantId]
+        );
+        unreadConversations = convResult.rows.map((r: any) => ({
+          id: r.id,
+          clientId: r.customer_id,
+          clientName: r.client_name,
+          lastMessage: r.last_message || '',
+          timestamp: r.last_message_time ? new Date(r.last_message_time).toISOString() : '',
+          unreadCount: parseInt(r.unread_count) || 0,
+        }));
+      } catch { /* table may not exist yet */ }
+
+      // Top clients by net worth (top 5)
+      let topClientsByNetWorth: Array<{
+        id: string; name: string; netWorth: number;
+      }> = [];
+      try {
+        const topResult = await db.query(
+          `SELECT cc.customer_id AS id,
+                  COALESCE(u.full_name, u.email) AS name,
+                  COALESCE((SELECT SUM(ba.balance_cents) FROM bank_accounts ba WHERE ba.user_id = cc.customer_id), 0) +
+                  COALESCE((SELECT SUM(h.market_value_cents) FROM holdings h WHERE h.user_id = cc.customer_id), 0) AS net_worth_cents
+           FROM customer_consultants cc
+           JOIN users u ON u.id = cc.customer_id
+           WHERE cc.consultant_id = $1
+             AND cc.status = 'active'
+           ORDER BY net_worth_cents DESC
+           LIMIT 5`,
+          [consultantId]
+        );
+        topClientsByNetWorth = topResult.rows.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          netWorth: (parseInt(r.net_worth_cents) || 0) / 100,
+        }));
+      } catch { /* table may not exist yet */ }
+
       const result = {
         kpis: {
           totalClients,
@@ -181,9 +372,18 @@ export async function consultantRoutes(fastify: FastifyInstance) {
           totalNetWorth,
           pendingTasks,
           prospects,
+          unreadMessages,
+          reportsGenerated,
+          conversionRate,
+          avgNetWorthPerClient,
         },
         pipeline,
         recentTasks,
+        recentClientActivity,
+        upcomingDeadlines,
+        recentReports,
+        unreadConversations,
+        topClientsByNetWorth,
       };
 
       cache.set(cacheKey, result, 120000); // 2 minute TTL
