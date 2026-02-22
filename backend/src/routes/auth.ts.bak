@@ -634,13 +634,6 @@ export async function authRoutes(fastify: FastifyInstance) {
       const token = fastify.jwt.sign({ userId: user.id, role: user.role });
 
       // Redirect to frontend with token
-
-  // Check if request came from mobile app
-  const source = (request.query as any).source;
-  if (source === "mobile") {
-    return reply.send({ token, user: { id: user.id, role: user.role, email: user.email } });
-  }
-
       return reply.redirect(`${frontendUrl}/auth/google?token=${token}`);
     } catch (error) {
       fastify.log.error(error);

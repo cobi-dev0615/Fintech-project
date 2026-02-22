@@ -3,6 +3,10 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import dotenv from 'dotenv';
 import { db } from './db/connection.js';
+import { aiRoutes } from './routes/ai.js';
+import { marketRoutes } from './routes/market.js';
+import { familyRoutes } from './routes/family.js';
+import { reportRoutes } from './routes/report.js';
 import { authRoutes } from './routes/auth.js';
 import { usersRoutes } from './routes/users.js';
 import { dashboardRoutes } from './routes/dashboard.js';
@@ -118,7 +122,11 @@ fastify.get('/health', async () => {
 });
 
 // Register routes
-await fastify.register(authRoutes, { prefix: '/api/auth' });
+await fastify.register(aiRoutes, { prefix: '/api/ai' });
+  fastify.register(marketRoutes, { prefix: '/api/market' });
+  fastify.register(familyRoutes, { prefix: '/api/family' });
+  fastify.register(reportRoutes, { prefix: '/api/ai' });
+  fastify.register(authRoutes, { prefix: '/api/auth' });
 await fastify.register(usersRoutes, { prefix: '/api/users' });
 await fastify.register(dashboardRoutes, { prefix: '/api/dashboard' });
 await fastify.register(connectionsRoutes, { prefix: '/api/connections' });
