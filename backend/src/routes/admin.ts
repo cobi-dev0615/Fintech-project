@@ -19,7 +19,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       END $$;
     `);
   } catch (err) {
-    fastify.log.warn('Error checking/adding enabled column to institutions:', err);
+    fastify.log.warn({ err }, 'Error checking/adding enabled column to institutions');
   }
   // Middleware: Only admins can access these routes
   const requireAdmin = async (request: any, reply: any) => {
@@ -3839,7 +3839,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         action: 'institution_created',
         resourceType: 'institution',
         resourceId: institution.id,
-        details: { name: institution.name, provider: institution.provider },
+        metadata: { name: institution.name, provider: institution.provider },
         ipAddress: getClientIp(request),
         userAgent: request.headers['user-agent'],
       });

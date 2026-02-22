@@ -484,11 +484,11 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.text();
-        fastify.log.error('Google token exchange failed:', errorData);
+        fastify.log.error({ errorData }, 'Google token exchange failed');
         return reply.redirect(`${frontendUrl}/auth/google?error=token_exchange_failed`);
       }
 
-      const tokenData = await tokenResponse.json();
+      const tokenData = await tokenResponse.json() as { access_token: string };
       const accessToken = tokenData.access_token;
 
       // Get user info from Google
@@ -502,7 +502,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         return reply.redirect(`${frontendUrl}/auth/google?error=user_info_failed`);
       }
 
-      const googleUser = await userInfoResponse.json();
+      const googleUser = await userInfoResponse.json() as { email?: string; name?: string; given_name?: string; id?: string };
       const email = googleUser.email;
       const fullName = googleUser.name || googleUser.given_name || 'User';
       const googleId = googleUser.id;

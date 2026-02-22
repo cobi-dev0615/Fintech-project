@@ -393,7 +393,7 @@ export async function connectionsRoutes(fastify: FastifyInstance) {
                 ['open_finance', inst.id.toString(), inst.name, inst.imageUrl || null]
               );
             } catch (err) {
-              fastify.log.warn(`Error syncing institution ${inst.id}:`, err);
+              fastify.log.warn({ err }, `Error syncing institution ${inst.id}`);
             }
           }
         } catch (pluggyError: any) {

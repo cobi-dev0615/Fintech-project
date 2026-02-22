@@ -389,7 +389,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       cache.set(cacheKey, result, 120000); // 2 minute TTL
       return result;
     } catch (err) {
-      fastify.log.error('Consultant dashboard metrics error:', err);
+      fastify.log.error({ err }, 'Consultant dashboard metrics error');
       reply.code(500).send({ error: 'Failed to load dashboard metrics' });
     }
   });

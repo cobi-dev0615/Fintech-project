@@ -65,7 +65,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
             netWorth = cash_balance + investment_value;
           }
         } catch (error) {
-          fastify.log.error('Error calculating net worth:', error);
+          fastify.log.error({ error }, 'Error calculating net worth');
           // Use default values (0)
         }
       }
@@ -81,7 +81,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           );
           recentTransactionsCount = Number(transactionsResult.rows[0]?.count || 0);
         } catch (error) {
-          fastify.log.error('Error getting transactions count:', error);
+          fastify.log.error({ error }, 'Error getting transactions count');
         }
       }
       
@@ -96,7 +96,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           );
           unreadAlertsCount = Number(alertsResult.rows[0]?.count || 0);
         } catch (error) {
-          fastify.log.error('Error getting alerts count:', error);
+          fastify.log.error({ error }, 'Error getting alerts count');
         }
       }
       
@@ -163,7 +163,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
             currentNetWorth = Number(netWorthResult.rows[0]?.net_worth || 0);
           }
         } catch (error) {
-          fastify.log.error('Error calculating current net worth:', error);
+          fastify.log.error({ error }, 'Error calculating current net worth');
         }
       }
 
@@ -188,7 +188,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
             change: Number(row.change || 0),
           }));
         } catch (error) {
-          fastify.log.error('Error getting monthly changes:', error);
+          fastify.log.error({ error }, 'Error getting monthly changes');
         }
       }
 
@@ -409,7 +409,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         transactions,
       });
     } catch (error) {
-      fastify.log.error('Error fetching dashboard finance:', error);
+      fastify.log.error({ error }, 'Error fetching dashboard finance');
       return reply.code(500).send({ error: 'Failed to load financial data' });
     }
   });

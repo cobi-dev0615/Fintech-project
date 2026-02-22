@@ -462,12 +462,12 @@ export async function financeRoutes(fastify: FastifyInstance) {
 
       return reply.send({ cards: result.rows });
     } catch (error: any) {
-      fastify.log.error('Error fetching credit cards:', error);
-      fastify.log.error('Error details:', {
+      fastify.log.error({ error }, 'Error fetching credit cards');
+      fastify.log.error({
         message: error.message,
         stack: error.stack,
         code: error.code,
-      });
+      }, 'Error details');
       return reply.code(500).send({ 
         error: 'Internal server error',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined

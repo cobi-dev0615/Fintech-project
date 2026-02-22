@@ -94,7 +94,13 @@ export async function createPreference(data: CreatePreferenceData): Promise<any>
 
   try {
     const preferenceData = {
-      items: data.items,
+      items: data.items.map((item, i) => ({
+        id: String(i + 1),
+        title: item.title,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      })),
       payer: data.payer,
       back_urls: data.back_urls || {
         success: `${process.env.FRONTEND_URL?.split(',')[0] || 'https://zurt.com.br'}/payment/success`,
@@ -177,7 +183,7 @@ export async function getPreference(preferenceId: string): Promise<any> {
   }
 
   try {
-    const response = await preference.get({ id: preferenceId });
+    const response = await preference.get({ preferenceId });
     return response;
   } catch (error: any) {
     console.error('Error getting Mercado Pago preference:', error);
