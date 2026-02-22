@@ -19,8 +19,8 @@ export async function reportRoutes(fastify: FastifyInstance) {
 
     try {
       const [acc, inv, cards, userName] = await Promise.all([
-        db.query('SELECT name, type, current_balance, institution_name FROM accounts WHERE user_id = $1', [userId]),
-        db.query('SELECT name, type, current_value, institution_name, ticker FROM investments WHERE user_id = $1', [userId]),
+        db.query('SELECT display_name as name, account_type as type, balance_cents::numeric/100 as current_balance FROM bank_accounts WHERE user_id = $1', [userId]),
+        db.query('SELECT name, type, current_value FROM pluggy_investments WHERE user_id = $1', [userId]),
         db.query('SELECT brand, last4, institution_name FROM credit_cards WHERE user_id = $1', [userId]),
         db.query('SELECT full_name FROM users WHERE id = $1', [userId]),
       ]);
