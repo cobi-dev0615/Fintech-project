@@ -6,6 +6,7 @@ import { db } from './db/connection.js';
 import { aiRoutes } from './routes/ai.js';
 import { marketRoutes } from './routes/market.js';
 import { familyRoutes } from './routes/family.js';
+import { invitePageRoutes } from './routes/invite-page.js';
 import { reportRoutes } from './routes/report.js';
 import { authRoutes } from './routes/auth.js';
 import { usersRoutes } from './routes/users.js';
@@ -125,6 +126,7 @@ fastify.get('/health', async () => {
 await fastify.register(aiRoutes, { prefix: '/api/ai' });
   fastify.register(marketRoutes, { prefix: '/api/market' });
   fastify.register(familyRoutes, { prefix: '/api/family' });
+  fastify.register(invitePageRoutes, { prefix: '/invite' });
   fastify.register(reportRoutes, { prefix: '/api/ai' });
   fastify.register(authRoutes, { prefix: '/api/auth' });
 await fastify.register(usersRoutes, { prefix: '/api/users' });
