@@ -141,24 +141,7 @@ export default defineConfig(({ mode }) => {
         return false;
       },
       output: {
-        ...(minimalBuild
-          ? { inlineDynamicImports: true }
-          : {
-              manualChunks: (id) => {
-                if (id.includes('@swc/') || id.includes('lovable-tagger') || id.endsWith('.node')) return undefined;
-                if (id.includes('node_modules')) {
-                  if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('@radix-ui') || id.includes('next-themes') || id.includes('sonner') || id.includes('vaul') || id.includes('cmdk') || id.includes('react-i18next') || id.includes('react-hook-form') || id.includes('@hookform') || id.includes('@tanstack/react-query') || id.includes('recharts') || id.includes('react-day-picker') || id.includes('lucide-react') || id.includes('embla-carousel-react') || id.includes('react-resizable-panels') || id.includes('@dnd-kit') || id.includes('input-otp')) return 'vendor-react';
-                  if (id.includes('date-fns')) return 'vendor-dates';
-                  if (id.includes('zod')) return 'vendor-forms';
-                  if (id.includes('i18next') && !id.includes('react-i18next')) return 'vendor-i18n';
-                  return 'vendor-other';
-                }
-                if (id.includes('/pages/admin/')) return 'pages-admin';
-                if (id.includes('/pages/consultant/')) return 'pages-consultant';
-                if (id.includes('/pages/calculators/')) return 'pages-calculators';
-                return undefined;
-              },
-            }),
+        ...(minimalBuild ? { inlineDynamicImports: true } : {}),
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
         assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',

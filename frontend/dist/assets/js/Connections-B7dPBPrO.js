@@ -1,1 +1,0 @@
-import{a as e,r as o}from"./vendor-react-eGavkWpr.js";import"./vendor-charts-7164gU5e.js";import"./pages-admin-DH5NIsQe.js";import"./vendor-dates-D7rpR-TA.js";import"./pages-consultant-CAKUMpqU.js";import"./vendor-radix-BQCqNqg0.js";const c=()=>{const t=e();return o.useEffect(()=>{t("/app/connections/open-finance",{replace:!0})},[t]),null};export{c as default};
