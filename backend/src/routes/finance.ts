@@ -602,7 +602,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).userId;
-      const { itemId } = request.body as any;
+      const { itemId } = (request.body || {}) as any;
 
       // Rate limiting: Check last sync time (prevent too frequent syncs)
       if (itemId) {

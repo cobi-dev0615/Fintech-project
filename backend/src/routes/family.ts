@@ -73,7 +73,7 @@ export async function familyRoutes(fastify: FastifyInstance) {
       const inv = await db.query('SELECT full_name FROM users WHERE id = $1', [userId]);
       const invName = inv.rows[0]?.full_name || 'Um membro do ZURT';
       const sent = await sendInviteEmail(email, invName, g.rows[0].name, token);
-      return reply.send({ member: member.rows[0], emailSent: sent, autoAccepted: false, message: st === 'accepted' ? 'Membro adicionado automaticamente!' : sent ? 'Convite enviado por email!' : 'Convite criado. Compartilhe o link manualmente.' });
+      return reply.send({ member: member.rows[0], emailSent: sent, autoAccepted: false, message: st as string === 'accepted' ? 'Membro adicionado automaticamente!' : sent ? 'Convite enviado por email!' : 'Convite criado. Compartilhe o link manualmente.' });
     } catch (e: any) { return reply.code(500).send({ error: e.message }); }
   });
 

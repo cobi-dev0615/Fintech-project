@@ -386,8 +386,11 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         } catch { /* table may not exist */ }
       }
 
-      // Summary
-      const cash = accounts.reduce((s: number, a: any) => s + (parseFloat(a.current_balance) || 0), 0);
+      // Summary - separate cash (bank accounts) from debt (credit cards)
+      const cashAccounts = accounts.filter((a: any) => a.type !== 'CREDIT_CARD');
+      const creditCardAccounts = accounts.filter((a: any) => a.type === 'CREDIT_CARD');
+      const cash = cashAccounts.reduce((s: number, a: any) => s + (parseFloat(a.current_balance) || 0), 0);
+      const debt = creditCardAccounts.reduce((s: number, a: any) => s + (parseFloat(a.current_balance) || 0), 0);
       const investTotal = investments.reduce((s: number, i: any) => s + (parseFloat(i.current_value) || 0), 0);
 
       // Breakdown by investment type
@@ -401,7 +404,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       const breakdown = Object.entries(breakdownMap).map(([type, v]) => ({ type, ...v }));
 
       return reply.send({
-        summary: { cash, investments: investTotal, debt: 0, netWorth: cash + investTotal },
+        summary: { cash, investments: investTotal, debt, netWorth: cash + investTotal - debt },
         accounts,
         investments,
         breakdown,
