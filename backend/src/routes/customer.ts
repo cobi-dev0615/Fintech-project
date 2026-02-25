@@ -711,7 +711,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
         `INSERT INTO messages (conversation_id, sender_id, body, attachment_url, attachment_name)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id, body, created_at, attachment_url, attachment_name`,
-        [id, customerId, hasBody ? body!.trim() : (hasAttachment ? '(arquivo)' : ''), hasAttachment ? attachmentUrl : null, hasAttachment ? attachmentName : null]
+        [id, customerId, hasBody ? body!.trim() : '', hasAttachment ? attachmentUrl : null, hasAttachment ? attachmentName : null]
       );
 
       const row = result.rows[0];

@@ -753,9 +753,14 @@ const Messages = () => {
                                 : "bg-muted text-foreground border border-border/50"
                             )}
                           >
-                            {message.content ? <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p> : null}
+                            {message.content && message.content !== '(arquivo)' ? <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p> : null}
                             {message.attachmentUrl && message.attachmentName && (
-                              <div className="flex items-center gap-2 mt-1.5 p-2 rounded-lg bg-black/10 dark:bg-white/10">
+                              <div className={cn(
+                                "flex items-center gap-2 mt-1.5 p-2 rounded-lg",
+                                message.sender === "consultant"
+                                  ? "bg-white/15"
+                                  : "bg-black/10 dark:bg-white/10"
+                              )}>
                                 <Paperclip className="h-3.5 w-3.5 flex-shrink-0 opacity-90" />
                                 <a href={getApiBaseUrl().replace(/\/api\/?$/, "") + message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline truncate flex-1 min-w-0">
                                   {message.attachmentName}
@@ -764,7 +769,12 @@ const Messages = () => {
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="flex-shrink-0 h-8 w-8 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                                  className={cn(
+                                    "flex-shrink-0 h-8 w-8 rounded-md",
+                                    message.sender === "consultant"
+                                      ? "text-white hover:bg-white/20"
+                                      : "hover:bg-black/10 dark:hover:bg-white/10"
+                                  )}
                                   title={t('consultant:messages.downloadFile')}
                                   aria-label={t('consultant:messages.downloadFile')}
                                   disabled={downloadingAttachmentId === message.id}

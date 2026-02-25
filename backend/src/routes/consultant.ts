@@ -1495,7 +1495,7 @@ export async function consultantRoutes(fastify: FastifyInstance) {
       }
 
       const customerId = accessCheck.rows[0].customer_id;
-      const msgBody = hasBody ? body!.trim() : (hasAttachment ? '(arquivo)' : '');
+      const msgBody = hasBody ? body!.trim() : '';
 
       let result: { rows: any[] };
       try {
